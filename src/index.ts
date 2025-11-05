@@ -51,7 +51,9 @@ export class Application extends EventEmitter {
       await championDataFetcher.fetchChampionData();
       logger.success('Champion data loaded');
     } catch (error) {
-      logger.warn('Failed to fetch champion data, will retry later', error as Error);
+      logger.warn('Failed to fetch champion data, will retry later', {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
     logger.success('Application initialized');
@@ -187,20 +189,20 @@ export class Application extends EventEmitter {
       isLocalPlayer: event.isLocalPlayer,
     });
 
+    // Predict lane
+    const team = event.team === 'ally' ? this.allyTeam : this.enemyTeam;
+    const predictedRole = lanePredictor.predict(champion, team, event.pickOrder);
+
+    // Create champion with predicted role
+    const championWithRole = predictedRole ? { ...champion, predictedRole } : champion;
+
     // Create champion pick
     const pick: ChampionPick = {
-      champion,
+      champion: championWithRole,
       team: event.team,
       pickOrder: event.pickOrder,
       isPlayerChampion: event.isLocalPlayer,
     };
-
-    // Predict lane
-    const team = event.team === 'ally' ? this.allyTeam : this.enemyTeam;
-    const predictedRole = lanePredictor.predict(champion, team, event.pickOrder);
-    if (predictedRole) {
-      pick.champion = { ...champion, predictedRole };
-    }
 
     // Add to team
     if (event.team === 'ally') {

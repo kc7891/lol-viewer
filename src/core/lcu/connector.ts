@@ -52,9 +52,8 @@ export class LCUConnector extends EventEmitter {
         headers: {
           Authorization: `Basic ${auth}`,
         },
-        // @ts-expect-error - ws types don't include agent for https
         agent,
-      });
+      } as any);
 
       // Setup event handlers
       this.setupEventHandlers();
