@@ -54,7 +54,7 @@ export class LanePredictor {
 
     // If only one possible role, return it
     if (possibleRoles.length === 1) {
-      const predictedRole = possibleRoles[0];
+      const predictedRole = possibleRoles[0] ?? null;
       logger.debug('Predicted lane (only option)', {
         champion: champion.name,
         role: predictedRole,
@@ -77,7 +77,7 @@ export class LanePredictor {
     }
 
     // Fallback to champion's primary role (first in the list)
-    const fallbackRole = possibleRoles[0];
+    const fallbackRole = possibleRoles[0] ?? null;
     logger.debug('Predicted lane (fallback to primary)', {
       champion: champion.name,
       role: fallbackRole,

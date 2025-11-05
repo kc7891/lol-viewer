@@ -8,7 +8,7 @@ import type {
   LCUEvent,
   GameStartEvent,
 } from '../../types/event.js';
-import type { Role, Team } from '../../types/champion.js';
+import type { Team } from '../../types/champion.js';
 import { logger } from '../../utils/logger.js';
 
 /**
