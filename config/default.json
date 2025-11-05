@@ -1,0 +1,45 @@
+{
+  "browser": {
+    "type": "chromium",
+    "headless": false,
+    "width": 1200,
+    "height": 800,
+    "reuseExisting": true
+  },
+  "lolAnalytics": {
+    "baseUrl": "https://lolanalytics.com",
+    "autoOpenDelay": 2000,
+    "features": {
+      "matchup": {
+        "enabled": true,
+        "trigger": "pick"
+      },
+      "myCounters": {
+        "enabled": true,
+        "trigger": "hover"
+      },
+      "enemyCounters": {
+        "enabled": true,
+        "trigger": "pick"
+      },
+      "buildGuide": {
+        "enabled": true,
+        "trigger": "lock-in",
+        "inGame": true
+      }
+    }
+  },
+  "lcu": {
+    "autoDetect": true,
+    "retryInterval": 5000,
+    "maxRetries": 10,
+    "enableSSL": true,
+    "verifyCertificate": false
+  },
+  "ui": {
+    "mode": "terminal",
+    "showNotifications": true,
+    "verbose": false,
+    "colorEnabled": true
+  }
+}
