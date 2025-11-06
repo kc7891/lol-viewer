@@ -273,27 +273,30 @@ async function stopApplication() {
 app.whenReady().then(async () => {
   createTray();
 
-  // Show settings window on first launch
+  // Always show settings window on startup for easy access
+  // Users can close it if they don't need it
+  createSettingsWindow();
+
+  // Show welcome dialog only on first launch
   const hasLaunchedBefore = store.get('hasLaunchedBefore', false) as boolean;
   if (!hasLaunchedBefore) {
     store.set('hasLaunchedBefore', true);
-    createSettingsWindow();
 
-    // Show welcome dialog
     dialog.showMessageBox({
       type: 'info',
       title: 'LoL Analytics Viewer へようこそ',
       message: 'LoL Analytics Viewer が起動しました！',
       detail:
+        '• 設定画面から「Start」ボタンを押してアプリを起動してください\n' +
         '• システムトレイ（タスクバー右下）にアイコンが表示されます\n' +
         '• トレイアイコンを右クリックして設定を変更できます\n' +
         '• League of Legendsを起動してチャンピオン選択を開始してください\n\n' +
-        '問題がある場合は、この設定画面から「Start」ボタンを押してアプリを起動してください。',
+        'ログセクションで動作状況を確認できます。',
       buttons: ['OK']
     });
   } else {
-    // Auto-start application on subsequent launches
-    const autoStart = store.get('autoStart', true) as boolean;
+    // Auto-start application on subsequent launches if configured
+    const autoStart = store.get('autoStart', false) as boolean;
     if (autoStart) {
       await startApplication();
     }
