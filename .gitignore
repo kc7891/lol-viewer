@@ -5,7 +5,9 @@ bun.lockb
 # Build output
 dist/
 *.tsbuildinfo
-release/
+release/win-unpacked/
+release/builder-debug.yml
+release/LoL-Analytics-Viewer-Windows-x64.zip
 
 # Logs
 logs/
