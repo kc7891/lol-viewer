@@ -1,9 +1,14 @@
 # LoL Analytics Browser Viewer
 
+🎮 **Windows環境設定不要！** .exeファイルをダブルクリックするだけで使えるElectronアプリ
+
 Automatically opens relevant LoL Analytics pages based on current draft status in League of Legends.
 
 ## 🎯 Features
 
+- **💻 Windows .exe配布**: Node.js/npm不要、インストーラーで簡単セットアップ
+- **🎨 GUI設定画面**: 美しいインターフェースで設定変更
+- **📍 システムトレイ常駐**: バックグラウンドで動作、邪魔にならない
 - **Matchup Analysis**: Automatically displays winrate for your champion vs enemy champion
 - **Counter Pick Support**: Shows counter information for both your and enemy champions
 - **Build Guides**: Displays optimal builds during champion select and in-game
@@ -20,60 +25,71 @@ Automatically opens relevant LoL Analytics pages based on current draft status i
 
 ## 📦 Installation
 
-### Using Bun (Recommended)
+### For End Users (Windows)
+
+**最も簡単な方法 - Electronアプリ版**
+
+1. [Releases](../../releases) から `LoL Analytics Viewer Setup.exe` をダウンロード
+2. インストーラーを実行
+3. デスクトップのショートカットをダブルクリック
+4. システムトレイのアイコンを右クリック → "Start"
+5. League of Legendsでチャンピオン選択を開始
+
+**環境設定不要！すぐに使えます！**
+
+### For Developers
+
+#### Using npm/Node.js
 
 ```bash
-# Install Bun if you haven't
-curl -fsSL https://bun.sh/install | bash
-
 # Clone the repository
 git clone https://github.com/yourusername/lol-analytics-viewer.git
 cd lol-analytics-viewer
 
 # Install dependencies
-bun install
+npm install
 
-# Run in development mode
-bun run dev
-```
+# Run CLI mode
+npm run dev
 
-### Using npm
+# Run Electron app (development)
+npm run dev:electron
 
-```bash
-npm install -g lol-analytics-viewer
-lol-analytics-viewer
+# Build Windows .exe
+npm run build
+npm run package
 ```
 
 ## 🎮 Usage
 
-### Automatic Mode (Recommended)
+### Electron App (推奨 - Windows)
 
-1. Start League of Legends client
-2. Run the viewer:
-   ```bash
-   bun run dev
-   ```
-3. Enter champion select
-4. Browser pages will automatically open based on your actions:
-   - **Hover**: Opens counter information for your champion
-   - **Pick**: Opens matchup page (your champion vs enemy laner)
-   - **Lock-in**: Opens build guide
-   - **Game Start**: Opens build guide in a new tab
+1. **起動**: デスクトップまたはスタートメニューから "LoL Analytics Viewer" を起動
+2. **システムトレイ**: タスクバーのトレイアイコンを確認（紫色）
+3. **設定**: トレイアイコンを右クリック → "Settings" で設定画面を開く
+4. **開始**: "Start" ボタンをクリック（または自動開始）
+5. **League of Legends起動**: ゲームクライアントを起動
+6. **チャンピオン選択**: 自動的にブラウザでページが開きます
 
-### Manual Mode
+#### 設定画面の使い方
+
+- **Application Control**: Start/Stop/Restart でアプリを制御
+- **Features**: 各機能のON/OFFとトリガータイミングを設定
+  - Hover: チャンピオンにマウスを乗せた時
+  - Pick: チャンピオンを選択した時
+  - Lock-in: チャンピオンを確定した時
+- **Settings**: URLや遅延時間などを変更
+
+### CLI Mode (開発者向け)
 
 ```bash
-# Open matchup page
-bun run cli matchup Ahri Zed
+# 自動モード
+npm run dev
 
-# Open counters for your champion
-bun run cli counters Ahri
-
-# Open counters for enemy champion
-bun run cli counter-of Zed
-
-# Open build guide
-bun run cli build Ahri
+# マニュアルモード
+npm run cli matchup Ahri Zed
+npm run cli counters Ahri
+npm run cli build Ahri
 ```
 
 ## ⚙️ Configuration
@@ -117,23 +133,43 @@ Create a config file at `~/.lol-viewer/config.json`:
 
 ```bash
 # Install dependencies
-bun install
+npm install
 
-# Run in development mode
-bun run dev
+# CLI mode (no GUI)
+npm run dev
 
-# Build
-bun run build
+# Electron app (development)
+npm run dev:electron
+
+# Build TypeScript
+npm run build
+
+# Build Electron app for Windows
+npm run build
+npm run package
 
 # Run tests
-bun test
+npm test
 
-# Lint
-bun run lint
-
-# Format
-bun run format
+# Lint & Format
+npm run lint
+npm run format
 ```
+
+### Building for Distribution
+
+```bash
+# Windows installer (.exe)
+npm run package
+
+# All platforms (Windows, macOS, Linux)
+npm run package:all
+
+# Output directory
+ls release/
+```
+
+詳細は [ELECTRON_GUIDE.md](./ELECTRON_GUIDE.md) を参照
 
 ## 📖 Project Structure
 
