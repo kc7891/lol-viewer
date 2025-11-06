@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LoL Analytics Viewer - Settings</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      color: #333;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.2);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status.running {
+      background: #10b981;
+    }
+
+    .status.stopped {
+      background: #ef4444;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .section {
+      margin-bottom: 30px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: #667eea;
+    }
+
+    .control-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #555;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #6b7280;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #4b5563;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .feature-card {
+      padding: 15px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      transition: border-color 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: #667eea;
+    }
+
+    .feature-card h4 {
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .pulsing {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚡ LoL Analytics Viewer</h1>
+      <div class="status" id="status">⏳ Loading...</div>
+    </div>
+
+    <div class="content">
+      <!-- Control Section -->
+      <div class="section">
+        <h2 class="section-title">Application Control</h2>
+        <div class="button-group">
+          <button class="btn btn-success" id="startBtn">▶ Start</button>
+          <button class="btn btn-danger" id="stopBtn">⏸ Stop</button>
+          <button class="btn btn-secondary" id="restartBtn">🔄 Restart</button>
+        </div>
+      </div>
+
+      <!-- Features Section -->
+      <div class="section">
+        <h2 class="section-title">Features</h2>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <h4>Matchup Analysis</h4>
+            <div class="checkbox-group">
+              <input type="checkbox" id="matchupEnabled" checked>
+              <label for="matchupEnabled">Enable</label>
+            </div>
+            <div class="control-group">
+              <label for="matchupTrigger">Trigger</label>
+              <select id="matchupTrigger">
+                <option value="hover">Hover</option>
+                <option value="pick" selected>Pick</option>
+                <option value="lock-in">Lock-in</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="feature-card">
+            <h4>My Counters</h4>
+            <div class="checkbox-group">
+              <input type="checkbox" id="myCountersEnabled" checked>
+              <label for="myCountersEnabled">Enable</label>
+            </div>
+            <div class="control-group">
+              <label for="myCountersTrigger">Trigger</label>
+              <select id="myCountersTrigger">
+                <option value="hover" selected>Hover</option>
+                <option value="pick">Pick</option>
+                <option value="lock-in">Lock-in</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="feature-card">
+            <h4>Enemy Counters</h4>
+            <div class="checkbox-group">
+              <input type="checkbox" id="enemyCountersEnabled" checked>
+              <label for="enemyCountersEnabled">Enable</label>
+            </div>
+            <div class="control-group">
+              <label for="enemyCountersTrigger">Trigger</label>
+              <select id="enemyCountersTrigger">
+                <option value="hover">Hover</option>
+                <option value="pick" selected>Pick</option>
+                <option value="lock-in">Lock-in</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="feature-card">
+            <h4>Build Guide</h4>
+            <div class="checkbox-group">
+              <input type="checkbox" id="buildGuideEnabled" checked>
+              <label for="buildGuideEnabled">Enable</label>
+            </div>
+            <div class="checkbox-group">
+              <input type="checkbox" id="buildGuideInGame" checked>
+              <label for="buildGuideInGame">Open in-game</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Section -->
+      <div class="section">
+        <h2 class="section-title">Settings</h2>
+
+        <div class="control-group">
+          <label for="baseUrl">LoL Analytics Base URL</label>
+          <input type="text" id="baseUrl" value="https://lolanalytics.com">
+          <p class="help-text">URL of the analytics website to open</p>
+        </div>
+
+        <div class="control-group">
+          <label for="autoOpenDelay">Auto-open Delay (ms)</label>
+          <input type="number" id="autoOpenDelay" value="2000" min="0" max="10000" step="100">
+          <p class="help-text">Delay before opening browser pages</p>
+        </div>
+
+        <div class="control-group">
+          <label for="maxRetries">Max LCU Connection Retries</label>
+          <input type="number" id="maxRetries" value="10" min="1" max="100">
+          <p class="help-text">Number of times to retry connecting to League Client</p>
+        </div>
+      </div>
+
+      <!-- Save Button -->
+      <div class="button-group">
+        <button class="btn btn-primary" id="saveBtn">💾 Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Get API from preload
+    const api = window.electronAPI;
+
+    // Elements
+    const statusEl = document.getElementById('status');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const saveBtn = document.getElementById('saveBtn');
+
+    // Update status
+    function updateStatus(status) {
+      statusEl.textContent = status === 'running' ? '⚡ Running' : '⏸ Stopped';
+      statusEl.className = 'status ' + status;
+
+      startBtn.disabled = status === 'running';
+      stopBtn.disabled = status === 'stopped';
+    }
+
+    // Load config
+    async function loadConfig() {
+      const config = await api.getConfig();
+
+      // Update UI with config
+      document.getElementById('matchupEnabled').checked = config.lolAnalytics.features.matchup.enabled;
+      document.getElementById('matchupTrigger').value = config.lolAnalytics.features.matchup.trigger;
+
+      document.getElementById('myCountersEnabled').checked = config.lolAnalytics.features.myCounters.enabled;
+      document.getElementById('myCountersTrigger').value = config.lolAnalytics.features.myCounters.trigger;
+
+      document.getElementById('enemyCountersEnabled').checked = config.lolAnalytics.features.enemyCounters.enabled;
+      document.getElementById('enemyCountersTrigger').value = config.lolAnalytics.features.enemyCounters.trigger;
+
+      document.getElementById('buildGuideEnabled').checked = config.lolAnalytics.features.buildGuide.enabled;
+      document.getElementById('buildGuideInGame').checked = config.lolAnalytics.features.buildGuide.inGame;
+
+      document.getElementById('baseUrl').value = config.lolAnalytics.baseUrl;
+      document.getElementById('autoOpenDelay').value = config.lolAnalytics.autoOpenDelay;
+      document.getElementById('maxRetries').value = config.lcu.maxRetries;
+    }
+
+    // Save config
+    async function saveConfig() {
+      const config = await api.getConfig();
+
+      // Update config from UI
+      config.lolAnalytics.features.matchup.enabled = document.getElementById('matchupEnabled').checked;
+      config.lolAnalytics.features.matchup.trigger = document.getElementById('matchupTrigger').value;
+
+      config.lolAnalytics.features.myCounters.enabled = document.getElementById('myCountersEnabled').checked;
+      config.lolAnalytics.features.myCounters.trigger = document.getElementById('myCountersTrigger').value;
+
+      config.lolAnalytics.features.enemyCounters.enabled = document.getElementById('enemyCountersEnabled').checked;
+      config.lolAnalytics.features.enemyCounters.trigger = document.getElementById('enemyCountersTrigger').value;
+
+      config.lolAnalytics.features.buildGuide.enabled = document.getElementById('buildGuideEnabled').checked;
+      config.lolAnalytics.features.buildGuide.inGame = document.getElementById('buildGuideInGame').checked;
+
+      config.lolAnalytics.baseUrl = document.getElementById('baseUrl').value;
+      config.lolAnalytics.autoOpenDelay = parseInt(document.getElementById('autoOpenDelay').value);
+      config.lcu.maxRetries = parseInt(document.getElementById('maxRetries').value);
+
+      await api.saveConfig(config);
+
+      // Show feedback
+      saveBtn.textContent = '✓ Saved!';
+      setTimeout(() => {
+        saveBtn.textContent = '💾 Save Settings';
+      }, 2000);
+    }
+
+    // Event listeners
+    startBtn.addEventListener('click', async () => {
+      startBtn.disabled = true;
+      startBtn.textContent = 'Starting...';
+      await api.startApp();
+      const status = await api.getAppStatus();
+      updateStatus(status);
+      startBtn.textContent = '▶ Start';
+    });
+
+    stopBtn.addEventListener('click', async () => {
+      stopBtn.disabled = true;
+      stopBtn.textContent = 'Stopping...';
+      await api.stopApp();
+      const status = await api.getAppStatus();
+      updateStatus(status);
+      stopBtn.textContent = '⏸ Stop';
+    });
+
+    restartBtn.addEventListener('click', async () => {
+      restartBtn.disabled = true;
+      restartBtn.textContent = 'Restarting...';
+      await api.restartApp();
+      const status = await api.getAppStatus();
+      updateStatus(status);
+      restartBtn.disabled = false;
+      restartBtn.textContent = '🔄 Restart';
+    });
+
+    saveBtn.addEventListener('click', saveConfig);
+
+    // Listen for status updates
+    api.onAppStatus(updateStatus);
+
+    // Initial load
+    (async () => {
+      await loadConfig();
+      const status = await api.getAppStatus();
+      updateStatus(status);
+    })();
+  </script>
+</body>
+</html>
