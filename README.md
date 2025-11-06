@@ -29,13 +29,15 @@ Automatically opens relevant LoL Analytics pages based on current draft status i
 
 **最も簡単な方法 - Electronアプリ版**
 
-1. [Releases](../../releases) から `LoL Analytics Viewer Setup.exe` をダウンロード
-2. インストーラーを実行
-3. デスクトップのショートカットをダブルクリック
-4. システムトレイのアイコンを右クリック → "Start"
-5. League of Legendsでチャンピオン選択を開始
+1. [Releases](../../releases) から `LoL-Analytics-Viewer-Windows-x64.zip` をダウンロード
+2. ZIPファイルを解凍
+3. `win-unpacked` フォルダ内の `LoL Analytics Viewer.exe` をダブルクリック
+4. システムトレイ（タスクバー右下）にアイコンが表示されます
+5. League of Legendsでチャンピオン選択を開始すると自動的にページが開きます
 
 **環境設定不要！すぐに使えます！**
+
+📖 詳細な使用方法は [BUILD_DISTRIBUTION.md](./BUILD_DISTRIBUTION.md) をご覧ください
 
 ### For Developers
 
