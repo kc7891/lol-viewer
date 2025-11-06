@@ -28,16 +28,25 @@ let isQuitting = false;
  * Create system tray icon
  */
 function createTray() {
-  // Create tray icon (use default if custom icon not available)
-  const iconPath = path.join(__dirname, '../../assets/tray-icon.png');
-  let icon = nativeImage.createFromPath(iconPath);
+  try {
+    // Create tray icon (use default if custom icon not available)
+    const iconPath = path.join(__dirname, '../../assets/tray-icon.png');
+    let icon = nativeImage.createFromPath(iconPath);
 
-  // If icon doesn't exist or is empty, create a simple default icon
-  if (icon.isEmpty()) {
-    icon = nativeImage.createEmpty();
-  }
+    // If icon doesn't exist, try to use app icon
+    if (icon.isEmpty()) {
+      // Create a minimal 1x1 transparent icon as placeholder
+      // Note: On Windows, tray might not show without a proper icon
+      const buffer = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        'base64'
+      );
+      icon = nativeImage.createFromBuffer(buffer);
 
-  tray = new Tray(icon.isEmpty() ? nativeImage.createEmpty() : icon.resize({ width: 16, height: 16 }));
+      logger.warn('Tray icon not found. Tray might not be visible on some systems.');
+    }
+
+    tray = new Tray(icon.isEmpty() ? icon : icon.resize({ width: 16, height: 16 }));
 
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -89,6 +98,10 @@ function createTray() {
   tray.on('click', () => {
     createSettingsWindow();
   });
+  } catch (error) {
+    logger.error('Failed to create tray icon', error as Error);
+    // Continue without tray - settings window will still be accessible
+  }
 }
 
 /**
@@ -234,10 +247,30 @@ async function stopApplication() {
 app.whenReady().then(async () => {
   createTray();
 
-  // Auto-start application
-  const autoStart = store.get('autoStart', true) as boolean;
-  if (autoStart) {
-    await startApplication();
+  // Show settings window on first launch
+  const hasLaunchedBefore = store.get('hasLaunchedBefore', false) as boolean;
+  if (!hasLaunchedBefore) {
+    store.set('hasLaunchedBefore', true);
+    createSettingsWindow();
+
+    // Show welcome dialog
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'LoL Analytics Viewer へようこそ',
+      message: 'LoL Analytics Viewer が起動しました！',
+      detail:
+        '• システムトレイ（タスクバー右下）にアイコンが表示されます\n' +
+        '• トレイアイコンを右クリックして設定を変更できます\n' +
+        '• League of Legendsを起動してチャンピオン選択を開始してください\n\n' +
+        '問題がある場合は、この設定画面から「Start」ボタンを押してアプリを起動してください。',
+      buttons: ['OK']
+    });
+  } else {
+    // Auto-start application on subsequent launches
+    const autoStart = store.get('autoStart', true) as boolean;
+    if (autoStart) {
+      await startApplication();
+    }
   }
 
   // IPC handlers
