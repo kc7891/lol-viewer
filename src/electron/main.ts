@@ -25,6 +25,15 @@ let appInstance: Application | null = null;
 let isQuitting = false;
 
 /**
+ * Send log to renderer process
+ */
+function sendLog(level: string, message: string) {
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.webContents.send('log', level, message);
+  }
+}
+
+/**
  * Create system tray icon
  */
 function createTray() {
@@ -199,10 +208,18 @@ function createSettingsWindow() {
  */
 async function startApplication() {
   try {
+    sendLog('info', 'Loading configuration...');
     const config = await loadConfig();
+    sendLog('success', 'Configuration loaded');
+
+    sendLog('info', 'Initializing application...');
     appInstance = new Application(config);
     await appInstance.initialize();
+    sendLog('success', 'Application initialized');
+
+    sendLog('info', 'Connecting to League Client...');
     await appInstance.start();
+    sendLog('success', 'Connected to League Client successfully');
 
     logger.info('Application started from Electron');
 
@@ -213,12 +230,21 @@ async function startApplication() {
 
     updateTrayMenu();
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error('Failed to start application', error as Error);
+    sendLog('error', `Failed to start: ${errorMessage}`);
 
-    dialog.showErrorBox(
-      'Startup Error',
-      `Failed to start application: ${error instanceof Error ? error.message : String(error)}`
-    );
+    // Show more helpful error messages
+    let userMessage = errorMessage;
+    if (errorMessage.includes('League Client process not found')) {
+      userMessage = 'League of Legends client is not running. Please start League of Legends first.';
+      sendLog('warn', 'Please start League of Legends and try again');
+    } else if (errorMessage.includes('ECONNREFUSED')) {
+      userMessage = 'Cannot connect to League Client. Make sure League of Legends is running.';
+      sendLog('warn', 'Connection refused - check if League Client is running');
+    }
+
+    dialog.showErrorBox('Startup Error', userMessage);
   }
 }
 

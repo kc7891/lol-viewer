@@ -19,4 +19,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Return cleanup function
     return () => ipcRenderer.removeListener('app-status', listener);
   },
+  onLog: (callback: (level: string, message: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, level: string, message: string) =>
+      callback(level, message);
+    ipcRenderer.on('log', listener);
+    // Return cleanup function
+    return () => ipcRenderer.removeListener('log', listener);
+  },
 });
