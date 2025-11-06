@@ -21,18 +21,23 @@ const store = new Store();
 
 let tray: Tray | null = null;
 let settingsWindow: BrowserWindow | null = null;
-let app Instance: Application | null = null;
+let appInstance: Application | null = null;
 let isQuitting = false;
 
 /**
  * Create system tray icon
  */
 function createTray() {
-  // Create tray icon (you'll need to provide actual icon files)
+  // Create tray icon (use default if custom icon not available)
   const iconPath = path.join(__dirname, '../../assets/tray-icon.png');
-  const icon = nativeImage.createFromPath(iconPath);
+  let icon = nativeImage.createFromPath(iconPath);
 
-  tray = new Tray(icon.resize({ width: 16, height: 16 }));
+  // If icon doesn't exist or is empty, create a simple default icon
+  if (icon.isEmpty()) {
+    icon = nativeImage.createEmpty();
+  }
+
+  tray = new Tray(icon.isEmpty() ? nativeImage.createEmpty() : icon.resize({ width: 16, height: 16 }));
 
   const contextMenu = Menu.buildFromTemplate([
     {
