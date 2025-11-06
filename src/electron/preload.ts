@@ -14,6 +14,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   stopApp: () => ipcRenderer.invoke('stop-app'),
   restartApp: () => ipcRenderer.invoke('restart-app'),
   onAppStatus: (callback: (status: string) => void) => {
-    ipcRenderer.on('app-status', (_event, status) => callback(status));
+    const listener = (_event: Electron.IpcRendererEvent, status: string) => callback(status);
+    ipcRenderer.on('app-status', listener);
+    // Return cleanup function
+    return () => ipcRenderer.removeListener('app-status', listener);
   },
 });

@@ -19,6 +19,8 @@ export class LCUConnector extends EventEmitter {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 5000;
+  private lastCredentials: LCUCredentials | null = null;
+  private reconnectTimeout: NodeJS.Timeout | null = null;
 
   /**
    * Connect to LCU WebSocket
@@ -28,6 +30,9 @@ export class LCUConnector extends EventEmitter {
       logger.warn('Already connected to LCU');
       return;
     }
+
+    // Save credentials for reconnection
+    this.lastCredentials = credentials;
 
     this.status = 'connecting';
     logger.info('Connecting to LCU WebSocket...', {
@@ -89,6 +94,12 @@ export class LCUConnector extends EventEmitter {
    * Disconnect from LCU WebSocket
    */
   disconnect(): void {
+    // Clear reconnect timeout
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
     if (this.ws) {
       logger.info('Disconnecting from LCU WebSocket...');
       this.ws.close();
@@ -96,6 +107,9 @@ export class LCUConnector extends EventEmitter {
       this.status = 'disconnected';
       this.emit('disconnected');
     }
+
+    // Reset reconnection attempts
+    this.reconnectAttempts = 0;
   }
 
   /**
@@ -168,12 +182,17 @@ export class LCUConnector extends EventEmitter {
       this.emit('disconnected');
 
       // Attempt to reconnect
-      if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      if (this.reconnectAttempts < this.maxReconnectAttempts && this.lastCredentials) {
         this.reconnectAttempts++;
         logger.info(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+        this.emit('reconnecting', this.reconnectAttempts);
 
-        setTimeout(() => {
-          this.emit('reconnecting', this.reconnectAttempts);
+        this.reconnectTimeout = setTimeout(async () => {
+          try {
+            await this.connect(this.lastCredentials!);
+          } catch (error) {
+            logger.error('Reconnection failed', error as Error);
+          }
         }, this.reconnectDelay);
       }
     });

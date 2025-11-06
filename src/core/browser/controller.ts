@@ -37,6 +37,19 @@ export class BrowserController {
   }
 
   /**
+   * Escape URL for shell command
+   */
+  private escapeUrl(url: string): string {
+    // For Windows, escape special characters
+    if (platform() === 'win32') {
+      // Replace problematic characters for Windows cmd
+      return url.replace(/([&|<>^%])/g, '^$1');
+    }
+    // For Unix-like systems, single quotes are safer
+    return url.replace(/'/g, "'\\''");
+  }
+
+  /**
    * Open a URL in the default browser
    *
    * @param url - URL to open
@@ -51,13 +64,14 @@ export class BrowserController {
 
       if (platformName === 'win32') {
         // Windows: start "" "url" (empty string for window title)
-        command = `start "" "${url}"`;
+        const escapedUrl = this.escapeUrl(url);
+        command = `start "" "${escapedUrl}"`;
       } else if (platformName === 'darwin') {
-        // macOS: open "url"
-        command = `open "${url}"`;
+        // macOS: open 'url' (use single quotes for better escaping)
+        command = `open '${this.escapeUrl(url)}'`;
       } else {
-        // Linux: xdg-open "url"
-        command = `xdg-open "${url}"`;
+        // Linux: xdg-open 'url' (use single quotes for better escaping)
+        command = `xdg-open '${this.escapeUrl(url)}'`;
       }
 
       await execAsync(command);
