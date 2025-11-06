@@ -410,6 +410,23 @@
     // Get API from preload
     const api = window.electronAPI;
 
+    // Check if API is available
+    if (!api) {
+      console.error('electronAPI is not available. Preload script may have failed to load.');
+      document.body.innerHTML = '<div style="padding: 20px; color: red; font-family: monospace;">' +
+        '<h2>Error: API Not Available</h2>' +
+        '<p>The Electron API could not be loaded. This usually means:</p>' +
+        '<ul>' +
+        '<li>Preload script failed to load</li>' +
+        '<li>Context isolation is not working correctly</li>' +
+        '<li>Application was not built correctly</li>' +
+        '</ul>' +
+        '<p>Please rebuild the application:</p>' +
+        '<pre>npm run build\nnpm run package</pre>' +
+        '</div>';
+      throw new Error('electronAPI is undefined');
+    }
+
     // Elements
     const statusEl = document.getElementById('status');
     const startBtn = document.getElementById('startBtn');

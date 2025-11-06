@@ -11,7 +11,7 @@
     "dev": "tsx src/index.ts",
     "dev:electron": "electron .",
     "build": "tsc && npm run build:electron",
-    "build:electron": "tsc -p tsconfig.electron.json",
+    "build:electron": "npx tsc src/electron/preload.ts src/electron/main.ts --outDir dist/electron --module CommonJS --target ES2022 --types node,electron --esModuleInterop --skipLibCheck --noResolve",
     "start": "node dist/index.js",
     "start:electron": "electron dist/electron/main.js",
     "cli": "tsx src/cli/index.ts",
@@ -71,10 +71,11 @@
     "win": {
       "target": [
         {
-          "target": "portable",
+          "target": "dir",
           "arch": ["x64"]
         }
-      ]
+      ],
+      "sign": false
     },
     "nsis": {
       "oneClick": false,

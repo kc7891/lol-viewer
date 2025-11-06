@@ -2,26 +2,39 @@
  * Electron main process
  */
 
+// @ts-nocheck - Dynamic ESM imports in CommonJS context
 import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, dialog } from 'electron';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import Store from 'electron-store';
 
-// ESM compatibility
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// __dirname is available in CommonJS, but we need to declare it for TypeScript
+declare const __dirname: string;
 
-// Import application logic
-import { Application } from '../index.js';
-import { loadConfig } from '../utils/config.js';
-import { logger } from '../utils/logger.js';
+// Dynamic imports for ESM modules (will be loaded at runtime)
+let Application: any;
+let loadConfig: any;
+let logger: any;
+
+// Load ESM modules
+async function loadESMModules() {
+  // @ts-ignore - Dynamic imports of ESM modules from CommonJS
+  const indexModule = await import('../index.js');
+  // @ts-ignore - Dynamic imports of ESM modules from CommonJS
+  const configModule = await import('../utils/config.js');
+  // @ts-ignore - Dynamic imports of ESM modules from CommonJS
+  const loggerModule = await import('../utils/logger.js');
+
+  Application = indexModule.Application;
+  loadConfig = configModule.loadConfig;
+  logger = loggerModule.logger;
+}
 
 // Electron store for settings
 const store = new Store();
 
 let tray: Tray | null = null;
 let settingsWindow: BrowserWindow | null = null;
-let appInstance: Application | null = null;
+let appInstance: any = null;
 let isQuitting = false;
 
 /**
@@ -271,6 +284,9 @@ async function stopApplication() {
  * App ready handler
  */
 app.whenReady().then(async () => {
+  // Load ESM modules first
+  await loadESMModules();
+
   createTray();
 
   // Always show settings window on startup for easy access
