@@ -32,6 +32,9 @@ export class Application extends EventEmitter {
   private enemyTeam: ChampionPick[] = [];
   private myChampionPick: ChampionPick | null = null;
 
+  // Track processed events to prevent duplicates
+  private processedEvents = new Set<string>();
+
   constructor(config: Config) {
     super();
     this.config = config;
@@ -173,6 +176,14 @@ export class Application extends EventEmitter {
     if (event.type === 'ban') {
       return;
     }
+
+    // Check for duplicate events
+    const eventKey = `${event.championId}-${event.type}-${event.playerId}`;
+    if (this.processedEvents.has(eventKey)) {
+      logger.debug('Duplicate event detected, skipping', { eventKey });
+      return;
+    }
+    this.processedEvents.add(eventKey);
 
     // Get champion data
     const champion = await championDataFetcher.getChampionById(event.championId);
@@ -340,6 +351,7 @@ export class Application extends EventEmitter {
     this.allyTeam = [];
     this.enemyTeam = [];
     this.myChampionPick = null;
+    this.processedEvents.clear();
   }
 }
 
