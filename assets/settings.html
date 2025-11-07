@@ -393,6 +393,54 @@
         <button class="btn btn-primary" id="saveBtn">💾 Save Settings</button>
       </div>
 
+      <!-- Manual Testing Section -->
+      <div class="section">
+        <h2 class="section-title">🧪 Manual Testing</h2>
+        <p class="help-text" style="margin-bottom: 15px;">Test URL opening without launching League of Legends</p>
+
+        <div class="control-group">
+          <label for="testMyChampion">My Champion</label>
+          <input type="text" id="testMyChampion" placeholder="e.g., Ahri, Zed, Yasuo">
+          <p class="help-text">Enter champion name</p>
+        </div>
+
+        <div class="control-group">
+          <label for="testRole">Role/Lane</label>
+          <select id="testRole">
+            <option value="">Auto (no role specified)</option>
+            <option value="top">Top</option>
+            <option value="jungle">Jungle</option>
+            <option value="mid" selected>Mid</option>
+            <option value="adc">ADC / Bot</option>
+            <option value="support">Support</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="testEnemyChampion">Enemy Champion (for Matchup)</label>
+          <input type="text" id="testEnemyChampion" placeholder="e.g., Zed, Yasuo">
+          <p class="help-text">Optional: for matchup analysis</p>
+        </div>
+
+        <div class="button-group">
+          <button class="btn btn-primary" id="testMatchupBtn" title="View matchup: My Champion vs Enemy Champion">
+            🆚 View Matchup
+          </button>
+          <button class="btn btn-primary" id="testMyCountersBtn" title="View counters for my champion">
+            🛡️ My Counters
+          </button>
+        </div>
+
+        <div class="button-group">
+          <button class="btn btn-primary" id="testEnemyCountersBtn" title="View counters for enemy champion">
+            ⚔️ Enemy Counters
+          </button>
+          <button class="btn btn-primary" id="testBuildBtn" title="View build guide for my champion">
+            📖 My Build
+          </button>
+        </div>
+      </div>
+
       <!-- Log Section -->
       <div class="section">
         <div class="log-section">
@@ -564,6 +612,92 @@
     });
 
     saveBtn.addEventListener('click', saveConfig);
+
+    // Manual Testing Event Listeners
+    const testMyChampion = document.getElementById('testMyChampion');
+    const testEnemyChampion = document.getElementById('testEnemyChampion');
+    const testRole = document.getElementById('testRole');
+    const testMatchupBtn = document.getElementById('testMatchupBtn');
+    const testMyCountersBtn = document.getElementById('testMyCountersBtn');
+    const testEnemyCountersBtn = document.getElementById('testEnemyCountersBtn');
+    const testBuildBtn = document.getElementById('testBuildBtn');
+
+    testMatchupBtn.addEventListener('click', async () => {
+      const myChampion = testMyChampion.value.trim();
+      const enemyChampion = testEnemyChampion.value.trim();
+      const role = testRole.value;
+
+      if (!myChampion) {
+        addLog('warn', 'Please enter your champion name');
+        return;
+      }
+      if (!enemyChampion) {
+        addLog('warn', 'Please enter enemy champion name for matchup');
+        return;
+      }
+
+      addLog('info', `Opening matchup: ${myChampion} vs ${enemyChampion}${role ? ` (${role})` : ''}`);
+      try {
+        await api.openManualMatchup(myChampion, enemyChampion, role || null);
+        addLog('success', 'Matchup page opened');
+      } catch (error) {
+        addLog('error', `Failed to open matchup: ${error.message}`);
+      }
+    });
+
+    testMyCountersBtn.addEventListener('click', async () => {
+      const myChampion = testMyChampion.value.trim();
+      const role = testRole.value;
+
+      if (!myChampion) {
+        addLog('warn', 'Please enter your champion name');
+        return;
+      }
+
+      addLog('info', `Opening counters for: ${myChampion}${role ? ` (${role})` : ''}`);
+      try {
+        await api.openManualCounters(myChampion, role || null);
+        addLog('success', 'Counters page opened');
+      } catch (error) {
+        addLog('error', `Failed to open counters: ${error.message}`);
+      }
+    });
+
+    testEnemyCountersBtn.addEventListener('click', async () => {
+      const enemyChampion = testEnemyChampion.value.trim();
+      const role = testRole.value;
+
+      if (!enemyChampion) {
+        addLog('warn', 'Please enter enemy champion name');
+        return;
+      }
+
+      addLog('info', `Opening counters for enemy: ${enemyChampion}${role ? ` (${role})` : ''}`);
+      try {
+        await api.openManualCounters(enemyChampion, role || null);
+        addLog('success', 'Enemy counters page opened');
+      } catch (error) {
+        addLog('error', `Failed to open enemy counters: ${error.message}`);
+      }
+    });
+
+    testBuildBtn.addEventListener('click', async () => {
+      const myChampion = testMyChampion.value.trim();
+      const role = testRole.value;
+
+      if (!myChampion) {
+        addLog('warn', 'Please enter your champion name');
+        return;
+      }
+
+      addLog('info', `Opening build guide for: ${myChampion}${role ? ` (${role})` : ''}`);
+      try {
+        await api.openManualBuild(myChampion, role || null);
+        addLog('success', 'Build guide opened');
+      } catch (error) {
+        addLog('error', `Failed to open build guide: ${error.message}`);
+      }
+    });
 
     // Listen for status updates
     api.onAppStatus(updateStatus);

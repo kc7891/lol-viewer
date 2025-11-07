@@ -344,6 +344,67 @@ app.whenReady().then(async () => {
     await stopApplication();
     await startApplication();
   });
+
+  // Manual testing IPC handlers
+  ipcMain.handle('open-manual-matchup', async (_event, myChampion: string, enemyChampion: string, role: string | null) => {
+    try {
+      sendLog('info', `Manual test: Opening matchup ${myChampion} vs ${enemyChampion}${role ? ` (${role})` : ''}`);
+
+      const config = await loadConfig();
+      const { URLBuilder } = await import('../core/analytics/url-builder.js');
+      const { browserController } = await import('../core/browser/controller.js');
+
+      const urlBuilder = new URLBuilder('lol-analytics', config.lolAnalytics.baseUrl);
+      const url = urlBuilder.buildMatchupURL(myChampion, enemyChampion, role || undefined);
+
+      await browserController.open(url);
+      sendLog('success', `Opened matchup page: ${url}`);
+      return { success: true, url };
+    } catch (error: any) {
+      sendLog('error', `Failed to open matchup: ${error.message}`);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('open-manual-counters', async (_event, champion: string, role: string | null) => {
+    try {
+      sendLog('info', `Manual test: Opening counters for ${champion}${role ? ` (${role})` : ''}`);
+
+      const config = await loadConfig();
+      const { URLBuilder } = await import('../core/analytics/url-builder.js');
+      const { browserController } = await import('../core/browser/controller.js');
+
+      const urlBuilder = new URLBuilder('lol-analytics', config.lolAnalytics.baseUrl);
+      const url = urlBuilder.buildCounterURL(champion, role || undefined);
+
+      await browserController.open(url);
+      sendLog('success', `Opened counters page: ${url}`);
+      return { success: true, url };
+    } catch (error: any) {
+      sendLog('error', `Failed to open counters: ${error.message}`);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('open-manual-build', async (_event, champion: string, role: string | null) => {
+    try {
+      sendLog('info', `Manual test: Opening build guide for ${champion}${role ? ` (${role})` : ''}`);
+
+      const config = await loadConfig();
+      const { URLBuilder } = await import('../core/analytics/url-builder.js');
+      const { browserController } = await import('../core/browser/controller.js');
+
+      const urlBuilder = new URLBuilder('lol-analytics', config.lolAnalytics.baseUrl);
+      const url = urlBuilder.buildBuildURL(champion, role || undefined);
+
+      await browserController.open(url);
+      sendLog('success', `Opened build guide: ${url}`);
+      return { success: true, url };
+    } catch (error: any) {
+      sendLog('error', `Failed to open build guide: ${error.message}`);
+      throw error;
+    }
+  });
 });
 
 /**
