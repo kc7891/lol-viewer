@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Automatically opens relevant LoL Analytics pages based on current draft status in League of Legends",
   "type": "module",
-  "main": "dist/electron/main.js",
+  "main": "dist/electron/main.cjs",
   "bin": {
     "lol-analytics-viewer": "./dist/cli/index.js"
   },
@@ -11,9 +11,9 @@
     "dev": "tsx src/index.ts",
     "dev:electron": "electron .",
     "build": "tsc && npm run build:electron",
-    "build:electron": "tsc -p tsconfig.electron.json",
+    "build:electron": "npx tsc src/electron/preload.ts src/electron/main.ts --outDir dist/electron --module CommonJS --target ES2022 --types node,electron --esModuleInterop --skipLibCheck --noResolve && mv dist/electron/main.js dist/electron/main.cjs && mv dist/electron/preload.js dist/electron/preload.cjs",
     "start": "node dist/index.js",
-    "start:electron": "electron dist/electron/main.js",
+    "start:electron": "electron dist/electron/main.cjs",
     "cli": "tsx src/cli/index.ts",
     "package": "electron-builder build --win --publish never",
     "package:all": "electron-builder build --win --mac --linux --publish never",
@@ -71,10 +71,11 @@
     "win": {
       "target": [
         {
-          "target": "portable",
+          "target": "dir",
           "arch": ["x64"]
         }
-      ]
+      ],
+      "sign": false
     },
     "nsis": {
       "oneClick": false,

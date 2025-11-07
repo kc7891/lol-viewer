@@ -2,42 +2,73 @@
  * Electron main process
  */
 
+// @ts-nocheck - Dynamic ESM imports in CommonJS context
 import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, dialog } from 'electron';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import Store from 'electron-store';
 
-// ESM compatibility
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// __dirname is available in CommonJS, but we need to declare it for TypeScript
+declare const __dirname: string;
 
-// Import application logic
-import { Application } from '../index.js';
-import { loadConfig } from '../utils/config.js';
-import { logger } from '../utils/logger.js';
+// Dynamic imports for ESM modules (will be loaded at runtime)
+let Application: any;
+let loadConfig: any;
+let logger: any;
+
+// Load ESM modules
+async function loadESMModules() {
+  // @ts-ignore - Dynamic imports of ESM modules from CommonJS
+  const indexModule = await import('../index.js');
+  // @ts-ignore - Dynamic imports of ESM modules from CommonJS
+  const configModule = await import('../utils/config.js');
+  // @ts-ignore - Dynamic imports of ESM modules from CommonJS
+  const loggerModule = await import('../utils/logger.js');
+
+  Application = indexModule.Application;
+  loadConfig = configModule.loadConfig;
+  logger = loggerModule.logger;
+}
 
 // Electron store for settings
 const store = new Store();
 
 let tray: Tray | null = null;
 let settingsWindow: BrowserWindow | null = null;
-let appInstance: Application | null = null;
+let appInstance: any = null;
 let isQuitting = false;
+
+/**
+ * Send log to renderer process
+ */
+function sendLog(level: string, message: string) {
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.webContents.send('log', level, message);
+  }
+}
 
 /**
  * Create system tray icon
  */
 function createTray() {
-  // Create tray icon (use default if custom icon not available)
-  const iconPath = path.join(__dirname, '../../assets/tray-icon.png');
-  let icon = nativeImage.createFromPath(iconPath);
+  try {
+    // Create tray icon (use default if custom icon not available)
+    const iconPath = path.join(__dirname, '../../assets/tray-icon.png');
+    let icon = nativeImage.createFromPath(iconPath);
 
-  // If icon doesn't exist or is empty, create a simple default icon
-  if (icon.isEmpty()) {
-    icon = nativeImage.createEmpty();
-  }
+    // If icon doesn't exist, try to use app icon
+    if (icon.isEmpty()) {
+      // Create a minimal 1x1 transparent icon as placeholder
+      // Note: On Windows, tray might not show without a proper icon
+      const buffer = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        'base64'
+      );
+      icon = nativeImage.createFromBuffer(buffer);
 
-  tray = new Tray(icon.isEmpty() ? nativeImage.createEmpty() : icon.resize({ width: 16, height: 16 }));
+      logger.warn('Tray icon not found. Tray might not be visible on some systems.');
+    }
+
+    tray = new Tray(icon.isEmpty() ? icon : icon.resize({ width: 16, height: 16 }));
 
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -89,6 +120,10 @@ function createTray() {
   tray.on('click', () => {
     createSettingsWindow();
   });
+  } catch (error) {
+    logger.error('Failed to create tray icon', error as Error);
+    // Continue without tray - settings window will still be accessible
+  }
 }
 
 /**
@@ -159,7 +194,7 @@ function createSettingsWindow() {
     title: 'LoL Analytics Viewer - Settings',
     autoHideMenuBar: true,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -186,10 +221,18 @@ function createSettingsWindow() {
  */
 async function startApplication() {
   try {
+    sendLog('info', 'Loading configuration...');
     const config = await loadConfig();
+    sendLog('success', 'Configuration loaded');
+
+    sendLog('info', 'Initializing application...');
     appInstance = new Application(config);
     await appInstance.initialize();
+    sendLog('success', 'Application initialized');
+
+    sendLog('info', 'Connecting to League Client...');
     await appInstance.start();
+    sendLog('success', 'Connected to League Client successfully');
 
     logger.info('Application started from Electron');
 
@@ -200,12 +243,21 @@ async function startApplication() {
 
     updateTrayMenu();
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error('Failed to start application', error as Error);
+    sendLog('error', `Failed to start: ${errorMessage}`);
 
-    dialog.showErrorBox(
-      'Startup Error',
-      `Failed to start application: ${error instanceof Error ? error.message : String(error)}`
-    );
+    // Show more helpful error messages
+    let userMessage = errorMessage;
+    if (errorMessage.includes('League Client process not found')) {
+      userMessage = 'League of Legends client is not running. Please start League of Legends first.';
+      sendLog('warn', 'Please start League of Legends and try again');
+    } else if (errorMessage.includes('ECONNREFUSED')) {
+      userMessage = 'Cannot connect to League Client. Make sure League of Legends is running.';
+      sendLog('warn', 'Connection refused - check if League Client is running');
+    }
+
+    dialog.showErrorBox('Startup Error', userMessage);
   }
 }
 
@@ -232,12 +284,38 @@ async function stopApplication() {
  * App ready handler
  */
 app.whenReady().then(async () => {
+  // Load ESM modules first
+  await loadESMModules();
+
   createTray();
 
-  // Auto-start application
-  const autoStart = store.get('autoStart', true) as boolean;
-  if (autoStart) {
-    await startApplication();
+  // Always show settings window on startup for easy access
+  // Users can close it if they don't need it
+  createSettingsWindow();
+
+  // Show welcome dialog only on first launch
+  const hasLaunchedBefore = store.get('hasLaunchedBefore', false) as boolean;
+  if (!hasLaunchedBefore) {
+    store.set('hasLaunchedBefore', true);
+
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'LoL Analytics Viewer へようこそ',
+      message: 'LoL Analytics Viewer が起動しました！',
+      detail:
+        '• 設定画面から「Start」ボタンを押してアプリを起動してください\n' +
+        '• システムトレイ（タスクバー右下）にアイコンが表示されます\n' +
+        '• トレイアイコンを右クリックして設定を変更できます\n' +
+        '• League of Legendsを起動してチャンピオン選択を開始してください\n\n' +
+        'ログセクションで動作状況を確認できます。',
+      buttons: ['OK']
+    });
+  } else {
+    // Auto-start application on subsequent launches if configured
+    const autoStart = store.get('autoStart', false) as boolean;
+    if (autoStart) {
+      await startApplication();
+    }
   }
 
   // IPC handlers
@@ -265,6 +343,67 @@ app.whenReady().then(async () => {
   ipcMain.handle('restart-app', async () => {
     await stopApplication();
     await startApplication();
+  });
+
+  // Manual testing IPC handlers
+  ipcMain.handle('open-manual-matchup', async (_event, myChampion: string, enemyChampion: string, role: string | null) => {
+    try {
+      sendLog('info', `Manual test: Opening matchup ${myChampion} vs ${enemyChampion}${role ? ` (${role})` : ''}`);
+
+      const config = await loadConfig();
+      const { URLBuilder } = await import('../core/analytics/url-builder.js');
+      const { browserController } = await import('../core/browser/controller.js');
+
+      const urlBuilder = new URLBuilder('lol-analytics', config.lolAnalytics.baseUrl);
+      const url = urlBuilder.buildMatchupURL(myChampion, enemyChampion, role || undefined);
+
+      await browserController.open(url);
+      sendLog('success', `Opened matchup page: ${url}`);
+      return { success: true, url };
+    } catch (error: any) {
+      sendLog('error', `Failed to open matchup: ${error.message}`);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('open-manual-counters', async (_event, champion: string, role: string | null) => {
+    try {
+      sendLog('info', `Manual test: Opening counters for ${champion}${role ? ` (${role})` : ''}`);
+
+      const config = await loadConfig();
+      const { URLBuilder } = await import('../core/analytics/url-builder.js');
+      const { browserController } = await import('../core/browser/controller.js');
+
+      const urlBuilder = new URLBuilder('lol-analytics', config.lolAnalytics.baseUrl);
+      const url = urlBuilder.buildCounterURL(champion, role || undefined);
+
+      await browserController.open(url);
+      sendLog('success', `Opened counters page: ${url}`);
+      return { success: true, url };
+    } catch (error: any) {
+      sendLog('error', `Failed to open counters: ${error.message}`);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('open-manual-build', async (_event, champion: string, role: string | null) => {
+    try {
+      sendLog('info', `Manual test: Opening build guide for ${champion}${role ? ` (${role})` : ''}`);
+
+      const config = await loadConfig();
+      const { URLBuilder } = await import('../core/analytics/url-builder.js');
+      const { browserController } = await import('../core/browser/controller.js');
+
+      const urlBuilder = new URLBuilder('lol-analytics', config.lolAnalytics.baseUrl);
+      const url = urlBuilder.buildBuildURL(champion, role || undefined);
+
+      await browserController.open(url);
+      sendLog('success', `Opened build guide: ${url}`);
+      return { success: true, url };
+    } catch (error: any) {
+      sendLog('error', `Failed to open build guide: ${error.message}`);
+      throw error;
+    }
   });
 });
 

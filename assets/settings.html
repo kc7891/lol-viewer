@@ -205,6 +205,80 @@
     .pulsing {
       animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
+
+    .log-section {
+      margin-top: 20px;
+      background: #1f2937;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .log-header {
+      background: #111827;
+      color: white;
+      padding: 12px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .log-header h3 {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .log-clear-btn {
+      padding: 4px 12px;
+      background: #374151;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .log-clear-btn:hover {
+      background: #4b5563;
+    }
+
+    .log-content {
+      height: 200px;
+      overflow-y: auto;
+      padding: 10px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .log-entry {
+      margin-bottom: 4px;
+      color: #d1d5db;
+    }
+
+    .log-entry.info {
+      color: #60a5fa;
+    }
+
+    .log-entry.success {
+      color: #34d399;
+    }
+
+    .log-entry.warn {
+      color: #fbbf24;
+    }
+
+    .log-entry.error {
+      color: #f87171;
+    }
+
+    .log-entry.debug {
+      color: #9ca3af;
+    }
+
+    .log-time {
+      color: #6b7280;
+      margin-right: 8px;
+    }
   </style>
 </head>
 <body>
@@ -318,6 +392,65 @@
       <div class="button-group">
         <button class="btn btn-primary" id="saveBtn">💾 Save Settings</button>
       </div>
+
+      <!-- Manual Testing Section -->
+      <div class="section">
+        <h2 class="section-title">🧪 Manual Testing</h2>
+        <p class="help-text" style="margin-bottom: 15px;">Test URL opening without launching League of Legends</p>
+
+        <div class="control-group">
+          <label for="testMyChampion">My Champion</label>
+          <input type="text" id="testMyChampion" placeholder="e.g., Ahri, Zed, Yasuo">
+          <p class="help-text">Enter champion name</p>
+        </div>
+
+        <div class="control-group">
+          <label for="testRole">Role/Lane</label>
+          <select id="testRole">
+            <option value="">Auto (no role specified)</option>
+            <option value="top">Top</option>
+            <option value="jungle">Jungle</option>
+            <option value="mid" selected>Mid</option>
+            <option value="adc">ADC / Bot</option>
+            <option value="support">Support</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="testEnemyChampion">Enemy Champion (for Matchup)</label>
+          <input type="text" id="testEnemyChampion" placeholder="e.g., Zed, Yasuo">
+          <p class="help-text">Optional: for matchup analysis</p>
+        </div>
+
+        <div class="button-group">
+          <button class="btn btn-primary" id="testMatchupBtn" title="View matchup: My Champion vs Enemy Champion">
+            🆚 View Matchup
+          </button>
+          <button class="btn btn-primary" id="testMyCountersBtn" title="View counters for my champion">
+            🛡️ My Counters
+          </button>
+        </div>
+
+        <div class="button-group">
+          <button class="btn btn-primary" id="testEnemyCountersBtn" title="View counters for enemy champion">
+            ⚔️ Enemy Counters
+          </button>
+          <button class="btn btn-primary" id="testBuildBtn" title="View build guide for my champion">
+            📖 My Build
+          </button>
+        </div>
+      </div>
+
+      <!-- Log Section -->
+      <div class="section">
+        <div class="log-section">
+          <div class="log-header">
+            <h3>📋 Application Logs</h3>
+            <button class="log-clear-btn" id="clearLogsBtn">Clear</button>
+          </div>
+          <div class="log-content" id="logContent"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -325,12 +458,50 @@
     // Get API from preload
     const api = window.electronAPI;
 
+    // Check if API is available
+    if (!api) {
+      console.error('electronAPI is not available. Preload script may have failed to load.');
+      document.body.innerHTML = '<div style="padding: 20px; color: red; font-family: monospace;">' +
+        '<h2>Error: API Not Available</h2>' +
+        '<p>The Electron API could not be loaded. This usually means:</p>' +
+        '<ul>' +
+        '<li>Preload script failed to load</li>' +
+        '<li>Context isolation is not working correctly</li>' +
+        '<li>Application was not built correctly</li>' +
+        '</ul>' +
+        '<p>Please rebuild the application:</p>' +
+        '<pre>npm run build\nnpm run package</pre>' +
+        '</div>';
+      throw new Error('electronAPI is undefined');
+    }
+
     // Elements
     const statusEl = document.getElementById('status');
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const restartBtn = document.getElementById('restartBtn');
     const saveBtn = document.getElementById('saveBtn');
+    const logContent = document.getElementById('logContent');
+    const clearLogsBtn = document.getElementById('clearLogsBtn');
+
+    // Log handling
+    function addLog(level, message) {
+      const time = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${level}`;
+      entry.innerHTML = `<span class="log-time">[${time}]</span><span class="log-level">[${level.toUpperCase()}]</span> ${message}`;
+      logContent.appendChild(entry);
+      logContent.scrollTop = logContent.scrollHeight;
+
+      // Keep only last 100 entries
+      while (logContent.children.length > 100) {
+        logContent.removeChild(logContent.firstChild);
+      }
+    }
+
+    clearLogsBtn.addEventListener('click', () => {
+      logContent.innerHTML = '';
+    });
 
     // Update status
     function updateStatus(status) {
@@ -397,41 +568,151 @@
     startBtn.addEventListener('click', async () => {
       startBtn.disabled = true;
       startBtn.textContent = 'Starting...';
-      await api.startApp();
-      const status = await api.getAppStatus();
-      updateStatus(status);
+      addLog('info', 'Starting application...');
+      try {
+        await api.startApp();
+        const status = await api.getAppStatus();
+        updateStatus(status);
+        addLog('success', 'Application started successfully');
+      } catch (error) {
+        addLog('error', `Failed to start: ${error.message}`);
+      }
       startBtn.textContent = '▶ Start';
     });
 
     stopBtn.addEventListener('click', async () => {
       stopBtn.disabled = true;
       stopBtn.textContent = 'Stopping...';
-      await api.stopApp();
-      const status = await api.getAppStatus();
-      updateStatus(status);
+      addLog('info', 'Stopping application...');
+      try {
+        await api.stopApp();
+        const status = await api.getAppStatus();
+        updateStatus(status);
+        addLog('success', 'Application stopped successfully');
+      } catch (error) {
+        addLog('error', `Failed to stop: ${error.message}`);
+      }
       stopBtn.textContent = '⏸ Stop';
     });
 
     restartBtn.addEventListener('click', async () => {
       restartBtn.disabled = true;
       restartBtn.textContent = 'Restarting...';
-      await api.restartApp();
-      const status = await api.getAppStatus();
-      updateStatus(status);
+      addLog('info', 'Restarting application...');
+      try {
+        await api.restartApp();
+        const status = await api.getAppStatus();
+        updateStatus(status);
+        addLog('success', 'Application restarted successfully');
+      } catch (error) {
+        addLog('error', `Failed to restart: ${error.message}`);
+      }
       restartBtn.disabled = false;
       restartBtn.textContent = '🔄 Restart';
     });
 
     saveBtn.addEventListener('click', saveConfig);
 
+    // Manual Testing Event Listeners
+    const testMyChampion = document.getElementById('testMyChampion');
+    const testEnemyChampion = document.getElementById('testEnemyChampion');
+    const testRole = document.getElementById('testRole');
+    const testMatchupBtn = document.getElementById('testMatchupBtn');
+    const testMyCountersBtn = document.getElementById('testMyCountersBtn');
+    const testEnemyCountersBtn = document.getElementById('testEnemyCountersBtn');
+    const testBuildBtn = document.getElementById('testBuildBtn');
+
+    testMatchupBtn.addEventListener('click', async () => {
+      const myChampion = testMyChampion.value.trim();
+      const enemyChampion = testEnemyChampion.value.trim();
+      const role = testRole.value;
+
+      if (!myChampion) {
+        addLog('warn', 'Please enter your champion name');
+        return;
+      }
+      if (!enemyChampion) {
+        addLog('warn', 'Please enter enemy champion name for matchup');
+        return;
+      }
+
+      addLog('info', `Opening matchup: ${myChampion} vs ${enemyChampion}${role ? ` (${role})` : ''}`);
+      try {
+        await api.openManualMatchup(myChampion, enemyChampion, role || null);
+        addLog('success', 'Matchup page opened');
+      } catch (error) {
+        addLog('error', `Failed to open matchup: ${error.message}`);
+      }
+    });
+
+    testMyCountersBtn.addEventListener('click', async () => {
+      const myChampion = testMyChampion.value.trim();
+      const role = testRole.value;
+
+      if (!myChampion) {
+        addLog('warn', 'Please enter your champion name');
+        return;
+      }
+
+      addLog('info', `Opening counters for: ${myChampion}${role ? ` (${role})` : ''}`);
+      try {
+        await api.openManualCounters(myChampion, role || null);
+        addLog('success', 'Counters page opened');
+      } catch (error) {
+        addLog('error', `Failed to open counters: ${error.message}`);
+      }
+    });
+
+    testEnemyCountersBtn.addEventListener('click', async () => {
+      const enemyChampion = testEnemyChampion.value.trim();
+      const role = testRole.value;
+
+      if (!enemyChampion) {
+        addLog('warn', 'Please enter enemy champion name');
+        return;
+      }
+
+      addLog('info', `Opening counters for enemy: ${enemyChampion}${role ? ` (${role})` : ''}`);
+      try {
+        await api.openManualCounters(enemyChampion, role || null);
+        addLog('success', 'Enemy counters page opened');
+      } catch (error) {
+        addLog('error', `Failed to open enemy counters: ${error.message}`);
+      }
+    });
+
+    testBuildBtn.addEventListener('click', async () => {
+      const myChampion = testMyChampion.value.trim();
+      const role = testRole.value;
+
+      if (!myChampion) {
+        addLog('warn', 'Please enter your champion name');
+        return;
+      }
+
+      addLog('info', `Opening build guide for: ${myChampion}${role ? ` (${role})` : ''}`);
+      try {
+        await api.openManualBuild(myChampion, role || null);
+        addLog('success', 'Build guide opened');
+      } catch (error) {
+        addLog('error', `Failed to open build guide: ${error.message}`);
+      }
+    });
+
     // Listen for status updates
     api.onAppStatus(updateStatus);
+
+    // Listen for log messages
+    api.onLog((level, message) => {
+      addLog(level, message);
+    });
 
     // Initial load
     (async () => {
       await loadConfig();
       const status = await api.getAppStatus();
       updateStatus(status);
+      addLog('info', 'Settings window opened');
     })();
   </script>
 </body>
