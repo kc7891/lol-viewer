@@ -20,13 +20,13 @@ async function loadESMModules() {
   try {
     console.log('[Main] Loading ESM modules...');
     // @ts-ignore - Dynamic imports of ESM modules from CommonJS
-    const indexModule = await import('../index.js');
+    const indexModule = await import('../src/index.js');
     console.log('[Main] Loaded index.js');
     // @ts-ignore - Dynamic imports of ESM modules from CommonJS
-    const configModule = await import('../utils/config.js');
+    const configModule = await import('../src/utils/config.js');
     console.log('[Main] Loaded config.js');
     // @ts-ignore - Dynamic imports of ESM modules from CommonJS
-    const loggerModule = await import('../utils/logger.js');
+    const loggerModule = await import('../src/utils/logger.js');
     console.log('[Main] Loaded logger.js');
 
     Application = indexModule.Application;
@@ -380,8 +380,8 @@ app.whenReady().then(async () => {
       sendLog('info', `Manual test: Opening matchup ${myChampion} vs ${enemyChampion}${role ? ` (${role})` : ''}`);
 
       const config = await loadConfig();
-      const { URLBuilder } = await import('../core/analytics/url-builder.js');
-      const { browserController } = await import('../core/browser/controller.js');
+      const { URLBuilder } = await import('../src/core/analytics/url-builder.js');
+      const { browserController } = await import('../src/core/browser/controller.js');
 
       const urlBuilder = new URLBuilder('lol-analytics', config.lolAnalytics.baseUrl);
       const url = urlBuilder.buildMatchupURL(myChampion, enemyChampion, role || undefined);
@@ -400,8 +400,8 @@ app.whenReady().then(async () => {
       sendLog('info', `Manual test: Opening counters for ${champion}${role ? ` (${role})` : ''}`);
 
       const config = await loadConfig();
-      const { URLBuilder } = await import('../core/analytics/url-builder.js');
-      const { browserController } = await import('../core/browser/controller.js');
+      const { URLBuilder } = await import('../src/core/analytics/url-builder.js');
+      const { browserController } = await import('../src/core/browser/controller.js');
 
       const urlBuilder = new URLBuilder('lol-analytics', config.lolAnalytics.baseUrl);
       const url = urlBuilder.buildCounterURL(champion, role || undefined);
@@ -420,8 +420,8 @@ app.whenReady().then(async () => {
       sendLog('info', `Manual test: Opening build guide for ${champion}${role ? ` (${role})` : ''}`);
 
       const config = await loadConfig();
-      const { URLBuilder } = await import('../core/analytics/url-builder.js');
-      const { browserController } = await import('../core/browser/controller.js');
+      const { URLBuilder } = await import('../src/core/analytics/url-builder.js');
+      const { browserController } = await import('../src/core/browser/controller.js');
 
       const urlBuilder = new URLBuilder('lol-analytics', config.lolAnalytics.baseUrl);
       const url = urlBuilder.buildBuildURL(champion, role || undefined);
