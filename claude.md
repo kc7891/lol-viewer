@@ -32,8 +32,9 @@
   - 分割コマンド: `split -b 50M -d file.zip file.zip.part-`
 - [ ] **ZIPファイルの配置を確認した**
   - releaseディレクトリに配置
-  - 分割した場合はpart-00, part-01, part-02...
+  - 分割した場合はpart-aa, part-ab, part-ac...
   - README.mdに結合方法を記載
+  - combine-release.bat で結合できるようにする
 - [ ] **.gitignoreを確認した**
   - 大きいZIPファイル本体は除外
   - 分割ファイルは含める
