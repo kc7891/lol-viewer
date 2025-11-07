@@ -234,6 +234,9 @@ async function stopApplication() {
 app.whenReady().then(async () => {
   createTray();
 
+  // Show settings window on startup
+  createSettingsWindow();
+
   // Auto-start application
   const autoStart = store.get('autoStart', true) as boolean;
   if (autoStart) {
