@@ -13,6 +13,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   startApp: () => ipcRenderer.invoke('start-app'),
   stopApp: () => ipcRenderer.invoke('stop-app'),
   restartApp: () => ipcRenderer.invoke('restart-app'),
+  // Manual testing functions
+  openManualMatchup: (myChampion: string, enemyChampion: string, role: string | null) =>
+    ipcRenderer.invoke('open-manual-matchup', myChampion, enemyChampion, role),
+  openManualCounters: (champion: string, role: string | null) =>
+    ipcRenderer.invoke('open-manual-counters', champion, role),
+  openManualBuild: (champion: string, role: string | null) =>
+    ipcRenderer.invoke('open-manual-build', champion, role),
   onAppStatus: (callback: (status: string) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, status: string) => callback(status);
     ipcRenderer.on('app-status', listener);
