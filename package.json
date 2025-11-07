@@ -17,6 +17,8 @@
     "cli": "tsx src/cli/index.ts",
     "package": "electron-builder build --win --publish never",
     "package:all": "electron-builder build --win --mac --linux --publish never",
+    "verify": "./scripts/verify-windows-build.sh",
+    "package:verify": "npm run package && npm run verify",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "npm test -- --watch",
     "test:coverage": "npm test -- --coverage",

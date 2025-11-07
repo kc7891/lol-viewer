@@ -150,6 +150,12 @@ npm run build
 npm run build
 npm run package
 
+# ✨ NEW: Verify Windows build (Linux環境でもテスト可能!)
+npm run verify
+
+# または一括実行
+npm run package:verify
+
 # Run tests
 npm test
 
@@ -158,11 +164,31 @@ npm run lint
 npm run format
 ```
 
+### Testing Windows .exe on Linux 🐧
+
+**Linux環境でも Windows .exe ファイルのテストができます！**
+
+```bash
+# 1. 自動健全性チェック（最速・推奨）
+npm run package:verify
+
+# 2. Wine で実際にexeを起動（より完全なテスト）
+wine64 'release/win-unpacked/LoL Analytics Viewer.exe'
+
+# 3. GitHub Actions で自動テスト（プッシュ時に自動実行）
+git push  # → Actions タブで結果を確認
+```
+
+詳細は [docs/WINDOWS_TESTING_ON_LINUX.md](./docs/WINDOWS_TESTING_ON_LINUX.md) を参照
+
 ### Building for Distribution
 
 ```bash
 # Windows installer (.exe)
 npm run package
+
+# Windows build with verification
+npm run package:verify
 
 # All platforms (Windows, macOS, Linux)
 npm run package:all
