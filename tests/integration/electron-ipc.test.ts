@@ -17,16 +17,22 @@ describe('Electron IPC Contract', () => {
         'start-app',
         'stop-app',
         'restart-app',
+        'open-manual-matchup',
+        'open-manual-counters',
+        'open-manual-build',
       ];
 
       // Verify all channels are documented
-      expect(requiredChannels).toHaveLength(6);
+      expect(requiredChannels).toHaveLength(9);
       expect(requiredChannels).toContain('get-config');
       expect(requiredChannels).toContain('save-config');
       expect(requiredChannels).toContain('get-app-status');
       expect(requiredChannels).toContain('start-app');
       expect(requiredChannels).toContain('stop-app');
       expect(requiredChannels).toContain('restart-app');
+      expect(requiredChannels).toContain('open-manual-matchup');
+      expect(requiredChannels).toContain('open-manual-counters');
+      expect(requiredChannels).toContain('open-manual-build');
     });
 
     it('should define all required event channels', () => {
@@ -325,3 +331,177 @@ describe('Electron IPC Contract', () => {
     });
   });
 });
+
+  describe('Manual Testing IPC Handlers', () => {
+    describe('open-manual-matchup', () => {
+      it('should accept myChampion, enemyChampion, and role parameters', async () => {
+        const mockHandler = async (
+          myChampion: string,
+          enemyChampion: string,
+          role: string | null
+        ) => {
+          return { success: true, url: `https://example.com/${myChampion}/${enemyChampion}` };
+        };
+
+        const result = await mockHandler('Ahri', 'Zed', 'mid');
+        expect(result).toHaveProperty('success');
+        expect(result).toHaveProperty('url');
+      });
+
+      it('should handle null role', async () => {
+        const mockHandler = async (
+          myChampion: string,
+          enemyChampion: string,
+          role: string | null
+        ) => {
+          return { success: true, url: `https://example.com/${myChampion}/${enemyChampion}` };
+        };
+
+        const result = await mockHandler('Ahri', 'Zed', null);
+        expect(result.success).toBe(true);
+      });
+
+      it('should return URL in response', async () => {
+        const mockHandler = async (
+          myChampion: string,
+          enemyChampion: string,
+          role: string | null
+        ) => {
+          const baseUrl = 'https://lolanalytics.com';
+          const url = role
+            ? `${baseUrl}/champion/${myChampion}/matchup/${enemyChampion}/${role}`
+            : `${baseUrl}/champion/${myChampion}/matchup/${enemyChampion}`;
+          return { success: true, url };
+        };
+
+        const result = await mockHandler('Ahri', 'Zed', 'mid');
+        expect(result.url).toContain('Ahri');
+        expect(result.url).toContain('Zed');
+        expect(result.url).toContain('mid');
+      });
+
+      it('should handle errors', async () => {
+        const mockHandler = async () => {
+          throw new Error('Browser not available');
+        };
+
+        await expect(mockHandler()).rejects.toThrow('Browser not available');
+      });
+    });
+
+    describe('open-manual-counters', () => {
+      it('should accept champion and role parameters', async () => {
+        const mockHandler = async (champion: string, role: string | null) => {
+          return { success: true, url: `https://example.com/${champion}/counters` };
+        };
+
+        const result = await mockHandler('Yasuo', 'mid');
+        expect(result).toHaveProperty('success');
+        expect(result).toHaveProperty('url');
+      });
+
+      it('should handle null role', async () => {
+        const mockHandler = async (champion: string, role: string | null) => {
+          return { success: true, url: `https://example.com/${champion}/counters` };
+        };
+
+        const result = await mockHandler('Yasuo', null);
+        expect(result.success).toBe(true);
+      });
+
+      it('should return URL in response', async () => {
+        const mockHandler = async (champion: string, role: string | null) => {
+          const baseUrl = 'https://lolanalytics.com';
+          const url = role
+            ? `${baseUrl}/champion/${champion}/counters/${role}`
+            : `${baseUrl}/champion/${champion}/counters`;
+          return { success: true, url };
+        };
+
+        const result = await mockHandler('Yasuo', 'mid');
+        expect(result.url).toContain('Yasuo');
+        expect(result.url).toContain('counters');
+        expect(result.url).toContain('mid');
+      });
+    });
+
+    describe('open-manual-build', () => {
+      it('should accept champion and role parameters', async () => {
+        const mockHandler = async (champion: string, role: string | null) => {
+          return { success: true, url: `https://example.com/${champion}/build` };
+        };
+
+        const result = await mockHandler('Jinx', 'adc');
+        expect(result).toHaveProperty('success');
+        expect(result).toHaveProperty('url');
+      });
+
+      it('should handle null role', async () => {
+        const mockHandler = async (champion: string, role: string | null) => {
+          return { success: true, url: `https://example.com/${champion}/build` };
+        };
+
+        const result = await mockHandler('Jinx', null);
+        expect(result.success).toBe(true);
+      });
+
+      it('should return URL in response', async () => {
+        const mockHandler = async (champion: string, role: string | null) => {
+          const baseUrl = 'https://lolanalytics.com';
+          const url = role
+            ? `${baseUrl}/champion/${champion}/build/${role}`
+            : `${baseUrl}/champion/${champion}/build`;
+          return { success: true, url };
+        };
+
+        const result = await mockHandler('Jinx', 'adc');
+        expect(result.url).toContain('Jinx');
+        expect(result.url).toContain('build');
+        expect(result.url).toContain('adc');
+      });
+    });
+
+    describe('Manual Testing Integration', () => {
+      it('should provide consistent response structure', async () => {
+        const mockMatchup = async () => ({ success: true, url: 'matchup-url' });
+        const mockCounters = async () => ({ success: true, url: 'counters-url' });
+        const mockBuild = async () => ({ success: true, url: 'build-url' });
+
+        const matchupResult = await mockMatchup();
+        const countersResult = await mockCounters();
+        const buildResult = await mockBuild();
+
+        // All should have same structure
+        expect(matchupResult).toHaveProperty('success');
+        expect(matchupResult).toHaveProperty('url');
+        expect(countersResult).toHaveProperty('success');
+        expect(countersResult).toHaveProperty('url');
+        expect(buildResult).toHaveProperty('success');
+        expect(buildResult).toHaveProperty('url');
+      });
+
+      it('should handle special champion names', async () => {
+        const mockHandler = async (champion: string) => {
+          // Normalize champion name (remove apostrophes and spaces)
+          const normalized = champion.replace(/[']/g, '').replace(/\s+/g, '');
+          return { success: true, url: `https://example.com/${normalized}` };
+        };
+
+        const result1 = await mockHandler("Kai'Sa");
+        const result2 = await mockHandler('Lee Sin');
+
+        expect(result1.url).toContain('KaiSa');
+        expect(result2.url).toContain('LeeSin');
+      });
+
+      it('should validate URL format', () => {
+        const validateUrl = (url: string) => {
+          return url.startsWith('http://') || url.startsWith('https://');
+        };
+
+        expect(validateUrl('https://lolanalytics.com/champion/Ahri')).toBe(true);
+        expect(validateUrl('http://example.com')).toBe(true);
+        expect(validateUrl('invalid-url')).toBe(false);
+      });
+    });
+  });

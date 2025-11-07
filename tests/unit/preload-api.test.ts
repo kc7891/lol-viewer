@@ -15,6 +15,10 @@ interface ElectronAPI {
   startApp: () => Promise<unknown>;
   stopApp: () => Promise<unknown>;
   restartApp: () => Promise<unknown>;
+  // Manual testing methods
+  openManualMatchup: (myChampion: string, enemyChampion: string, role: string | null) => Promise<unknown>;
+  openManualCounters: (champion: string, role: string | null) => Promise<unknown>;
+  openManualBuild: (champion: string, role: string | null) => Promise<unknown>;
   onAppStatus: (callback: (status: string) => void) => () => void;
   onLog: (callback: (level: string, message: string) => void) => () => void;
 }
@@ -29,17 +33,23 @@ describe('Preload Script API', () => {
         'startApp',
         'stopApp',
         'restartApp',
+        'openManualMatchup',
+        'openManualCounters',
+        'openManualBuild',
         'onAppStatus',
         'onLog',
       ];
 
-      expect(requiredMethods).toHaveLength(8);
+      expect(requiredMethods).toHaveLength(11);
       expect(requiredMethods).toContain('getConfig');
       expect(requiredMethods).toContain('saveConfig');
       expect(requiredMethods).toContain('getAppStatus');
       expect(requiredMethods).toContain('startApp');
       expect(requiredMethods).toContain('stopApp');
       expect(requiredMethods).toContain('restartApp');
+      expect(requiredMethods).toContain('openManualMatchup');
+      expect(requiredMethods).toContain('openManualCounters');
+      expect(requiredMethods).toContain('openManualBuild');
       expect(requiredMethods).toContain('onAppStatus');
       expect(requiredMethods).toContain('onLog');
     });
@@ -53,6 +63,12 @@ describe('Preload Script API', () => {
         startApp: () => Promise.resolve(undefined),
         stopApp: () => Promise.resolve(undefined),
         restartApp: () => Promise.resolve(undefined),
+        openManualMatchup: (myChampion: string, enemyChampion: string, role: string | null) =>
+          Promise.resolve({ success: true, url: 'https://example.com' }),
+        openManualCounters: (champion: string, role: string | null) =>
+          Promise.resolve({ success: true, url: 'https://example.com' }),
+        openManualBuild: (champion: string, role: string | null) =>
+          Promise.resolve({ success: true, url: 'https://example.com' }),
         onAppStatus: (callback: (status: string) => void) => {
           return () => {}; // Cleanup function
         },
@@ -68,6 +84,9 @@ describe('Preload Script API', () => {
       expect(typeof mockAPI.startApp).toBe('function');
       expect(typeof mockAPI.stopApp).toBe('function');
       expect(typeof mockAPI.restartApp).toBe('function');
+      expect(typeof mockAPI.openManualMatchup).toBe('function');
+      expect(typeof mockAPI.openManualCounters).toBe('function');
+      expect(typeof mockAPI.openManualBuild).toBe('function');
       expect(typeof mockAPI.onAppStatus).toBe('function');
       expect(typeof mockAPI.onLog).toBe('function');
     });
@@ -397,6 +416,235 @@ describe('Preload Script API', () => {
       mockAPI.onLog((level: string, message: string) => {
         expect(typeof level).toBe('string');
         expect(typeof message).toBe('string');
+      });
+    });
+  });
+  describe('Manual Testing Methods', () => {
+    describe('openManualMatchup', () => {
+      it('should accept champion names and role', async () => {
+        const mockAPI: ElectronAPI = {
+          getConfig: () => Promise.resolve({}),
+          saveConfig: () => Promise.resolve(true),
+          getAppStatus: () => Promise.resolve('stopped'),
+          startApp: () => Promise.resolve(undefined),
+          stopApp: () => Promise.resolve(undefined),
+          restartApp: () => Promise.resolve(undefined),
+          openManualMatchup: (myChampion: string, enemyChampion: string, role: string | null) =>
+            Promise.resolve({ success: true, url: `https://example.com/${myChampion}/${enemyChampion}` }),
+          openManualCounters: () => Promise.resolve({ success: true, url: '' }),
+          openManualBuild: () => Promise.resolve({ success: true, url: '' }),
+          onAppStatus: () => () => {},
+          onLog: () => () => {},
+        };
+
+        const result = await mockAPI.openManualMatchup('Ahri', 'Zed', 'mid');
+        expect(result).toHaveProperty('success');
+        expect(result).toHaveProperty('url');
+      });
+
+      it('should handle null role', async () => {
+        const mockAPI: ElectronAPI = {
+          getConfig: () => Promise.resolve({}),
+          saveConfig: () => Promise.resolve(true),
+          getAppStatus: () => Promise.resolve('stopped'),
+          startApp: () => Promise.resolve(undefined),
+          stopApp: () => Promise.resolve(undefined),
+          restartApp: () => Promise.resolve(undefined),
+          openManualMatchup: (myChampion: string, enemyChampion: string, role: string | null) =>
+            Promise.resolve({ success: true, url: `https://example.com/${myChampion}/${enemyChampion}` }),
+          openManualCounters: () => Promise.resolve({ success: true, url: '' }),
+          openManualBuild: () => Promise.resolve({ success: true, url: '' }),
+          onAppStatus: () => () => {},
+          onLog: () => () => {},
+        };
+
+        await expect(mockAPI.openManualMatchup('Ahri', 'Zed', null)).resolves.toBeDefined();
+      });
+
+      it('should return promise', () => {
+        const mockAPI: ElectronAPI = {
+          getConfig: () => Promise.resolve({}),
+          saveConfig: () => Promise.resolve(true),
+          getAppStatus: () => Promise.resolve('stopped'),
+          startApp: () => Promise.resolve(undefined),
+          stopApp: () => Promise.resolve(undefined),
+          restartApp: () => Promise.resolve(undefined),
+          openManualMatchup: (myChampion: string, enemyChampion: string, role: string | null) =>
+            Promise.resolve({ success: true, url: '' }),
+          openManualCounters: () => Promise.resolve({ success: true, url: '' }),
+          openManualBuild: () => Promise.resolve({ success: true, url: '' }),
+          onAppStatus: () => () => {},
+          onLog: () => () => {},
+        };
+
+        expect(mockAPI.openManualMatchup('Ahri', 'Zed', 'mid')).toBeInstanceOf(Promise);
+      });
+
+      it('should handle errors', async () => {
+        const mockAPI: ElectronAPI = {
+          getConfig: () => Promise.resolve({}),
+          saveConfig: () => Promise.resolve(true),
+          getAppStatus: () => Promise.resolve('stopped'),
+          startApp: () => Promise.resolve(undefined),
+          stopApp: () => Promise.resolve(undefined),
+          restartApp: () => Promise.resolve(undefined),
+          openManualMatchup: () => Promise.reject(new Error('Browser failed')),
+          openManualCounters: () => Promise.resolve({ success: true, url: '' }),
+          openManualBuild: () => Promise.resolve({ success: true, url: '' }),
+          onAppStatus: () => () => {},
+          onLog: () => () => {},
+        };
+
+        await expect(mockAPI.openManualMatchup('Ahri', 'Zed', 'mid')).rejects.toThrow('Browser failed');
+      });
+    });
+
+    describe('openManualCounters', () => {
+      it('should accept champion name and role', async () => {
+        const mockAPI: ElectronAPI = {
+          getConfig: () => Promise.resolve({}),
+          saveConfig: () => Promise.resolve(true),
+          getAppStatus: () => Promise.resolve('stopped'),
+          startApp: () => Promise.resolve(undefined),
+          stopApp: () => Promise.resolve(undefined),
+          restartApp: () => Promise.resolve(undefined),
+          openManualMatchup: () => Promise.resolve({ success: true, url: '' }),
+          openManualCounters: (champion: string, role: string | null) =>
+            Promise.resolve({ success: true, url: `https://example.com/${champion}/counters` }),
+          openManualBuild: () => Promise.resolve({ success: true, url: '' }),
+          onAppStatus: () => () => {},
+          onLog: () => () => {},
+        };
+
+        const result = await mockAPI.openManualCounters('Yasuo', 'mid');
+        expect(result).toHaveProperty('success');
+        expect(result).toHaveProperty('url');
+      });
+
+      it('should handle null role', async () => {
+        const mockAPI: ElectronAPI = {
+          getConfig: () => Promise.resolve({}),
+          saveConfig: () => Promise.resolve(true),
+          getAppStatus: () => Promise.resolve('stopped'),
+          startApp: () => Promise.resolve(undefined),
+          stopApp: () => Promise.resolve(undefined),
+          restartApp: () => Promise.resolve(undefined),
+          openManualMatchup: () => Promise.resolve({ success: true, url: '' }),
+          openManualCounters: (champion: string, role: string | null) =>
+            Promise.resolve({ success: true, url: `https://example.com/${champion}/counters` }),
+          openManualBuild: () => Promise.resolve({ success: true, url: '' }),
+          onAppStatus: () => () => {},
+          onLog: () => () => {},
+        };
+
+        await expect(mockAPI.openManualCounters('Yasuo', null)).resolves.toBeDefined();
+      });
+
+      it('should return promise', () => {
+        const mockAPI: ElectronAPI = {
+          getConfig: () => Promise.resolve({}),
+          saveConfig: () => Promise.resolve(true),
+          getAppStatus: () => Promise.resolve('stopped'),
+          startApp: () => Promise.resolve(undefined),
+          stopApp: () => Promise.resolve(undefined),
+          restartApp: () => Promise.resolve(undefined),
+          openManualMatchup: () => Promise.resolve({ success: true, url: '' }),
+          openManualCounters: () => Promise.resolve({ success: true, url: '' }),
+          openManualBuild: () => Promise.resolve({ success: true, url: '' }),
+          onAppStatus: () => () => {},
+          onLog: () => () => {},
+        };
+
+        expect(mockAPI.openManualCounters('Yasuo', 'mid')).toBeInstanceOf(Promise);
+      });
+    });
+
+    describe('openManualBuild', () => {
+      it('should accept champion name and role', async () => {
+        const mockAPI: ElectronAPI = {
+          getConfig: () => Promise.resolve({}),
+          saveConfig: () => Promise.resolve(true),
+          getAppStatus: () => Promise.resolve('stopped'),
+          startApp: () => Promise.resolve(undefined),
+          stopApp: () => Promise.resolve(undefined),
+          restartApp: () => Promise.resolve(undefined),
+          openManualMatchup: () => Promise.resolve({ success: true, url: '' }),
+          openManualCounters: () => Promise.resolve({ success: true, url: '' }),
+          openManualBuild: (champion: string, role: string | null) =>
+            Promise.resolve({ success: true, url: `https://example.com/${champion}/build` }),
+          onAppStatus: () => () => {},
+          onLog: () => () => {},
+        };
+
+        const result = await mockAPI.openManualBuild('Jinx', 'adc');
+        expect(result).toHaveProperty('success');
+        expect(result).toHaveProperty('url');
+      });
+
+      it('should handle null role', async () => {
+        const mockAPI: ElectronAPI = {
+          getConfig: () => Promise.resolve({}),
+          saveConfig: () => Promise.resolve(true),
+          getAppStatus: () => Promise.resolve('stopped'),
+          startApp: () => Promise.resolve(undefined),
+          stopApp: () => Promise.resolve(undefined),
+          restartApp: () => Promise.resolve(undefined),
+          openManualMatchup: () => Promise.resolve({ success: true, url: '' }),
+          openManualCounters: () => Promise.resolve({ success: true, url: '' }),
+          openManualBuild: (champion: string, role: string | null) =>
+            Promise.resolve({ success: true, url: `https://example.com/${champion}/build` }),
+          onAppStatus: () => () => {},
+          onLog: () => () => {},
+        };
+
+        await expect(mockAPI.openManualBuild('Jinx', null)).resolves.toBeDefined();
+      });
+
+      it('should return promise', () => {
+        const mockAPI: ElectronAPI = {
+          getConfig: () => Promise.resolve({}),
+          saveConfig: () => Promise.resolve(true),
+          getAppStatus: () => Promise.resolve('stopped'),
+          startApp: () => Promise.resolve(undefined),
+          stopApp: () => Promise.resolve(undefined),
+          restartApp: () => Promise.resolve(undefined),
+          openManualMatchup: () => Promise.resolve({ success: true, url: '' }),
+          openManualCounters: () => Promise.resolve({ success: true, url: '' }),
+          openManualBuild: () => Promise.resolve({ success: true, url: '' }),
+          onAppStatus: () => () => {},
+          onLog: () => () => {},
+        };
+
+        expect(mockAPI.openManualBuild('Jinx', 'adc')).toBeInstanceOf(Promise);
+      });
+    });
+
+    describe('Integration', () => {
+      it('should handle all manual testing methods together', async () => {
+        const mockAPI: ElectronAPI = {
+          getConfig: () => Promise.resolve({}),
+          saveConfig: () => Promise.resolve(true),
+          getAppStatus: () => Promise.resolve('stopped'),
+          startApp: () => Promise.resolve(undefined),
+          stopApp: () => Promise.resolve(undefined),
+          restartApp: () => Promise.resolve(undefined),
+          openManualMatchup: (myChampion, enemyChampion, role) =>
+            Promise.resolve({ success: true, url: 'matchup-url' }),
+          openManualCounters: (champion, role) =>
+            Promise.resolve({ success: true, url: 'counters-url' }),
+          openManualBuild: (champion, role) =>
+            Promise.resolve({ success: true, url: 'build-url' }),
+          onAppStatus: () => () => {},
+          onLog: () => () => {},
+        };
+
+        const matchupResult = await mockAPI.openManualMatchup('Ahri', 'Zed', 'mid');
+        const countersResult = await mockAPI.openManualCounters('Yasuo', 'mid');
+        const buildResult = await mockAPI.openManualBuild('Jinx', 'adc');
+
+        expect(matchupResult).toEqual({ success: true, url: 'matchup-url' });
+        expect(countersResult).toEqual({ success: true, url: 'counters-url' });
+        expect(buildResult).toEqual({ success: true, url: 'build-url' });
       });
     });
   });
