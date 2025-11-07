@@ -1,0 +1,16 @@
+{
+  "name": "lol-viewer",
+  "version": "1.0.0",
+  "description": "LoL Analytics Viewer - Electron app for viewing LoL champion builds",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron ."
+  },
+  "keywords": ["lol", "league of legends", "analytics", "electron"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}
