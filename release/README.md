@@ -4,9 +4,9 @@
 
 このディレクトリには、GitHubの100MBファイルサイズ制限のため、ZIPファイルが3つに分割されています：
 
-- `LoL-Analytics-Viewer-Windows-x64.zip.part-aa` (50MB)
-- `LoL-Analytics-Viewer-Windows-x64.zip.part-ab` (50MB)
-- `LoL-Analytics-Viewer-Windows-x64.zip.part-ac` (11MB)
+- `LoL-Analytics-Viewer-Windows-x64.zip.part-00` (50MB)
+- `LoL-Analytics-Viewer-Windows-x64.zip.part-01` (50MB)
+- `LoL-Analytics-Viewer-Windows-x64.zip.part-02` (11MB)
 
 ### 方法1: スクリプトを使用（推奨）
 
@@ -26,7 +26,7 @@ chmod +x combine-release.sh
 #### Windows (PowerShell)
 ```powershell
 cd release
-cmd /c copy /b LoL-Analytics-Viewer-Windows-x64.zip.part-aa+LoL-Analytics-Viewer-Windows-x64.zip.part-ab+LoL-Analytics-Viewer-Windows-x64.zip.part-ac LoL-Analytics-Viewer-Windows-x64.zip
+cmd /c copy /b LoL-Analytics-Viewer-Windows-x64.zip.part-00+LoL-Analytics-Viewer-Windows-x64.zip.part-01+LoL-Analytics-Viewer-Windows-x64.zip.part-02 LoL-Analytics-Viewer-Windows-x64.zip
 ```
 
 #### Mac/Linux
