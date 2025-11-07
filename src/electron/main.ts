@@ -17,16 +17,26 @@ let logger: any;
 
 // Load ESM modules
 async function loadESMModules() {
-  // @ts-ignore - Dynamic imports of ESM modules from CommonJS
-  const indexModule = await import('../index.js');
-  // @ts-ignore - Dynamic imports of ESM modules from CommonJS
-  const configModule = await import('../utils/config.js');
-  // @ts-ignore - Dynamic imports of ESM modules from CommonJS
-  const loggerModule = await import('../utils/logger.js');
+  try {
+    console.log('[Main] Loading ESM modules...');
+    // @ts-ignore - Dynamic imports of ESM modules from CommonJS
+    const indexModule = await import('../index.js');
+    console.log('[Main] Loaded index.js');
+    // @ts-ignore - Dynamic imports of ESM modules from CommonJS
+    const configModule = await import('../utils/config.js');
+    console.log('[Main] Loaded config.js');
+    // @ts-ignore - Dynamic imports of ESM modules from CommonJS
+    const loggerModule = await import('../utils/logger.js');
+    console.log('[Main] Loaded logger.js');
 
-  Application = indexModule.Application;
-  loadConfig = configModule.loadConfig;
-  logger = loggerModule.logger;
+    Application = indexModule.Application;
+    loadConfig = configModule.loadConfig;
+    logger = loggerModule.logger;
+    console.log('[Main] ESM modules loaded successfully');
+  } catch (error) {
+    console.error('[Main] Failed to load ESM modules:', error);
+    throw error;
+  }
 }
 
 // Electron store for settings
@@ -200,8 +210,17 @@ function createSettingsWindow() {
     },
   });
 
+  // Open DevTools in development/debug mode
+  if (process.env.DEBUG || !app.isPackaged) {
+    settingsWindow.webContents.openDevTools();
+  }
+
   // Load settings HTML
-  settingsWindow.loadFile(path.join(__dirname, '../../assets/settings.html'));
+  const htmlPath = path.join(__dirname, '../../assets/settings.html');
+  console.log('[Main] Loading settings HTML from:', htmlPath);
+  settingsWindow.loadFile(htmlPath).catch((err) => {
+    console.error('[Main] Failed to load settings HTML:', err);
+  });
 
   settingsWindow.on('closed', () => {
     settingsWindow = null;
@@ -284,38 +303,48 @@ async function stopApplication() {
  * App ready handler
  */
 app.whenReady().then(async () => {
-  // Load ESM modules first
-  await loadESMModules();
+  console.log('[Main] App is ready, starting initialization...');
+  try {
+    // Load ESM modules first
+    await loadESMModules();
 
-  createTray();
+    createTray();
 
-  // Always show settings window on startup for easy access
-  // Users can close it if they don't need it
-  createSettingsWindow();
+    // Always show settings window on startup for easy access
+    // Users can close it if they don't need it
+    createSettingsWindow();
+    console.log('[Main] Initialization complete');
 
-  // Show welcome dialog only on first launch
-  const hasLaunchedBefore = store.get('hasLaunchedBefore', false) as boolean;
-  if (!hasLaunchedBefore) {
-    store.set('hasLaunchedBefore', true);
+    // Show welcome dialog only on first launch
+    const hasLaunchedBefore = store.get('hasLaunchedBefore', false) as boolean;
+    if (!hasLaunchedBefore) {
+      store.set('hasLaunchedBefore', true);
 
-    dialog.showMessageBox({
-      type: 'info',
-      title: 'LoL Analytics Viewer へようこそ',
-      message: 'LoL Analytics Viewer が起動しました！',
-      detail:
-        '• 設定画面から「Start」ボタンを押してアプリを起動してください\n' +
-        '• システムトレイ（タスクバー右下）にアイコンが表示されます\n' +
-        '• トレイアイコンを右クリックして設定を変更できます\n' +
-        '• League of Legendsを起動してチャンピオン選択を開始してください\n\n' +
-        'ログセクションで動作状況を確認できます。',
-      buttons: ['OK']
-    });
-  } else {
-    // Auto-start application on subsequent launches if configured
-    const autoStart = store.get('autoStart', false) as boolean;
-    if (autoStart) {
-      await startApplication();
+      dialog.showMessageBox({
+        type: 'info',
+        title: 'LoL Analytics Viewer へようこそ',
+        message: 'LoL Analytics Viewer が起動しました！',
+        detail:
+          '• 設定画面から「Start」ボタンを押してアプリを起動してください\n' +
+          '• システムトレイ（タスクバー右下）にアイコンが表示されます\n' +
+          '• トレイアイコンを右クリックして設定を変更できます\n' +
+          '• League of Legendsを起動してチャンピオン選択を開始してください\n\n' +
+          'ログセクションで動作状況を確認できます。',
+        buttons: ['OK']
+      });
+    } else {
+      // Auto-start application on subsequent launches if configured
+      const autoStart = store.get('autoStart', false) as boolean;
+      if (autoStart) {
+        await startApplication();
+      }
     }
+  } catch (error) {
+    console.error('[Main] Fatal error during initialization:', error);
+    dialog.showErrorBox(
+      'Initialization Error',
+      `Failed to initialize application:\n\n${error instanceof Error ? error.message : String(error)}\n\nPlease check the console for details.`
+    );
   }
 
   // IPC handlers
