@@ -92,13 +92,25 @@ python check_build.py
 
 **デバッグ版（ログ出力あり）:**
 ```bash
+# クリーンビルド（推奨）
+python clean_build.py
+pyinstaller lol-viewer-debug.spec
+
+# または直接ビルド
 pyinstaller lol-viewer-debug.spec
 ```
 
 **リリース版（ログ出力なし）:**
 ```bash
+# クリーンビルド（推奨）
+python clean_build.py
+pyinstaller lol-viewer.spec
+
+# または直接ビルド
 pyinstaller lol-viewer.spec
 ```
+
+**注意:** `.spec`ファイルを変更した後は、`python clean_build.py`でキャッシュをクリアしてから再ビルドすることを推奨します。
 
 ### 手動ビルド
 
