@@ -6,6 +6,7 @@ import base64
 import logging
 import re
 import time
+import sys
 from typing import Optional, Dict, Callable
 import requests
 import urllib3
@@ -17,6 +18,10 @@ from PyQt6.QtCore import QTimer, QObject, pyqtSignal
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
+
+# Debug print to verify module is loaded
+print(f"[lcu_detector] Module loaded, logger name: {logger.name}", file=sys.stderr)
+print(f"[lcu_detector] Logger level: {logger.level}, effective level: {logger.getEffectiveLevel()}", file=sys.stderr)
 
 
 class LCUConnectionManager:
@@ -248,6 +253,7 @@ class ChampionDetectorService(QObject):
 
     def __init__(self):
         super().__init__()
+        print("[lcu_detector] ChampionDetectorService.__init__ called", file=sys.stderr)
         self.lcu_manager = LCUConnectionManager()
         self.phase_tracker = GamePhaseTracker(self.lcu_manager)
         self.detector = ChampionDetector(self.lcu_manager, self.phase_tracker)
@@ -256,12 +262,15 @@ class ChampionDetectorService(QObject):
         self.last_champion: Optional[str] = None
         self.running = False
         logger.info("ChampionDetectorService initialized")
+        print("[lcu_detector] ChampionDetectorService initialized", file=sys.stderr)
 
     def start(self, interval_ms: int = 2000):
         """Start champion detection (polls every interval_ms milliseconds)"""
+        print(f"[lcu_detector] Starting champion detection service (interval: {interval_ms}ms)", file=sys.stderr)
         logger.info(f"Starting champion detection service (interval: {interval_ms}ms)")
         self.running = True
         self.timer.start(interval_ms)
+        print(f"[lcu_detector] Timer started, is active: {self.timer.isActive()}", file=sys.stderr)
 
     def stop(self):
         """Stop champion detection"""
@@ -272,18 +281,26 @@ class ChampionDetectorService(QObject):
     def _check_champion(self):
         """Check for champion changes (called by timer)"""
         try:
+            # Print to stderr for debugging
+            print(f"[lcu_detector] _check_champion called, connected: {self.lcu_manager.connected}", file=sys.stderr)
+
             # Try to connect if not connected
             if not self.lcu_manager.connected:
-                if self.lcu_manager.is_client_running():
-                    self.lcu_manager.connect()
+                is_running = self.lcu_manager.is_client_running()
+                print(f"[lcu_detector] Client running: {is_running}", file=sys.stderr)
+                if is_running:
+                    connected = self.lcu_manager.connect()
+                    print(f"[lcu_detector] Connection attempt result: {connected}", file=sys.stderr)
 
             # Detect champion
             if self.lcu_manager.connected:
                 champion = self.detector.detect_champion()
+                print(f"[lcu_detector] Detected champion: {champion}", file=sys.stderr)
 
                 # Emit signal if champion changed
                 if champion and champion != self.last_champion:
                     logger.info(f"Champion changed: {self.last_champion} -> {champion}")
+                    print(f"[lcu_detector] Champion changed: {self.last_champion} -> {champion}", file=sys.stderr)
                     self.last_champion = champion
                     self.champion_detected.emit(champion)
                 elif not champion and self.last_champion:
@@ -293,3 +310,6 @@ class ChampionDetectorService(QObject):
 
         except Exception as e:
             logger.error(f"Error in champion check: {e}")
+            print(f"[lcu_detector] Error in champion check: {e}", file=sys.stderr)
+            import traceback
+            traceback.print_exc()

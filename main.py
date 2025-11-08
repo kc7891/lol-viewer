@@ -15,7 +15,6 @@ from PyQt6.QtWidgets import (
     QTabWidget, QStackedWidget
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from lcu_detector import ChampionDetectorService
 
 
 def setup_logging():
@@ -67,8 +66,10 @@ def setup_logging():
 
 logger = logging.getLogger(__name__)
 
+# Import these after logger setup
 from champion_data import ChampionData, setup_champion_input
 from logger import log
+from lcu_detector import ChampionDetectorService
 
 
 class ChampionViewerWidget(QWidget):
@@ -285,8 +286,10 @@ class MainWindow(QMainWindow):
         self.champion_data = ChampionData()  # Load champion data
 
         # Initialize champion detector service
+        logger.info("Initializing ChampionDetectorService...")
         self.champion_detector = ChampionDetectorService()
         self.champion_detector.champion_detected.connect(self.on_champion_detected)
+        logger.info("ChampionDetectorService initialized and connected")
 
         self.init_ui()
 
