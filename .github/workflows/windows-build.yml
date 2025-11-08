@@ -37,15 +37,13 @@ jobs:
     - name: Deploy Qt Dependencies
       run: |
         cd build
-        windeployqt lol-viewer.exe --release --no-translations
+        windeployqt lol-viewer.exe --release --no-translations --webengine
       shell: cmd
 
     - name: Package Application
       run: |
         mkdir package
-        copy build\lol-viewer.exe package\
-        xcopy /E /I /Y build\*.dll package\ 2>nul || echo "No DLLs to copy"
-        dir /s /b build
+        xcopy /E /I /Y build package
       shell: cmd
 
     - name: Upload Artifact

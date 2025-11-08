@@ -36,11 +36,12 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 # Windows specific settings
-if(WIN32)
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        WIN32_EXECUTABLE TRUE
-    )
-endif()
+# Commented out to enable console output for debugging
+#if(WIN32)
+#    set_target_properties(${PROJECT_NAME} PROPERTIES
+#        WIN32_EXECUTABLE TRUE
+#    )
+#endif()
 
 # Install rules
 install(TARGETS ${PROJECT_NAME}
