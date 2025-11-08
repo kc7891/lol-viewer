@@ -12,19 +12,26 @@ class Logger:
     """Simple logger that writes to both console and file"""
 
     def __init__(self, log_file=None):
-        if log_file is None:
-            # Get the directory where the executable/script is located
-            if getattr(sys, 'frozen', False):
-                # Running as compiled executable
-                app_dir = os.path.dirname(sys.executable)
-            else:
-                # Running as script
-                app_dir = os.path.dirname(os.path.abspath(__file__))
+        # Check if logging should be enabled based on executable name
+        if getattr(sys, 'frozen', False):
+            # Running as compiled executable
+            exe_name = os.path.basename(sys.executable).lower()
+            # Enable logging only if executable name contains 'debug'
+            self.enabled = 'debug' in exe_name
+            app_dir = os.path.dirname(sys.executable)
+        else:
+            # Running as script - always enable logging
+            self.enabled = True
+            app_dir = os.path.dirname(os.path.abspath(__file__))
 
+        if not self.enabled:
+            self.log_file = None
+            return
+
+        if log_file is None:
             log_file = os.path.join(app_dir, 'lol_viewer_debug.log')
 
         self.log_file = log_file
-        self.enabled = True
 
         # Create new log file
         try:

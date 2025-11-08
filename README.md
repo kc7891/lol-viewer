@@ -12,9 +12,14 @@ League of Legendsのチャンピオン情報をLoLAnalyticsで簡単に閲覧で
 
 ## デバッグログ
 
-アプリケーションを実行すると、実行ファイルと同じディレクトリに `lol_viewer_debug.log` が生成されます。
+**実行ファイル名に `debug` が含まれる場合のみ**ログファイルが出力されます。
 
-このログファイルには以下の情報が記録されます：
+例：
+- `lol-viewer-debug.exe` → ログ出力 ✓
+- `lol-viewer.exe` → ログ出力なし
+- `python main.py` → ログ出力 ✓（開発時）
+
+ログファイル（`lol_viewer_debug.log`）には以下の情報が記録されます：
 - チャンピオンデータの読み込み状況
 - オートコンプリートの設定状況
 - アプリケーションの初期化過程
@@ -69,9 +74,46 @@ python main.py
 
 ## ビルド
 
+`champions.json`は実行ファイルに埋め込まれるため、別途配置不要です。
+
+### 簡単な方法（推奨）
+
+**デバッグ版（ログ出力あり）:**
 ```bash
-pyinstaller --onefile --windowed main.py
+pyinstaller lol-viewer-debug.spec
 ```
 
-ビルド後、`dist` フォルダに実行ファイルが生成されます。
-**重要**: `champions.json` を実行ファイルと同じフォルダにコピーしてください。
+**リリース版（ログ出力なし）:**
+```bash
+pyinstaller lol-viewer.spec
+```
+
+### 手動ビルド
+
+#### Windowsの場合
+
+**デバッグ版:**
+```bash
+pyinstaller --onefile --windowed --name lol-viewer-debug --add-data "champions.json;." main.py
+```
+
+**リリース版:**
+```bash
+pyinstaller --onefile --windowed --name lol-viewer --add-data "champions.json;." main.py
+```
+
+#### macOS/Linuxの場合
+
+**デバッグ版:**
+```bash
+pyinstaller --onefile --windowed --name lol-viewer-debug --add-data "champions.json:." main.py
+```
+
+**リリース版:**
+```bash
+pyinstaller --onefile --windowed --name lol-viewer --add-data "champions.json:." main.py
+```
+
+### ビルド後
+
+`dist` フォルダに実行ファイルが生成されます。単体で実行可能です。

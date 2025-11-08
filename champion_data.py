@@ -5,6 +5,7 @@ Handles loading champion data and providing autocomplete functionality
 """
 import json
 import os
+import sys
 from typing import Dict, List, Optional
 from PyQt6.QtCore import Qt, QSize, QRect, QUrl
 from PyQt6.QtGui import QStandardItemModel, QStandardItem, QPixmap, QImage
@@ -27,7 +28,14 @@ class ChampionData:
         Args:
             data_file: Path to the champions JSON file
         """
-        self.data_file = data_file
+        # If running as PyInstaller bundle, look for data file in temp folder
+        if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+            # Running as compiled executable
+            self.data_file = os.path.join(sys._MEIPASS, data_file)
+        else:
+            # Running as script
+            self.data_file = data_file
+
         self.champions: Dict[str, dict] = {}
         self.load_data()
 
