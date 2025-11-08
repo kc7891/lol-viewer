@@ -3,7 +3,8 @@
 LoL Viewer - A simple application to view LoLAnalytics champion builds
 """
 import sys
-from PyQt6.QtCore import QUrl, pyqtSignal, Qt
+from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QMessageBox,
@@ -17,11 +18,13 @@ class ChampionViewerWidget(QWidget):
 
     close_requested = pyqtSignal(object)  # Signal to request closing this viewer
     hide_requested = pyqtSignal(object)   # Signal to request hiding this viewer
+    champion_updated = pyqtSignal(object)  # Signal when champion name is updated
 
     def __init__(self, viewer_id: int):
         super().__init__()
         self.viewer_id = viewer_id
         self.current_champion = ""
+        self.current_page_type = ""  # "build" or "counter"
         self.init_ui()
 
     def init_ui(self):
@@ -33,21 +36,6 @@ class ChampionViewerWidget(QWidget):
         # Header layout with close and hide buttons
         header_layout = QHBoxLayout()
         header_layout.setSpacing(4)
-
-        # Viewer ID label
-        self.id_label = QPushButton(f"View #{self.viewer_id + 1}")
-        self.id_label.setStyleSheet("""
-            QPushButton {
-                padding: 4px 8px;
-                font-size: 10pt;
-                background-color: #333333;
-                color: #ffffff;
-                border: none;
-                border-radius: 4px;
-            }
-        """)
-        self.id_label.setEnabled(False)
-        header_layout.addWidget(self.id_label)
 
         header_layout.addStretch()
 
@@ -166,6 +154,8 @@ class ChampionViewerWidget(QWidget):
 
         # WebView
         self.web_view = QWebEngineView()
+        # Set dark background color for web view to match dark theme
+        self.web_view.page().setBackgroundColor(QColor("#1e1e1e"))
         layout.addWidget(self.web_view)
 
         # Set minimum and preferred width
@@ -181,9 +171,12 @@ class ChampionViewerWidget(QWidget):
             return
 
         self.current_champion = champion_name
+        self.current_page_type = "build"
         url = self.get_lolalytics_build_url(champion_name)
         self.web_view.setUrl(QUrl(url))
         self.champion_input.setFocus()
+        # Notify parent window that champion name has been updated
+        self.champion_updated.emit(self)
 
     def open_counter(self):
         """Open the LoLAnalytics counter page for the entered champion"""
@@ -194,15 +187,18 @@ class ChampionViewerWidget(QWidget):
             return
 
         self.current_champion = champion_name
+        self.current_page_type = "counter"
         url = self.get_lolalytics_counter_url(champion_name)
         self.web_view.setUrl(QUrl(url))
         self.champion_input.setFocus()
+        # Notify parent window that champion name has been updated
+        self.champion_updated.emit(self)
 
     def get_display_name(self) -> str:
         """Get display name for this viewer"""
-        if self.current_champion:
-            return f"View #{self.viewer_id + 1}: {self.current_champion.capitalize()}"
-        return f"View #{self.viewer_id + 1}"
+        if self.current_champion and self.current_page_type:
+            return f"{self.current_champion} | {self.current_page_type}"
+        return "(Empty)"
 
     @staticmethod
     def get_lolalytics_build_url(champion_name: str) -> str:
@@ -301,6 +297,9 @@ class MainWindow(QMainWindow):
         # Add initial 2 viewers
         self.add_viewer()
         self.add_viewer()
+
+        # Update viewers list after window is shown to fix initial [Hidden] tag issue
+        QTimer.singleShot(0, self.update_viewers_list)
 
     def create_sidebar(self):
         """Create the left sidebar for all viewers"""
@@ -430,6 +429,7 @@ class MainWindow(QMainWindow):
         # Connect signals
         viewer.close_requested.connect(self.close_viewer)
         viewer.hide_requested.connect(self.hide_viewer)
+        viewer.champion_updated.connect(self.update_champion_name)
 
         # Add to splitter
         self.viewers_splitter.addWidget(viewer)
@@ -482,6 +482,10 @@ class MainWindow(QMainWindow):
                 if viewer in self.hidden_viewers:
                     self.hidden_viewers.remove(viewer)
             self.update_viewers_list()
+
+    def update_champion_name(self, viewer: ChampionViewerWidget):
+        """Update sidebar when a viewer's champion name is changed"""
+        self.update_viewers_list()
 
     def update_viewers_list(self):
         """Update the list of all viewers in the sidebar"""
