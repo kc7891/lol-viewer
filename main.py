@@ -11,7 +11,8 @@ from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QMessageBox,
-    QScrollArea, QSplitter, QListWidget, QListWidgetItem, QLabel
+    QScrollArea, QSplitter, QListWidget, QListWidgetItem, QLabel,
+    QTabWidget, QStackedWidget
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from lcu_detector import ChampionDetectorService
@@ -66,6 +67,9 @@ def setup_logging():
 
 logger = logging.getLogger(__name__)
 
+from champion_data import ChampionData, setup_champion_input
+from logger import log
+
 
 class ChampionViewerWidget(QWidget):
     """Widget containing champion input, build/counter buttons, and web view"""
@@ -74,10 +78,11 @@ class ChampionViewerWidget(QWidget):
     hide_requested = pyqtSignal(object)   # Signal to request hiding this viewer
     champion_updated = pyqtSignal(object)  # Signal when champion name is updated
 
-    def __init__(self, viewer_id: int):
+    def __init__(self, viewer_id: int, champion_data: ChampionData = None):
         super().__init__()
         self.viewer_id = viewer_id
         self.current_champion = ""
+        self.champion_data = champion_data
         self.current_page_type = ""  # "build" or "counter"
         self.init_ui()
 
@@ -145,7 +150,7 @@ class ChampionViewerWidget(QWidget):
 
         # Champion name input
         self.champion_input = QLineEdit()
-        self.champion_input.setPlaceholderText("Champion name (e.g., ashe, swain)")
+        self.champion_input.setPlaceholderText("Champion name (e.g., ashe, swain, アッシュ)")
         self.champion_input.setStyleSheet("""
             QLineEdit {
                 padding: 8px;
@@ -161,6 +166,10 @@ class ChampionViewerWidget(QWidget):
         """)
         self.champion_input.returnPressed.connect(self.open_build)
         control_layout.addWidget(self.champion_input, stretch=3)
+
+        # Set up autocomplete if champion data is available
+        if self.champion_data:
+            setup_champion_input(self.champion_input, self.champion_data)
 
         # Build button
         self.build_button = QPushButton("Build")
@@ -273,6 +282,7 @@ class MainWindow(QMainWindow):
         self.viewers = []  # List of all viewer widgets
         self.hidden_viewers = []  # List of hidden viewer widgets
         self.next_viewer_id = 0  # Counter for assigning viewer IDs
+        self.champion_data = ChampionData()  # Load champion data
 
         # Initialize champion detector service
         self.champion_detector = ChampionDetectorService()
@@ -321,19 +331,57 @@ class MainWindow(QMainWindow):
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Left sidebar for hidden viewers
+        # Left sidebar with tabs
         self.create_sidebar()
         main_layout.addWidget(self.sidebar)
 
-        # Right side layout
-        right_widget = QWidget()
-        right_layout = QVBoxLayout(right_widget)
-        right_layout.setSpacing(0)
-        right_layout.setContentsMargins(0, 0, 0, 0)
+        # Right side - stacked widget for switching between Live Game and Viewers
+        self.main_content_stack = QStackedWidget()
+
+        # Page 0: Live Game
+        self.create_live_game_page()
+        self.main_content_stack.addWidget(self.live_game_page)
+
+        # Page 1: Viewers
+        self.create_viewers_page()
+        self.main_content_stack.addWidget(self.viewers_page)
+
+        main_layout.addWidget(self.main_content_stack)
+
+        # Add initial 2 viewers
+        self.add_viewer()
+        self.add_viewer()
+
+        # Set default tab to Viewers (index 1) after all widgets are created
+        self.sidebar.setCurrentIndex(1)
+        self.main_content_stack.setCurrentIndex(1)
+
+        # Update viewers list after window is shown to fix initial [Hidden] tag issue
+        QTimer.singleShot(0, self.update_viewers_list)
+
+    def create_live_game_page(self):
+        """Create the Live Game page with u.gg web view"""
+        self.live_game_page = QWidget()
+        live_game_layout = QVBoxLayout(self.live_game_page)
+        live_game_layout.setSpacing(0)
+        live_game_layout.setContentsMargins(0, 0, 0, 0)
+
+        # WebView for u.gg
+        self.live_game_web_view = QWebEngineView()
+        self.live_game_web_view.page().setBackgroundColor(QColor("#1e1e1e"))
+        self.live_game_web_view.setUrl(QUrl("https://u.gg/lol/lg-splash"))
+        live_game_layout.addWidget(self.live_game_web_view)
+
+    def create_viewers_page(self):
+        """Create the Viewers page with toolbar and viewers splitter"""
+        self.viewers_page = QWidget()
+        viewers_layout = QVBoxLayout(self.viewers_page)
+        viewers_layout.setSpacing(0)
+        viewers_layout.setContentsMargins(0, 0, 0, 0)
 
         # Top toolbar with add and close all buttons
         self.create_toolbar()
-        right_layout.addWidget(self.toolbar)
+        viewers_layout.addWidget(self.toolbar)
 
         # Splitter for resizable viewers
         self.viewers_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -349,47 +397,65 @@ class MainWindow(QMainWindow):
         self.viewers_splitter.setHandleWidth(6)
         self.viewers_splitter.setChildrenCollapsible(False)
 
-        right_layout.addWidget(self.viewers_splitter)
-
-        main_layout.addWidget(right_widget)
-
-        # Add initial 2 viewers
-        self.add_viewer()
-        self.add_viewer()
-
-        # Update viewers list after window is shown to fix initial [Hidden] tag issue
-        QTimer.singleShot(0, self.update_viewers_list)
+        viewers_layout.addWidget(self.viewers_splitter)
 
         # Start champion detection service
         logger.info("Starting champion detection service")
         self.champion_detector.start(interval_ms=2000)
 
     def create_sidebar(self):
-        """Create the left sidebar for all viewers"""
-        self.sidebar = QWidget()
+        """Create the left sidebar with tabs for Live Game and Viewers"""
+        self.sidebar = QTabWidget()
         self.sidebar.setFixedWidth(200)
         self.sidebar.setStyleSheet("""
-            QWidget {
+            QTabWidget {
                 background-color: #252525;
                 border-right: 1px solid #444444;
             }
-        """)
-
-        sidebar_layout = QVBoxLayout(self.sidebar)
-        sidebar_layout.setSpacing(10)
-        sidebar_layout.setContentsMargins(10, 10, 10, 10)
-
-        # Title
-        title_label = QLabel("Viewers")
-        title_label.setStyleSheet("""
-            QLabel {
-                font-size: 12pt;
-                font-weight: bold;
+            QTabWidget::pane {
+                border: none;
+                background-color: #252525;
+            }
+            QTabBar::tab {
+                background-color: #2b2b2b;
                 color: #ffffff;
-                padding: 5px;
+                padding: 8px 16px;
+                border: none;
+                border-bottom: 2px solid transparent;
+            }
+            QTabBar::tab:selected {
+                background-color: #0d7377;
+                border-bottom: 2px solid #14a0a6;
+            }
+            QTabBar::tab:hover {
+                background-color: #3a3a3a;
             }
         """)
-        sidebar_layout.addWidget(title_label)
+
+        # Live Game tab (empty for now, will show web view in main content)
+        live_game_widget = QWidget()
+        live_game_layout = QVBoxLayout(live_game_widget)
+        live_game_layout.setContentsMargins(10, 10, 10, 10)
+
+        live_game_label = QLabel("Live Game\n\nSelect this tab to view\nu.gg live game splash")
+        live_game_label.setStyleSheet("""
+            QLabel {
+                font-size: 10pt;
+                color: #aaaaaa;
+                padding: 10px;
+            }
+        """)
+        live_game_label.setWordWrap(True)
+        live_game_layout.addWidget(live_game_label)
+        live_game_layout.addStretch()
+
+        self.sidebar.addTab(live_game_widget, "Live Game")
+
+        # Viewers tab
+        viewers_widget = QWidget()
+        viewers_layout = QVBoxLayout(viewers_widget)
+        viewers_layout.setSpacing(10)
+        viewers_layout.setContentsMargins(10, 10, 10, 10)
 
         # List of all viewers
         self.viewers_list = QListWidget()
@@ -413,7 +479,17 @@ class MainWindow(QMainWindow):
             }
         """)
         self.viewers_list.itemDoubleClicked.connect(self.toggle_viewer_visibility)
-        sidebar_layout.addWidget(self.viewers_list)
+        viewers_layout.addWidget(self.viewers_list)
+
+        self.sidebar.addTab(viewers_widget, "Viewers")
+
+        # Connect tab change signal to update main content
+        self.sidebar.currentChanged.connect(self.on_sidebar_tab_changed)
+
+    def on_sidebar_tab_changed(self, index):
+        """Handle sidebar tab change and update main content"""
+        # Switch main content stack to match sidebar tab
+        self.main_content_stack.setCurrentIndex(index)
 
     def create_toolbar(self):
         """Create the top toolbar with add and close all buttons"""
@@ -486,7 +562,7 @@ class MainWindow(QMainWindow):
             return
 
         # Create new viewer
-        viewer = ChampionViewerWidget(self.next_viewer_id)
+        viewer = ChampionViewerWidget(self.next_viewer_id, self.champion_data)
         self.next_viewer_id += 1
 
         # Connect signals
@@ -615,8 +691,10 @@ def main():
     try:
         # Setup logging first
         is_debug = setup_logging()
+        logger.info("=" * 60)
         logger.info("Starting LoL Viewer...")
         logger.info(f"Debug mode: {is_debug}")
+        logger.info("=" * 60)
 
         app = QApplication(sys.argv)
         logger.info("QApplication created")
@@ -626,6 +704,7 @@ def main():
 
         window.show()
         logger.info("Window shown")
+        logger.info("Application ready - check for autocomplete by typing in champion name field")
 
         sys.exit(app.exec())
     except Exception as e:
