@@ -173,7 +173,7 @@ class ChampionViewerWidget(QWidget):
         self.lane_selector.addItem("Sup", "support")
         self.lane_selector.setStyleSheet("""
             QComboBox {
-                padding: 8px 24px 8px 8px;
+                padding: 8px;
                 font-size: 11pt;
                 background-color: #2b2b2b;
                 color: #ffffff;
@@ -185,17 +185,13 @@ class ChampionViewerWidget(QWidget):
                 border: 1px solid #0d7377;
             }
             QComboBox::drop-down {
-                subcontrol-origin: padding;
-                subcontrol-position: top right;
-                width: 20px;
                 border: none;
+                width: 0px;
             }
             QComboBox::down-arrow {
-                width: 0;
-                height: 0;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 5px solid #ffffff;
+                image: none;
+                width: 0px;
+                height: 0px;
             }
             QComboBox QAbstractItemView {
                 background-color: #2b2b2b;
