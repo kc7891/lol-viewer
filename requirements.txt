@@ -1,3 +1,5 @@
 PyQt6>=6.6.0
 PyQt6-WebEngine>=6.6.0
 pyinstaller>=6.0.0
+pytest>=7.4.0
+pytest-qt>=4.2.0
