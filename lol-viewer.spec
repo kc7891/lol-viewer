@@ -3,14 +3,18 @@
 PyInstaller spec file for LoL Viewer (Release version)
 Usage: pyinstaller lol-viewer.spec
 """
+import os
+
+# Get the directory containing this spec file
+spec_root = os.path.abspath(SPECPATH)
 
 block_cipher = None
 
 a = Analysis(
-    ['main.py'],
+    [os.path.join(spec_root, 'main.py')],
     pathex=[],
     binaries=[],
-    datas=[('champions.json', '.')],  # Embed champions.json
+    datas=[(os.path.join(spec_root, 'champions.json'), '.')],  # Embed champions.json
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
