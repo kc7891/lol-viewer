@@ -56,20 +56,27 @@ TODO項目5の実装：
 
 ## 推奨実装アプローチ
 
-**ハイブリッドアプローチ（LCU API + Live Client Data API）**
+**LCU API単独アプローチ** ⭐ **最適解**
 
-1. **チャンピオン選択フェーズ**: LCU APIを使用
+チャンピオン選択時に確定したチャンピオンはゲーム中変わらないため、**LCU APIのみで十分**です。
+
+### 実装方針
+
+1. **チャンピオン選択の監視**: LCU APIを使用
    - `/lol-champ-select/v1/session` でチャンピオン選択を検知
-   - WebSocketイベントでリアルタイム更新
+   - WebSocketイベントでリアルタイム更新（推奨）
+   - **自分のチャンピオン**: `myTeam[localPlayerCellId].championId`
+   - **相手のチャンピオン**: `theirTeam[]` から全員取得可能 → タスク7で利用
+   - **Ban情報**: `bans.myTeamBans` / `bans.theirTeamBans`
 
-2. **ゲーム中（In-Game）**: Live Client Data APIを使用
-   - `https://127.0.0.1:2999/liveclientdata/activeplayer` で現在のチャンピオンを取得
-   - ポーリングまたはイベント駆動で定期的にチェック
+2. **状態管理**: `/lol-gameflow/v1/session` でゲームフェーズを監視
+   - `ChampSelect`: チャンピオン選択中 → ここで検知
+   - `InProgress`: ゲーム中 → 選択済みチャンピオンを保持
+   - `None`: メインメニュー → 状態をリセット
 
-3. **状態管理**: LCU APIの `/lol-gameflow/v1/session` でゲームフェーズを監視
-   - `ChampSelect`: チャンピオン選択中
-   - `InProgress`: ゲーム中
-   - `None`: メインメニュー
+3. **Live Client Data API**: オプション（非推奨）
+   - ゲーム中のリアルタイムステータス取得には有用
+   - チャンピオン検知には不要（選択時に確定済み）
 
 ---
 
@@ -171,7 +178,7 @@ GET /lol-gameflow/v1/session
 }
 ```
 
-#### 2. チャンピオン選択セッション
+#### 2. チャンピオン選択セッション（最重要）
 ```
 GET /lol-champ-select/v1/session
 ```
@@ -185,14 +192,42 @@ GET /lol-champ-select/v1/session
       "cellId": 0,
       "championId": 22,
       "championPickIntent": 22,
-      "summonerId": 12345
+      "summonerId": 12345,
+      "spell1Id": 4,
+      "spell2Id": 14,
+      "assignedPosition": "bottom"
     }
   ],
-  "actions": [...]
+  "theirTeam": [
+    {
+      "cellId": 0,
+      "championId": 51,
+      "summonerId": 67890
+    },
+    {
+      "cellId": 1,
+      "championId": 238,
+      "summonerId": 67891
+    }
+  ],
+  "bans": {
+    "myTeamBans": [157, 555, 221],
+    "theirTeamBans": [234, 875, 350],
+    "numBans": 6
+  },
+  "timer": {
+    "phase": "BAN_PICK",
+    "adjustedTimeLeftInPhase": 30000
+  }
 }
 ```
 
-**championId**: チャンピオンのID（Data Dragonで名前に変換可能）
+**重要フィールド**:
+- `localPlayerCellId`: 自分のcellId（myTeamから自分を特定）
+- `myTeam[]`: 自分のチームの全情報
+- `theirTeam[]`: **相手チームの全情報** → タスク7で使用！
+- `bans`: Ban情報（championIdの配列）
+- `championId`: チャンピオンのID（Data Dragonで名前に変換可能）
 
 #### 3. 現在のサモナー情報
 ```
@@ -273,12 +308,16 @@ ws.send(json.dumps(subscribe_champ_select))
 
 ## Live Client Data API 詳細
 
+> **注意**: チャンピオン検知にはLCU APIで十分なため、このAPIは**オプション**です。
+> ゲーム中のリアルタイム統計情報（HP、ゴールド、レベルなど）を取得したい場合のみ使用してください。
+
 ### 基本情報
 
 - **ベースURL**: `https://127.0.0.1:2999/liveclientdata/`
 - **認証**: 不要
 - **利用可能時期**: ゲーム中のみ（チャンピオン選択中は利用不可）
 - **証明書**: 自己署名証明書（SSL検証をスキップする必要あり）
+- **用途**: ゲーム中のリアルタイム統計（チャンピオン検知には不要）
 
 ### 主要エンドポイント
 
@@ -872,35 +911,28 @@ class LoLChampionDetector:
 
         return None
 
-    def detect_from_live_client(self):
-        """ゲーム中のLive Client Data APIから検知"""
-        try:
-            response = requests.get(
-                "https://127.0.0.1:2999/liveclientdata/allgamedata",
-                verify=False,
-                timeout=5
-            )
-            if response.status_code == 200:
-                data = response.json()
-                active_name = data['activePlayer']['summonerName']
-
-                for player in data['allPlayers']:
-                    if player['summonerName'] == active_name:
-                        return player['championName']
-        except Exception:
-            pass
-        return None
-
     def detect_champion(self):
-        """現在のチャンピオンを検知"""
+        """現在のチャンピオンを検知（LCU API単独）"""
         phase = self.get_gameflow_phase()
 
         if phase == 'ChampSelect':
-            return self.detect_from_champ_select()
-        elif phase == 'InProgress':
-            return self.detect_from_live_client()
+            # チャンピオン選択中 - LCU APIから取得
+            champion = self.detect_from_champ_select()
+            if champion:
+                # 選択されたチャンピオンを記憶（ゲーム中も使用）
+                self.current_champion = champion
+            return champion
 
-        return None
+        elif phase == 'InProgress':
+            # ゲーム中 - 選択時のチャンピオンを保持
+            return self.current_champion
+
+        elif phase == 'None' or phase == 'Lobby':
+            # メインメニュー/ロビー - 状態をリセット
+            self.current_champion = None
+            return None
+
+        return self.current_champion
 
     def start_monitoring(self, callback):
         """監視を開始"""
@@ -1150,26 +1182,51 @@ async def async_detect_champion():
 
 ## 今後の拡張可能性
 
-### 1. タスク7への応用
+### 1. タスク7への応用 ✅
 「LoLのBanPick画面で相手が選択したチャンピオン5体のカウンターページを自動で開く」
+
+**完全実装可能！** 同じ`/lol-champ-select/v1/session`エンドポイントで取得可能。
 
 **実装方法**:
 ```python
 def detect_enemy_champions():
+    """相手チーム5体のチャンピオンを検知"""
     data = make_lcu_request("/lol-champ-select/v1/session")
     enemy_champions = []
 
+    # theirTeamから相手全員のチャンピオンIDを取得
     for player in data.get('theirTeam', []):
         champion_id = player.get('championId', 0)
         if champion_id > 0:
-            enemy_champions.append(champion_map[champion_id])
+            champion_name = champion_map.get(champion_id)
+            if champion_name:
+                enemy_champions.append(champion_name)
 
     return enemy_champions
 
-# 5体のカウンターページを開く
-for champion in enemy_champions:
-    url = f"https://lolalytics.com/lol/{champion.lower()}/counters/"
-    open_webview(url)
+def auto_open_counter_pages():
+    """相手5体のカウンターページを自動で開く"""
+    enemy_champions = detect_enemy_champions()
+
+    # 各チャンピオンのカウンターページを開く
+    for champion in enemy_champions:
+        url = f"https://lolalytics.com/lol/{champion.lower()}/counters/"
+        open_new_webview(url)
+
+    print(f"{len(enemy_champions)}体のカウンターページを開きました")
+```
+
+**Ban情報も取得可能**:
+```python
+def get_ban_info():
+    """Ban情報を取得"""
+    data = make_lcu_request("/lol-champ-select/v1/session")
+    bans = data.get('bans', {})
+
+    my_bans = [champion_map.get(cid) for cid in bans.get('myTeamBans', [])]
+    their_bans = [champion_map.get(cid) for cid in bans.get('theirTeamBans', [])]
+
+    return my_bans, their_bans
 ```
 
 ### 2. ビルド推奨機能
@@ -1209,24 +1266,34 @@ for champion in enemy_champions:
 
 ## まとめ
 
-タスク5「チャンピオン自動検知機能」の実装には、**LCU API**と**Live Client Data API**のハイブリッドアプローチが最適です。
+タスク5「チャンピオン自動検知機能」とタスク7「相手5体のカウンター表示」は、**LCU API単独**で完全に実装可能です。
 
-### 重要ポイント
+### 重要ポイント（改定版）
 
-1. **LCU API**でチャンピオン選択フェーズを監視
-2. **Live Client Data API**でゲーム中のチャンピオンを取得
+1. **LCU API単独で十分** - Live Client Data APIは不要
+2. **`/lol-champ-select/v1/session`** - このエンドポイント1つで全てのデータを取得
+   - 自分のチャンピオン: `myTeam[localPlayerCellId].championId`
+   - 相手のチャンピオン: `theirTeam[].championId`（タスク7で使用）
+   - Ban情報: `bans.myTeamBans` / `bans.theirTeamBans`
 3. **WebSocketイベント**でリアルタイム検知（推奨）
 4. **Lockfile**からポートとパスワードを動的取得
 5. **Data Dragon**でチャンピオンID→名前変換
 
-### 実装の優先順位
+### なぜLCU APIだけで十分？
+
+✅ チャンピオンは選択時に確定し、ゲーム中は変わらない
+✅ チャンピオン選択フェーズで全情報（自分・相手・Ban）が揃う
+✅ シンプルな実装で保守性が高い
+✅ 認証が1箇所のみ（Live Client Data APIは別途SSL処理が必要）
+
+### 実装の優先順位（改定版）
 
 1. ✅ **Phase 1**: Lockfile読み取りとLCU接続
-2. ✅ **Phase 2**: ゲームフェーズ検知
-3. ✅ **Phase 3**: チャンピオン選択画面での検知
-4. ✅ **Phase 4**: ゲーム中（Live Client）での検知
-5. ✅ **Phase 5**: 自動ページオープン機能
-6. 🔄 **Phase 6**: WebSocketイベント統合（オプション）
+2. ✅ **Phase 2**: ゲームフェーズ検知（`/lol-gameflow/v1/session`）
+3. ✅ **Phase 3**: チャンピオン選択での検知（`/lol-champ-select/v1/session`）
+4. ✅ **Phase 4**: 自分のチャンピオンでビルドページを自動オープン（タスク5）
+5. ✅ **Phase 5**: 相手5体でカウンターページを自動オープン（タスク7）
+6. 🔄 **Phase 6**: WebSocketイベント統合（リアルタイム更新）
 7. 🔄 **Phase 7**: エラーハンドリングと最適化
 
-このドキュメントに基づいて実装を進めることで、堅牢で効率的なチャンピオン自動検知機能を構築できます。
+このドキュメントに基づいて実装を進めることで、シンプルかつ堅牢なチャンピオン自動検知機能を構築できます。
