@@ -267,12 +267,12 @@ class ChampionViewerWidget(QWidget):
     @staticmethod
     def get_lolalytics_build_url(champion_name: str) -> str:
         """Generate the LoLAnalytics build URL for a given champion"""
-        return f"https://lolalytics.com/lol/{champion_name}/build/"
+        return f"https://lolalytics.com/lol/{champion_name.lower()}/build/"
 
     @staticmethod
     def get_lolalytics_counter_url(champion_name: str) -> str:
         """Generate the LoLAnalytics counter URL for a given champion"""
-        return f"https://lolalytics.com/lol/{champion_name}/counters/"
+        return f"https://lolalytics.com/lol/{champion_name.lower()}/counters/"
 
 
 class MainWindow(QMainWindow):
