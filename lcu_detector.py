@@ -6,22 +6,25 @@ import base64
 import logging
 import re
 import time
-import sys
 from typing import Optional, Dict, Callable
 import requests
 import urllib3
 import psutil
 from PyQt6.QtCore import QTimer, QObject, pyqtSignal
 
+# Import logger for debug output
+try:
+    from logger import log
+except ImportError:
+    # Fallback if logger module is not available
+    def log(msg):
+        print(msg)
+
 
 # Disable SSL warnings for self-signed certificates
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
-
-# Debug print to verify module is loaded
-print(f"[lcu_detector] Module loaded, logger name: {logger.name}", file=sys.stderr)
-print(f"[lcu_detector] Logger level: {logger.level}, effective level: {logger.getEffectiveLevel()}", file=sys.stderr)
 
 
 class LCUConnectionManager:
@@ -31,6 +34,7 @@ class LCUConnectionManager:
         self.port: Optional[str] = None
         self.password: Optional[str] = None
         self.connected = False
+        log("[LCU] LCUConnectionManager initialized")
         logger.info("LCUConnectionManager initialized")
 
     def connect(self) -> bool:
@@ -41,13 +45,16 @@ class LCUConnectionManager:
                 self.port = credentials['port']
                 self.password = credentials['password']
                 self.connected = True
+                log(f"[LCU] Connected to LCU on port {self.port}")
                 logger.info(f"Connected to LCU on port {self.port}")
                 return True
             else:
                 self.connected = False
+                log("[LCU] LoL client not found in process list")
                 logger.debug("LoL client not found")
                 return False
         except Exception as e:
+            log(f"[LCU] Error connecting to LCU: {e}")
             logger.error(f"Error connecting to LCU: {e}")
             self.connected = False
             return False
@@ -253,7 +260,7 @@ class ChampionDetectorService(QObject):
 
     def __init__(self):
         super().__init__()
-        print("[lcu_detector] ChampionDetectorService.__init__ called", file=sys.stderr)
+        log("[LCU] ChampionDetectorService.__init__ called")
         self.lcu_manager = LCUConnectionManager()
         self.phase_tracker = GamePhaseTracker(self.lcu_manager)
         self.detector = ChampionDetector(self.lcu_manager, self.phase_tracker)
@@ -261,16 +268,21 @@ class ChampionDetectorService(QObject):
         self.timer.timeout.connect(self._check_champion)
         self.last_champion: Optional[str] = None
         self.running = False
+        self.check_count = 0  # Track number of checks for logging
+        log("[LCU] ChampionDetectorService initialized")
         logger.info("ChampionDetectorService initialized")
-        print("[lcu_detector] ChampionDetectorService initialized", file=sys.stderr)
 
     def start(self, interval_ms: int = 2000):
         """Start champion detection (polls every interval_ms milliseconds)"""
-        print(f"[lcu_detector] Starting champion detection service (interval: {interval_ms}ms)", file=sys.stderr)
+        log(f"[LCU] Starting champion detection service (interval: {interval_ms}ms)")
+        log(f"[LCU] Will check for LoL client every {interval_ms/1000:.1f} seconds")
         logger.info(f"Starting champion detection service (interval: {interval_ms}ms)")
         self.running = True
+        self.check_count = 0
         self.timer.start(interval_ms)
-        print(f"[lcu_detector] Timer started, is active: {self.timer.isActive()}", file=sys.stderr)
+        is_active = self.timer.isActive()
+        log(f"[LCU] Timer started successfully, is active: {is_active}")
+        logger.info(f"Timer started, is active: {is_active}")
 
     def stop(self):
         """Stop champion detection"""
@@ -281,35 +293,46 @@ class ChampionDetectorService(QObject):
     def _check_champion(self):
         """Check for champion changes (called by timer)"""
         try:
-            # Print to stderr for debugging
-            print(f"[lcu_detector] _check_champion called, connected: {self.lcu_manager.connected}", file=sys.stderr)
+            self.check_count += 1
+            # Log every 10 checks (every 20 seconds) to avoid spam
+            if self.check_count % 10 == 1:
+                log(f"[LCU] Polling check #{self.check_count}: connected={self.lcu_manager.connected}")
+
+            logger.debug(f"Check #{self.check_count}: connected={self.lcu_manager.connected}")
 
             # Try to connect if not connected
             if not self.lcu_manager.connected:
                 is_running = self.lcu_manager.is_client_running()
-                print(f"[lcu_detector] Client running: {is_running}", file=sys.stderr)
+                if self.check_count % 10 == 1:
+                    log(f"[LCU] LoL client running: {is_running}")
+                logger.debug(f"Client running check: {is_running}")
+
                 if is_running:
                     connected = self.lcu_manager.connect()
-                    print(f"[lcu_detector] Connection attempt result: {connected}", file=sys.stderr)
+                    log(f"[LCU] Connection attempt result: {connected}")
+                    logger.info(f"Connection attempt result: {connected}")
 
             # Detect champion
             if self.lcu_manager.connected:
                 champion = self.detector.detect_champion()
-                print(f"[lcu_detector] Detected champion: {champion}", file=sys.stderr)
+                if champion:
+                    log(f"[LCU] Detected champion: {champion}")
+                logger.debug(f"Detected champion: {champion}")
 
                 # Emit signal if champion changed
                 if champion and champion != self.last_champion:
+                    log(f"[LCU] Champion changed: {self.last_champion} -> {champion}")
                     logger.info(f"Champion changed: {self.last_champion} -> {champion}")
-                    print(f"[lcu_detector] Champion changed: {self.last_champion} -> {champion}", file=sys.stderr)
                     self.last_champion = champion
                     self.champion_detected.emit(champion)
                 elif not champion and self.last_champion:
                     # Champion was cleared
+                    log(f"[LCU] Champion cleared: {self.last_champion}")
                     logger.debug(f"Champion cleared: {self.last_champion}")
                     self.last_champion = None
 
         except Exception as e:
+            log(f"[LCU] Error in champion check: {e}")
             logger.error(f"Error in champion check: {e}")
-            print(f"[lcu_detector] Error in champion check: {e}", file=sys.stderr)
             import traceback
             traceback.print_exc()
