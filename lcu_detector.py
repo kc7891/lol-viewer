@@ -323,6 +323,7 @@ class ChampionDetectorService(QObject):
 
     champion_detected = pyqtSignal(str, str)  # Emits (champion_name, lane)
     enemy_champion_detected = pyqtSignal(str)  # Emits enemy champion_name
+    connection_status_changed = pyqtSignal(str)  # Emits connection status: "connecting", "connected", "disconnected"
 
     def __init__(self):
         super().__init__()
@@ -334,6 +335,7 @@ class ChampionDetectorService(QObject):
         self.timer.timeout.connect(self._check_champion)
         self.last_champion: Optional[str] = None
         self.last_lane: Optional[str] = None
+        self.last_connection_status: str = "connecting"  # Track connection status
         self.running = False
         self.check_count = 0  # Track number of checks for logging
         log("[LCU] ChampionDetectorService initialized")
@@ -367,8 +369,17 @@ class ChampionDetectorService(QObject):
 
             logger.debug(f"Check #{self.check_count}: connected={self.lcu_manager.connected}")
 
+            # Track previous connection state
+            was_connected = self.lcu_manager.connected
+
             # Try to connect if not connected
             if not self.lcu_manager.connected:
+                # Update status to connecting if we're trying to connect
+                if self.last_connection_status != "connecting":
+                    self.last_connection_status = "connecting"
+                    self.connection_status_changed.emit("connecting")
+                    log("[LCU] Status changed to: connecting")
+
                 is_running = self.lcu_manager.is_client_running()
                 if self.check_count % 10 == 1:
                     log(f"[LCU] LoL client running: {is_running}")
@@ -378,6 +389,18 @@ class ChampionDetectorService(QObject):
                     connected = self.lcu_manager.connect()
                     log(f"[LCU] Connection attempt result: {connected}")
                     logger.info(f"Connection attempt result: {connected}")
+
+                    # If we just connected, emit connected status
+                    if connected and self.last_connection_status != "connected":
+                        self.last_connection_status = "connected"
+                        self.connection_status_changed.emit("connected")
+                        log("[LCU] Status changed to: connected")
+            else:
+                # We are connected, make sure status is updated
+                if self.last_connection_status != "connected":
+                    self.last_connection_status = "connected"
+                    self.connection_status_changed.emit("connected")
+                    log("[LCU] Status changed to: connected")
 
             # Detect champions (both own and enemy in a single API call)
             if self.lcu_manager.connected:

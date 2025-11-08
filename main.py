@@ -14,6 +14,60 @@ from PyQt6.QtWidgets import (
     QScrollArea, QSplitter, QListWidget, QListWidgetItem, QLabel,
     QTabWidget, QStackedWidget, QComboBox
 )
+
+
+class LCUConnectionStatusWidget(QWidget):
+    """Widget displaying LCU connection status with animated dots"""
+
+    def __init__(self):
+        super().__init__()
+        self.current_status = "connecting"
+        self.dot_count = 1  # For animating dots (1, 2, 3)
+        self.init_ui()
+
+        # Timer for dot animation (500ms interval)
+        self.animation_timer = QTimer()
+        self.animation_timer.timeout.connect(self.update_dots)
+        self.animation_timer.start(500)
+
+    def init_ui(self):
+        """Initialize the UI"""
+        self.setStyleSheet("QWidget { background-color: #252525; }")
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(10, 5, 10, 5)
+
+        self.status_label = QLabel("connecting.")
+        self.status_label.setStyleSheet("""
+            QLabel {
+                font-size: 10px;
+                color: #cccccc;
+                background-color: transparent;
+            }
+        """)
+        layout.addWidget(self.status_label)
+
+    def update_dots(self):
+        """Update dot animation for connecting status"""
+        if self.current_status == "connecting":
+            dots = "." * self.dot_count
+            self.status_label.setText(f"connecting{dots}")
+            self.dot_count = (self.dot_count % 3) + 1  # Cycle: 1 -> 2 -> 3 -> 1
+
+    def set_status(self, status: str):
+        """Set connection status
+
+        Args:
+            status: One of "connecting", "connected", "disconnected"
+        """
+        self.current_status = status
+
+        if status == "connected":
+            self.status_label.setText("connected")
+        elif status == "disconnected":
+            self.status_label.setText("disconnected")
+        elif status == "connecting":
+            self.dot_count = 1
+            self.status_label.setText("connecting.")
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 
@@ -350,7 +404,13 @@ class MainWindow(QMainWindow):
         self.champion_detector.enemy_champion_detected.connect(self.on_enemy_champion_detected)
         logger.info("ChampionDetectorService initialized and connected")
 
+        # Create connection status widget
+        self.connection_status_widget = LCUConnectionStatusWidget()
+
         self.init_ui()
+
+        # Connect status signal after UI is initialized
+        self.champion_detector.connection_status_changed.connect(self.connection_status_widget.set_status)
 
     def init_ui(self):
         """Initialize the user interface"""
@@ -395,7 +455,18 @@ class MainWindow(QMainWindow):
 
         # Left sidebar with tabs
         self.create_sidebar()
-        main_layout.addWidget(self.sidebar)
+
+        # Create sidebar container with status widget at bottom
+        sidebar_container = QWidget()
+        sidebar_container.setFixedWidth(200)
+        sidebar_container.setStyleSheet("QWidget { background-color: #252525; }")
+        sidebar_layout = QVBoxLayout(sidebar_container)
+        sidebar_layout.setSpacing(0)
+        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.addWidget(self.sidebar)
+        sidebar_layout.addWidget(self.connection_status_widget)
+
+        main_layout.addWidget(sidebar_container)
 
         # Right side - stacked widget for switching between Live Game and Viewers
         self.main_content_stack = QStackedWidget()
