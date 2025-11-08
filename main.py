@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QMessageBox,
     QScrollArea, QSplitter, QListWidget, QListWidgetItem, QLabel,
-    QTabWidget, QStackedWidget
+    QTabWidget, QStackedWidget, QComboBox
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
@@ -58,6 +58,8 @@ class ChampionViewerWidget(QWidget):
                 border-radius: 4px;
                 min-width: 30px;
                 max-width: 30px;
+                min-height: 30px;
+                max-height: 30px;
             }
             QPushButton:hover {
                 background-color: #666666;
@@ -80,6 +82,8 @@ class ChampionViewerWidget(QWidget):
                 border-radius: 4px;
                 min-width: 30px;
                 max-width: 30px;
+                min-height: 30px;
+                max-height: 30px;
             }
             QPushButton:hover {
                 background-color: #e67e50;
@@ -159,6 +163,45 @@ class ChampionViewerWidget(QWidget):
         self.counter_button.clicked.connect(self.open_counter)
         control_layout.addWidget(self.counter_button, stretch=1)
 
+        # Lane selector
+        self.lane_selector = QComboBox()
+        self.lane_selector.addItem("Lane", "")  # Default: no lane selected
+        self.lane_selector.addItem("Top", "top")
+        self.lane_selector.addItem("JG", "jungle")
+        self.lane_selector.addItem("Mid", "middle")
+        self.lane_selector.addItem("Bot", "bottom")
+        self.lane_selector.addItem("Sup", "support")
+        self.lane_selector.setStyleSheet("""
+            QComboBox {
+                padding: 8px;
+                font-size: 11pt;
+                background-color: #2b2b2b;
+                color: #ffffff;
+                border: 1px solid #444444;
+                border-radius: 4px;
+                min-width: 40px;
+            }
+            QComboBox:hover {
+                border: 1px solid #0d7377;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 0px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                width: 0px;
+                height: 0px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #2b2b2b;
+                color: #ffffff;
+                selection-background-color: #0d7377;
+                border: 1px solid #444444;
+            }
+        """)
+        control_layout.addWidget(self.lane_selector, stretch=1)
+
         layout.addLayout(control_layout)
 
         # WebView
@@ -181,7 +224,10 @@ class ChampionViewerWidget(QWidget):
 
         self.current_champion = champion_name
         self.current_page_type = "build"
-        url = self.get_lolalytics_build_url(champion_name)
+
+        # Get selected lane
+        lane = self.lane_selector.currentData()
+        url = self.get_lolalytics_build_url(champion_name, lane)
         self.web_view.setUrl(QUrl(url))
         self.champion_input.setFocus()
         # Notify parent window that champion name has been updated
@@ -197,7 +243,10 @@ class ChampionViewerWidget(QWidget):
 
         self.current_champion = champion_name
         self.current_page_type = "counter"
-        url = self.get_lolalytics_counter_url(champion_name)
+
+        # Get selected lane
+        lane = self.lane_selector.currentData()
+        url = self.get_lolalytics_counter_url(champion_name, lane)
         self.web_view.setUrl(QUrl(url))
         self.champion_input.setFocus()
         # Notify parent window that champion name has been updated
@@ -210,14 +259,20 @@ class ChampionViewerWidget(QWidget):
         return "(Empty)"
 
     @staticmethod
-    def get_lolalytics_build_url(champion_name: str) -> str:
+    def get_lolalytics_build_url(champion_name: str, lane: str = "") -> str:
         """Generate the LoLAnalytics build URL for a given champion"""
-        return f"https://lolalytics.com/lol/{champion_name}/build/"
+        base_url = f"https://lolalytics.com/lol/{champion_name}/build/"
+        if lane:
+            return f"{base_url}?lane={lane}"
+        return base_url
 
     @staticmethod
-    def get_lolalytics_counter_url(champion_name: str) -> str:
+    def get_lolalytics_counter_url(champion_name: str, lane: str = "") -> str:
         """Generate the LoLAnalytics counter URL for a given champion"""
-        return f"https://lolalytics.com/lol/{champion_name}/counters/"
+        base_url = f"https://lolalytics.com/lol/{champion_name}/counters/"
+        if lane:
+            return f"{base_url}?lane={lane}"
+        return base_url
 
 
 class MainWindow(QMainWindow):
@@ -449,18 +504,19 @@ class MainWindow(QMainWindow):
         self.close_all_button = QPushButton("Close All")
         self.close_all_button.setStyleSheet("""
             QPushButton {
-                padding: 10px 20px;
-                font-size: 11pt;
-                background-color: #d95d39;
-                color: #ffffff;
-                border: none;
+                padding: 8px 16px;
+                font-size: 10pt;
+                background-color: #3a3a3a;
+                color: #aaaaaa;
+                border: 1px solid #555555;
                 border-radius: 4px;
             }
             QPushButton:hover {
-                background-color: #e67e50;
+                background-color: #4a4a4a;
+                color: #ffffff;
             }
             QPushButton:pressed {
-                background-color: #b34b2d;
+                background-color: #2a2a2a;
             }
         """)
         self.close_all_button.clicked.connect(self.close_all_viewers)
@@ -470,19 +526,19 @@ class MainWindow(QMainWindow):
         self.add_button = QPushButton("＋ Add Viewer")
         self.add_button.setStyleSheet("""
             QPushButton {
-                padding: 10px 20px;
-                font-size: 11pt;
-                font-weight: bold;
-                background-color: #0d7377;
-                color: #ffffff;
-                border: none;
+                padding: 8px 16px;
+                font-size: 10pt;
+                background-color: #3a3a3a;
+                color: #aaaaaa;
+                border: 1px solid #555555;
                 border-radius: 4px;
             }
             QPushButton:hover {
-                background-color: #14a0a6;
+                background-color: #4a4a4a;
+                color: #ffffff;
             }
             QPushButton:pressed {
-                background-color: #0a5c5f;
+                background-color: #2a2a2a;
             }
         """)
         self.add_button.clicked.connect(self.add_viewer)
