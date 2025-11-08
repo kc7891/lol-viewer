@@ -284,18 +284,29 @@ class ChampionCompleter(QCompleter):
         delegate = ChampionItemDelegate(self.image_cache)
         self.popup().setItemDelegate(delegate)
 
+        # Ensure popup is visible and has proper size
+        popup = self.popup()
+        popup.setMinimumHeight(200)
+        popup.setMinimumWidth(350)
+
+        # Ensure popup appears on top
+        popup.setWindowFlags(popup.windowFlags() | Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        popup.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, False)
+
         # Style the popup
-        self.popup().setStyleSheet("""
+        popup.setStyleSheet("""
             QListView {
                 background-color: #2b2b2b;
                 color: #ffffff;
                 border: 1px solid #0d7377;
                 border-radius: 4px;
                 outline: none;
+                min-height: 200px;
             }
             QListView::item {
                 padding: 5px;
                 border-bottom: 1px solid #3a3a3a;
+                min-height: 50px;
             }
             QListView::item:selected {
                 background-color: #0d7377;
@@ -305,6 +316,19 @@ class ChampionCompleter(QCompleter):
                 background-color: #3a3a3a;
             }
         """)
+
+    def pathFromIndex(self, index):
+        """Return the champion ID instead of the display text"""
+        if index.isValid():
+            item = self.model_data.itemFromIndex(index)
+            if item:
+                # Return champion ID instead of display text
+                champ_id = item.data(Qt.ItemDataRole.UserRole + 2)
+                if champ_id:
+                    log(f"[ChampionCompleter] pathFromIndex returning: {champ_id}")
+                    return champ_id
+        # Fallback to default behavior
+        return super().pathFromIndex(index)
 
     def _populate_model(self):
         """Populate model with all champions"""
@@ -368,22 +392,7 @@ def setup_champion_input(line_edit: QLineEdit, champion_data: ChampionData):
 
     line_edit.textChanged.connect(on_text_changed)
 
-    # Handle completion activation to ensure English ID is used
-    def on_completion_activated(text):
-        log(f"[Autocomplete] Activated: {text}")
-        # Get the selected item
-        index = completer.popup().currentIndex()
-        if index.isValid():
-            item = completer.model_data.itemFromIndex(index)
-            if item:
-                # Get the champion ID (lowercase) for the URL
-                champ_id = item.data(Qt.ItemDataRole.UserRole + 2)
-                log(f"[Autocomplete] Selected champion ID: {champ_id}")
-                # Temporarily disconnect to avoid triggering completion again
-                line_edit.blockSignals(True)
-                line_edit.setText(champ_id)
-                line_edit.blockSignals(False)
-
-    completer.activated.connect(on_completion_activated)
+    # pathFromIndex() now handles inserting the champion ID
+    # No need for manual activated handler
 
     return completer
