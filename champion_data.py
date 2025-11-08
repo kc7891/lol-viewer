@@ -242,14 +242,17 @@ class ChampionCompleter(QCompleter):
         self.champion_data = champion_data
         self.image_cache = ChampionImageCache()
 
-        # Create model
+        # Create model and populate with all champions
         self.model_data = QStandardItemModel()
         self.setModel(self.model_data)
+        self._populate_model()
 
         # Set completion mode
         self.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
         self.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.setCompletionRole(Qt.ItemDataRole.EditRole)  # Use EditRole for filtering
+        self.setMaxVisibleItems(10)
 
         # Set custom delegate
         delegate = ChampionItemDelegate(self.image_cache)
@@ -277,25 +280,26 @@ class ChampionCompleter(QCompleter):
             }
         """)
 
-    def update_completion(self, text: str):
-        """Update completion suggestions based on input text"""
-        matches = self.champion_data.search(text)
+    def _populate_model(self):
+        """Populate model with all champions"""
+        for champ_id, data in sorted(self.champion_data.champions.items(),
+                                     key=lambda x: x[1].get('english_name', '')):
+            english_name = data.get('english_name', '')
+            japanese_name = data.get('japanese_name', '')
+            image_url = data.get('image_url', '')
 
-        # Clear existing model
-        self.model_data.clear()
+            # Create item - DisplayRole is used for both display and filtering
+            item = QStandardItem(english_name)
 
-        # Add matches to model
-        for match in matches[:10]:  # Limit to 10 suggestions
-            item = QStandardItem(match['english_name'])
-            item.setData(match['japanese_name'], Qt.ItemDataRole.UserRole)
-            item.setData(match['image_url'], Qt.ItemDataRole.UserRole + 1)
-            item.setData(match['id'], Qt.ItemDataRole.UserRole + 2)
+            # Set completion role to include both English and Japanese for searching
+            item.setData(f"{english_name} {japanese_name}", Qt.ItemDataRole.EditRole)
+
+            # Store additional data
+            item.setData(japanese_name, Qt.ItemDataRole.UserRole)
+            item.setData(image_url, Qt.ItemDataRole.UserRole + 1)
+            item.setData(champ_id, Qt.ItemDataRole.UserRole + 2)
+
             self.model_data.appendRow(item)
-
-        # Show popup if there are matches
-        if self.model_data.rowCount() > 0:
-            self.complete()
-
 
 def setup_champion_input(line_edit: QLineEdit, champion_data: ChampionData):
     """
@@ -311,23 +315,19 @@ def setup_champion_input(line_edit: QLineEdit, champion_data: ChampionData):
     completer = ChampionCompleter(champion_data, line_edit)
     line_edit.setCompleter(completer)
 
-    # Connect text changed signal to update completion
-    def on_text_changed(text):
-        if len(text) >= 1:
-            completer.update_completion(text)
-
-    line_edit.textChanged.connect(on_text_changed)
-
-    # Handle completion activation to ensure English name is used
+    # Handle completion activation to ensure English ID is used
     def on_completion_activated(text):
         # Get the selected item
         index = completer.popup().currentIndex()
         if index.isValid():
             item = completer.model_data.itemFromIndex(index)
             if item:
-                # Get the English ID (lowercase) for the URL
+                # Get the champion ID (lowercase) for the URL
                 champ_id = item.data(Qt.ItemDataRole.UserRole + 2)
+                # Temporarily disconnect to avoid triggering completion again
+                line_edit.blockSignals(True)
                 line_edit.setText(champ_id)
+                line_edit.blockSignals(False)
 
     completer.activated.connect(on_completion_activated)
 
