@@ -31,10 +31,6 @@ URLの例: https://lolalytics.com/lol/swein/counters/
 5.
 LoLのゲーム内で自分が使っているチャンピオンを検知し、このアプリ内でそのチャンピオンのビルドページが自動で開かれるようにする
 
-6.
-LoLAnalyticsを開く窓を6個まで開けるようにする
-窓を縮小・拡大することもできるようにする
-
 7.
 LoLのBanPick画面で相手が選択したチャンピオン5体のカウンターページを自動で開かれるようにする
 https://lolalytics.com/lol/swein/counters/
