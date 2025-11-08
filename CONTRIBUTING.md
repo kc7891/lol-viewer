@@ -69,10 +69,18 @@ GitHub Actionsが自動的にWindows向けexeファイルをビルドします�
 
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --windowed --name lol-viewer main.py
+pyinstaller --onefile --windowed --name lol-viewer --version-file version_info.txt main.py
 ```
 
 ビルドされたexeファイルは `dist/lol-viewer.exe` に生成されます。
+
+### コード署名について
+
+Windows SmartScreen警告を回避するためのコード署名機能が実装されています。詳細は[SMARTSCREEN_WARNING.md](./SMARTSCREEN_WARNING.md)を参照してください。
+
+コード署名証明書を持っている場合、以下のGitHub Secretsを設定することで自動的に署名されます：
+- `CERTIFICATE_BASE64`: 証明書ファイル（.pfx）のBase64エンコード
+- `CERTIFICATE_PASSWORD`: 証明書のパスワード
 
 ## プロジェクト構成
 
@@ -80,9 +88,12 @@ pyinstaller --onefile --windowed --name lol-viewer main.py
 lol-viewer/
 ├── main.py                    # メインアプリケーション
 ├── requirements.txt           # Python依存関係
+├── version_info.txt           # PyInstallerメタデータ
+├── README.md                  # プロジェクト概要
+├── SMARTSCREEN_WARNING.md     # SmartScreen警告の対処法
 ├── .github/
 │   └── workflows/
-│       └── windows-build.yml  # GitHub Actions設定
+│       └── windows-build.yml  # GitHub Actions設定（コード署名含む）
 ├── TODO.md                    # 実装予定の機能
 ├── claude.md                  # 開発時の注意事項
 └── CONTRIBUTING.md            # このファイル

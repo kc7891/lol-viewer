@@ -25,12 +25,44 @@ jobs:
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --onefile --windowed --name lol-viewer main.py
+        pip install pyinstaller
+        pyinstaller --onefile --windowed --name lol-viewer --version-file version_info.txt --icon NONE main.py
+
+    - name: Sign Executable (Optional)
+      if: ${{ secrets.CERTIFICATE_BASE64 != '' }}
+      shell: powershell
+      run: |
+        # Decode the certificate from base64
+        $certBytes = [System.Convert]::FromBase64String("${{ secrets.CERTIFICATE_BASE64 }}")
+        $certPath = Join-Path $env:TEMP "cert.pfx"
+        [IO.File]::WriteAllBytes($certPath, $certBytes)
+
+        # Sign the executable
+        & 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe' sign `
+          /f $certPath `
+          /p "${{ secrets.CERTIFICATE_PASSWORD }}" `
+          /tr http://timestamp.digicert.com `
+          /td SHA256 `
+          /fd SHA256 `
+          dist\lol-viewer.exe
+
+        # Clean up certificate
+        Remove-Item $certPath
+      continue-on-error: true
 
     - name: Package Application
       run: |
         mkdir package
         copy dist\lol-viewer.exe package\
+        echo "# LoL Viewer" > package\README.txt
+        echo "" >> package\README.txt
+        echo "## Windows SmartScreen Warning" >> package\README.txt
+        echo "If you see a SmartScreen warning:" >> package\README.txt
+        echo "1. Click 'More info'" >> package\README.txt
+        echo "2. Click 'Run anyway'" >> package\README.txt
+        echo "" >> package\README.txt
+        echo "This warning appears because the app is not code-signed." >> package\README.txt
+        echo "The app is safe and open source: https://github.com/kc7891/lol-viewer" >> package\README.txt
       shell: cmd
 
     - name: Upload Artifact
