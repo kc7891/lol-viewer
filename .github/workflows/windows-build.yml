@@ -37,7 +37,15 @@ jobs:
     - name: Deploy Qt Dependencies
       run: |
         cd build
-        windeployqt lol-viewer.exe --release --no-translations --webengine
+        windeployqt lol-viewer.exe --release --no-translations
+      shell: cmd
+
+    - name: Copy WebEngine Files
+      run: |
+        echo Copying WebEngine process and resources...
+        copy "%Qt6_DIR%\bin\QtWebEngineProcess.exe" build\ || echo "QtWebEngineProcess.exe not found"
+        xcopy /E /I /Y "%Qt6_DIR%\resources" build\resources || echo "resources folder not found"
+        xcopy /E /I /Y "%Qt6_DIR%\translations\qtwebengine_locales" build\translations\qtwebengine_locales || echo "translations not found"
       shell: cmd
 
     - name: Package Application
