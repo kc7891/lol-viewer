@@ -756,11 +756,16 @@ class MainWindow(QMainWindow):
             # Set lane selector if lane was detected
             if lane:
                 # Find the index of the lane in the combo box
+                lane_found = False
                 for i in range(target_viewer.lane_selector.count()):
                     if target_viewer.lane_selector.itemData(i) == lane:
                         target_viewer.lane_selector.setCurrentIndex(i)
                         logger.debug(f"Set lane selector to: {lane}")
+                        lane_found = True
                         break
+
+                if not lane_found:
+                    logger.warning(f"Lane '{lane}' not found in lane selector options")
 
             target_viewer.open_build()
 

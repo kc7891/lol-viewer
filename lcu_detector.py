@@ -193,34 +193,44 @@ class ChampionDetector:
             logger.error(f"Error loading champion map: {e}")
             self.champion_map = {}
 
-    def detect_champion(self) -> Optional[tuple]:
-        """Detect current champion and lane
+    def detect_champion_and_enemies(self) -> tuple:
+        """Detect own champion and enemy champions in a single API call
 
         Returns:
-            Optional[tuple]: (champion_name, lane) or None if no champion detected
+            tuple: ((champion_name, lane), [enemy_champion_names])
         """
         try:
             phase = self.phase_tracker.update_phase()
 
             if phase == 'ChampSelect':
                 # In champion select - get from LCU API
-                result = self._detect_from_champ_select()
-                if result:
-                    champion_id, lane = result
+                data = self.lcu_manager.make_request("/lol-champ-select/v1/session")
+                if not data:
+                    return (None, [])
+
+                # Detect own champion
+                own_champion_result = self._detect_own_champion_from_data(data)
+
+                # Update own champion state
+                if own_champion_result:
+                    champion_id, lane = own_champion_result
                     if champion_id and champion_id > 0:
                         self.current_champion_id = champion_id
                         self.current_champion_name = self.champion_map.get(champion_id)
                         self.current_lane = lane
                         if self.current_champion_name:
                             logger.info(f"Detected champion in champ select: {self.current_champion_name} (lane: {lane})")
-                        return (self.current_champion_name, self.current_lane)
-                return None
+
+                # Detect enemy champions
+                enemy_champions = self._detect_enemy_champions_from_data(data)
+
+                own_result = (self.current_champion_name, self.current_lane) if self.current_champion_name else None
+                return (own_result, enemy_champions)
 
             elif phase == 'InProgress':
                 # In game - return the champion selected during champ select
-                if self.current_champion_name:
-                    return (self.current_champion_name, self.current_lane)
-                return None
+                own_result = (self.current_champion_name, self.current_lane) if self.current_champion_name else None
+                return (own_result, [])
 
             elif phase == 'None' or phase == 'Lobby':
                 # Not in game - reset state
@@ -230,29 +240,27 @@ class ChampionDetector:
                 self.current_champion_name = None
                 self.current_lane = None
                 self.detected_enemy_champions.clear()
-                return None
+                return (None, [])
 
             else:
                 # Other phases - keep current state
-                if self.current_champion_name:
-                    return (self.current_champion_name, self.current_lane)
-                return None
+                own_result = (self.current_champion_name, self.current_lane) if self.current_champion_name else None
+                return (own_result, [])
 
         except Exception as e:
-            logger.error(f"Error detecting champion: {e}")
-            return None
+            logger.error(f"Error detecting champions: {e}")
+            return (None, [])
 
-    def _detect_from_champ_select(self) -> Optional[tuple]:
-        """Detect champion and lane from champ select session
+    def _detect_own_champion_from_data(self, data: dict) -> Optional[tuple]:
+        """Detect own champion and lane from champ select session data
+
+        Args:
+            data: Champ select session data from LCU API
 
         Returns:
             Optional[tuple]: (champion_id, lane) or None if not found
         """
         try:
-            data = self.lcu_manager.make_request("/lol-champ-select/v1/session")
-            if not data:
-                return None
-
             local_player_cell_id = data.get('localPlayerCellId')
             if local_player_cell_id is None:
                 return None
@@ -277,24 +285,19 @@ class ChampionDetector:
             return None
 
         except Exception as e:
-            logger.error(f"Error detecting from champ select: {e}")
+            logger.error(f"Error detecting own champion from data: {e}")
             return None
 
-    def detect_enemy_champions(self) -> list:
-        """Detect newly picked enemy champions
+    def _detect_enemy_champions_from_data(self, data: dict) -> list:
+        """Detect newly picked enemy champions from champ select session data
+
+        Args:
+            data: Champ select session data from LCU API
 
         Returns:
             list: List of newly picked enemy champion names
         """
         try:
-            phase = self.phase_tracker.current_phase
-            if phase != 'ChampSelect':
-                return []
-
-            data = self.lcu_manager.make_request("/lol-champ-select/v1/session")
-            if not data:
-                return []
-
             new_enemy_champions = []
 
             # Get enemy team champions
@@ -311,7 +314,7 @@ class ChampionDetector:
             return new_enemy_champions
 
         except Exception as e:
-            logger.error(f"Error detecting enemy champions: {e}")
+            logger.error(f"Error detecting enemy champions from data: {e}")
             return []
 
 
@@ -376,11 +379,13 @@ class ChampionDetectorService(QObject):
                     log(f"[LCU] Connection attempt result: {connected}")
                     logger.info(f"Connection attempt result: {connected}")
 
-            # Detect champion
+            # Detect champions (both own and enemy in a single API call)
             if self.lcu_manager.connected:
-                result = self.detector.detect_champion()
-                if result:
-                    champion, lane = result
+                own_result, enemy_champions = self.detector.detect_champion_and_enemies()
+
+                # Handle own champion detection
+                if own_result:
+                    champion, lane = own_result
                     log(f"[LCU] Detected champion: {champion} (lane: {lane})")
                     logger.debug(f"Detected champion: {champion} (lane: {lane})")
 
@@ -398,8 +403,7 @@ class ChampionDetectorService(QObject):
                     self.last_champion = None
                     self.last_lane = None
 
-                # Detect enemy champions
-                enemy_champions = self.detector.detect_enemy_champions()
+                # Handle enemy champion detection
                 for enemy_champion in enemy_champions:
                     log(f"[LCU] Enemy champion detected: {enemy_champion}")
                     logger.info(f"Enemy champion detected: {enemy_champion}")
