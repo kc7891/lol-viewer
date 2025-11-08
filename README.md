@@ -1,143 +1,43 @@
 # LoL Viewer
 
-League of Legendsのチャンピオン情報をLoLAnalyticsで簡単に閲覧できるアプリケーション。
+A desktop application for easily viewing League of Legends champion information with LoLAnalytics.
 
-## 機能
+## Features
 
-- チャンピオン名の入力でビルド/カウンター情報を表示
-- 英語名・日本語名両方に対応したオートコンプリート
-- サムネイル画像付きの候補リスト
-- 複数のWebViewを同時に開いて比較可能
-- ダークテーマUI
+- **Champion Search**: Display build/counter information by entering champion names
+- **Bilingual Autocomplete**: Supports both English and Japanese champion names
+- **Visual Search**: Candidate list with champion thumbnail images
+- **Multiple Tabs**: Open and compare multiple WebViews simultaneously
+- **Dark Theme UI**: Easy on the eyes interface
+- **Live Game Detection**: Automatically detects your live game and shows champion information
+- **Lane Selection**: Choose your lane role for accurate champion recommendations
+- **Auto Build/Counter Tabs**: During online matches, automatically opens Build tabs for your picked champions and Counter tabs for opponent picked champions
 
-## デバッグログ
+## How to Use
 
-**実行ファイル名に `debug` が含まれる場合のみ**ログファイルが出力されます。
+1. Launch the application
+2. Enter a champion name in the search field (English or Japanese)
+3. Select "Build" or "Counter" tab to view information
+4. Use the "Live Game" tab to automatically detect ongoing matches
 
-例：
-- `lol-viewer-debug.exe` → ログ出力 ✓
-- `lol-viewer.exe` → ログ出力なし
-- `python main.py` → ログ出力 ✓（開発時）
+### Live Game Features
 
-ログファイル（`lol_viewer_debug.log`）には以下の情報が記録されます：
-- チャンピオンデータの読み込み状況
-- オートコンプリートの設定状況
-- アプリケーションの初期化過程
+- Automatically detects when you're in an active League of Legends game
+- Displays your team's champions and the enemy team's champions
+- Select your lane to get personalized champion recommendations
+- **Auto-open tabs**: When champions are picked:
+  - Your picked champions → Build tabs automatically open
+  - Enemy picked champions → Counter tabs automatically open
+- Refresh button to update game status
 
-### ログの確認方法
+## Download
 
-1. アプリケーションを起動
-2. チャンピオン名入力欄に文字を入力
-3. アプリケーションと同じフォルダの `lol_viewer_debug.log` を開く
+Download the latest version from the [Releases](../../releases) page.
 
-### トラブルシューティング
+## Development
 
-**オートコンプリートが表示されない場合、ログで以下を確認：**
+For development instructions, debug logging, and build information, please see [DEV.md](DEV.md).
 
-1. **データが読み込まれているか**
-   - ログに `Loaded 171 champions` と表示されているか
-   - 表示されていない場合 → `champions.json` が実行ファイルと同じフォルダにあるか確認
+## License
 
-2. **オートコンプリートが設定されているか**
-   - ログに `Populated model with 171 champions` と表示されているか
-   - 表示されていない場合 → チャンピオンデータの読み込みに失敗している可能性
-
-3. **Qt関連のエラーがないか**
-   - エラーメッセージが記録されていないか確認
-
-## 開発
-
-### 必要なパッケージ
-
-```bash
-pip install -r requirements.txt
-```
-
-### チャンピオンデータの更新
-
-```bash
-python fetch_champions.py
-```
-
-### テストの実行
-
-```bash
-python test_champion_data_basic.py
-python test_autocomplete.py
-```
-
-### アプリケーションの実行
-
-```bash
-python main.py
-```
-
-## ビルド
-
-`champions.json`は実行ファイルに埋め込まれるため、別途配置不要です。
-
-### ビルド前の確認（重要！）
-
-ビルドする前に、必要なファイルが揃っているか確認：
-
-```bash
-python check_build.py
-```
-
-すべて✓であることを確認してからビルドしてください。
-
-### 簡単な方法（推奨）
-
-**プロジェクトフォルダで**実行してください：
-
-**デバッグ版（ログ出力あり）:**
-```bash
-# クリーンビルド（推奨）
-python clean_build.py
-pyinstaller lol-viewer-debug.spec
-
-# または直接ビルド
-pyinstaller lol-viewer-debug.spec
-```
-
-**リリース版（ログ出力なし）:**
-```bash
-# クリーンビルド（推奨）
-python clean_build.py
-pyinstaller lol-viewer.spec
-
-# または直接ビルド
-pyinstaller lol-viewer.spec
-```
-
-**注意:** `.spec`ファイルを変更した後は、`python clean_build.py`でキャッシュをクリアしてから再ビルドすることを推奨します。
-
-### 手動ビルド
-
-#### Windowsの場合
-
-**デバッグ版:**
-```bash
-pyinstaller --onefile --windowed --name lol-viewer-debug --add-data "champions.json;." main.py
-```
-
-**リリース版:**
-```bash
-pyinstaller --onefile --windowed --name lol-viewer --add-data "champions.json;." main.py
-```
-
-#### macOS/Linuxの場合
-
-**デバッグ版:**
-```bash
-pyinstaller --onefile --windowed --name lol-viewer-debug --add-data "champions.json:." main.py
-```
-
-**リリース版:**
-```bash
-pyinstaller --onefile --windowed --name lol-viewer --add-data "champions.json:." main.py
-```
-
-### ビルド後
-
-`dist` フォルダに実行ファイルが生成されます。単体で実行可能です。
+This project is provided as-is for personal use.
