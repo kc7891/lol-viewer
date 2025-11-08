@@ -284,6 +284,10 @@ class MainWindow(QMainWindow):
         self.add_viewer()
         self.add_viewer()
 
+        # Set default tab to Viewers (index 1) after all widgets are created
+        self.sidebar.setCurrentIndex(1)
+        self.main_content_stack.setCurrentIndex(1)
+
         # Update viewers list after window is shown to fix initial [Hidden] tag issue
         QTimer.singleShot(0, self.update_viewers_list)
 
@@ -409,9 +413,6 @@ class MainWindow(QMainWindow):
 
         # Connect tab change signal to update main content
         self.sidebar.currentChanged.connect(self.on_sidebar_tab_changed)
-
-        # Set default tab to Viewers (index 1)
-        self.sidebar.setCurrentIndex(1)
 
     def on_sidebar_tab_changed(self, index):
         """Handle sidebar tab change and update main content"""
