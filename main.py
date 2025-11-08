@@ -730,9 +730,14 @@ class MainWindow(QMainWindow):
         for viewer in viewers_copy:
             self.close_viewer(viewer)
 
-    def on_champion_detected(self, champion_name: str):
-        """Handle champion detection - automatically open build page"""
-        logger.info(f"Champion detected: {champion_name}")
+    def on_champion_detected(self, champion_name: str, lane: str):
+        """Handle champion detection - automatically open build page
+
+        Args:
+            champion_name: Name of the detected champion
+            lane: Detected lane (top, jungle, middle, bottom, support)
+        """
+        logger.info(f"Champion detected: {champion_name} (lane: {lane})")
 
         # Always create a new viewer at the leftmost position (index 0)
         if len(self.viewers) >= self.MAX_VIEWERS:
@@ -742,10 +747,20 @@ class MainWindow(QMainWindow):
         # Create new viewer at position 0 (leftmost) with is_picked=True
         target_viewer = self.add_viewer(position=0, is_picked=True)
 
-        # Open the build page in the new viewer
+        # Open the build page in the new viewer with lane
         if target_viewer:
-            logger.info(f"Auto-opening build page for {champion_name} in new viewer {target_viewer.viewer_id} at leftmost position")
+            logger.info(f"Auto-opening build page for {champion_name} (lane: {lane}) in new viewer {target_viewer.viewer_id} at leftmost position")
             target_viewer.champion_input.setText(champion_name)
+
+            # Set lane selector if lane was detected
+            if lane:
+                # Find the index of the lane in the combo box
+                for i in range(target_viewer.lane_selector.count()):
+                    if target_viewer.lane_selector.itemData(i) == lane:
+                        target_viewer.lane_selector.setCurrentIndex(i)
+                        logger.debug(f"Set lane selector to: {lane}")
+                        break
+
             target_viewer.open_build()
 
     def closeEvent(self, event):

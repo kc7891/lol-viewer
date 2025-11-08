@@ -166,6 +166,7 @@ class ChampionDetector:
         self.phase_tracker = phase_tracker
         self.current_champion_id: Optional[int] = None
         self.current_champion_name: Optional[str] = None
+        self.current_lane: Optional[str] = None
         self.champion_map: Dict[int, str] = {}
         logger.info("ChampionDetector initialized")
         self._load_champion_map()
@@ -191,25 +192,34 @@ class ChampionDetector:
             logger.error(f"Error loading champion map: {e}")
             self.champion_map = {}
 
-    def detect_champion(self) -> Optional[str]:
-        """Detect current champion"""
+    def detect_champion(self) -> Optional[tuple]:
+        """Detect current champion and lane
+
+        Returns:
+            Optional[tuple]: (champion_name, lane) or None if no champion detected
+        """
         try:
             phase = self.phase_tracker.update_phase()
 
             if phase == 'ChampSelect':
                 # In champion select - get from LCU API
-                champion_id = self._detect_from_champ_select()
-                if champion_id and champion_id > 0:
-                    self.current_champion_id = champion_id
-                    self.current_champion_name = self.champion_map.get(champion_id)
-                    if self.current_champion_name:
-                        logger.info(f"Detected champion in champ select: {self.current_champion_name}")
-                    return self.current_champion_name
+                result = self._detect_from_champ_select()
+                if result:
+                    champion_id, lane = result
+                    if champion_id and champion_id > 0:
+                        self.current_champion_id = champion_id
+                        self.current_champion_name = self.champion_map.get(champion_id)
+                        self.current_lane = lane
+                        if self.current_champion_name:
+                            logger.info(f"Detected champion in champ select: {self.current_champion_name} (lane: {lane})")
+                        return (self.current_champion_name, self.current_lane)
                 return None
 
             elif phase == 'InProgress':
                 # In game - return the champion selected during champ select
-                return self.current_champion_name
+                if self.current_champion_name:
+                    return (self.current_champion_name, self.current_lane)
+                return None
 
             elif phase == 'None' or phase == 'Lobby':
                 # Not in game - reset state
@@ -217,18 +227,25 @@ class ChampionDetector:
                     logger.info("Game ended, resetting champion state")
                 self.current_champion_id = None
                 self.current_champion_name = None
+                self.current_lane = None
                 return None
 
             else:
                 # Other phases - keep current state
-                return self.current_champion_name
+                if self.current_champion_name:
+                    return (self.current_champion_name, self.current_lane)
+                return None
 
         except Exception as e:
             logger.error(f"Error detecting champion: {e}")
             return None
 
-    def _detect_from_champ_select(self) -> Optional[int]:
-        """Detect champion from champ select session"""
+    def _detect_from_champ_select(self) -> Optional[tuple]:
+        """Detect champion and lane from champ select session
+
+        Returns:
+            Optional[tuple]: (champion_id, lane) or None if not found
+        """
         try:
             data = self.lcu_manager.make_request("/lol-champ-select/v1/session")
             if not data:
@@ -238,13 +255,22 @@ class ChampionDetector:
             if local_player_cell_id is None:
                 return None
 
-            # Find our champion from myTeam
+            # Find our champion and lane from myTeam
             for player in data.get('myTeam', []):
                 if player.get('cellId') == local_player_cell_id:
                     champion_id = player.get('championId', 0)
+                    assigned_position = player.get('assignedPosition', '')
+
+                    # Convert LCU lane names to our format
+                    # LCU uses: "top", "jungle", "middle", "bottom", "utility"
+                    # We use: "top", "jungle", "middle", "bottom", "support"
+                    lane = assigned_position.lower()
+                    if lane == 'utility':
+                        lane = 'support'
+
                     if champion_id > 0:
-                        logger.debug(f"Found champion ID {champion_id} in champ select")
-                        return champion_id
+                        logger.debug(f"Found champion ID {champion_id} in lane {lane}")
+                        return (champion_id, lane)
 
             return None
 
@@ -256,7 +282,7 @@ class ChampionDetector:
 class ChampionDetectorService(QObject):
     """Qt service for champion detection with signals"""
 
-    champion_detected = pyqtSignal(str)  # Emits champion name
+    champion_detected = pyqtSignal(str, str)  # Emits (champion_name, lane)
 
     def __init__(self):
         super().__init__()
@@ -267,6 +293,7 @@ class ChampionDetectorService(QObject):
         self.timer = QTimer()
         self.timer.timeout.connect(self._check_champion)
         self.last_champion: Optional[str] = None
+        self.last_lane: Optional[str] = None
         self.running = False
         self.check_count = 0  # Track number of checks for logging
         log("[LCU] ChampionDetectorService initialized")
@@ -314,22 +341,25 @@ class ChampionDetectorService(QObject):
 
             # Detect champion
             if self.lcu_manager.connected:
-                champion = self.detector.detect_champion()
-                if champion:
-                    log(f"[LCU] Detected champion: {champion}")
-                logger.debug(f"Detected champion: {champion}")
+                result = self.detector.detect_champion()
+                if result:
+                    champion, lane = result
+                    log(f"[LCU] Detected champion: {champion} (lane: {lane})")
+                    logger.debug(f"Detected champion: {champion} (lane: {lane})")
 
-                # Emit signal if champion changed
-                if champion and champion != self.last_champion:
-                    log(f"[LCU] Champion changed: {self.last_champion} -> {champion}")
-                    logger.info(f"Champion changed: {self.last_champion} -> {champion}")
-                    self.last_champion = champion
-                    self.champion_detected.emit(champion)
-                elif not champion and self.last_champion:
+                    # Emit signal if champion or lane changed
+                    if champion != self.last_champion or lane != self.last_lane:
+                        log(f"[LCU] Champion/lane changed: ({self.last_champion}, {self.last_lane}) -> ({champion}, {lane})")
+                        logger.info(f"Champion/lane changed: ({self.last_champion}, {self.last_lane}) -> ({champion}, {lane})")
+                        self.last_champion = champion
+                        self.last_lane = lane
+                        self.champion_detected.emit(champion, lane)
+                elif self.last_champion:
                     # Champion was cleared
                     log(f"[LCU] Champion cleared: {self.last_champion}")
                     logger.debug(f"Champion cleared: {self.last_champion}")
                     self.last_champion = None
+                    self.last_lane = None
 
         except Exception as e:
             log(f"[LCU] Error in champion check: {e}")
