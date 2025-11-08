@@ -280,18 +280,6 @@ class MainWindow(QMainWindow):
         self.create_toolbar()
         right_layout.addWidget(self.toolbar)
 
-        # Scroll area for viewers
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(False)
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll_area.setStyleSheet("""
-            QScrollArea {
-                border: none;
-                background-color: #1e1e1e;
-            }
-        """)
-
         # Splitter for resizable viewers
         self.viewers_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.viewers_splitter.setStyleSheet("""
@@ -306,8 +294,7 @@ class MainWindow(QMainWindow):
         self.viewers_splitter.setHandleWidth(6)
         self.viewers_splitter.setChildrenCollapsible(False)
 
-        self.scroll_area.setWidget(self.viewers_splitter)
-        right_layout.addWidget(self.scroll_area)
+        right_layout.addWidget(self.viewers_splitter)
 
         main_layout.addWidget(right_widget)
 
