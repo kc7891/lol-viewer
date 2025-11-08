@@ -316,7 +316,7 @@ class MainWindow(QMainWindow):
         self.add_viewer()
 
     def create_sidebar(self):
-        """Create the left sidebar for hidden viewers"""
+        """Create the left sidebar for all viewers"""
         self.sidebar = QWidget()
         self.sidebar.setFixedWidth(200)
         self.sidebar.setStyleSheet("""
@@ -331,7 +331,7 @@ class MainWindow(QMainWindow):
         sidebar_layout.setContentsMargins(10, 10, 10, 10)
 
         # Title
-        title_label = QLabel("Hidden Viewers")
+        title_label = QLabel("Viewers")
         title_label.setStyleSheet("""
             QLabel {
                 font-size: 12pt;
@@ -342,9 +342,9 @@ class MainWindow(QMainWindow):
         """)
         sidebar_layout.addWidget(title_label)
 
-        # List of hidden viewers
-        self.hidden_list = QListWidget()
-        self.hidden_list.setStyleSheet("""
+        # List of all viewers
+        self.viewers_list = QListWidget()
+        self.viewers_list.setStyleSheet("""
             QListWidget {
                 background-color: #2b2b2b;
                 border: 1px solid #444444;
@@ -363,8 +363,8 @@ class MainWindow(QMainWindow):
                 background-color: #0d7377;
             }
         """)
-        self.hidden_list.itemDoubleClicked.connect(self.restore_viewer)
-        sidebar_layout.addWidget(self.hidden_list)
+        self.viewers_list.itemDoubleClicked.connect(self.toggle_viewer_visibility)
+        sidebar_layout.addWidget(self.viewers_list)
 
     def create_toolbar(self):
         """Create the top toolbar with add and close all buttons"""
@@ -455,6 +455,9 @@ class MainWindow(QMainWindow):
             new_sizes = [500] * len(sizes)
             self.viewers_splitter.setSizes(new_sizes)
 
+        # Update sidebar list
+        self.update_viewers_list()
+
     def close_viewer(self, viewer: ChampionViewerWidget):
         """Close a viewer widget"""
         if viewer in self.viewers:
@@ -465,30 +468,43 @@ class MainWindow(QMainWindow):
         # Also remove from hidden list if present
         if viewer in self.hidden_viewers:
             self.hidden_viewers.remove(viewer)
-            self.update_hidden_list()
+
+        # Update sidebar list
+        self.update_viewers_list()
 
     def hide_viewer(self, viewer: ChampionViewerWidget):
         """Hide a viewer widget"""
         if viewer in self.viewers and viewer not in self.hidden_viewers:
             viewer.hide()
             self.hidden_viewers.append(viewer)
-            self.update_hidden_list()
+            self.update_viewers_list()
 
-    def restore_viewer(self, item: QListWidgetItem):
-        """Restore a hidden viewer"""
-        index = self.hidden_list.row(item)
-        if 0 <= index < len(self.hidden_viewers):
-            viewer = self.hidden_viewers[index]
-            viewer.show()
-            self.hidden_viewers.remove(viewer)
-            self.update_hidden_list()
+    def toggle_viewer_visibility(self, item: QListWidgetItem):
+        """Toggle visibility of a viewer when double-clicked in sidebar"""
+        index = self.viewers_list.row(item)
+        if 0 <= index < len(self.viewers):
+            viewer = self.viewers[index]
+            if viewer.isVisible():
+                # Hide the viewer
+                viewer.hide()
+                if viewer not in self.hidden_viewers:
+                    self.hidden_viewers.append(viewer)
+            else:
+                # Show the viewer
+                viewer.show()
+                if viewer in self.hidden_viewers:
+                    self.hidden_viewers.remove(viewer)
+            self.update_viewers_list()
 
-    def update_hidden_list(self):
-        """Update the list of hidden viewers in the sidebar"""
-        self.hidden_list.clear()
-        for viewer in self.hidden_viewers:
-            item = QListWidgetItem(viewer.get_display_name())
-            self.hidden_list.addItem(item)
+    def update_viewers_list(self):
+        """Update the list of all viewers in the sidebar"""
+        self.viewers_list.clear()
+        for viewer in self.viewers:
+            display_name = viewer.get_display_name()
+            if not viewer.isVisible():
+                display_name = f"[Hidden] {display_name}"
+            item = QListWidgetItem(display_name)
+            self.viewers_list.addItem(item)
 
     def close_all_viewers(self):
         """Close all viewer widgets"""

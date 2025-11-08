@@ -114,6 +114,13 @@ class TestMainWindow:
         assert viewer_to_hide in window.hidden_viewers
         assert not viewer_to_hide.isVisible()
 
+    def test_update_viewers_list(self, qapp):
+        """Test updating viewers list in sidebar"""
+        window = MainWindow()
+        assert window.viewers_list.count() == 2
+        window.add_viewer()
+        assert window.viewers_list.count() == 3
+
     def test_close_all_viewers(self, qapp):
         """Test closing all viewers"""
         window = MainWindow()
