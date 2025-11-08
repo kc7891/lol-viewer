@@ -33,22 +33,18 @@ jobs:
       run: |
         python check_build.py
 
-    - name: Build Debug Version
-      run: |
-        pyinstaller lol-viewer-debug.spec
-
     - name: Build Release Version
       run: |
         pyinstaller lol-viewer.spec
 
-    - name: Package Applications
+    - name: Package Application
       run: |
         mkdir package
-        copy dist\lol-viewer-debug.exe package\
         copy dist\lol-viewer.exe package\
-        echo "Built executables:" > package\README.txt
-        echo "- lol-viewer-debug.exe: Debug version with logging" >> package\README.txt
-        echo "- lol-viewer.exe: Release version without logging" >> package\README.txt
+        echo "LoL Viewer - League of Legends Champion Viewer" > package\README.txt
+        echo. >> package\README.txt
+        echo "To enable debug logging:" >> package\README.txt
+        echo "Rename lol-viewer.exe to lol-viewer-debug.exe" >> package\README.txt
       shell: cmd
 
     - name: Upload Artifact
