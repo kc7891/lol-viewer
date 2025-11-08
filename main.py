@@ -7,13 +7,14 @@ import logging
 import os
 from datetime import datetime
 from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QAction
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QMessageBox,
     QScrollArea, QSplitter, QListWidget, QListWidgetItem, QLabel,
     QTabWidget, QStackedWidget, QComboBox
 )
+from autostart import AutoStartManager
 
 
 class LCUConnectionStatusWidget(QWidget):
@@ -407,6 +408,10 @@ class MainWindow(QMainWindow):
         # Create connection status widget
         self.connection_status_widget = LCUConnectionStatusWidget()
 
+        # Initialize AutoStart manager
+        self.autostart_manager = AutoStartManager("LoL Viewer")
+        logger.info("AutoStart manager initialized")
+
         self.init_ui()
 
         # Connect status signal after UI is initialized
@@ -416,6 +421,9 @@ class MainWindow(QMainWindow):
         """Initialize the user interface"""
         self.setWindowTitle("LoL Viewer")
         self.resize(1600, 900)
+
+        # Create menu bar
+        self.create_menu_bar()
 
         # Apply dark theme to the main window
         self.setStyleSheet("""
@@ -535,6 +543,92 @@ class MainWindow(QMainWindow):
         # Start champion detection service
         logger.info("Starting champion detection service")
         self.champion_detector.start(interval_ms=2000)
+
+    def create_menu_bar(self):
+        """Create the menu bar with Settings menu"""
+        menubar = self.menuBar()
+        menubar.setStyleSheet("""
+            QMenuBar {
+                background-color: #252525;
+                color: #ffffff;
+                border-bottom: 1px solid #444444;
+                padding: 4px;
+            }
+            QMenuBar::item {
+                background-color: transparent;
+                padding: 6px 12px;
+            }
+            QMenuBar::item:selected {
+                background-color: #3a3a3a;
+            }
+            QMenu {
+                background-color: #252525;
+                color: #ffffff;
+                border: 1px solid #444444;
+            }
+            QMenu::item {
+                padding: 6px 24px;
+            }
+            QMenu::item:selected {
+                background-color: #0d7377;
+            }
+        """)
+
+        # Settings menu
+        settings_menu = menubar.addMenu("Settings")
+
+        # Auto-start action
+        self.autostart_action = QAction("Start with system", self)
+        self.autostart_action.setCheckable(True)
+        self.autostart_action.setChecked(self.autostart_manager.is_enabled())
+        self.autostart_action.triggered.connect(self.toggle_autostart)
+        settings_menu.addAction(self.autostart_action)
+
+    def toggle_autostart(self):
+        """Toggle auto-startup setting"""
+        try:
+            if self.autostart_action.isChecked():
+                success = self.autostart_manager.enable()
+                if success:
+                    logger.info("Auto-startup enabled")
+                    QMessageBox.information(
+                        self,
+                        "Auto-startup Enabled",
+                        "LoL Viewer will now start automatically when you log in to your computer."
+                    )
+                else:
+                    logger.error("Failed to enable auto-startup")
+                    self.autostart_action.setChecked(False)
+                    QMessageBox.warning(
+                        self,
+                        "Error",
+                        "Failed to enable auto-startup. Please check the logs for more information."
+                    )
+            else:
+                success = self.autostart_manager.disable()
+                if success:
+                    logger.info("Auto-startup disabled")
+                    QMessageBox.information(
+                        self,
+                        "Auto-startup Disabled",
+                        "LoL Viewer will no longer start automatically when you log in."
+                    )
+                else:
+                    logger.error("Failed to disable auto-startup")
+                    self.autostart_action.setChecked(True)
+                    QMessageBox.warning(
+                        self,
+                        "Error",
+                        "Failed to disable auto-startup. Please check the logs for more information."
+                    )
+        except Exception as e:
+            logger.exception(f"Exception while toggling auto-startup: {e}")
+            self.autostart_action.setChecked(self.autostart_manager.is_enabled())
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"An error occurred: {str(e)}"
+            )
 
     def create_sidebar(self):
         """Create the left sidebar with tabs for Live Game and Viewers"""
