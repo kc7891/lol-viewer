@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 from champion_data import ChampionData, setup_champion_input
+from logger import log
 
 
 class ChampionViewerWidget(QWidget):
@@ -512,19 +513,22 @@ class MainWindow(QMainWindow):
 def main():
     """Main entry point of the application"""
     try:
-        print("Starting LoL Viewer...")
+        log("=" * 60)
+        log("Starting LoL Viewer...")
+        log("=" * 60)
         app = QApplication(sys.argv)
-        print("QApplication created")
+        log("QApplication created")
 
         window = MainWindow()
-        print("MainWindow created")
+        log("MainWindow created")
 
         window.show()
-        print("Window shown")
+        log("Window shown")
+        log("Application ready - check for autocomplete by typing in champion name field")
 
         sys.exit(app.exec())
     except Exception as e:
-        print(f"Exception caught: {e}")
+        log(f"Exception caught: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
