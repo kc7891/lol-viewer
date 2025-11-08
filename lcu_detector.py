@@ -167,6 +167,7 @@ class ChampionDetector:
         self.current_champion_id: Optional[int] = None
         self.current_champion_name: Optional[str] = None
         self.current_lane: Optional[str] = None
+        self.detected_enemy_champions: set = set()  # Track detected enemy champions by ID
         self.champion_map: Dict[int, str] = {}
         logger.info("ChampionDetector initialized")
         self._load_champion_map()
@@ -228,6 +229,7 @@ class ChampionDetector:
                 self.current_champion_id = None
                 self.current_champion_name = None
                 self.current_lane = None
+                self.detected_enemy_champions.clear()
                 return None
 
             else:
@@ -278,11 +280,46 @@ class ChampionDetector:
             logger.error(f"Error detecting from champ select: {e}")
             return None
 
+    def detect_enemy_champions(self) -> list:
+        """Detect newly picked enemy champions
+
+        Returns:
+            list: List of newly picked enemy champion names
+        """
+        try:
+            phase = self.phase_tracker.current_phase
+            if phase != 'ChampSelect':
+                return []
+
+            data = self.lcu_manager.make_request("/lol-champ-select/v1/session")
+            if not data:
+                return []
+
+            new_enemy_champions = []
+
+            # Get enemy team champions
+            for player in data.get('theirTeam', []):
+                champion_id = player.get('championId', 0)
+                if champion_id > 0 and champion_id not in self.detected_enemy_champions:
+                    # New enemy champion detected
+                    champion_name = self.champion_map.get(champion_id)
+                    if champion_name:
+                        self.detected_enemy_champions.add(champion_id)
+                        new_enemy_champions.append(champion_name)
+                        logger.info(f"Detected enemy champion: {champion_name}")
+
+            return new_enemy_champions
+
+        except Exception as e:
+            logger.error(f"Error detecting enemy champions: {e}")
+            return []
+
 
 class ChampionDetectorService(QObject):
     """Qt service for champion detection with signals"""
 
     champion_detected = pyqtSignal(str, str)  # Emits (champion_name, lane)
+    enemy_champion_detected = pyqtSignal(str)  # Emits enemy champion_name
 
     def __init__(self):
         super().__init__()
@@ -360,6 +397,13 @@ class ChampionDetectorService(QObject):
                     logger.debug(f"Champion cleared: {self.last_champion}")
                     self.last_champion = None
                     self.last_lane = None
+
+                # Detect enemy champions
+                enemy_champions = self.detector.detect_enemy_champions()
+                for enemy_champion in enemy_champions:
+                    log(f"[LCU] Enemy champion detected: {enemy_champion}")
+                    logger.info(f"Enemy champion detected: {enemy_champion}")
+                    self.enemy_champion_detected.emit(enemy_champion)
 
         except Exception as e:
             log(f"[LCU] Error in champion check: {e}")

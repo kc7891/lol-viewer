@@ -347,6 +347,7 @@ class MainWindow(QMainWindow):
         logger.info("Initializing ChampionDetectorService...")
         self.champion_detector = ChampionDetectorService()
         self.champion_detector.champion_detected.connect(self.on_champion_detected)
+        self.champion_detector.enemy_champion_detected.connect(self.on_enemy_champion_detected)
         logger.info("ChampionDetectorService initialized and connected")
 
         self.init_ui()
@@ -762,6 +763,31 @@ class MainWindow(QMainWindow):
                         break
 
             target_viewer.open_build()
+
+    def on_enemy_champion_detected(self, champion_name: str):
+        """Handle enemy champion detection - automatically open counter page
+
+        Args:
+            champion_name: Name of the detected enemy champion
+        """
+        logger.info(f"Enemy champion detected: {champion_name}")
+
+        if len(self.viewers) >= self.MAX_VIEWERS:
+            logger.warning("Cannot auto-open enemy champion counter: maximum viewers reached")
+            return
+
+        # Determine position: if own pick exists (is_picked=True), insert at position 1, else position 0
+        has_own_pick = any(viewer.is_picked for viewer in self.viewers)
+        position = 1 if has_own_pick else 0
+
+        # Create new viewer at the determined position with is_picked=False
+        target_viewer = self.add_viewer(position=position, is_picked=False)
+
+        # Open the counter page in the new viewer (no lane specified)
+        if target_viewer:
+            logger.info(f"Auto-opening counter page for enemy {champion_name} in new viewer {target_viewer.viewer_id} at position {position}")
+            target_viewer.champion_input.setText(champion_name)
+            target_viewer.open_counter()
 
     def closeEvent(self, event):
         """Handle window close event"""
