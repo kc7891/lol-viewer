@@ -7,7 +7,7 @@ import logging
 import os
 from datetime import datetime
 from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QIcon
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QMessageBox,
@@ -412,10 +412,27 @@ class MainWindow(QMainWindow):
         # Connect status signal after UI is initialized
         self.champion_detector.connection_status_changed.connect(self.connection_status_widget.set_status)
 
+    @staticmethod
+    def get_resource_path(relative_path):
+        """Get absolute path to resource, works for dev and for PyInstaller"""
+        try:
+            # PyInstaller creates a temp folder and stores path in _MEIPASS
+            base_path = sys._MEIPASS
+        except AttributeError:
+            # Running in normal Python environment
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
+
     def init_ui(self):
         """Initialize the user interface"""
         self.setWindowTitle("LoL Viewer")
         self.resize(1600, 900)
+
+        # Set window icon
+        icon_path = self.get_resource_path('assets/icons/main-icon.png')
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
 
         # Apply dark theme to the main window
         self.setStyleSheet("""

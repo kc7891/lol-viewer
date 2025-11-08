@@ -14,7 +14,10 @@ a = Analysis(
     [os.path.join(spec_root, 'main.py')],
     pathex=[],
     binaries=[],
-    datas=[(os.path.join(spec_root, 'champions.json'), '.')],  # Embed champions.json
+    datas=[
+        (os.path.join(spec_root, 'champions.json'), '.'),  # Embed champions.json
+        (os.path.join(spec_root, 'assets', 'icons', 'main-icon.png'), os.path.join('assets', 'icons')),  # Embed icon
+    ],
     hiddenimports=[
         'lcu_detector',
         'psutil',
@@ -58,4 +61,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=os.path.join(spec_root, 'assets', 'icons', 'app_icon.ico'),  # Application icon
 )
