@@ -25,6 +25,7 @@ a = Analysis(
         'urllib3.exceptions',
         'champion_data',
         'logger',
+        'autostart',
     ],
     hookspath=[],
     hooksconfig={},
