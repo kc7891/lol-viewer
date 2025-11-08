@@ -23,14 +23,28 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Build with PyInstaller
+    - name: Fetch champion data
       run: |
-        pyinstaller --onefile --windowed --name lol-viewer main.py
+        python fetch_champions.py
+        echo "Champion data generated:"
+        python -c "import json; data = json.load(open('champions.json', 'r', encoding='utf-8')); print(f'{len(data)} champions loaded')"
+
+    - name: Verify build prerequisites
+      run: |
+        python check_build.py
+
+    - name: Build Release Version
+      run: |
+        pyinstaller lol-viewer.spec
 
     - name: Package Application
       run: |
         mkdir package
         copy dist\lol-viewer.exe package\
+        echo "LoL Viewer - League of Legends Champion Viewer" > package\README.txt
+        echo. >> package\README.txt
+        echo "To enable debug logging:" >> package\README.txt
+        echo "Rename lol-viewer.exe to lol-viewer-debug.exe" >> package\README.txt
       shell: cmd
 
     - name: Upload Artifact

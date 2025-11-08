@@ -13,6 +13,9 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
+from champion_data import ChampionData, setup_champion_input
+from logger import log
+
 
 class ChampionViewerWidget(QWidget):
     """Widget containing champion input, build/counter buttons, and web view"""
@@ -21,10 +24,11 @@ class ChampionViewerWidget(QWidget):
     hide_requested = pyqtSignal(object)   # Signal to request hiding this viewer
     champion_updated = pyqtSignal(object)  # Signal when champion name is updated
 
-    def __init__(self, viewer_id: int):
+    def __init__(self, viewer_id: int, champion_data: ChampionData = None):
         super().__init__()
         self.viewer_id = viewer_id
         self.current_champion = ""
+        self.champion_data = champion_data
         self.current_page_type = ""  # "build" or "counter"
         self.init_ui()
 
@@ -92,7 +96,7 @@ class ChampionViewerWidget(QWidget):
 
         # Champion name input
         self.champion_input = QLineEdit()
-        self.champion_input.setPlaceholderText("Champion name (e.g., ashe, swain)")
+        self.champion_input.setPlaceholderText("Champion name (e.g., ashe, swain, アッシュ)")
         self.champion_input.setStyleSheet("""
             QLineEdit {
                 padding: 8px;
@@ -108,6 +112,10 @@ class ChampionViewerWidget(QWidget):
         """)
         self.champion_input.returnPressed.connect(self.open_build)
         control_layout.addWidget(self.champion_input, stretch=3)
+
+        # Set up autocomplete if champion data is available
+        if self.champion_data:
+            setup_champion_input(self.champion_input, self.champion_data)
 
         # Build button
         self.build_button = QPushButton("Build")
@@ -220,6 +228,7 @@ class MainWindow(QMainWindow):
         self.viewers = []  # List of all viewer widgets
         self.hidden_viewers = []  # List of hidden viewer widgets
         self.next_viewer_id = 0  # Counter for assigning viewer IDs
+        self.champion_data = ChampionData()  # Load champion data
         self.init_ui()
 
     def init_ui(self):
@@ -490,7 +499,7 @@ class MainWindow(QMainWindow):
             return
 
         # Create new viewer
-        viewer = ChampionViewerWidget(self.next_viewer_id)
+        viewer = ChampionViewerWidget(self.next_viewer_id, self.champion_data)
         self.next_viewer_id += 1
 
         # Connect signals
@@ -575,19 +584,22 @@ class MainWindow(QMainWindow):
 def main():
     """Main entry point of the application"""
     try:
-        print("Starting LoL Viewer...")
+        log("=" * 60)
+        log("Starting LoL Viewer...")
+        log("=" * 60)
         app = QApplication(sys.argv)
-        print("QApplication created")
+        log("QApplication created")
 
         window = MainWindow()
-        print("MainWindow created")
+        log("MainWindow created")
 
         window.show()
-        print("Window shown")
+        log("Window shown")
+        log("Application ready - check for autocomplete by typing in champion name field")
 
         sys.exit(app.exec())
     except Exception as e:
-        print(f"Exception caught: {e}")
+        log(f"Exception caught: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

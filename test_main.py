@@ -5,6 +5,7 @@ Test suite for LoL Viewer application
 import pytest
 from PyQt6.QtWidgets import QApplication
 from main import ChampionViewerWidget, MainWindow
+from champion_data import ChampionData
 
 
 @pytest.fixture(scope="session")
@@ -15,6 +16,12 @@ def qapp():
         app = QApplication([])
     yield app
     # No need to quit, pytest-qt handles it
+
+
+@pytest.fixture
+def champion_data():
+    """Create ChampionData instance for tests"""
+    return ChampionData()
 
 
 class TestChampionViewerWidget:
@@ -40,9 +47,9 @@ class TestChampionViewerWidget:
         url = ChampionViewerWidget.get_lolalytics_counter_url("SWAIN")
         assert url == "https://lolalytics.com/lol/SWAIN/counters/"
 
-    def test_widget_initialization(self, qapp):
+    def test_widget_initialization(self, qapp, champion_data):
         """Test widget can be initialized"""
-        widget = ChampionViewerWidget(0)
+        widget = ChampionViewerWidget(0, champion_data)
         assert widget is not None
         assert widget.champion_input is not None
         assert widget.build_button is not None
@@ -51,23 +58,78 @@ class TestChampionViewerWidget:
         assert widget.close_button is not None
         assert widget.hide_button is not None
 
-    def test_widget_button_text(self, qapp):
+    def test_widget_button_text(self, qapp, champion_data):
         """Test button text is correct"""
-        widget = ChampionViewerWidget(0)
+        widget = ChampionViewerWidget(0, champion_data)
         assert widget.build_button.text() == "Build"
         assert widget.counter_button.text() == "Counter"
 
-    def test_widget_placeholder_text(self, qapp):
+    def test_widget_placeholder_text(self, qapp, champion_data):
         """Test input placeholder text"""
-        widget = ChampionViewerWidget(0)
+        widget = ChampionViewerWidget(0, champion_data)
         assert "Champion name" in widget.champion_input.placeholderText()
 
-    def test_widget_display_name(self, qapp):
+    def test_widget_display_name(self, qapp, champion_data):
         """Test widget display name"""
-        widget = ChampionViewerWidget(0)
+        widget = ChampionViewerWidget(0, champion_data)
         assert widget.get_display_name() == "View #1"
         widget.current_champion = "ashe"
         assert widget.get_display_name() == "View #1: Ashe"
+
+
+class TestChampionData:
+    """Tests for ChampionData class"""
+
+    def test_champion_data_loads(self, champion_data):
+        """Test champion data loads successfully"""
+        assert champion_data is not None
+        assert len(champion_data.champions) > 0
+
+    def test_search_english_name(self, champion_data):
+        """Test searching by English name"""
+        results = champion_data.search("ashe")
+        assert len(results) > 0
+        assert any(r['id'] == 'ashe' for r in results)
+
+    def test_search_japanese_name(self, champion_data):
+        """Test searching by Japanese name"""
+        results = champion_data.search("アッシュ")
+        assert len(results) > 0
+        # Ashe should be in the results
+        assert any('アッシュ' in r['japanese_name'] for r in results)
+
+    def test_search_partial_match(self, champion_data):
+        """Test partial name matching"""
+        results = champion_data.search("ash")
+        assert len(results) > 0
+
+    def test_search_case_insensitive(self, champion_data):
+        """Test search is case insensitive"""
+        results_lower = champion_data.search("ashe")
+        results_upper = champion_data.search("ASHE")
+        # Both should find the same champion
+        assert len(results_lower) == len(results_upper)
+
+    def test_get_champion_by_id(self, champion_data):
+        """Test getting champion by ID"""
+        champ = champion_data.get_champion("ashe")
+        assert champ is not None
+        assert champ.get('english_name') == "Ashe"
+
+    def test_get_champion_by_english_name(self, champion_data):
+        """Test getting champion by English name"""
+        champ = champion_data.get_champion("Ashe")
+        assert champ is not None
+        assert 'english_name' in champ
+
+    def test_champion_has_required_fields(self, champion_data):
+        """Test champion data has all required fields"""
+        champ = champion_data.get_champion("ashe")
+        assert champ is not None
+        assert 'english_name' in champ
+        assert 'japanese_name' in champ
+        assert 'image_url' in champ
+        assert 'id' in champ
 
 
 class TestMainWindow:
@@ -78,6 +140,7 @@ class TestMainWindow:
         window = MainWindow()
         assert window is not None
         assert window.windowTitle() == "LoL Viewer"
+        assert window.champion_data is not None
 
     def test_main_window_has_initial_viewers(self, qapp):
         """Test main window has initial 2 viewers"""
