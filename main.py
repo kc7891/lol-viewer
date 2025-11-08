@@ -3,6 +3,9 @@
 LoL Viewer - A simple application to view LoLAnalytics champion builds
 """
 import sys
+import logging
+import os
+from datetime import datetime
 from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
@@ -11,6 +14,57 @@ from PyQt6.QtWidgets import (
     QScrollArea, QSplitter, QListWidget, QListWidgetItem, QLabel
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
+from lcu_detector import ChampionDetectorService
+
+
+def setup_logging():
+    """Setup logging configuration based on executable name"""
+    # Check if running as debug.exe or debug.py
+    executable_name = os.path.basename(sys.argv[0])
+    is_debug = executable_name.lower().startswith('debug')
+
+    # Configure logging level
+    log_level = logging.DEBUG if is_debug else logging.INFO
+
+    # Create formatter
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+
+    # Console handler (always enabled)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(log_level)
+    console_handler.setFormatter(formatter)
+    root_logger.addHandler(console_handler)
+
+    # File handler (only in debug mode)
+    if is_debug:
+        # Create logs directory if it doesn't exist
+        log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+        os.makedirs(log_dir, exist_ok=True)
+
+        # Create log file with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        log_file = os.path.join(log_dir, f'lol_viewer_{timestamp}.log')
+
+        file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
+
+        logging.info(f"Debug mode enabled. Logging to {log_file}")
+    else:
+        logging.info("Normal mode. Logging to console only.")
+
+    return is_debug
+
+
+logger = logging.getLogger(__name__)
 
 
 class ChampionViewerWidget(QWidget):
@@ -219,6 +273,11 @@ class MainWindow(QMainWindow):
         self.viewers = []  # List of all viewer widgets
         self.hidden_viewers = []  # List of hidden viewer widgets
         self.next_viewer_id = 0  # Counter for assigning viewer IDs
+
+        # Initialize champion detector service
+        self.champion_detector = ChampionDetectorService()
+        self.champion_detector.champion_detected.connect(self.on_champion_detected)
+
         self.init_ui()
 
     def init_ui(self):
@@ -300,6 +359,10 @@ class MainWindow(QMainWindow):
 
         # Update viewers list after window is shown to fix initial [Hidden] tag issue
         QTimer.singleShot(0, self.update_viewers_list)
+
+        # Start champion detection service
+        logger.info("Starting champion detection service")
+        self.champion_detector.start(interval_ms=2000)
 
     def create_sidebar(self):
         """Create the left sidebar for all viewers"""
@@ -504,25 +567,69 @@ class MainWindow(QMainWindow):
         for viewer in viewers_copy:
             self.close_viewer(viewer)
 
+    def on_champion_detected(self, champion_name: str):
+        """Handle champion detection - automatically open build page"""
+        logger.info(f"Champion detected: {champion_name}")
+
+        # Find first available viewer or create a new one
+        target_viewer = None
+
+        # Try to find an empty viewer
+        for viewer in self.viewers:
+            if not viewer.current_champion and viewer.isVisible():
+                target_viewer = viewer
+                break
+
+        # If no empty viewer found, try to find the first visible viewer
+        if not target_viewer:
+            for viewer in self.viewers:
+                if viewer.isVisible():
+                    target_viewer = viewer
+                    break
+
+        # If still no viewer found, create a new one
+        if not target_viewer:
+            if len(self.viewers) < self.MAX_VIEWERS:
+                self.add_viewer()
+                if self.viewers:
+                    target_viewer = self.viewers[-1]
+            else:
+                logger.warning("Cannot auto-open champion build: maximum viewers reached")
+                return
+
+        # Open the build page in the target viewer
+        if target_viewer:
+            logger.info(f"Auto-opening build page for {champion_name} in viewer {target_viewer.viewer_id}")
+            target_viewer.champion_input.setText(champion_name)
+            target_viewer.open_build()
+
+    def closeEvent(self, event):
+        """Handle window close event"""
+        logger.info("Application closing, stopping champion detection service")
+        self.champion_detector.stop()
+        super().closeEvent(event)
+
 
 def main():
     """Main entry point of the application"""
     try:
-        print("Starting LoL Viewer...")
+        # Setup logging first
+        is_debug = setup_logging()
+        logger.info("Starting LoL Viewer...")
+        logger.info(f"Debug mode: {is_debug}")
+
         app = QApplication(sys.argv)
-        print("QApplication created")
+        logger.info("QApplication created")
 
         window = MainWindow()
-        print("MainWindow created")
+        logger.info("MainWindow created")
 
         window.show()
-        print("Window shown")
+        logger.info("Window shown")
 
         sys.exit(app.exec())
     except Exception as e:
-        print(f"Exception caught: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.exception(f"Exception caught: {e}")
         sys.exit(1)
 
 

@@ -32,3 +32,4 @@ package/
 
 # Logs
 *.log
+logs/
