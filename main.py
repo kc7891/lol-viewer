@@ -6,7 +6,7 @@ import sys
 from PyQt6.QtCore import QUrl
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
-    QHBoxLayout, QLineEdit, QPushButton, QLabel, QMessageBox
+    QHBoxLayout, QLineEdit, QPushButton, QMessageBox
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
@@ -25,11 +25,6 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
-
-        # Title label
-        title_label = QLabel("Enter Champion Name:")
-        title_label.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        main_layout.addWidget(title_label)
 
         # Input layout
         input_layout = QHBoxLayout()
