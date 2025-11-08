@@ -3,6 +3,9 @@
 LoL Viewer - A simple application to view LoLAnalytics champion builds
 """
 import sys
+import logging
+import os
+from datetime import datetime
 from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
@@ -13,8 +16,60 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
+
+def setup_logging():
+    """Setup logging configuration based on executable name"""
+    # Check if running as debug.exe, debug.py, or lol-viewer-debug.exe
+    executable_name = os.path.basename(sys.argv[0])
+    is_debug = 'debug' in executable_name.lower()
+
+    # Configure logging level
+    log_level = logging.DEBUG if is_debug else logging.INFO
+
+    # Create formatter
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+
+    # Console handler (always enabled)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(log_level)
+    console_handler.setFormatter(formatter)
+    root_logger.addHandler(console_handler)
+
+    # File handler (only in debug mode)
+    if is_debug:
+        # Create logs directory if it doesn't exist
+        log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+        os.makedirs(log_dir, exist_ok=True)
+
+        # Create log file with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        log_file = os.path.join(log_dir, f'lol_viewer_{timestamp}.log')
+
+        file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
+
+        logging.info(f"Debug mode enabled. Logging to {log_file}")
+    else:
+        logging.info("Normal mode. Logging to console only.")
+
+    return is_debug
+
+
+logger = logging.getLogger(__name__)
+
+# Import these after logger setup
 from champion_data import ChampionData, setup_champion_input
 from logger import log
+from lcu_detector import ChampionDetectorService
 
 
 class ChampionViewerWidget(QWidget):
@@ -24,12 +79,13 @@ class ChampionViewerWidget(QWidget):
     hide_requested = pyqtSignal(object)   # Signal to request hiding this viewer
     champion_updated = pyqtSignal(object)  # Signal when champion name is updated
 
-    def __init__(self, viewer_id: int, champion_data: ChampionData = None):
+    def __init__(self, viewer_id: int, champion_data: ChampionData = None, is_picked: bool = False):
         super().__init__()
         self.viewer_id = viewer_id
         self.current_champion = ""
         self.champion_data = champion_data
         self.current_page_type = ""  # "build" or "counter"
+        self.is_picked = is_picked  # Whether this viewer was created from champion pick
         self.init_ui()
 
     def init_ui(self):
@@ -255,13 +311,15 @@ class ChampionViewerWidget(QWidget):
     def get_display_name(self) -> str:
         """Get display name for this viewer"""
         if self.current_champion and self.current_page_type:
+            if self.is_picked:
+                return f"{self.current_champion} | {self.current_page_type} | picked"
             return f"{self.current_champion} | {self.current_page_type}"
         return "(Empty)"
 
     @staticmethod
     def get_lolalytics_build_url(champion_name: str, lane: str = "") -> str:
         """Generate the LoLAnalytics build URL for a given champion"""
-        base_url = f"https://lolalytics.com/lol/{champion_name}/build/"
+        base_url = f"https://lolalytics.com/lol/{champion_name.lower()}/build/"
         if lane:
             return f"{base_url}?lane={lane}"
         return base_url
@@ -269,7 +327,7 @@ class ChampionViewerWidget(QWidget):
     @staticmethod
     def get_lolalytics_counter_url(champion_name: str, lane: str = "") -> str:
         """Generate the LoLAnalytics counter URL for a given champion"""
-        base_url = f"https://lolalytics.com/lol/{champion_name}/counters/"
+        base_url = f"https://lolalytics.com/lol/{champion_name.lower()}/counters/"
         if lane:
             return f"{base_url}?lane={lane}"
         return base_url
@@ -284,6 +342,14 @@ class MainWindow(QMainWindow):
         self.hidden_viewers = []  # List of hidden viewer widgets
         self.next_viewer_id = 0  # Counter for assigning viewer IDs
         self.champion_data = ChampionData()  # Load champion data
+
+        # Initialize champion detector service
+        logger.info("Initializing ChampionDetectorService...")
+        self.champion_detector = ChampionDetectorService()
+        self.champion_detector.champion_detected.connect(self.on_champion_detected)
+        self.champion_detector.enemy_champion_detected.connect(self.on_enemy_champion_detected)
+        logger.info("ChampionDetectorService initialized and connected")
+
         self.init_ui()
 
     def init_ui(self):
@@ -394,6 +460,10 @@ class MainWindow(QMainWindow):
         self.viewers_splitter.setChildrenCollapsible(False)
 
         viewers_layout.addWidget(self.viewers_splitter)
+
+        # Start champion detection service
+        logger.info("Starting champion detection service")
+        self.champion_detector.start(interval_ms=2000)
 
     def create_sidebar(self):
         """Create the left sidebar with tabs for Live Game and Viewers"""
@@ -544,18 +614,23 @@ class MainWindow(QMainWindow):
         self.add_button.clicked.connect(self.add_viewer)
         toolbar_layout.addWidget(self.add_button)
 
-    def add_viewer(self):
-        """Add a new viewer widget"""
+    def add_viewer(self, position: int = -1, is_picked: bool = False):
+        """Add a new viewer widget
+
+        Args:
+            position: Position to insert the viewer (-1 for append, 0 for leftmost)
+            is_picked: Whether this viewer was created from champion pick
+        """
         if len(self.viewers) >= self.MAX_VIEWERS:
             QMessageBox.warning(
                 self,
                 "Maximum Viewers Reached",
                 f"You can only have up to {self.MAX_VIEWERS} viewers."
             )
-            return
+            return None
 
         # Create new viewer
-        viewer = ChampionViewerWidget(self.next_viewer_id, self.champion_data)
+        viewer = ChampionViewerWidget(self.next_viewer_id, self.champion_data, is_picked)
         self.next_viewer_id += 1
 
         # Connect signals
@@ -563,9 +638,15 @@ class MainWindow(QMainWindow):
         viewer.hide_requested.connect(self.hide_viewer)
         viewer.champion_updated.connect(self.update_champion_name)
 
-        # Add to splitter
-        self.viewers_splitter.addWidget(viewer)
-        self.viewers.append(viewer)
+        # Add to splitter and viewers list at the specified position
+        if position == -1 or position >= len(self.viewers):
+            # Append to the end
+            self.viewers_splitter.addWidget(viewer)
+            self.viewers.append(viewer)
+        else:
+            # Insert at the specified position (leftmost = 0)
+            self.viewers_splitter.insertWidget(position, viewer)
+            self.viewers.insert(position, viewer)
 
         # Set initial size for the new viewer
         sizes = self.viewers_splitter.sizes()
@@ -576,6 +657,8 @@ class MainWindow(QMainWindow):
 
         # Update sidebar list
         self.update_viewers_list()
+
+        return viewer
 
     def close_viewer(self, viewer: ChampionViewerWidget):
         """Close a viewer widget"""
@@ -601,8 +684,14 @@ class MainWindow(QMainWindow):
     def toggle_viewer_visibility(self, item: QListWidgetItem):
         """Toggle visibility of a viewer when double-clicked in sidebar"""
         index = self.viewers_list.row(item)
-        if 0 <= index < len(self.viewers):
-            viewer = self.viewers[index]
+
+        # Get sorted viewers list (same as in update_viewers_list)
+        picked_viewers = [v for v in self.viewers if v.is_picked]
+        regular_viewers = [v for v in self.viewers if not v.is_picked]
+        sorted_viewers = picked_viewers + regular_viewers
+
+        if 0 <= index < len(sorted_viewers):
+            viewer = sorted_viewers[index]
             if viewer.isVisible():
                 # Hide the viewer
                 viewer.hide()
@@ -620,9 +709,15 @@ class MainWindow(QMainWindow):
         self.update_viewers_list()
 
     def update_viewers_list(self):
-        """Update the list of all viewers in the sidebar"""
+        """Update the list of all viewers in the sidebar, with picked viewers at the top"""
         self.viewers_list.clear()
-        for viewer in self.viewers:
+
+        # Sort viewers: picked viewers first, then others (maintaining original order within each group)
+        picked_viewers = [v for v in self.viewers if v.is_picked]
+        regular_viewers = [v for v in self.viewers if not v.is_picked]
+        sorted_viewers = picked_viewers + regular_viewers
+
+        for viewer in sorted_viewers:
             display_name = viewer.get_display_name()
             if not viewer.isVisible():
                 display_name = f"[Hidden] {display_name}"
@@ -636,28 +731,99 @@ class MainWindow(QMainWindow):
         for viewer in viewers_copy:
             self.close_viewer(viewer)
 
+    def on_champion_detected(self, champion_name: str, lane: str):
+        """Handle champion detection - automatically open build page
+
+        Args:
+            champion_name: Name of the detected champion
+            lane: Detected lane (top, jungle, middle, bottom, support)
+        """
+        logger.info(f"Champion detected: {champion_name} (lane: {lane})")
+
+        # Always create a new viewer at the leftmost position (index 0)
+        if len(self.viewers) >= self.MAX_VIEWERS:
+            logger.warning("Cannot auto-open champion build: maximum viewers reached")
+            return
+
+        # Create new viewer at position 0 (leftmost) with is_picked=True
+        target_viewer = self.add_viewer(position=0, is_picked=True)
+
+        # Open the build page in the new viewer with lane
+        if target_viewer:
+            logger.info(f"Auto-opening build page for {champion_name} (lane: {lane}) in new viewer {target_viewer.viewer_id} at leftmost position")
+            target_viewer.champion_input.setText(champion_name)
+
+            # Set lane selector if lane was detected
+            if lane:
+                # Find the index of the lane in the combo box
+                lane_found = False
+                for i in range(target_viewer.lane_selector.count()):
+                    if target_viewer.lane_selector.itemData(i) == lane:
+                        target_viewer.lane_selector.setCurrentIndex(i)
+                        logger.debug(f"Set lane selector to: {lane}")
+                        lane_found = True
+                        break
+
+                if not lane_found:
+                    logger.warning(f"Lane '{lane}' not found in lane selector options")
+
+            target_viewer.open_build()
+
+    def on_enemy_champion_detected(self, champion_name: str):
+        """Handle enemy champion detection - automatically open counter page
+
+        Args:
+            champion_name: Name of the detected enemy champion
+        """
+        logger.info(f"Enemy champion detected: {champion_name}")
+
+        if len(self.viewers) >= self.MAX_VIEWERS:
+            logger.warning("Cannot auto-open enemy champion counter: maximum viewers reached")
+            return
+
+        # Determine position: if own pick exists (is_picked=True), insert at position 1, else position 0
+        has_own_pick = any(viewer.is_picked for viewer in self.viewers)
+        position = 1 if has_own_pick else 0
+
+        # Create new viewer at the determined position with is_picked=False
+        target_viewer = self.add_viewer(position=position, is_picked=False)
+
+        # Open the counter page in the new viewer (no lane specified)
+        if target_viewer:
+            logger.info(f"Auto-opening counter page for enemy {champion_name} in new viewer {target_viewer.viewer_id} at position {position}")
+            target_viewer.champion_input.setText(champion_name)
+            target_viewer.open_counter()
+
+    def closeEvent(self, event):
+        """Handle window close event"""
+        logger.info("Application closing, stopping champion detection service")
+        self.champion_detector.stop()
+        super().closeEvent(event)
+
 
 def main():
     """Main entry point of the application"""
     try:
-        log("=" * 60)
-        log("Starting LoL Viewer...")
-        log("=" * 60)
+        # Setup logging first
+        is_debug = setup_logging()
+        logger.info("=" * 60)
+        logger.info("Starting LoL Viewer...")
+        logger.info(f"Debug mode: {is_debug}")
+        logger.info("=" * 60)
+
         app = QApplication(sys.argv)
-        log("QApplication created")
+        logger.info("QApplication created")
 
         window = MainWindow()
-        log("MainWindow created")
+        logger.info("MainWindow created")
 
         window.show()
-        log("Window shown")
-        log("Application ready - check for autocomplete by typing in champion name field")
+        logger.info("Window shown")
+        logger.info("Application ready - check for autocomplete by typing in champion name field")
 
         sys.exit(app.exec())
     except Exception as e:
-        log(f"Exception caught: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.exception(f"Exception caught: {e}")
         sys.exit(1)
 
 

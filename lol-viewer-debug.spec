@@ -15,7 +15,17 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[(os.path.join(spec_root, 'champions.json'), '.')],  # Embed champions.json
-    hiddenimports=[],
+    hiddenimports=[
+        'lcu_detector',
+        'psutil',
+        'requests',
+        'urllib3',
+        'urllib3.util',
+        'urllib3.util.retry',
+        'urllib3.exceptions',
+        'champion_data',
+        'logger',
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -42,7 +52,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,  # Windowed application
+    console=True,  # Show console for debug output
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

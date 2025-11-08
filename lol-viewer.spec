@@ -15,7 +15,17 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[(os.path.join(spec_root, 'champions.json'), '.')],  # Embed champions.json
-    hiddenimports=[],
+    hiddenimports=[
+        'lcu_detector',
+        'psutil',
+        'requests',
+        'urllib3',
+        'urllib3.util',
+        'urllib3.util.retry',
+        'urllib3.exceptions',
+        'champion_data',
+        'logger',
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
