@@ -79,12 +79,13 @@ class ChampionViewerWidget(QWidget):
     hide_requested = pyqtSignal(object)   # Signal to request hiding this viewer
     champion_updated = pyqtSignal(object)  # Signal when champion name is updated
 
-    def __init__(self, viewer_id: int, champion_data: ChampionData = None):
+    def __init__(self, viewer_id: int, champion_data: ChampionData = None, is_picked: bool = False):
         super().__init__()
         self.viewer_id = viewer_id
         self.current_champion = ""
         self.champion_data = champion_data
         self.current_page_type = ""  # "build" or "counter"
+        self.is_picked = is_picked  # Whether this viewer was created from champion pick
         self.init_ui()
 
     def init_ui(self):
@@ -261,6 +262,8 @@ class ChampionViewerWidget(QWidget):
     def get_display_name(self) -> str:
         """Get display name for this viewer"""
         if self.current_champion and self.current_page_type:
+            if self.is_picked:
+                return f"{self.current_champion} | {self.current_page_type} | picked"
             return f"{self.current_champion} | {self.current_page_type}"
         return "(Empty)"
 
@@ -554,18 +557,23 @@ class MainWindow(QMainWindow):
         self.add_button.clicked.connect(self.add_viewer)
         toolbar_layout.addWidget(self.add_button)
 
-    def add_viewer(self):
-        """Add a new viewer widget"""
+    def add_viewer(self, position: int = -1, is_picked: bool = False):
+        """Add a new viewer widget
+
+        Args:
+            position: Position to insert the viewer (-1 for append, 0 for leftmost)
+            is_picked: Whether this viewer was created from champion pick
+        """
         if len(self.viewers) >= self.MAX_VIEWERS:
             QMessageBox.warning(
                 self,
                 "Maximum Viewers Reached",
                 f"You can only have up to {self.MAX_VIEWERS} viewers."
             )
-            return
+            return None
 
         # Create new viewer
-        viewer = ChampionViewerWidget(self.next_viewer_id, self.champion_data)
+        viewer = ChampionViewerWidget(self.next_viewer_id, self.champion_data, is_picked)
         self.next_viewer_id += 1
 
         # Connect signals
@@ -573,9 +581,15 @@ class MainWindow(QMainWindow):
         viewer.hide_requested.connect(self.hide_viewer)
         viewer.champion_updated.connect(self.update_champion_name)
 
-        # Add to splitter
-        self.viewers_splitter.addWidget(viewer)
-        self.viewers.append(viewer)
+        # Add to splitter and viewers list at the specified position
+        if position == -1 or position >= len(self.viewers):
+            # Append to the end
+            self.viewers_splitter.addWidget(viewer)
+            self.viewers.append(viewer)
+        else:
+            # Insert at the specified position (leftmost = 0)
+            self.viewers_splitter.insertWidget(position, viewer)
+            self.viewers.insert(position, viewer)
 
         # Set initial size for the new viewer
         sizes = self.viewers_splitter.sizes()
@@ -586,6 +600,8 @@ class MainWindow(QMainWindow):
 
         # Update sidebar list
         self.update_viewers_list()
+
+        return viewer
 
     def close_viewer(self, viewer: ChampionViewerWidget):
         """Close a viewer widget"""
@@ -611,8 +627,14 @@ class MainWindow(QMainWindow):
     def toggle_viewer_visibility(self, item: QListWidgetItem):
         """Toggle visibility of a viewer when double-clicked in sidebar"""
         index = self.viewers_list.row(item)
-        if 0 <= index < len(self.viewers):
-            viewer = self.viewers[index]
+
+        # Get sorted viewers list (same as in update_viewers_list)
+        picked_viewers = [v for v in self.viewers if v.is_picked]
+        regular_viewers = [v for v in self.viewers if not v.is_picked]
+        sorted_viewers = picked_viewers + regular_viewers
+
+        if 0 <= index < len(sorted_viewers):
+            viewer = sorted_viewers[index]
             if viewer.isVisible():
                 # Hide the viewer
                 viewer.hide()
@@ -630,9 +652,15 @@ class MainWindow(QMainWindow):
         self.update_viewers_list()
 
     def update_viewers_list(self):
-        """Update the list of all viewers in the sidebar"""
+        """Update the list of all viewers in the sidebar, with picked viewers at the top"""
         self.viewers_list.clear()
-        for viewer in self.viewers:
+
+        # Sort viewers: picked viewers first, then others (maintaining original order within each group)
+        picked_viewers = [v for v in self.viewers if v.is_picked]
+        regular_viewers = [v for v in self.viewers if not v.is_picked]
+        sorted_viewers = picked_viewers + regular_viewers
+
+        for viewer in sorted_viewers:
             display_name = viewer.get_display_name()
             if not viewer.isVisible():
                 display_name = f"[Hidden] {display_name}"
@@ -650,35 +678,17 @@ class MainWindow(QMainWindow):
         """Handle champion detection - automatically open build page"""
         logger.info(f"Champion detected: {champion_name}")
 
-        # Find first available viewer or create a new one
-        target_viewer = None
+        # Always create a new viewer at the leftmost position (index 0)
+        if len(self.viewers) >= self.MAX_VIEWERS:
+            logger.warning("Cannot auto-open champion build: maximum viewers reached")
+            return
 
-        # Try to find an empty viewer
-        for viewer in self.viewers:
-            if not viewer.current_champion and viewer.isVisible():
-                target_viewer = viewer
-                break
+        # Create new viewer at position 0 (leftmost) with is_picked=True
+        target_viewer = self.add_viewer(position=0, is_picked=True)
 
-        # If no empty viewer found, try to find the first visible viewer
-        if not target_viewer:
-            for viewer in self.viewers:
-                if viewer.isVisible():
-                    target_viewer = viewer
-                    break
-
-        # If still no viewer found, create a new one
-        if not target_viewer:
-            if len(self.viewers) < self.MAX_VIEWERS:
-                self.add_viewer()
-                if self.viewers:
-                    target_viewer = self.viewers[-1]
-            else:
-                logger.warning("Cannot auto-open champion build: maximum viewers reached")
-                return
-
-        # Open the build page in the target viewer
+        # Open the build page in the new viewer
         if target_viewer:
-            logger.info(f"Auto-opening build page for {champion_name} in viewer {target_viewer.viewer_id}")
+            logger.info(f"Auto-opening build page for {champion_name} in new viewer {target_viewer.viewer_id} at leftmost position")
             target_viewer.champion_input.setText(champion_name)
             target_viewer.open_build()
 
