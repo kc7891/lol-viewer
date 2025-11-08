@@ -11,72 +11,46 @@ TODO項目5の実装：
 
 ---
 
-## アプローチの選択肢
+## 実装方法の選定
 
-### 1. **LCU API (League Client Update API)** ⭐ 推奨
-- **概要**: LoLクライアントがローカルで提供する公式REST API
-- **メリット**:
-  - Riot Gamesが許可している方法
-  - チャンピオン選択フェーズとゲーム中の両方で使用可能
-  - WebSocketによるリアルタイムイベント通知が可能
-  - 豊富なゲーム情報を取得可能
-- **デメリット**:
-  - 非公式サポート（将来的に変更される可能性あり）
-  - ポート番号とパスワードの動的取得が必要
+### **LCU API (League Client Update API)** ⭐ 採用
 
-### 2. **Live Client Data API** ⭐ 推奨（併用）
-- **概要**: ゲーム中のみ利用可能なローカルAPI
-- **メリット**:
-  - 認証不要
-  - シンプルなエンドポイント
-  - インゲーム情報に特化
-- **デメリット**:
-  - ゲーム中のみ利用可能（チャンピオン選択フェーズでは使えない）
-  - 自己署名証明書の処理が必要
+**概要**: LoLクライアントがローカルで提供するREST API
 
-### 3. **Riot Games公式API**
-- **概要**: Webベースの公式API
-- **メリット**: 公式サポート
-- **デメリット**:
-  - リアルタイム検知には不向き
-  - APIキーとレート制限
-  - 試合後のデータ取得が主目的
+**選定理由**:
+- チャンピオン選択時に全情報（自分・相手・Ban）を取得可能
+- WebSocketでリアルタイム更新
+- チャンピオンは選択時に確定し変わらない → 単一APIで完結
 
-### 4. **ログファイル解析**
-- **メリット**: 追加認証不要
-- **デメリット**:
-  - リアルタイム性に欠ける
-  - ログフォーマットの変更リスク
-  - 信頼性が低い
+**技術要件**:
+- プロセスからポート・パスワードを動的取得
+- 自己署名証明書の処理
+- Data Dragonでチャンピオン名変換
 
-### 5. **メモリ読み取り**
-- **却下理由**: Riot Games利用規約（ToS）違反の可能性が高い
+**注意点**:
+- 非公式サポート（将来変更の可能性）
+- ただしRiot Gamesは使用を許可している
 
 ---
 
-## 推奨実装アプローチ
+## 実装方針
 
-**LCU API単独アプローチ** ⭐ **最適解**
-
-チャンピオン選択時に確定したチャンピオンはゲーム中変わらないため、**LCU APIのみで十分**です。
-
-### 実装方針
-
-1. **チャンピオン選択の監視**: LCU APIを使用
+1. **チャンピオン選択の監視**
    - `/lol-champ-select/v1/session` でチャンピオン選択を検知
    - WebSocketイベントでリアルタイム更新（推奨）
    - **自分のチャンピオン**: `myTeam[localPlayerCellId].championId`
    - **相手のチャンピオン**: `theirTeam[]` から全員取得可能 → タスク7で利用
    - **Ban情報**: `bans.myTeamBans` / `bans.theirTeamBans`
 
-2. **状態管理**: `/lol-gameflow/v1/session` でゲームフェーズを監視
+2. **状態管理**
+   - `/lol-gameflow/v1/session` でゲームフェーズを監視
    - `ChampSelect`: チャンピオン選択中 → ここで検知
    - `InProgress`: ゲーム中 → 選択済みチャンピオンを保持
    - `None`: メインメニュー → 状態をリセット
 
-3. **Live Client Data API**: オプション（非推奨）
-   - ゲーム中のリアルタイムステータス取得には有用
-   - チャンピオン検知には不要（選択時に確定済み）
+3. **Data Dragon連携**
+   - チャンピオンID → 名前変換
+   - LoLAnalytics URLの生成
 
 ---
 
@@ -84,57 +58,76 @@ TODO項目5の実装：
 
 ### 認証方法
 
-#### 1. Lockfileからの取得（推奨）
+#### 1. プロセスから取得（推奨）
 
-**Lockfileの場所**:
-- Windows: `C:\Riot Games\League of Legends\lockfile`
-- または: `%LocalAppData%\Riot Games\Riot Client\Config\lockfile`
+インストール先に依存しない堅牢な方法です。
+
+```python
+import psutil
+import re
+import base64
+
+def get_lcu_credentials_from_process():
+    """LeagueClientUxプロセスからポートとパスワードを取得"""
+    for proc in psutil.process_iter(['name', 'cmdline']):
+        if proc.info['name'] in ['LeagueClientUx.exe', 'LeagueClientUx']:
+            cmdline = ' '.join(proc.info['cmdline'])
+
+            # --app-port=12345 を抽出
+            port_match = re.search(r'--app-port=(\d+)', cmdline)
+            # --remoting-auth-token=abc123 を抽出
+            token_match = re.search(r'--remoting-auth-token=([\w-]+)', cmdline)
+
+            if port_match and token_match:
+                return {
+                    'port': port_match.group(1),
+                    'password': token_match.group(1)
+                }
+
+    return None
+
+def create_auth_header(password):
+    """Basic認証ヘッダーを作成"""
+    credentials = f"riot:{password}"
+    encoded = base64.b64encode(credentials.encode()).decode()
+    return f"Basic {encoded}"
+```
+
+#### 2. Lockfileから取得（代替手段）
+
+プロセスから取得できない場合の代替手段。
 
 **Lockfileのフォーマット**:
 ```
 LeagueClient:<PID>:<PORT>:<PASSWORD>:<PROTOCOL>
 ```
 
-例:
-```
-LeagueClient:12345:54321:abcdefghijklmnop:https
-```
-
-**解析方法**:
 ```python
+import os
+import psutil
+
+def get_lockfile_path():
+    """プロセスの実行パスからLockfileを探す"""
+    for proc in psutil.process_iter(['name', 'exe']):
+        if proc.info['name'] in ['LeagueClient.exe', 'LeagueClientUx.exe']:
+            install_dir = os.path.dirname(proc.info['exe'])
+            lockfile = os.path.join(install_dir, 'lockfile')
+            if os.path.exists(lockfile):
+                return lockfile
+    return None
+
 def read_lockfile():
-    lockfile_path = r"C:\Riot Games\League of Legends\lockfile"
+    """Lockfileを読み取る"""
+    lockfile_path = get_lockfile_path()
+    if not lockfile_path:
+        return None
+
     with open(lockfile_path, 'r') as f:
         data = f.read().split(':')
         return {
-            'process': data[0],
-            'pid': data[1],
             'port': data[2],
-            'password': data[3],
-            'protocol': data[4]
+            'password': data[3]
         }
-```
-
-#### 2. プロセスコマンドラインからの取得（代替手段）
-
-**Windows**:
-```bash
-wmic PROCESS WHERE name='LeagueClientUx.exe' GET commandline
-```
-
-コマンドライン引数から以下を抽出:
-- `--app-port=<PORT>`
-- `--remoting-auth-token=<PASSWORD>`
-
-**認証ヘッダーの作成**:
-```python
-import base64
-
-def create_auth_header(password):
-    username = "riot"
-    credentials = f"{username}:{password}"
-    encoded = base64.b64encode(credentials.encode()).decode()
-    return f"Basic {encoded}"
 ```
 
 ### 基本リクエスト
@@ -306,134 +299,6 @@ ws.send(json.dumps(subscribe_champ_select))
 
 ---
 
-## Live Client Data API 詳細
-
-> **注意**: チャンピオン検知にはLCU APIで十分なため、このAPIは**オプション**です。
-> ゲーム中のリアルタイム統計情報（HP、ゴールド、レベルなど）を取得したい場合のみ使用してください。
-
-### 基本情報
-
-- **ベースURL**: `https://127.0.0.1:2999/liveclientdata/`
-- **認証**: 不要
-- **利用可能時期**: ゲーム中のみ（チャンピオン選択中は利用不可）
-- **証明書**: 自己署名証明書（SSL検証をスキップする必要あり）
-- **用途**: ゲーム中のリアルタイム統計（チャンピオン検知には不要）
-
-### 主要エンドポイント
-
-#### 1. アクティブプレイヤー情報（最重要）
-```
-GET https://127.0.0.1:2999/liveclientdata/activeplayer
-```
-
-**レスポンス例**:
-```json
-{
-  "abilities": {
-    "Passive": {...},
-    "Q": {...},
-    "W": {...},
-    "E": {...},
-    "R": {...}
-  },
-  "championStats": {
-    "abilityPower": 0,
-    "armor": 36,
-    "armorPenetrationFlat": 0,
-    "attackDamage": 61.11,
-    "currentHealth": 580,
-    "maxHealth": 580
-  },
-  "currentGold": 500,
-  "level": 1,
-  "summonerName": "PlayerName"
-}
-```
-
-#### 2. 全ゲームデータ
-```
-GET https://127.0.0.1:2999/liveclientdata/allgamedata
-```
-
-**レスポンス例**:
-```json
-{
-  "activePlayer": {
-    "summonerName": "PlayerName"
-  },
-  "allPlayers": [
-    {
-      "championName": "Ashe",
-      "isBot": false,
-      "isDead": false,
-      "items": [...],
-      "level": 1,
-      "position": "BOTTOM",
-      "rawChampionName": "game_character_displayname_Ashe",
-      "summonerName": "PlayerName",
-      "team": "ORDER"
-    }
-  ],
-  "gameData": {
-    "gameMode": "CLASSIC",
-    "gameTime": 45.5,
-    "mapName": "Map11",
-    "mapNumber": 11
-  }
-}
-```
-
-**重要**: `allPlayers`配列から`activePlayer.summonerName`と一致するプレイヤーを見つけることで、チャンピオン名を取得できます。
-
-#### 3. その他のエンドポイント
-
-```
-GET /liveclientdata/activeplayername       # プレイヤー名のみ
-GET /liveclientdata/activeplayerabilities  # アビリティ情報
-GET /liveclientdata/activeplayerrunes      # ルーン情報
-GET /liveclientdata/playerlist             # 全プレイヤーリスト
-GET /liveclientdata/gamestats              # ゲーム統計
-GET /liveclientdata/eventdata              # ゲームイベント
-```
-
-### リクエスト実装例
-
-```python
-import requests
-import urllib3
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-def get_current_champion():
-    """
-    ゲーム中のチャンピオン名を取得
-    """
-    try:
-        # 全ゲームデータを取得
-        response = requests.get(
-            "https://127.0.0.1:2999/liveclientdata/allgamedata",
-            verify=False,
-            timeout=5
-        )
-
-        if response.status_code == 200:
-            data = response.json()
-            active_player_name = data['activePlayer']['summonerName']
-
-            # 全プレイヤーからアクティブプレイヤーを探す
-            for player in data['allPlayers']:
-                if player['summonerName'] == active_player_name:
-                    champion_name = player['championName']
-                    return champion_name
-
-        return None
-    except requests.exceptions.RequestException:
-        # ゲーム中でない場合は接続エラー
-        return None
-```
-
----
-
 ## 実装アーキテクチャ
 
 ### 全体構成
@@ -447,8 +312,8 @@ def get_current_champion():
 │  │   Champion Detection Service      │  │
 │  ├───────────────────────────────────┤  │
 │  │ • LCU Connection Manager          │  │
-│  │ • Live Client Monitor             │  │
 │  │ • Game Phase Tracker              │  │
+│  │ • Champion Detector               │  │
 │  │ • Event Listener (WebSocket)      │  │
 │  └───────────────────────────────────┘  │
 │                                         │
@@ -460,13 +325,12 @@ def get_current_champion():
 │  └───────────────────────────────────┘  │
 │                                         │
 └─────────────────────────────────────────┘
-           │                    │
-           ▼                    ▼
-    ┌──────────┐         ┌──────────────┐
-    │ LCU API  │         │ Live Client  │
-    │(Dynamic  │         │  Data API    │
-    │  Port)   │         │  (Port 2999) │
-    └──────────┘         └──────────────┘
+                    │
+                    ▼
+            ┌───────────────┐
+            │   LCU API     │
+            │ (Dynamic Port)│
+            └───────────────┘
 ```
 
 ### 状態遷移図
@@ -856,17 +720,24 @@ class LoLChampionDetector:
             print(f"チャンピオンデータの読み込みエラー: {e}")
             return {}
 
-    def read_lockfile(self):
-        """Lockfileを読み取ってポートとパスワードを取得"""
-        lockfile_path = r"C:\Riot Games\League of Legends\lockfile"
-        try:
-            with open(lockfile_path, 'r') as f:
-                data = f.read().split(':')
-                self.lcu_port = data[2]
-                self.lcu_password = data[3]
-                return True
-        except FileNotFoundError:
-            return False
+    def get_lcu_credentials(self):
+        """プロセスからLCU認証情報を取得"""
+        import psutil
+        import re
+
+        for proc in psutil.process_iter(['name', 'cmdline']):
+            if proc.info['name'] in ['LeagueClientUx.exe', 'LeagueClientUx']:
+                cmdline = ' '.join(proc.info['cmdline'])
+
+                port_match = re.search(r'--app-port=(\d+)', cmdline)
+                token_match = re.search(r'--remoting-auth-token=([\w-]+)', cmdline)
+
+                if port_match and token_match:
+                    self.lcu_port = port_match.group(1)
+                    self.lcu_password = token_match.group(1)
+                    return True
+
+        return False
 
     def make_lcu_request(self, endpoint):
         """LCU APIリクエストを送信"""
@@ -940,8 +811,8 @@ class LoLChampionDetector:
 
         def monitor_loop():
             while self.running:
-                # Lockfileを読み取る
-                self.read_lockfile()
+                # プロセスから認証情報を取得
+                self.get_lcu_credentials()
 
                 # チャンピオンを検知
                 champion = self.detect_champion()
@@ -1246,12 +1117,10 @@ def get_ban_info():
 ### 公式ドキュメント
 - [Riot Developer Portal](https://developer.riotgames.com/)
 - [Data Dragon](https://developer.riotgames.com/docs/lol#data-dragon)
-- [Live Client Data API](https://developer.riotgames.com/docs/lol#game-client-api)
 
 ### コミュニティドキュメント
 - [LCU API Documentation](https://lcu.kebs.dev/)
 - [Riot API Libraries](https://riot-api-libraries.readthedocs.io/en/latest/lcu.html)
-- [HextechDocs](https://hextechdocs.dev/) ※現在503エラー
 
 ### ライブラリ
 - [league-connect (Node.js)](https://www.npmjs.com/package/league-connect)
@@ -1268,27 +1137,30 @@ def get_ban_info():
 
 タスク5「チャンピオン自動検知機能」とタスク7「相手5体のカウンター表示」は、**LCU API単独**で完全に実装可能です。
 
-### 重要ポイント（改定版）
+### 重要ポイント
 
-1. **LCU API単独で十分** - Live Client Data APIは不要
-2. **`/lol-champ-select/v1/session`** - このエンドポイント1つで全てのデータを取得
+1. **LCU API単独で完結**
+   - `/lol-champ-select/v1/session` エンドポイント1つで全データ取得
    - 自分のチャンピオン: `myTeam[localPlayerCellId].championId`
-   - 相手のチャンピオン: `theirTeam[].championId`（タスク7で使用）
+   - 相手のチャンピオン: `theirTeam[].championId`
    - Ban情報: `bans.myTeamBans` / `bans.theirTeamBans`
-3. **WebSocketイベント**でリアルタイム検知（推奨）
-4. **Lockfile**からポートとパスワードを動的取得
-5. **Data Dragon**でチャンピオンID→名前変換
 
-### なぜLCU APIだけで十分？
+2. **プロセスから認証情報を取得**
+   - インストール先に依存しない堅牢な方法
+   - `psutil`でプロセス情報を取得
+   - コマンドライン引数からポート・パスワードを抽出
 
-✅ チャンピオンは選択時に確定し、ゲーム中は変わらない
-✅ チャンピオン選択フェーズで全情報（自分・相手・Ban）が揃う
-✅ シンプルな実装で保守性が高い
-✅ 認証が1箇所のみ（Live Client Data APIは別途SSL処理が必要）
+3. **チャンピオンは選択時に確定**
+   - ゲーム中は変わらない → 選択時の情報を保持
+   - シンプルな状態管理で実装可能
 
-### 実装の優先順位（改定版）
+4. **Data Dragon連携**
+   - チャンピオンID → 名前変換
+   - 最新バージョンの自動取得
 
-1. ✅ **Phase 1**: Lockfile読み取りとLCU接続
+### 実装の優先順位
+
+1. ✅ **Phase 1**: プロセスからLCU認証情報を取得
 2. ✅ **Phase 2**: ゲームフェーズ検知（`/lol-gameflow/v1/session`）
 3. ✅ **Phase 3**: チャンピオン選択での検知（`/lol-champ-select/v1/session`）
 4. ✅ **Phase 4**: 自分のチャンピオンでビルドページを自動オープン（タスク5）
