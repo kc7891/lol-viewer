@@ -1,0 +1,1171 @@
+# タスク5: チャンピオン自動検知機能の設計
+
+## 概要
+
+TODO項目5の実装：
+「LoLのゲーム内で自分が使っているチャンピオンを検知し、このアプリ内でそのチャンピオンのビルドページが自動で開かれるようにする」
+
+## 目的
+
+プレイヤーがLoL（League of Legends）のゲーム中に使用しているチャンピオンを自動的に検知し、そのチャンピオンのビルドページ（LoLAnalytics）をアプリ内で自動的に開く機能を実装する。
+
+---
+
+## 実装方法の選定
+
+### **LCU API (League Client Update API)** ⭐ 採用
+
+**概要**: LoLクライアントがローカルで提供するREST API
+
+**選定理由**:
+- チャンピオン選択時に全情報（自分・相手・Ban）を取得可能
+- WebSocketでリアルタイム更新
+- チャンピオンは選択時に確定し変わらない → 単一APIで完結
+
+**技術要件**:
+- プロセスからポート・パスワードを動的取得
+- 自己署名証明書の処理
+- Data Dragonでチャンピオン名変換
+
+**注意点**:
+- 非公式サポート（将来変更の可能性）
+- ただしRiot Gamesは使用を許可している
+
+---
+
+## 実装方針
+
+1. **チャンピオン選択の監視**
+   - `/lol-champ-select/v1/session` でチャンピオン選択を検知
+   - WebSocketイベントでリアルタイム更新（推奨）
+   - **自分のチャンピオン**: `myTeam[localPlayerCellId].championId`
+   - **相手のチャンピオン**: `theirTeam[]` から全員取得可能 → タスク7で利用
+   - **Ban情報**: `bans.myTeamBans` / `bans.theirTeamBans`
+
+2. **状態管理**
+   - `/lol-gameflow/v1/session` でゲームフェーズを監視
+   - `ChampSelect`: チャンピオン選択中 → ここで検知
+   - `InProgress`: ゲーム中 → 選択済みチャンピオンを保持
+   - `None`: メインメニュー → 状態をリセット
+
+3. **Data Dragon連携**
+   - チャンピオンID → 名前変換
+   - LoLAnalytics URLの生成
+
+---
+
+## LCU API 詳細
+
+### 認証方法
+
+#### 1. プロセスから取得（推奨）
+
+インストール先に依存しない堅牢な方法です。
+
+```python
+import psutil
+import re
+import base64
+
+def get_lcu_credentials_from_process():
+    """LeagueClientUxプロセスからポートとパスワードを取得"""
+    for proc in psutil.process_iter(['name', 'cmdline']):
+        if proc.info['name'] in ['LeagueClientUx.exe', 'LeagueClientUx']:
+            cmdline = ' '.join(proc.info['cmdline'])
+
+            # --app-port=12345 を抽出
+            port_match = re.search(r'--app-port=(\d+)', cmdline)
+            # --remoting-auth-token=abc123 を抽出
+            token_match = re.search(r'--remoting-auth-token=([\w-]+)', cmdline)
+
+            if port_match and token_match:
+                return {
+                    'port': port_match.group(1),
+                    'password': token_match.group(1)
+                }
+
+    return None
+
+def create_auth_header(password):
+    """Basic認証ヘッダーを作成"""
+    credentials = f"riot:{password}"
+    encoded = base64.b64encode(credentials.encode()).decode()
+    return f"Basic {encoded}"
+```
+
+#### 2. Lockfileから取得（代替手段）
+
+プロセスから取得できない場合の代替手段。
+
+**Lockfileのフォーマット**:
+```
+LeagueClient:<PID>:<PORT>:<PASSWORD>:<PROTOCOL>
+```
+
+```python
+import os
+import psutil
+
+def get_lockfile_path():
+    """プロセスの実行パスからLockfileを探す"""
+    for proc in psutil.process_iter(['name', 'exe']):
+        if proc.info['name'] in ['LeagueClient.exe', 'LeagueClientUx.exe']:
+            install_dir = os.path.dirname(proc.info['exe'])
+            lockfile = os.path.join(install_dir, 'lockfile')
+            if os.path.exists(lockfile):
+                return lockfile
+    return None
+
+def read_lockfile():
+    """Lockfileを読み取る"""
+    lockfile_path = get_lockfile_path()
+    if not lockfile_path:
+        return None
+
+    with open(lockfile_path, 'r') as f:
+        data = f.read().split(':')
+        return {
+            'port': data[2],
+            'password': data[3]
+        }
+```
+
+### 基本リクエスト
+
+```python
+import requests
+import urllib3
+
+# 自己署名証明書の警告を無視
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+def make_lcu_request(port, password, endpoint):
+    base_url = f"https://127.0.0.1:{port}"
+    headers = {
+        'Authorization': create_auth_header(password)
+    }
+    response = requests.get(
+        f"{base_url}{endpoint}",
+        headers=headers,
+        verify=False  # 自己署名証明書を許可
+    )
+    return response.json()
+```
+
+### 主要エンドポイント
+
+#### 1. ゲームフロー状態の取得
+```
+GET /lol-gameflow/v1/session
+```
+
+**レスポンス例**:
+```json
+{
+  "phase": "InProgress",  // None, Lobby, ChampSelect, GameStart, InProgress, WaitingForStats
+  "gameData": {
+    "queue": {
+      "gameMode": "CLASSIC"
+    }
+  }
+}
+```
+
+#### 2. チャンピオン選択セッション（最重要）
+```
+GET /lol-champ-select/v1/session
+```
+
+**レスポンス例**:
+```json
+{
+  "localPlayerCellId": 0,
+  "myTeam": [
+    {
+      "cellId": 0,
+      "championId": 22,
+      "championPickIntent": 22,
+      "summonerId": 12345,
+      "spell1Id": 4,
+      "spell2Id": 14,
+      "assignedPosition": "bottom"
+    }
+  ],
+  "theirTeam": [
+    {
+      "cellId": 0,
+      "championId": 51,
+      "summonerId": 67890
+    },
+    {
+      "cellId": 1,
+      "championId": 238,
+      "summonerId": 67891
+    }
+  ],
+  "bans": {
+    "myTeamBans": [157, 555, 221],
+    "theirTeamBans": [234, 875, 350],
+    "numBans": 6
+  },
+  "timer": {
+    "phase": "BAN_PICK",
+    "adjustedTimeLeftInPhase": 30000
+  }
+}
+```
+
+**重要フィールド**:
+- `localPlayerCellId`: 自分のcellId（myTeamから自分を特定）
+- `myTeam[]`: 自分のチームの全情報
+- `theirTeam[]`: **相手チームの全情報** → タスク7で使用！
+- `bans`: Ban情報（championIdの配列）
+- `championId`: チャンピオンのID（Data Dragonで名前に変換可能）
+
+#### 3. 現在のサモナー情報
+```
+GET /lol-summoner/v1/current-summoner
+```
+
+### WebSocketイベント監視
+
+#### 接続方法
+
+**エンドポイント**:
+```
+wss://127.0.0.1:<PORT>/
+```
+
+**プロトコル**: WAMP 1.0（WebSocket Application Messaging Protocol）
+
+**接続例（Python）**:
+```python
+import websocket
+import json
+import ssl
+
+def on_message(ws, message):
+    data = json.loads(message)
+    if len(data) >= 3:
+        opcode = data[0]
+        if opcode == 8:  # Event
+            event_type = data[1]
+            event_data = data[2]
+            print(f"Event: {event_type}")
+            print(f"Data: {event_data}")
+
+def connect_websocket(port, password):
+    ws_url = f"wss://127.0.0.1:{port}/"
+    headers = {
+        'Authorization': create_auth_header(password)
+    }
+
+    ws = websocket.WebSocketApp(
+        ws_url,
+        header=headers,
+        on_message=on_message
+    )
+
+    # 自己署名証明書を許可
+    ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
+```
+
+#### イベントの購読
+
+**購読メッセージの送信**:
+```python
+# すべてのイベントを購読
+subscribe_message = [5, "OnJsonApiEvent"]
+ws.send(json.dumps(subscribe_message))
+
+# 特定のエンドポイントのみ購読
+subscribe_champ_select = [5, "OnJsonApiEvent_lol-champ-select_v1_session"]
+ws.send(json.dumps(subscribe_champ_select))
+```
+
+**WAMP 1.0 Opcodes**:
+- `5`: Subscribe（購読）
+- `6`: Unsubscribe（購読解除）
+- `8`: Event（イベント通知）
+
+#### 主要イベント
+
+1. **OnJsonApiEvent**: すべてのJSON APIイベント
+2. **OnJsonApiEvent_lol-champ-select_v1_session**: チャンピオン選択の変更
+3. **OnJsonApiEvent_lol-gameflow_v1_session**: ゲームフロー状態の変更
+4. **OnSummonerSelectedChampion**: プレイヤーがチャンピオンを選択
+5. **OnChampSelectTurnToPick**: ピック/バンのターン
+6. **OnSessionUpdated**: セッション更新
+
+---
+
+## 実装アーキテクチャ
+
+### 全体構成
+
+```
+┌─────────────────────────────────────────┐
+│         lol-viewer Application          │
+├─────────────────────────────────────────┤
+│                                         │
+│  ┌───────────────────────────────────┐  │
+│  │   Champion Detection Service      │  │
+│  ├───────────────────────────────────┤  │
+│  │ • LCU Connection Manager          │  │
+│  │ • Game Phase Tracker              │  │
+│  │ • Champion Detector               │  │
+│  │ • Event Listener (WebSocket)      │  │
+│  └───────────────────────────────────┘  │
+│                                         │
+│  ┌───────────────────────────────────┐  │
+│  │   UI Controller                   │  │
+│  ├───────────────────────────────────┤  │
+│  │ • WebView Manager                 │  │
+│  │ • Auto-open LoLAnalytics          │  │
+│  └───────────────────────────────────┘  │
+│                                         │
+└─────────────────────────────────────────┘
+                    │
+                    ▼
+            ┌───────────────┐
+            │   LCU API     │
+            │ (Dynamic Port)│
+            └───────────────┘
+```
+
+### 状態遷移図
+
+```
+┌─────────┐  Client Start   ┌──────────────┐  Enter Queue   ┌──────────────┐
+│  Idle   │ ───────────────→│ Connected to │ ──────────────→│ Champ Select │
+│  State  │                 │     LCU      │                │    Phase     │
+└─────────┘                 └──────────────┘                └──────────────┘
+                                                                    │
+                                                                    │ Lock In
+                                                                    ▼
+┌─────────┐  Game End    ┌──────────────┐  Game Start    ┌──────────────┐
+│  Stats  │ ←───────────│  In Progress │ ←──────────────│ Game Loading │
+│  Screen │             │   (In-Game)  │                │              │
+└─────────┘             └──────────────┘                └──────────────┘
+```
+
+### モジュール構成
+
+#### 1. **LCUConnectionManager**
+```python
+class LCUConnectionManager:
+    """LCU APIへの接続を管理"""
+
+    def __init__(self):
+        self.port = None
+        self.password = None
+        self.connected = False
+
+    def connect(self):
+        """Lockfileからポートとパスワードを取得して接続"""
+        pass
+
+    def is_client_running(self):
+        """LoLクライアントが起動しているか確認"""
+        pass
+
+    def get_auth_header(self):
+        """認証ヘッダーを返す"""
+        pass
+```
+
+#### 2. **GamePhaseTracker**
+```python
+class GamePhaseTracker:
+    """ゲームフェーズを追跡"""
+
+    def __init__(self, lcu_manager):
+        self.lcu_manager = lcu_manager
+        self.current_phase = "None"
+
+    def update_phase(self):
+        """現在のゲームフェーズを更新"""
+        # GET /lol-gameflow/v1/session
+        pass
+
+    def is_in_champ_select(self):
+        return self.current_phase == "ChampSelect"
+
+    def is_in_game(self):
+        return self.current_phase == "InProgress"
+```
+
+#### 3. **ChampionDetector**
+```python
+class ChampionDetector:
+    """チャンピオン検知のメインロジック"""
+
+    def __init__(self, lcu_manager, phase_tracker):
+        self.lcu_manager = lcu_manager
+        self.phase_tracker = phase_tracker
+        self.current_champion = None
+
+    def detect_champion(self):
+        """現在のチャンピオンを検知"""
+        if self.phase_tracker.is_in_champ_select():
+            return self._detect_from_champ_select()
+        elif self.phase_tracker.is_in_game():
+            return self._detect_from_live_client()
+        return None
+
+    def _detect_from_champ_select(self):
+        """チャンピオン選択画面から検知（LCU API）"""
+        # GET /lol-champ-select/v1/session
+        pass
+
+    def _detect_from_live_client(self):
+        """ゲーム中から検知（Live Client Data API）"""
+        # GET https://127.0.0.1:2999/liveclientdata/allgamedata
+        pass
+```
+
+#### 4. **ChampionEventListener**
+```python
+class ChampionEventListener:
+    """WebSocketでリアルタイムイベントを監視"""
+
+    def __init__(self, lcu_manager, on_champion_changed):
+        self.lcu_manager = lcu_manager
+        self.on_champion_changed = on_champion_changed
+        self.ws = None
+
+    def start(self):
+        """WebSocket接続を開始"""
+        pass
+
+    def stop(self):
+        """WebSocket接続を停止"""
+        pass
+
+    def _handle_event(self, event_data):
+        """イベント処理"""
+        pass
+```
+
+#### 5. **AutoOpenController**
+```python
+class AutoOpenController:
+    """チャンピオン検知時に自動でページを開く"""
+
+    def __init__(self, webview_manager):
+        self.webview_manager = webview_manager
+        self.last_champion = None
+
+    def on_champion_detected(self, champion_name):
+        """チャンピオンが検知されたときの処理"""
+        if champion_name != self.last_champion:
+            self.last_champion = champion_name
+            url = f"https://lolalytics.com/lol/{champion_name.lower()}/build/"
+            self.webview_manager.open_url(url)
+```
+
+---
+
+## 実装フロー
+
+### 1. アプリケーション起動時
+
+```python
+def initialize_champion_detection():
+    # 1. LCU接続マネージャーを初期化
+    lcu_manager = LCUConnectionManager()
+
+    # 2. LoLクライアントの起動を監視（バックグラウンドスレッド）
+    while True:
+        if lcu_manager.is_client_running():
+            if lcu_manager.connect():
+                print("LoLクライアントに接続しました")
+                break
+        time.sleep(5)  # 5秒ごとにチェック
+
+    # 3. ゲームフェーズトラッカーを開始
+    phase_tracker = GamePhaseTracker(lcu_manager)
+
+    # 4. チャンピオン検知器を初期化
+    detector = ChampionDetector(lcu_manager, phase_tracker)
+
+    # 5. WebSocketイベントリスナーを開始
+    listener = ChampionEventListener(
+        lcu_manager,
+        on_champion_changed=handle_champion_change
+    )
+    listener.start()
+
+    return detector
+```
+
+### 2. チャンピオン検知ループ
+
+**方法A: ポーリング方式（シンプル）**
+```python
+def polling_loop(detector, auto_open_controller):
+    while True:
+        champion = detector.detect_champion()
+        if champion:
+            auto_open_controller.on_champion_detected(champion)
+        time.sleep(2)  # 2秒ごとにチェック
+```
+
+**方法B: イベント駆動方式（推奨）**
+```python
+def event_driven_detection(listener, detector, auto_open_controller):
+    def on_game_event(event):
+        # ゲームフェーズが変更されたら
+        if event.type == "gameflow_changed":
+            champion = detector.detect_champion()
+            if champion:
+                auto_open_controller.on_champion_detected(champion)
+
+        # チャンピオン選択が変更されたら
+        elif event.type == "champ_select_updated":
+            champion = detector.detect_champion()
+            if champion:
+                auto_open_controller.on_champion_detected(champion)
+
+    listener.on_event = on_game_event
+    listener.start()
+```
+
+### 3. エラーハンドリング
+
+```python
+def robust_detection():
+    try:
+        # LCU APIを試す
+        champion = detect_from_lcu()
+        if champion:
+            return champion
+    except ConnectionError:
+        pass
+
+    try:
+        # Live Client Data APIを試す
+        champion = detect_from_live_client()
+        if champion:
+            return champion
+    except ConnectionError:
+        pass
+
+    # どちらも失敗した場合
+    return None
+```
+
+---
+
+## 技術的課題と解決策
+
+### 1. **ポート番号の動的変更**
+
+**問題**: LCU APIのポートはクライアント起動ごとに変わる
+
+**解決策**:
+- Lockfileを定期的に読み取る
+- ファイル監視（`watchdog`ライブラリ）でLockfileの変更を検知
+- プロセスコマンドラインからポートを取得
+
+```python
+import psutil
+
+def get_lcu_port_from_process():
+    for proc in psutil.process_iter(['name', 'cmdline']):
+        if proc.info['name'] == 'LeagueClientUx.exe':
+            cmdline = ' '.join(proc.info['cmdline'])
+            # --app-port=12345 を抽出
+            match = re.search(r'--app-port=(\d+)', cmdline)
+            if match:
+                return int(match.group(1))
+    return None
+```
+
+### 2. **自己署名証明書**
+
+**問題**: LCU APIとLive Client Data APIは自己署名証明書を使用
+
+**解決策**:
+- `requests`ライブラリで`verify=False`を使用
+- SSL警告を無視: `urllib3.disable_warnings()`
+- または、Riot Gamesのルート証明書を取得して検証
+
+```python
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# リクエスト時
+requests.get(url, verify=False)
+```
+
+### 3. **チャンピオンIDから名前への変換**
+
+**問題**: LCU APIはチャンピオンIDを返す（例: `22`）
+
+**解決策**: Data Dragon APIを使用してチャンピオンデータを取得
+
+```python
+import requests
+
+def load_champion_data():
+    """Data DragonからチャンピオンデータをDL"""
+    url = "https://ddragon.leagueoflegends.com/cdn/13.24.1/data/en_US/champion.json"
+    response = requests.get(url)
+    data = response.json()
+
+    # ID -> 名前のマッピングを作成
+    champion_map = {}
+    for champ_name, champ_data in data['data'].items():
+        champ_id = int(champ_data['key'])
+        champion_map[champ_id] = champ_name
+
+    return champion_map
+
+# 使用例
+champion_map = load_champion_data()
+champion_name = champion_map.get(22)  # "Ashe"
+```
+
+**最新バージョンの取得**:
+```python
+def get_latest_version():
+    url = "https://ddragon.leagueoflegends.com/api/versions.json"
+    response = requests.get(url)
+    versions = response.json()
+    return versions[0]  # 最新バージョン
+```
+
+### 4. **クライアント未起動時の処理**
+
+**問題**: LoLクライアントが起動していない場合の検知
+
+**解決策**:
+- プロセス監視でクライアント起動を検知
+- バックグラウンドスレッドで定期的にチェック
+- 接続失敗時は再接続を試みる
+
+```python
+def wait_for_client():
+    print("LoLクライアントの起動を待機中...")
+    while True:
+        if is_lol_client_running():
+            print("LoLクライアントを検知しました")
+            return True
+        time.sleep(5)
+
+def is_lol_client_running():
+    for proc in psutil.process_iter(['name']):
+        if proc.info['name'] in ['LeagueClient.exe', 'LeagueClientUx.exe']:
+            return True
+    return False
+```
+
+### 5. **複数試合の連続プレイ**
+
+**問題**: 試合終了後、次の試合で新しいチャンピオンを検知
+
+**解決策**:
+- ゲームフェーズの遷移を監視
+- `WaitingForStats` → `None` → `ChampSelect` の流れを追跡
+- 前回のチャンピオンをクリアして新しい検知を待つ
+
+```python
+def on_phase_changed(new_phase):
+    global current_champion
+
+    if new_phase == "None":
+        # ゲーム終了、チャンピオンをクリア
+        current_champion = None
+    elif new_phase == "ChampSelect":
+        # 新しいチャンピオン選択開始
+        detect_new_champion()
+```
+
+---
+
+## 統合実装例
+
+### 完全な実装サンプル
+
+```python
+import requests
+import urllib3
+import json
+import time
+import base64
+from threading import Thread
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+class LoLChampionDetector:
+    def __init__(self):
+        self.lcu_port = None
+        self.lcu_password = None
+        self.current_champion = None
+        self.champion_map = self.load_champion_map()
+        self.running = False
+
+    def load_champion_map(self):
+        """チャンピオンIDと名前のマッピングを読み込み"""
+        try:
+            version_url = "https://ddragon.leagueoflegends.com/api/versions.json"
+            version = requests.get(version_url).json()[0]
+
+            champion_url = f"https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json"
+            data = requests.get(champion_url).json()
+
+            return {int(v['key']): k for k, v in data['data'].items()}
+        except Exception as e:
+            print(f"チャンピオンデータの読み込みエラー: {e}")
+            return {}
+
+    def get_lcu_credentials(self):
+        """プロセスからLCU認証情報を取得"""
+        import psutil
+        import re
+
+        for proc in psutil.process_iter(['name', 'cmdline']):
+            if proc.info['name'] in ['LeagueClientUx.exe', 'LeagueClientUx']:
+                cmdline = ' '.join(proc.info['cmdline'])
+
+                port_match = re.search(r'--app-port=(\d+)', cmdline)
+                token_match = re.search(r'--remoting-auth-token=([\w-]+)', cmdline)
+
+                if port_match and token_match:
+                    self.lcu_port = port_match.group(1)
+                    self.lcu_password = token_match.group(1)
+                    return True
+
+        return False
+
+    def make_lcu_request(self, endpoint):
+        """LCU APIリクエストを送信"""
+        if not self.lcu_port or not self.lcu_password:
+            return None
+
+        auth = base64.b64encode(f"riot:{self.lcu_password}".encode()).decode()
+        headers = {'Authorization': f'Basic {auth}'}
+        url = f"https://127.0.0.1:{self.lcu_port}{endpoint}"
+
+        try:
+            response = requests.get(url, headers=headers, verify=False, timeout=5)
+            if response.status_code == 200:
+                return response.json()
+        except Exception:
+            pass
+        return None
+
+    def get_gameflow_phase(self):
+        """現在のゲームフェーズを取得"""
+        data = self.make_lcu_request("/lol-gameflow/v1/session")
+        if data:
+            return data.get('phase', 'None')
+        return 'None'
+
+    def detect_from_champ_select(self):
+        """チャンピオン選択画面から検知"""
+        data = self.make_lcu_request("/lol-champ-select/v1/session")
+        if not data:
+            return None
+
+        local_player_cell_id = data.get('localPlayerCellId')
+        if local_player_cell_id is None:
+            return None
+
+        # 自分のチームから自分のセルを探す
+        for player in data.get('myTeam', []):
+            if player.get('cellId') == local_player_cell_id:
+                champion_id = player.get('championId', 0)
+                if champion_id > 0:
+                    return self.champion_map.get(champion_id)
+
+        return None
+
+    def detect_champion(self):
+        """現在のチャンピオンを検知（LCU API単独）"""
+        phase = self.get_gameflow_phase()
+
+        if phase == 'ChampSelect':
+            # チャンピオン選択中 - LCU APIから取得
+            champion = self.detect_from_champ_select()
+            if champion:
+                # 選択されたチャンピオンを記憶（ゲーム中も使用）
+                self.current_champion = champion
+            return champion
+
+        elif phase == 'InProgress':
+            # ゲーム中 - 選択時のチャンピオンを保持
+            return self.current_champion
+
+        elif phase == 'None' or phase == 'Lobby':
+            # メインメニュー/ロビー - 状態をリセット
+            self.current_champion = None
+            return None
+
+        return self.current_champion
+
+    def start_monitoring(self, callback):
+        """監視を開始"""
+        self.running = True
+
+        def monitor_loop():
+            while self.running:
+                # プロセスから認証情報を取得
+                self.get_lcu_credentials()
+
+                # チャンピオンを検知
+                champion = self.detect_champion()
+
+                # 変更があればコールバックを呼ぶ
+                if champion and champion != self.current_champion:
+                    self.current_champion = champion
+                    callback(champion)
+
+                time.sleep(2)
+
+        thread = Thread(target=monitor_loop, daemon=True)
+        thread.start()
+
+    def stop_monitoring(self):
+        """監視を停止"""
+        self.running = False
+
+# 使用例
+def on_champion_detected(champion_name):
+    print(f"チャンピオン検知: {champion_name}")
+    url = f"https://lolalytics.com/lol/{champion_name.lower()}/build/"
+    print(f"自動で開くURL: {url}")
+    # ここでWebViewを開く処理を実装
+
+if __name__ == "__main__":
+    detector = LoLChampionDetector()
+    detector.start_monitoring(on_champion_detected)
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        detector.stop_monitoring()
+```
+
+---
+
+## Qt/PySideへの統合
+
+### QTimerを使用した実装
+
+```python
+from PySide6.QtCore import QTimer, QObject, Signal
+from PySide6.QtWidgets import QApplication
+
+class ChampionDetectorService(QObject):
+    champion_detected = Signal(str)  # チャンピオン名を通知
+
+    def __init__(self):
+        super().__init__()
+        self.detector = LoLChampionDetector()
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.check_champion)
+        self.last_champion = None
+
+    def start(self):
+        """検知を開始（2秒ごと）"""
+        self.timer.start(2000)
+
+    def stop(self):
+        """検知を停止"""
+        self.timer.stop()
+
+    def check_champion(self):
+        """チャンピオンをチェック"""
+        self.detector.read_lockfile()
+        champion = self.detector.detect_champion()
+
+        if champion and champion != self.last_champion:
+            self.last_champion = champion
+            self.champion_detected.emit(champion)
+
+# メインウィンドウでの使用
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.detector_service = ChampionDetectorService()
+        self.detector_service.champion_detected.connect(self.on_champion_detected)
+        self.detector_service.start()
+
+    def on_champion_detected(self, champion_name):
+        """チャンピオンが検知されたときの処理"""
+        url = f"https://lolalytics.com/lol/{champion_name.lower()}/build/"
+        self.webview.load(url)  # WebViewでURLを開く
+```
+
+---
+
+## テスト方法
+
+### 1. LCU接続テスト
+
+```python
+def test_lcu_connection():
+    detector = LoLChampionDetector()
+    if detector.read_lockfile():
+        print(f"✓ Lockfile読み取り成功")
+        print(f"  ポート: {detector.lcu_port}")
+        print(f"  パスワード: {detector.lcu_password[:4]}...")
+    else:
+        print("✗ Lockfileが見つかりません")
+
+    phase = detector.get_gameflow_phase()
+    print(f"✓ ゲームフェーズ: {phase}")
+```
+
+### 2. チャンピオン選択テスト
+
+```python
+def test_champ_select():
+    detector = LoLChampionDetector()
+    detector.read_lockfile()
+
+    # チャンピオン選択画面に入ってから実行
+    champion = detector.detect_from_champ_select()
+    if champion:
+        print(f"✓ 検知成功: {champion}")
+    else:
+        print("✗ チャンピオンが検知されませんでした")
+```
+
+### 3. ゲーム中テスト
+
+```python
+def test_in_game():
+    detector = LoLChampionDetector()
+
+    # ゲーム中に実行
+    champion = detector.detect_from_live_client()
+    if champion:
+        print(f"✓ 検知成功: {champion}")
+    else:
+        print("✗ ゲームが開始されていません")
+```
+
+### 4. 統合テスト
+
+```python
+def integration_test():
+    print("=== 統合テスト開始 ===")
+
+    def callback(champion):
+        print(f"[コールバック] チャンピオン検知: {champion}")
+
+    detector = LoLChampionDetector()
+    detector.start_monitoring(callback)
+
+    print("監視中... (Ctrl+Cで停止)")
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        detector.stop_monitoring()
+        print("\n=== テスト終了 ===")
+```
+
+---
+
+## パフォーマンス最適化
+
+### 1. ポーリング間隔の調整
+
+```python
+# 状態に応じてポーリング間隔を変更
+def adaptive_polling():
+    phase = get_gameflow_phase()
+
+    if phase in ['ChampSelect', 'InProgress']:
+        return 1  # 1秒（アクティブ時）
+    elif phase == 'Lobby':
+        return 3  # 3秒（待機時）
+    else:
+        return 5  # 5秒（非アクティブ時）
+```
+
+### 2. キャッシング
+
+```python
+class CachedDetector:
+    def __init__(self):
+        self.cache = {}
+        self.cache_duration = 5  # 5秒間キャッシュ
+
+    def get_gameflow_phase(self):
+        now = time.time()
+        if 'phase' in self.cache:
+            cached_time, cached_value = self.cache['phase']
+            if now - cached_time < self.cache_duration:
+                return cached_value
+
+        phase = self._fetch_gameflow_phase()
+        self.cache['phase'] = (now, phase)
+        return phase
+```
+
+### 3. 非同期処理
+
+```python
+import asyncio
+import aiohttp
+
+async def async_detect_champion():
+    async with aiohttp.ClientSession() as session:
+        # 並行してLCUとLive Clientをチェック
+        tasks = [
+            fetch_lcu_data(session),
+            fetch_live_client_data(session)
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for result in results:
+            if result and not isinstance(result, Exception):
+                return result
+        return None
+```
+
+---
+
+## セキュリティとプライバシー
+
+### 1. **ローカル処理のみ**
+- すべての処理はローカルで完結
+- 外部サーバーへのチャンピオン情報送信なし
+- Data Dragon APIのみ利用（公開データ）
+
+### 2. **認証情報の取り扱い**
+- パスワードはメモリ上でのみ保持
+- ログに記録しない
+- ファイルに保存しない
+
+### 3. **利用規約の遵守**
+- Riot Games Developer Policyに準拠
+- メモリ改ざんは行わない
+- ゲームプレイに影響を与えない
+
+---
+
+## 今後の拡張可能性
+
+### 1. タスク7への応用 ✅
+「LoLのBanPick画面で相手が選択したチャンピオン5体のカウンターページを自動で開く」
+
+**完全実装可能！** 同じ`/lol-champ-select/v1/session`エンドポイントで取得可能。
+
+**実装方法**:
+```python
+def detect_enemy_champions():
+    """相手チーム5体のチャンピオンを検知"""
+    data = make_lcu_request("/lol-champ-select/v1/session")
+    enemy_champions = []
+
+    # theirTeamから相手全員のチャンピオンIDを取得
+    for player in data.get('theirTeam', []):
+        champion_id = player.get('championId', 0)
+        if champion_id > 0:
+            champion_name = champion_map.get(champion_id)
+            if champion_name:
+                enemy_champions.append(champion_name)
+
+    return enemy_champions
+
+def auto_open_counter_pages():
+    """相手5体のカウンターページを自動で開く"""
+    enemy_champions = detect_enemy_champions()
+
+    # 各チャンピオンのカウンターページを開く
+    for champion in enemy_champions:
+        url = f"https://lolalytics.com/lol/{champion.lower()}/counters/"
+        open_new_webview(url)
+
+    print(f"{len(enemy_champions)}体のカウンターページを開きました")
+```
+
+**Ban情報も取得可能**:
+```python
+def get_ban_info():
+    """Ban情報を取得"""
+    data = make_lcu_request("/lol-champ-select/v1/session")
+    bans = data.get('bans', {})
+
+    my_bans = [champion_map.get(cid) for cid in bans.get('myTeamBans', [])]
+    their_bans = [champion_map.get(cid) for cid in bans.get('theirTeamBans', [])]
+
+    return my_bans, their_bans
+```
+
+### 2. ビルド推奨機能
+- 相手チームの構成を分析
+- LoLAnalyticsから推奨ビルドを取得
+- アイテムビルドの自動提案
+
+### 3. 統計表示
+- 勝率、ピック率の表示
+- 過去の試合履歴
+- パフォーマンストラッキング
+
+---
+
+## 参考リンク
+
+### 公式ドキュメント
+- [Riot Developer Portal](https://developer.riotgames.com/)
+- [Data Dragon](https://developer.riotgames.com/docs/lol#data-dragon)
+
+### コミュニティドキュメント
+- [LCU API Documentation](https://lcu.kebs.dev/)
+- [Riot API Libraries](https://riot-api-libraries.readthedocs.io/en/latest/lcu.html)
+
+### ライブラリ
+- [league-connect (Node.js)](https://www.npmjs.com/package/league-connect)
+- [lcu-driver (Python)](https://lcu-driver.readthedocs.io/)
+- [lcu-sharp (C#)](https://github.com/bryanhitc/lcu-sharp)
+
+### サンプルコード
+- [LCU Connection Examples](https://github.com/Pupix/lcu-connector)
+- [Champion Select Session Example](https://gist.github.com/xadamxk/8cb5d21d24bb78d63c5241e97087bb23)
+
+---
+
+## まとめ
+
+タスク5「チャンピオン自動検知機能」とタスク7「相手5体のカウンター表示」は、**LCU API単独**で完全に実装可能です。
+
+### 重要ポイント
+
+1. **LCU API単独で完結**
+   - `/lol-champ-select/v1/session` エンドポイント1つで全データ取得
+   - 自分のチャンピオン: `myTeam[localPlayerCellId].championId`
+   - 相手のチャンピオン: `theirTeam[].championId`
+   - Ban情報: `bans.myTeamBans` / `bans.theirTeamBans`
+
+2. **プロセスから認証情報を取得**
+   - インストール先に依存しない堅牢な方法
+   - `psutil`でプロセス情報を取得
+   - コマンドライン引数からポート・パスワードを抽出
+
+3. **チャンピオンは選択時に確定**
+   - ゲーム中は変わらない → 選択時の情報を保持
+   - シンプルな状態管理で実装可能
+
+4. **Data Dragon連携**
+   - チャンピオンID → 名前変換
+   - 最新バージョンの自動取得
+
+### 実装の優先順位
+
+1. ✅ **Phase 1**: プロセスからLCU認証情報を取得
+2. ✅ **Phase 2**: ゲームフェーズ検知（`/lol-gameflow/v1/session`）
+3. ✅ **Phase 3**: チャンピオン選択での検知（`/lol-champ-select/v1/session`）
+4. ✅ **Phase 4**: 自分のチャンピオンでビルドページを自動オープン（タスク5）
+5. ✅ **Phase 5**: 相手5体でカウンターページを自動オープン（タスク7）
+6. 🔄 **Phase 6**: WebSocketイベント統合（リアルタイム更新）
+7. 🔄 **Phase 7**: エラーハンドリングと最適化
+
+このドキュメントに基づいて実装を進めることで、シンプルかつ堅牢なチャンピオン自動検知機能を構築できます。
