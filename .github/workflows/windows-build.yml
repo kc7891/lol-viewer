@@ -1,0 +1,57 @@
+name: Windows Build
+
+on:
+  push:
+    branches: [ "main", "claude/*" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.6.1'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+        modules: 'qtwebengine'
+        cache: true
+
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Configure CMake
+      run: cmake -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    - name: Deploy Qt Dependencies
+      run: |
+        cd build
+        windeployqt lol-viewer.exe --release --no-translations
+      shell: cmd
+
+    - name: Package Application
+      run: |
+        mkdir package
+        copy build\lol-viewer.exe package\
+        xcopy /E /I /Y build\*.dll package\ 2>nul || echo "No DLLs to copy"
+        dir /s /b build
+      shell: cmd
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: lol-viewer-windows
+        path: |
+          package/
+        retention-days: 90
