@@ -5,6 +5,7 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QLabel>
+#include <QWebEngineView>
 
 class MainWindow : public QMainWindow
 {
@@ -24,6 +25,7 @@ private:
     QLineEdit *championInput;
     QPushButton *openButton;
     QLabel *titleLabel;
+    QWebEngineView *webView;
 };
 
 #endif // MAINWINDOW_H

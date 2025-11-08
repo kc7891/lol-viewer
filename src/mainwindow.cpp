@@ -1,7 +1,6 @@
 #include "mainwindow.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QDesktopServices>
 #include <QUrl>
 #include <QMessageBox>
 #include <QWidget>
@@ -11,7 +10,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     setupUI();
     setWindowTitle("LoL Viewer");
-    resize(400, 150);
+    resize(1200, 800);
 }
 
 MainWindow::~MainWindow()
@@ -45,6 +44,10 @@ void MainWindow::setupUI()
 
     mainLayout->addLayout(inputLayout);
 
+    // WebView
+    webView = new QWebEngineView(this);
+    mainLayout->addWidget(webView);
+
     // Connect signal
     connect(openButton, &QPushButton::clicked, this, &MainWindow::onOpenButtonClicked);
     connect(championInput, &QLineEdit::returnPressed, this, &MainWindow::onOpenButtonClicked);
@@ -62,13 +65,9 @@ void MainWindow::onOpenButtonClicked()
     }
 
     QString url = getLoLAnalyticsUrl(championName);
-
-    if (QDesktopServices::openUrl(QUrl(url))) {
-        championInput->clear();
-        championInput->setFocus();
-    } else {
-        QMessageBox::critical(this, "Error", "Failed to open browser.");
-    }
+    webView->setUrl(QUrl(url));
+    championInput->clear();
+    championInput->setFocus();
 }
 
 QString MainWindow::getLoLAnalyticsUrl(const QString &championName) const
