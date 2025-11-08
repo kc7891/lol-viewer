@@ -24,6 +24,7 @@ class ChampionViewerWidget(QWidget):
         super().__init__()
         self.viewer_id = viewer_id
         self.current_champion = ""
+        self.current_page_type = ""  # "build" or "counter"
         self.init_ui()
 
     def init_ui(self):
@@ -35,21 +36,6 @@ class ChampionViewerWidget(QWidget):
         # Header layout with close and hide buttons
         header_layout = QHBoxLayout()
         header_layout.setSpacing(4)
-
-        # Viewer ID label
-        self.id_label = QPushButton(f"View #{self.viewer_id + 1}")
-        self.id_label.setStyleSheet("""
-            QPushButton {
-                padding: 4px 8px;
-                font-size: 10pt;
-                background-color: #333333;
-                color: #ffffff;
-                border: none;
-                border-radius: 4px;
-            }
-        """)
-        self.id_label.setEnabled(False)
-        header_layout.addWidget(self.id_label)
 
         header_layout.addStretch()
 
@@ -185,6 +171,7 @@ class ChampionViewerWidget(QWidget):
             return
 
         self.current_champion = champion_name
+        self.current_page_type = "build"
         url = self.get_lolalytics_build_url(champion_name)
         self.web_view.setUrl(QUrl(url))
         self.champion_input.setFocus()
@@ -200,6 +187,7 @@ class ChampionViewerWidget(QWidget):
             return
 
         self.current_champion = champion_name
+        self.current_page_type = "counter"
         url = self.get_lolalytics_counter_url(champion_name)
         self.web_view.setUrl(QUrl(url))
         self.champion_input.setFocus()
@@ -208,9 +196,9 @@ class ChampionViewerWidget(QWidget):
 
     def get_display_name(self) -> str:
         """Get display name for this viewer"""
-        if self.current_champion:
-            return f"View #{self.viewer_id + 1}: {self.current_champion.capitalize()}"
-        return f"View #{self.viewer_id + 1}"
+        if self.current_champion and self.current_page_type:
+            return f"{self.current_champion} | {self.current_page_type}"
+        return "(Empty)"
 
     @staticmethod
     def get_lolalytics_build_url(champion_name: str) -> str:
