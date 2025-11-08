@@ -1,51 +1,26 @@
-# Build directories
-build/
-build-*/
-cmake-build-*/
-
-# Qt Creator files
-*.pro.user
-*.pro.user.*
-*.qmlproject.user
-*.qmlproject.user.*
-
-# Qt generated files
-*.moc
-moc_*.cpp
-qrc_*.cpp
-ui_*.h
-*.qm
-
-# C++ compiled files
-*.o
-*.obj
-*.exe
-*.dll
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
 *.so
-*.dylib
-*.a
-*.lib
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+*.spec
 
-# CMake files
-CMakeCache.txt
-CMakeFiles/
-cmake_install.cmake
-Makefile
-*.cmake
+# PyInstaller
+*.manifest
 
 # IDE files
 .vscode/
 .idea/
-*.suo
-*.user
-*.ncb
-*.aps
-*.pch
-*.vspscc
-*.vssscc
-*.bak
-*.tmp
-*.log
+*.swp
+*.swo
+*~
 
 # OS files
 .DS_Store
@@ -54,3 +29,6 @@ desktop.ini
 
 # Package directory
 package/
+
+# Logs
+*.log
