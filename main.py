@@ -19,9 +19,9 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 def setup_logging():
     """Setup logging configuration based on executable name"""
-    # Check if running as debug.exe or debug.py
+    # Check if running as debug.exe, debug.py, or lol-viewer-debug.exe
     executable_name = os.path.basename(sys.argv[0])
-    is_debug = executable_name.lower().startswith('debug')
+    is_debug = 'debug' in executable_name.lower()
 
     # Configure logging level
     log_level = logging.DEBUG if is_debug else logging.INFO
