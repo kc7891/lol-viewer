@@ -280,9 +280,9 @@ class ChampionCompleter(QCompleter):
         # Use default DisplayRole for filtering (contains "English Japanese")
         self.setMaxVisibleItems(10)
 
-        # Set custom delegate
-        delegate = ChampionItemDelegate(self.image_cache)
-        self.popup().setItemDelegate(delegate)
+        # Disable custom delegate for now - using text-only display
+        # delegate = ChampionItemDelegate(self.image_cache)
+        # self.popup().setItemDelegate(delegate)
 
         # Ensure popup is visible and has proper size
         popup = self.popup()
@@ -304,9 +304,9 @@ class ChampionCompleter(QCompleter):
                 min-height: 200px;
             }
             QListView::item {
-                padding: 5px;
+                padding: 8px;
                 border-bottom: 1px solid #3a3a3a;
-                min-height: 50px;
+                height: 30px;
             }
             QListView::item:selected {
                 background-color: #0d7377;
@@ -339,10 +339,10 @@ class ChampionCompleter(QCompleter):
             japanese_name = data.get('japanese_name', '')
             image_url = data.get('image_url', '')
 
-            # IMPORTANT: DisplayRole must contain searchable text for QCompleter to work
-            # DisplayRole is what QCompleter filters against
-            searchable_text = f"{english_name} {japanese_name}"
-            item = QStandardItem(searchable_text)
+            # DisplayRole is used for both filtering and display
+            # Format: "English - Japanese" (searchable and readable)
+            display_text = f"{english_name} - {japanese_name}"
+            item = QStandardItem(display_text)
 
             # Store individual components in UserRoles for delegate to display
             item.setData(japanese_name, Qt.ItemDataRole.UserRole)      # Japanese name
@@ -359,8 +359,8 @@ class ChampionCompleter(QCompleter):
         # Log first few items for debugging
         if count > 0:
             first_item = self.model_data.item(0, 0)
-            log(f"[ChampionCompleter] Sample item DisplayRole: '{first_item.data(Qt.ItemDataRole.DisplayRole)}'")
-            log(f"[ChampionCompleter] Sample item EnglishName: '{first_item.data(Qt.ItemDataRole.UserRole + 3)}'")
+            log(f"[ChampionCompleter] Sample item display: '{first_item.data(Qt.ItemDataRole.DisplayRole)}'")
+            log(f"[ChampionCompleter] Sample item ID: '{first_item.data(Qt.ItemDataRole.UserRole + 2)}'")
 
 def setup_champion_input(line_edit: QLineEdit, champion_data: ChampionData):
     """
