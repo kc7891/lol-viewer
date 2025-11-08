@@ -22,7 +22,7 @@ def clean_build():
             print(f"  Removing {folder}/")
             shutil.rmtree(folder_path)
 
-    print("✓ Clean complete!")
+    print("[OK] Clean complete!")
     print()
     print("You can now build with:")
     print("  pyinstaller lol-viewer-debug.spec")

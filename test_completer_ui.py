@@ -39,9 +39,9 @@ class TestWindow(QWidget):
         if len(self.champion_data.champions) > 0:
             setup_champion_input(self.input, self.champion_data)
             self.input.textChanged.connect(self.on_text_changed)
-            print("\n✓ Autocomplete setup complete")
+            print("\n[OK] Autocomplete setup complete")
         else:
-            print("\n✗ No champion data available!")
+            print("\n[FAIL] No champion data available!")
             self.result_label.setText("ERROR: No champion data loaded!")
 
     def on_text_changed(self, text):

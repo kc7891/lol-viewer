@@ -11,7 +11,7 @@ def test_autocomplete_data():
     with open('champions.json', 'r', encoding='utf-8') as f:
         champions = json.load(f)
 
-    print(f"✓ Loaded {len(champions)} champions")
+    print(f"[OK] Loaded {len(champions)} champions")
 
     # Simulate what _populate_model does
     items = []
@@ -32,7 +32,7 @@ def test_autocomplete_data():
             'image': image_url
         })
 
-    print(f"✓ Created {len(items)} autocomplete items")
+    print(f"[OK] Created {len(items)} autocomplete items")
 
     # Test searching
     test_queries = ["ash", "アッシュ", "sw", "スウェイン", "ahri", "アーリ"]
@@ -42,21 +42,21 @@ def test_autocomplete_data():
         matches = [item for item in items
                   if query_lower in item['searchable'].lower()]
 
-        print(f"✓ Query '{query}': found {len(matches)} matches")
+        print(f"[OK] Query '{query}': found {len(matches)} matches")
         if matches:
             # Show first 3 matches
             for item in matches[:3]:
                 print(f"    - {item['display']} ({item['japanese']})")
 
     # Verify specific champions
-    print("\n✓ Verifying specific champions:")
+    print("\n[OK] Verifying specific champions:")
     ashe = next((item for item in items if item['id'] == 'ashe'), None)
     if ashe:
         print(f"  Ashe: {ashe['display']} / {ashe['japanese']}")
         print(f"  Searchable: '{ashe['searchable']}'")
         assert 'Ashe' in ashe['searchable']
         assert 'アッシュ' in ashe['searchable']
-        print("  ✓ Ashe is searchable by both English and Japanese")
+        print("  [OK] Ashe is searchable by both English and Japanese")
 
     swain = next((item for item in items if item['id'] == 'swain'), None)
     if swain:
@@ -64,9 +64,9 @@ def test_autocomplete_data():
         print(f"  Searchable: '{swain['searchable']}'")
         assert 'Swain' in swain['searchable']
         assert swain['japanese'] in swain['searchable']
-        print("  ✓ Swain is searchable by both English and Japanese")
+        print("  [OK] Swain is searchable by both English and Japanese")
 
-    print("\n✅ All autocomplete model tests passed!")
+    print("\n[OK] All autocomplete model tests passed!")
 
 
 if __name__ == "__main__":

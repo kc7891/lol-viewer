@@ -31,7 +31,7 @@ def check_build_prerequisites():
     for filename in required_files:
         filepath = os.path.join(script_dir, filename)
         exists = os.path.exists(filepath)
-        status = "✓" if exists else "✗"
+        status = "[OK]  " if exists else "[FAIL]"
 
         if exists:
             size = os.path.getsize(filepath)
@@ -49,23 +49,23 @@ def check_build_prerequisites():
         try:
             with open(champions_json, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            print(f"✓ champions.json is valid JSON with {len(data)} champions")
+            print(f"[OK]   champions.json is valid JSON with {len(data)} champions")
         except Exception as e:
-            print(f"✗ champions.json is invalid: {e}")
+            print(f"[FAIL] champions.json is invalid: {e}")
             all_present = False
 
     print()
     print("=" * 60)
 
     if all_present:
-        print("✓ All required files are present!")
+        print("[OK]   All required files are present!")
         print()
         print("You can now build with:")
         print("  pyinstaller lol-viewer-debug.spec")
         print("  or")
         print("  pyinstaller lol-viewer.spec")
     else:
-        print("✗ Some files are missing. Please fix before building.")
+        print("[FAIL] Some files are missing. Please fix before building.")
         return 1
 
     print("=" * 60)

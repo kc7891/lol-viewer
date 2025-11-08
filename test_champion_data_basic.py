@@ -11,7 +11,7 @@ def test_champion_data_module():
     with open('champions.json', 'r', encoding='utf-8') as f:
         champions = json.load(f)
 
-    print(f"✓ Loaded {len(champions)} champions")
+    print(f"[OK] Loaded {len(champions)} champions")
 
     # Test search functionality manually
     def search_champions(champions, query):
@@ -35,18 +35,18 @@ def test_champion_data_module():
     results = search_champions(champions, "ashe")
     assert len(results) > 0, "English name search failed"
     assert any(r['id'] == 'ashe' for r in results), "Ashe not found in English search"
-    print(f"✓ English name search works: found {len(results)} results for 'ashe'")
+    print(f"[OK] English name search works: found {len(results)} results for 'ashe'")
 
     # Test Japanese name search
     results = search_champions(champions, "アッシュ")
     assert len(results) > 0, "Japanese name search failed"
     assert any('アッシュ' in r['japanese_name'] for r in results), "Japanese name not found"
-    print(f"✓ Japanese name search works: found {len(results)} results for 'アッシュ'")
+    print(f"[OK] Japanese name search works: found {len(results)} results for 'アッシュ'")
 
     # Test partial match
     results = search_champions(champions, "ash")
     assert len(results) > 0, "Partial match search failed"
-    print(f"✓ Partial match search works: found {len(results)} results for 'ash'")
+    print(f"[OK] Partial match search works: found {len(results)} results for 'ash'")
 
     # Test champion data structure
     ashe = champions.get('ashe')
@@ -55,14 +55,14 @@ def test_champion_data_module():
     assert 'japanese_name' in ashe, "japanese_name field missing"
     assert 'image_url' in ashe, "image_url field missing"
     assert 'id' in ashe, "id field missing"
-    print(f"✓ Champion data structure is correct")
+    print(f"[OK] Champion data structure is correct")
 
     # Display some sample data
     print("\nSample champion data:")
     for i, (champ_id, data) in enumerate(list(champions.items())[:5]):
         print(f"  {champ_id}: {data['english_name']} / {data['japanese_name']}")
 
-    print("\n✅ All basic tests passed!")
+    print("\n[OK] All basic tests passed!")
 
 
 if __name__ == "__main__":
