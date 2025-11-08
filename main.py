@@ -39,7 +39,7 @@ class LCUConnectionStatusWidget(QWidget):
         self.status_label = QLabel("connecting.")
         self.status_label.setStyleSheet("""
             QLabel {
-                font-size: 8px;
+                font-size: 10px;
                 color: #cccccc;
                 background-color: transparent;
             }
@@ -458,6 +458,7 @@ class MainWindow(QMainWindow):
 
         # Create sidebar container with status widget at bottom
         sidebar_container = QWidget()
+        sidebar_container.setFixedWidth(200)
         sidebar_container.setStyleSheet("QWidget { background-color: #252525; }")
         sidebar_layout = QVBoxLayout(sidebar_container)
         sidebar_layout.setSpacing(0)
