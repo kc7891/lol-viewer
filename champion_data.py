@@ -191,10 +191,16 @@ class ChampionItemDelegate(QStyledItemDelegate):
 
     def paint(self, painter, option, index):
         """Paint the item with image and text"""
-        # Get data from model
-        english_name = index.data(Qt.ItemDataRole.DisplayRole)
+        # Get data from model - now from UserRole instead of DisplayRole
+        english_name = index.data(Qt.ItemDataRole.UserRole + 3)  # English name
         japanese_name = index.data(Qt.ItemDataRole.UserRole)
         image_url = index.data(Qt.ItemDataRole.UserRole + 1)
+
+        # Fallback if data is missing
+        if not english_name:
+            english_name = index.data(Qt.ItemDataRole.DisplayRole).split()[0] if index.data(Qt.ItemDataRole.DisplayRole) else ""
+        if not japanese_name:
+            japanese_name = ""
 
         # Draw background
         if option.state & QStyle.StateFlag.State_Selected:
@@ -271,7 +277,7 @@ class ChampionCompleter(QCompleter):
         self.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
         self.setFilterMode(Qt.MatchFlag.MatchContains)
-        self.setCompletionRole(Qt.ItemDataRole.EditRole)  # Use EditRole for filtering
+        # Use default DisplayRole for filtering (contains "English Japanese")
         self.setMaxVisibleItems(10)
 
         # Set custom delegate
@@ -309,22 +315,28 @@ class ChampionCompleter(QCompleter):
             japanese_name = data.get('japanese_name', '')
             image_url = data.get('image_url', '')
 
-            # Create item - DisplayRole is used for both display and filtering
-            item = QStandardItem(english_name)
+            # IMPORTANT: DisplayRole must contain searchable text for QCompleter to work
+            # DisplayRole is what QCompleter filters against
+            searchable_text = f"{english_name} {japanese_name}"
+            item = QStandardItem(searchable_text)
 
-            # Set completion role to include both English and Japanese for searching
-            item.setData(f"{english_name} {japanese_name}", Qt.ItemDataRole.EditRole)
-
-            # Store additional data
-            item.setData(japanese_name, Qt.ItemDataRole.UserRole)
-            item.setData(image_url, Qt.ItemDataRole.UserRole + 1)
-            item.setData(champ_id, Qt.ItemDataRole.UserRole + 2)
+            # Store individual components in UserRoles for delegate to display
+            item.setData(japanese_name, Qt.ItemDataRole.UserRole)      # Japanese name
+            item.setData(image_url, Qt.ItemDataRole.UserRole + 1)       # Image URL
+            item.setData(champ_id, Qt.ItemDataRole.UserRole + 2)        # Champion ID
+            item.setData(english_name, Qt.ItemDataRole.UserRole + 3)    # English name
 
             self.model_data.appendRow(item)
             count += 1
 
         log(f"[ChampionCompleter] Populated model with {count} champions")
         log(f"[ChampionCompleter] Model row count: {self.model_data.rowCount()}")
+
+        # Log first few items for debugging
+        if count > 0:
+            first_item = self.model_data.item(0, 0)
+            log(f"[ChampionCompleter] Sample item DisplayRole: '{first_item.data(Qt.ItemDataRole.DisplayRole)}'")
+            log(f"[ChampionCompleter] Sample item EnglishName: '{first_item.data(Qt.ItemDataRole.UserRole + 3)}'")
 
 def setup_champion_input(line_edit: QLineEdit, champion_data: ChampionData):
     """
@@ -346,6 +358,15 @@ def setup_champion_input(line_edit: QLineEdit, champion_data: ChampionData):
     log(f"[setup_champion_input] Completer set on line edit")
     log(f"[setup_champion_input] Completion mode: {completer.completionMode()}")
     log(f"[setup_champion_input] Filter mode: {completer.filterMode()}")
+
+    # Add debug logging for text changes
+    def on_text_changed(text):
+        if text:
+            log(f"[Autocomplete] Text changed: '{text}' (length: {len(text)})")
+            log(f"[Autocomplete] Completion prefix: '{completer.completionPrefix()}'")
+            log(f"[Autocomplete] Completion count: {completer.completionCount()}")
+
+    line_edit.textChanged.connect(on_text_changed)
 
     # Handle completion activation to ensure English ID is used
     def on_completion_activated(text):
