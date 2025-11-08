@@ -14,6 +14,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 
+from logger import log
+
 
 class ChampionData:
     """Class to manage champion data"""
@@ -31,24 +33,24 @@ class ChampionData:
 
     def load_data(self):
         """Load champion data from JSON file"""
-        print(f"[ChampionData] Loading data from: {self.data_file}")
-        print(f"[ChampionData] File exists: {os.path.exists(self.data_file)}")
+        log(f"[ChampionData] Loading data from: {self.data_file}")
+        log(f"[ChampionData] File exists: {os.path.exists(self.data_file)}")
 
         if not os.path.exists(self.data_file):
-            print(f"[ChampionData] WARNING: Champion data file '{self.data_file}' not found")
+            log(f"[ChampionData] WARNING: Champion data file '{self.data_file}' not found")
             return
 
         try:
             with open(self.data_file, 'r', encoding='utf-8') as f:
                 self.champions = json.load(f)
-            print(f"[ChampionData] Loaded {len(self.champions)} champions from {self.data_file}")
+            log(f"[ChampionData] Loaded {len(self.champions)} champions from {self.data_file}")
             # Print first few champions for verification
             if self.champions:
                 sample = list(self.champions.items())[:3]
                 for champ_id, data in sample:
-                    print(f"  - {champ_id}: {data.get('english_name')} / {data.get('japanese_name')}")
+                    log(f"  - {champ_id}: {data.get('english_name')} / {data.get('japanese_name')}")
         except Exception as e:
-            print(f"[ChampionData] ERROR loading champion data: {e}")
+            log(f"[ChampionData] ERROR loading champion data: {e}")
             import traceback
             traceback.print_exc()
             self.champions = {}
@@ -313,8 +315,8 @@ class ChampionCompleter(QCompleter):
             self.model_data.appendRow(item)
             count += 1
 
-        print(f"[ChampionCompleter] Populated model with {count} champions")
-        print(f"[ChampionCompleter] Model row count: {self.model_data.rowCount()}")
+        log(f"[ChampionCompleter] Populated model with {count} champions")
+        log(f"[ChampionCompleter] Model row count: {self.model_data.rowCount()}")
 
 def setup_champion_input(line_edit: QLineEdit, champion_data: ChampionData):
     """
@@ -327,19 +329,19 @@ def setup_champion_input(line_edit: QLineEdit, champion_data: ChampionData):
     Returns:
         The ChampionCompleter instance
     """
-    print(f"[setup_champion_input] Setting up autocomplete...")
-    print(f"[setup_champion_input] Champion data has {len(champion_data.champions)} champions")
+    log(f"[setup_champion_input] Setting up autocomplete...")
+    log(f"[setup_champion_input] Champion data has {len(champion_data.champions)} champions")
 
     completer = ChampionCompleter(champion_data, line_edit)
     line_edit.setCompleter(completer)
 
-    print(f"[setup_champion_input] Completer set on line edit")
-    print(f"[setup_champion_input] Completion mode: {completer.completionMode()}")
-    print(f"[setup_champion_input] Filter mode: {completer.filterMode()}")
+    log(f"[setup_champion_input] Completer set on line edit")
+    log(f"[setup_champion_input] Completion mode: {completer.completionMode()}")
+    log(f"[setup_champion_input] Filter mode: {completer.filterMode()}")
 
     # Handle completion activation to ensure English ID is used
     def on_completion_activated(text):
-        print(f"[Autocomplete] Activated: {text}")
+        log(f"[Autocomplete] Activated: {text}")
         # Get the selected item
         index = completer.popup().currentIndex()
         if index.isValid():
@@ -347,7 +349,7 @@ def setup_champion_input(line_edit: QLineEdit, champion_data: ChampionData):
             if item:
                 # Get the champion ID (lowercase) for the URL
                 champ_id = item.data(Qt.ItemDataRole.UserRole + 2)
-                print(f"[Autocomplete] Selected champion ID: {champ_id}")
+                log(f"[Autocomplete] Selected champion ID: {champ_id}")
                 # Temporarily disconnect to avoid triggering completion again
                 line_edit.blockSignals(True)
                 line_edit.setText(champ_id)
