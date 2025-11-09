@@ -15,6 +15,9 @@ from PyQt6.QtWidgets import (
     QTabWidget, QStackedWidget, QComboBox
 )
 
+# Application version
+__version__ = "1.0.0"
+
 
 class LCUConnectionStatusWidget(QWidget):
     """Widget displaying LCU connection status with animated dots"""
@@ -897,10 +900,22 @@ def main():
         logger.info("=" * 60)
         logger.info("Starting LoL Viewer...")
         logger.info(f"Debug mode: {is_debug}")
+        logger.info(f"Version: {__version__}")
         logger.info("=" * 60)
 
         app = QApplication(sys.argv)
         logger.info("QApplication created")
+
+        # Check for updates on startup
+        try:
+            from updater import Updater
+            updater = Updater(__version__)
+            logger.info("Checking for updates...")
+            # check_and_update() will exit the app if update is applied
+            updater.check_and_update()
+        except Exception as e:
+            logger.warning(f"Update check failed: {e}")
+            # Continue with app startup even if update check fails
 
         window = MainWindow()
         logger.info("MainWindow created")
