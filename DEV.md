@@ -143,45 +143,117 @@ The application includes an automatic update feature that checks for new version
 3. **Download**: If confirmed, the new executable is downloaded with a progress indicator
 4. **Installation**: A batch script replaces the current executable and restarts the app
 
-### Version Management
+### Automated Release Process
 
-- Current version is defined in `main.py` as `__version__`
-- Update this version before creating a new release:
-  ```python
-  __version__ = "1.0.0"  # Update this before release
-  ```
+**The entire release process is now automated!** No manual version updates needed.
 
-### Creating a Release with Auto-Update
+#### Setup (One-time)
 
-1. Update version in `main.py`:
-   ```python
-   __version__ = "1.1.0"  # New version
-   ```
-
-2. Build the executables:
+1. **Install Git hooks** (enforces commit message format):
    ```bash
-   python clean_build.py
-   pyinstaller lol-viewer.spec
-   pyinstaller lol-viewer-debug.spec
+   # Linux/Mac
+   bash setup-hooks.sh
+
+   # Windows
+   setup-hooks.bat
    ```
 
-3. Create a GitHub Release:
-   - Tag version: `v1.1.0` (must match `__version__` with 'v' prefix)
-   - Upload both `lol-viewer.exe` and `lol-viewer-debug.exe` as release assets
-   - Add release notes in the description
+#### How to Release
 
-4. The next time users launch the app, they'll be prompted to update automatically
+Simply merge to `main` with proper commit messages:
+
+```bash
+# Feature (minor version bump: 0.2.0 → 0.3.0)
+git commit -m "feat: add dark mode support"
+
+# Bug fix (patch version bump: 0.2.0 → 0.2.1)
+git commit -m "fix: correct button alignment"
+
+# Documentation (patch version bump)
+git commit -m "docs: update installation guide"
+
+# Breaking change (major version bump: 0.2.0 → 1.0.0)
+git commit -m "feat!: redesign UI
+
+BREAKING CHANGE: Old configuration files are not compatible"
+```
+
+**When you merge to `main`:**
+1. GitHub Actions analyzes commit messages
+2. Automatically bumps version in `main.py`
+3. Creates git tag (e.g., `v0.3.0`)
+4. Builds `lol-viewer.exe` on Windows
+5. Creates GitHub Release with exe attached
+6. Users receive update notification on next launch
+
+**Total time: ~10 minutes from merge to release**
+
+#### Commit Message Format
+
+All commits must follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+type(optional-scope): description
+
+[optional body]
+
+[optional footer]
+```
+
+**Valid types:**
+- `feat`: New feature → **minor** version bump (0.2.0 → 0.3.0)
+- `fix`: Bug fix → **patch** version bump (0.2.0 → 0.2.1)
+- `docs`: Documentation → **patch** version bump
+- `style`: Code formatting → **patch** version bump
+- `refactor`: Code refactoring → **patch** version bump
+- `test`: Tests → **patch** version bump
+- `chore`: Maintenance → **patch** version bump
+- `ci`: CI/CD changes → **patch** version bump
+- `perf`: Performance → **patch** version bump
+
+**Breaking changes:**
+- Add `!` after type: `feat!: redesign API`
+- Or add `BREAKING CHANGE:` in footer → **major** version bump (0.2.0 → 1.0.0)
+
+**Examples:**
+```bash
+✓ feat: add automatic update mechanism
+✓ fix(ui): correct button alignment on small screens
+✓ docs: update README with new installation steps
+✓ chore: update dependencies to latest versions
+✗ Added new feature (rejected by git hook)
+✗ fixed bug (rejected by git hook)
+```
+
+#### Manual Release (if needed)
+
+You can also trigger a release manually from GitHub Actions UI:
+1. Go to Actions → Automatic Release
+2. Click "Run workflow"
+3. Select version bump type (patch/minor/major)
+4. Click "Run workflow"
 
 ### Testing Updates
 
 To test the update mechanism:
-- Build with an older version number
-- Create a test release on GitHub with a newer version
-- Launch the app and verify the update prompt appears
+```bash
+# Use the quick test script (no build required)
+python quick_test_update.py
+
+# Or test with actual app
+python main.py  # Will check for updates on startup
+```
+
+### Version Management
+
+- Current version is in `main.py` as `__version__`
+- **DO NOT manually edit this** - it's automatically updated on release
+- If you need to check current version: `grep __version__ main.py`
 
 ### Notes
 
 - Updates only work when running as `.exe` (not from Python script)
 - Network connection required for update checks
 - If update check fails, the app continues normally
-- Update checks respect debug vs release versions (debug.exe updates to debug.exe)
+- Pre-commit hook validates all commit messages before allowing commit
+- All version bumps and releases are fully automated via GitHub Actions

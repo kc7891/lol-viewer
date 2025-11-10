@@ -1,0 +1,70 @@
+#!/bin/bash
+#
+# Commit message hook to enforce Conventional Commits format
+# This ensures all commits follow the pattern: type(scope): message
+#
+# Valid types: feat, fix, docs, style, refactor, test, chore, ci, perf
+# Example: feat: add user authentication
+#          fix(ui): correct button alignment
+#
+
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Skip merge commits
+if echo "$COMMIT_MSG" | grep -qE "^Merge branch"; then
+    exit 0
+fi
+
+# Skip revert commits
+if echo "$COMMIT_MSG" | grep -qE "^Revert"; then
+    exit 0
+fi
+
+# Conventional Commits pattern
+# Format: type(optional-scope): description
+PATTERN="^(feat|fix|docs|style|refactor|test|chore|ci|perf)(\(.+\))?: .{3,}$"
+
+if ! echo "$COMMIT_MSG" | grep -qE "$PATTERN"; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "❌ COMMIT REJECTED: Invalid commit message format"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "Your commit message must follow Conventional Commits format:"
+    echo ""
+    echo "  type(optional-scope): description"
+    echo ""
+    echo "Valid types:"
+    echo "  feat:     New feature"
+    echo "  fix:      Bug fix"
+    echo "  docs:     Documentation changes"
+    echo "  style:    Code style/formatting (no logic change)"
+    echo "  refactor: Code refactoring"
+    echo "  test:     Adding or updating tests"
+    echo "  chore:    Maintenance tasks"
+    echo "  ci:       CI/CD changes"
+    echo "  perf:     Performance improvements"
+    echo ""
+    echo "Examples:"
+    echo "  ✓ feat: add automatic update mechanism"
+    echo "  ✓ fix(ui): correct button alignment"
+    echo "  ✓ docs: update README with installation steps"
+    echo "  ✓ chore: update dependencies"
+    echo ""
+    echo "Your message:"
+    echo "  ✗ $COMMIT_MSG"
+    echo ""
+    echo "Version bumping (automatic on main merge):"
+    echo "  feat:  → minor version bump (0.2.0 → 0.3.0)"
+    echo "  fix:   → patch version bump (0.2.0 → 0.2.1)"
+    echo "  other: → patch version bump (0.2.0 → 0.2.1)"
+    echo ""
+    echo "Breaking changes:"
+    echo "  Add 'BREAKING CHANGE:' in commit body → major bump (0.2.0 → 1.0.0)"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    exit 1
+fi
+
+echo "✓ Commit message format is valid"
+exit 0
