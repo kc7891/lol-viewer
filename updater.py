@@ -56,11 +56,16 @@ class Updater:
             logger.info(f"Latest version on GitHub: {latest_version}")
 
             # Compare versions
-            if version.parse(latest_version) > version.parse(self.current_version):
-                logger.info(f"Update available: {latest_version}")
+            current_parsed = version.parse(self.current_version)
+            latest_parsed = version.parse(latest_version)
+
+            logger.info(f"Version comparison: {current_parsed} vs {latest_parsed}")
+
+            if latest_parsed > current_parsed:
+                logger.info(f"✓ Update available: {self.current_version} → {latest_version}")
                 return True, release_data
             else:
-                logger.info("Application is up to date")
+                logger.info(f"✓ Application is up to date (current: {self.current_version}, latest: {latest_version})")
                 return False, None
 
         except requests.exceptions.RequestException as e:
