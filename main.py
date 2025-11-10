@@ -273,6 +273,27 @@ class ChampionViewerWidget(QWidget):
         self.counter_button.clicked.connect(self.open_counter)
         control_layout.addWidget(self.counter_button, stretch=1)
 
+        # ARAM button
+        self.aram_button = QPushButton("ARAM")
+        self.aram_button.setStyleSheet("""
+            QPushButton {
+                padding: 8px 16px;
+                font-size: 11pt;
+                background-color: #8b5cf6;
+                color: #ffffff;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #a78bfa;
+            }
+            QPushButton:pressed {
+                background-color: #7c3aed;
+            }
+        """)
+        self.aram_button.clicked.connect(self.open_aram)
+        control_layout.addWidget(self.aram_button, stretch=1)
+
         # Lane selector
         self.lane_selector = QComboBox()
         self.lane_selector.addItem("Lane", "")  # Default: no lane selected
@@ -362,6 +383,26 @@ class ChampionViewerWidget(QWidget):
         # Notify parent window that champion name has been updated
         self.champion_updated.emit(self)
 
+    def open_aram(self):
+        """Open the u.gg ARAM page for the entered champion"""
+        champion_name = self.champion_input.text().strip().lower()
+
+        if not champion_name:
+            QMessageBox.warning(self, "Input Error", "Please enter a champion name.")
+            return
+
+        self.current_champion = champion_name
+        self.current_page_type = "aram"
+
+        # Always use u.gg ARAM URL
+        url = self.get_ugg_aram_build_url(champion_name)
+        logger.info(f"Opening ARAM page for {champion_name}: {url}")
+
+        self.web_view.setUrl(QUrl(url))
+        self.champion_input.setFocus()
+        # Notify parent window that champion name has been updated
+        self.champion_updated.emit(self)
+
     def get_display_name(self) -> str:
         """Get display name for this viewer"""
         if self.current_champion and self.current_page_type:
@@ -385,6 +426,20 @@ class ChampionViewerWidget(QWidget):
         if lane:
             return f"{base_url}?lane={lane}"
         return base_url
+
+    @staticmethod
+    def get_ugg_aram_build_url(champion_name: str) -> str:
+        """Generate the u.gg ARAM build URL for a given champion
+
+        Args:
+            champion_name: Champion name (e.g., "Ashe", "MasterYi")
+
+        Returns:
+            str: u.gg ARAM URL (e.g., "https://u.gg/lol/champions/aram/ashe-aram")
+        """
+        # Format champion name for u.gg: lowercase, no spaces
+        formatted_name = champion_name.lower().replace(" ", "")
+        return f"https://u.gg/lol/champions/aram/{formatted_name}-aram"
 
 
 class MainWindow(QMainWindow):
