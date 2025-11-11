@@ -138,7 +138,7 @@ class ViewerListItemWidget(QWidget):
     def init_ui(self, display_name: str):
         """Initialize the UI components"""
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(4, 5, 4, 5)
+        layout.setContentsMargins(4, 3, 4, 3)
         layout.setSpacing(4)
 
         # Visibility toggle button (placed first)
@@ -150,11 +150,12 @@ class ViewerListItemWidget(QWidget):
                 padding: 0px;
                 background-color: #3a3a3a;
                 border: 1px solid #555555;
-                border-radius: 3px;
-                min-width: 26px;
-                max-width: 26px;
-                min-height: 26px;
-                max-height: 26px;
+                border-radius: 2px;
+                min-width: 20px;
+                max-width: 20px;
+                min-height: 20px;
+                max-height: 20px;
+                font-size: 11px;
             }
             QPushButton:hover {
                 background-color: #4a4a4a;
@@ -176,13 +177,13 @@ class ViewerListItemWidget(QWidget):
                 background-color: #3a3a3a;
                 color: #cccccc;
                 border: 1px solid #555555;
-                border-radius: 3px;
-                font-size: 14px;
+                border-radius: 2px;
+                font-size: 11px;
                 font-weight: bold;
-                min-width: 26px;
-                max-width: 26px;
-                min-height: 26px;
-                max-height: 26px;
+                min-width: 20px;
+                max-width: 20px;
+                min-height: 20px;
+                max-height: 20px;
             }
             QPushButton:hover {
                 background-color: #5a3a3a;
