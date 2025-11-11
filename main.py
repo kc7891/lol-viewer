@@ -1161,10 +1161,20 @@ def main():
         logger.info(f"Version: {__version__}")
         logger.info("=" * 60)
 
+        # Apply pending update before anything else (will exit if update is applied)
+        try:
+            from updater import Updater
+            logger.info("Checking for pending updates...")
+            Updater.apply_pending_update()
+            # If we reach here, no pending update
+        except Exception as e:
+            logger.warning(f"Failed to check pending update: {e}")
+            logger.exception("Full traceback:")
+
         app = QApplication(sys.argv)
         logger.info("QApplication created")
 
-        # Check for updates on startup
+        # Check for new updates on startup (non-blocking)
         try:
             from updater import Updater
             logger.info("=" * 60)
@@ -1173,13 +1183,13 @@ def main():
             logger.info("=" * 60)
 
             updater = Updater(__version__)
-            # check_and_update() will exit the app if update is applied
+            # check_and_update() downloads but doesn't exit app
             result = updater.check_and_update()
 
             if result:
-                logger.info("Update was applied, app should be restarting...")
+                logger.info("Update downloaded, will be applied on next restart")
             else:
-                logger.info("No update applied, continuing with normal startup")
+                logger.info("No update available or user declined")
         except Exception as e:
             logger.warning(f"Update check failed: {e}")
             logger.exception("Full traceback:")

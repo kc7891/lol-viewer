@@ -21,6 +21,8 @@ class Updater:
 
     GITHUB_REPO = "kc7891/lol-viewer"
     GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+    UPDATE_DIR = ".update"  # Directory for pending updates
+    PENDING_UPDATE_FILE = "pending.exe"  # Filename for pending update
 
     def __init__(self, current_version: str, parent_widget=None):
         """
@@ -168,21 +170,25 @@ class Updater:
             is_zip = download_url.endswith('.zip')
             suffix = '.zip' if is_zip else '.exe'
 
-            # Create progress dialog
+            # Create progress dialog (non-cancelable for reliability)
             progress = QProgressDialog(
-                "Downloading update...",
-                "Cancel",
+                "Downloading update...\nThis may take a few minutes for large files.",
+                None,  # No cancel button
                 0, 100,
                 self.parent_widget
             )
             progress.setWindowModality(Qt.WindowModality.WindowModal)
-            progress.setWindowTitle("Updating")
+            progress.setWindowTitle("Downloading Update")
+            progress.setMinimumDuration(0)  # Show immediately
+            progress.setCancelButton(None)  # Remove cancel button
 
-            # Download with progress
-            response = requests.get(download_url, stream=True, timeout=30)
+            # Download with progress (long timeout for large files)
+            response = requests.get(download_url, stream=True, timeout=300)
             response.raise_for_status()
 
             total_size = int(response.headers.get('content-length', 0))
+            total_mb = total_size / (1024 * 1024) if total_size > 0 else 0
+            logger.info(f"Download size: {total_mb:.1f} MB")
 
             # Create temp file
             temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
@@ -192,16 +198,17 @@ class Updater:
             chunk_size = 8192
 
             for chunk in response.iter_content(chunk_size=chunk_size):
-                if progress.wasCanceled():
-                    temp_file.close()
-                    os.unlink(temp_path)
-                    return None
-
                 temp_file.write(chunk)
                 downloaded += len(chunk)
 
                 if total_size > 0:
-                    progress.setValue(int(downloaded * 100 / total_size))
+                    percent = int(downloaded * 100 / total_size)
+                    downloaded_mb = downloaded / (1024 * 1024)
+                    progress.setValue(percent)
+                    progress.setLabelText(
+                        f"Downloading update...\n"
+                        f"{downloaded_mb:.1f} MB / {total_mb:.1f} MB ({percent}%)"
+                    )
 
             temp_file.close()
             progress.close()
@@ -211,7 +218,22 @@ class Updater:
             # If zip file, extract exe
             if is_zip:
                 logger.info("Extracting exe from zip file...")
+
+                # Show extraction progress
+                extract_progress = QProgressDialog(
+                    "Extracting update files...",
+                    None,
+                    0, 0,
+                    self.parent_widget
+                )
+                extract_progress.setWindowModality(Qt.WindowModality.WindowModal)
+                extract_progress.setWindowTitle("Extracting")
+                extract_progress.setCancelButton(None)
+                extract_progress.show()
+
                 exe_path = self._extract_exe_from_zip(temp_path)
+
+                extract_progress.close()
 
                 # Clean up zip file
                 try:
@@ -284,7 +306,7 @@ class Updater:
 
     def apply_update(self, new_exe_path: str):
         """
-        Apply the update by replacing current executable
+        Save update for application on next restart (non-blocking)
 
         Args:
             new_exe_path: Path to the new executable
@@ -294,40 +316,53 @@ class Updater:
 
             # Check if running as executable (not python script)
             if not current_exe.endswith('.exe'):
-                logger.warning("Not running as .exe, cannot apply update")
+                logger.warning("Not running as .exe, cannot save update")
                 QMessageBox.information(
                     self.parent_widget,
                     "Update Downloaded",
                     "Update has been downloaded but cannot be applied automatically "
                     "when running from Python script.\n\n"
-                    f"Please manually replace the executable with:\n{new_exe_path}"
+                    f"Downloaded file: {new_exe_path}"
                 )
                 return
 
-            # Create batch script to replace exe
-            batch_script = self._create_update_script(current_exe, new_exe_path)
+            # Create update directory next to current exe
+            current_exe_dir = os.path.dirname(os.path.abspath(current_exe))
+            update_dir = os.path.join(current_exe_dir, self.UPDATE_DIR)
+            os.makedirs(update_dir, exist_ok=True)
 
-            logger.info("Launching update script and exiting application")
+            # Save update to pending location
+            pending_path = os.path.join(update_dir, self.PENDING_UPDATE_FILE)
+
+            logger.info(f"Saving update to: {pending_path}")
+
+            # Copy exe to pending location
+            import shutil
+            shutil.copy2(new_exe_path, pending_path)
+
+            # Clean up temp file
+            try:
+                os.unlink(new_exe_path)
+            except:
+                pass
+
+            logger.info("Update saved successfully")
 
             # Show info to user
             QMessageBox.information(
                 self.parent_widget,
-                "Update Ready",
-                "The application will now close and update.\n"
-                "Please wait a moment, then the updated version will start automatically."
+                "Update Downloaded",
+                "Update has been downloaded successfully!\n\n"
+                "The update will be applied automatically the next time you start the application."
             )
 
-            # Launch batch script and exit
-            subprocess.Popen([batch_script], shell=True)
-            sys.exit(0)
-
         except Exception as e:
-            logger.error(f"Failed to apply update: {e}")
+            logger.error(f"Failed to save update: {e}")
             QMessageBox.critical(
                 self.parent_widget,
                 "Update Failed",
-                f"Failed to apply update:\n{str(e)}\n\n"
-                f"You can manually replace the executable with:\n{new_exe_path}"
+                f"Failed to save update:\n{str(e)}\n\n"
+                f"Downloaded file: {new_exe_path}"
             )
 
     def _create_update_script(self, current_exe: str, new_exe: str) -> str:
@@ -376,12 +411,89 @@ del "%~f0"
 
         return batch_file.name
 
-    def check_and_update(self):
+    @staticmethod
+    def apply_pending_update():
         """
-        Complete update flow: check, prompt, download, and apply
+        Check for and apply pending update on application startup
+        This should be called at the very beginning of app startup
 
         Returns:
             True if update was applied (app will exit), False otherwise
+        """
+        try:
+            current_exe = sys.argv[0]
+
+            # Only works for exe files
+            if not current_exe.endswith('.exe'):
+                return False
+
+            current_exe_path = os.path.abspath(current_exe)
+            current_exe_dir = os.path.dirname(current_exe_path)
+            update_dir = os.path.join(current_exe_dir, Updater.UPDATE_DIR)
+            pending_path = os.path.join(update_dir, Updater.PENDING_UPDATE_FILE)
+
+            # Check if pending update exists
+            if not os.path.exists(pending_path):
+                return False
+
+            logger.info("=" * 60)
+            logger.info("PENDING UPDATE FOUND")
+            logger.info(f"Current exe: {current_exe_path}")
+            logger.info(f"Pending update: {pending_path}")
+            logger.info("=" * 60)
+
+            # Create batch script to replace exe
+            batch_content = f"""@echo off
+echo Applying LoL Viewer update...
+timeout /t 2 /nobreak >nul
+
+:retry
+del /f /q "{current_exe_path}" 2>nul
+if exist "{current_exe_path}" (
+    timeout /t 1 /nobreak >nul
+    goto retry
+)
+
+move /y "{pending_path}" "{current_exe_path}"
+
+if exist "{current_exe_path}" (
+    echo Update completed. Starting application...
+    rmdir /s /q "{update_dir}" 2>nul
+    start "" "{current_exe_path}"
+) else (
+    echo Update failed!
+    pause
+)
+
+del "%~f0"
+"""
+
+            # Save batch script
+            batch_file = tempfile.NamedTemporaryFile(
+                mode='w',
+                delete=False,
+                suffix='.bat'
+            )
+            batch_file.write(batch_content)
+            batch_file.close()
+
+            logger.info("Launching update script and exiting...")
+
+            # Launch batch script and exit
+            subprocess.Popen([batch_file.name], shell=True)
+            sys.exit(0)
+
+        except Exception as e:
+            logger.error(f"Failed to apply pending update: {e}")
+            logger.exception("Full traceback:")
+            return False
+
+    def check_and_update(self):
+        """
+        Complete update flow: check, prompt, download, and save for next restart
+
+        Returns:
+            True if update was downloaded, False otherwise
         """
         # Check for updates
         has_update, release_info = self.check_for_updates()
@@ -409,6 +521,6 @@ del "%~f0"
         if not new_exe_path:
             return False
 
-        # Apply update
+        # Save update for next restart
         self.apply_update(new_exe_path)
-        return True
+        return False  # App doesn't exit, continues running
