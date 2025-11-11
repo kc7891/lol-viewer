@@ -141,18 +141,7 @@ class ViewerListItemWidget(QWidget):
         layout.setContentsMargins(4, 5, 4, 5)
         layout.setSpacing(4)
 
-        # Display name label
-        self.name_label = QLabel(display_name)
-        self.name_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 12px;
-                background-color: transparent;
-            }
-        """)
-        layout.addWidget(self.name_label, 1)  # Stretch to take available space
-
-        # Visibility toggle button
+        # Visibility toggle button (placed first)
         self.visibility_button = QPushButton()
         self.update_visibility_icon()
         self.visibility_button.setToolTip("Toggle visibility")
@@ -178,7 +167,7 @@ class ViewerListItemWidget(QWidget):
         self.visibility_button.clicked.connect(self.toggle_visibility)
         layout.addWidget(self.visibility_button)
 
-        # Close button
+        # Close button (placed second)
         self.close_button = QPushButton("✕")
         self.close_button.setToolTip("Close viewer")
         self.close_button.setStyleSheet("""
@@ -206,6 +195,17 @@ class ViewerListItemWidget(QWidget):
         """)
         self.close_button.clicked.connect(self.close_viewer)
         layout.addWidget(self.close_button)
+
+        # Display name label (placed last, with stretch)
+        self.name_label = QLabel(display_name)
+        self.name_label.setStyleSheet("""
+            QLabel {
+                color: #ffffff;
+                font-size: 12px;
+                background-color: transparent;
+            }
+        """)
+        layout.addWidget(self.name_label, 1)  # Stretch to take available space
 
     def update_visibility_icon(self):
         """Update visibility button icon based on viewer visibility"""
