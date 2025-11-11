@@ -7,6 +7,7 @@ import logging
 import requests
 import tempfile
 import subprocess
+import zipfile
 from pathlib import Path
 from packaging import version
 from PyQt6.QtWidgets import QMessageBox, QProgressDialog
@@ -118,6 +119,10 @@ class Updater:
         """
         assets = release_info.get('assets', [])
 
+        logger.info(f"Found {len(assets)} assets in release")
+        for asset in assets:
+            logger.info(f"  - {asset['name']}")
+
         # Determine which executable to download based on current running exe
         current_exe = os.path.basename(sys.argv[0])
         is_debug = 'debug' in current_exe.lower()
@@ -125,16 +130,25 @@ class Updater:
         # Look for the appropriate asset
         target_name = 'lol-viewer-debug.exe' if is_debug else 'lol-viewer.exe'
 
+        # Priority 1: Direct .exe file
         for asset in assets:
             if asset['name'] == target_name:
+                logger.info(f"Found exact match: {asset['name']}")
                 return asset['browser_download_url']
 
-        # Fallback: try to find any .exe file
+        # Priority 2: Any .exe file
         for asset in assets:
             if asset['name'].endswith('.exe'):
                 logger.warning(f"Exact match not found, using: {asset['name']}")
                 return asset['browser_download_url']
 
+        # Priority 3: .zip file containing exe
+        for asset in assets:
+            if asset['name'].endswith('.zip'):
+                logger.info(f"Found zip file: {asset['name']}, will extract exe from it")
+                return asset['browser_download_url']
+
+        logger.error("No suitable download asset found (.exe or .zip)")
         return None
 
     def download_update(self, download_url: str) -> str:
@@ -145,10 +159,14 @@ class Updater:
             download_url: URL to download from
 
         Returns:
-            Path to downloaded file or None if failed
+            Path to downloaded exe file or None if failed
         """
         try:
             logger.info(f"Downloading update from: {download_url}")
+
+            # Determine if downloading zip or exe
+            is_zip = download_url.endswith('.zip')
+            suffix = '.zip' if is_zip else '.exe'
 
             # Create progress dialog
             progress = QProgressDialog(
@@ -167,7 +185,7 @@ class Updater:
             total_size = int(response.headers.get('content-length', 0))
 
             # Create temp file
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.exe')
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
             temp_path = temp_file.name
 
             downloaded = 0
@@ -188,8 +206,31 @@ class Updater:
             temp_file.close()
             progress.close()
 
-            logger.info(f"Update downloaded to: {temp_path}")
-            return temp_path
+            logger.info(f"Download completed: {temp_path}")
+
+            # If zip file, extract exe
+            if is_zip:
+                logger.info("Extracting exe from zip file...")
+                exe_path = self._extract_exe_from_zip(temp_path)
+
+                # Clean up zip file
+                try:
+                    os.unlink(temp_path)
+                except:
+                    pass
+
+                if not exe_path:
+                    QMessageBox.critical(
+                        self.parent_widget,
+                        "Extraction Failed",
+                        "Failed to extract executable from zip file"
+                    )
+                    return None
+
+                logger.info(f"Exe extracted to: {exe_path}")
+                return exe_path
+            else:
+                return temp_path
 
         except Exception as e:
             logger.error(f"Failed to download update: {e}")
@@ -198,6 +239,47 @@ class Updater:
                 "Download Failed",
                 f"Failed to download update:\n{str(e)}"
             )
+            return None
+
+    def _extract_exe_from_zip(self, zip_path: str) -> str:
+        """
+        Extract exe file from zip archive
+
+        Args:
+            zip_path: Path to zip file
+
+        Returns:
+            Path to extracted exe or None if not found
+        """
+        try:
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                # List all files in zip
+                file_list = zip_ref.namelist()
+                logger.info(f"Files in zip: {file_list}")
+
+                # Find exe file
+                exe_file = None
+                for filename in file_list:
+                    if filename.endswith('.exe') and not filename.startswith('__MACOSX'):
+                        exe_file = filename
+                        logger.info(f"Found exe in zip: {exe_file}")
+                        break
+
+                if not exe_file:
+                    logger.error("No .exe file found in zip archive")
+                    return None
+
+                # Extract to temp directory
+                temp_dir = tempfile.mkdtemp()
+                zip_ref.extract(exe_file, temp_dir)
+
+                extracted_path = os.path.join(temp_dir, exe_file)
+                logger.info(f"Extracted to: {extracted_path}")
+
+                return extracted_path
+
+        except Exception as e:
+            logger.error(f"Failed to extract exe from zip: {e}")
             return None
 
     def apply_update(self, new_exe_path: str):
