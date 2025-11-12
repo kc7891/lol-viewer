@@ -21,8 +21,6 @@ class Updater:
 
     GITHUB_REPO = "kc7891/lol-viewer"
     GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-    UPDATE_DIR = ".update"  # Directory for pending updates
-    PENDING_UPDATE_FILE = "pending.exe"  # Filename for pending update
 
     def __init__(self, current_version: str, parent_widget=None):
         """
@@ -306,7 +304,7 @@ class Updater:
 
     def apply_update(self, new_exe_path: str):
         """
-        Save update for application on next restart (non-blocking)
+        Apply the update immediately by launching batch script and exiting
 
         Args:
             new_exe_path: Path to the new executable
@@ -316,7 +314,7 @@ class Updater:
 
             # Check if running as executable (not python script)
             if not current_exe.endswith('.exe'):
-                logger.warning("Not running as .exe, cannot save update")
+                logger.warning("Not running as .exe, cannot apply update")
                 QMessageBox.information(
                     self.parent_widget,
                     "Update Downloaded",
@@ -326,42 +324,29 @@ class Updater:
                 )
                 return
 
-            # Create update directory next to current exe
-            current_exe_dir = os.path.dirname(os.path.abspath(current_exe))
-            update_dir = os.path.join(current_exe_dir, self.UPDATE_DIR)
-            os.makedirs(update_dir, exist_ok=True)
+            # Create batch script to replace exe
+            batch_script = self._create_update_script(current_exe, new_exe_path)
 
-            # Save update to pending location
-            pending_path = os.path.join(update_dir, self.PENDING_UPDATE_FILE)
-
-            logger.info(f"Saving update to: {pending_path}")
-
-            # Copy exe to pending location
-            import shutil
-            shutil.copy2(new_exe_path, pending_path)
-
-            # Clean up temp file
-            try:
-                os.unlink(new_exe_path)
-            except:
-                pass
-
-            logger.info("Update saved successfully")
+            logger.info("Launching update script and exiting application")
 
             # Show info to user
             QMessageBox.information(
                 self.parent_widget,
-                "Update Downloaded",
-                "Update has been downloaded successfully!\n\n"
-                "The update will be applied automatically the next time you start the application."
+                "Update Ready",
+                "The application will now close and update.\n"
+                "Please wait a moment, the updated version will start automatically."
             )
 
+            # Launch batch script and exit
+            subprocess.Popen([batch_script], shell=True)
+            sys.exit(0)
+
         except Exception as e:
-            logger.error(f"Failed to save update: {e}")
+            logger.error(f"Failed to apply update: {e}")
             QMessageBox.critical(
                 self.parent_widget,
                 "Update Failed",
-                f"Failed to save update:\n{str(e)}\n\n"
+                f"Failed to apply update:\n{str(e)}\n\n"
                 f"Downloaded file: {new_exe_path}"
             )
 
@@ -411,89 +396,12 @@ del "%~f0"
 
         return batch_file.name
 
-    @staticmethod
-    def apply_pending_update():
+    def check_and_update(self):
         """
-        Check for and apply pending update on application startup
-        This should be called at the very beginning of app startup
+        Complete update flow: check, prompt, download, and apply immediately
 
         Returns:
             True if update was applied (app will exit), False otherwise
-        """
-        try:
-            current_exe = sys.argv[0]
-
-            # Only works for exe files
-            if not current_exe.endswith('.exe'):
-                return False
-
-            current_exe_path = os.path.abspath(current_exe)
-            current_exe_dir = os.path.dirname(current_exe_path)
-            update_dir = os.path.join(current_exe_dir, Updater.UPDATE_DIR)
-            pending_path = os.path.join(update_dir, Updater.PENDING_UPDATE_FILE)
-
-            # Check if pending update exists
-            if not os.path.exists(pending_path):
-                return False
-
-            logger.info("=" * 60)
-            logger.info("PENDING UPDATE FOUND")
-            logger.info(f"Current exe: {current_exe_path}")
-            logger.info(f"Pending update: {pending_path}")
-            logger.info("=" * 60)
-
-            # Create batch script to replace exe
-            batch_content = f"""@echo off
-echo Applying LoL Viewer update...
-timeout /t 2 /nobreak >nul
-
-:retry
-del /f /q "{current_exe_path}" 2>nul
-if exist "{current_exe_path}" (
-    timeout /t 1 /nobreak >nul
-    goto retry
-)
-
-move /y "{pending_path}" "{current_exe_path}"
-
-if exist "{current_exe_path}" (
-    echo Update completed. Starting application...
-    rmdir /s /q "{update_dir}" 2>nul
-    start "" "{current_exe_path}"
-) else (
-    echo Update failed!
-    pause
-)
-
-del "%~f0"
-"""
-
-            # Save batch script
-            batch_file = tempfile.NamedTemporaryFile(
-                mode='w',
-                delete=False,
-                suffix='.bat'
-            )
-            batch_file.write(batch_content)
-            batch_file.close()
-
-            logger.info("Launching update script and exiting...")
-
-            # Launch batch script and exit
-            subprocess.Popen([batch_file.name], shell=True)
-            sys.exit(0)
-
-        except Exception as e:
-            logger.error(f"Failed to apply pending update: {e}")
-            logger.exception("Full traceback:")
-            return False
-
-    def check_and_update(self):
-        """
-        Complete update flow: check, prompt, download, and save for next restart
-
-        Returns:
-            True if update was downloaded, False otherwise
         """
         # Check for updates
         has_update, release_info = self.check_for_updates()
@@ -521,6 +429,6 @@ del "%~f0"
         if not new_exe_path:
             return False
 
-        # Save update for next restart
+        # Apply update immediately (will exit app)
         self.apply_update(new_exe_path)
-        return False  # App doesn't exit, continues running
+        return True  # If we reach here, something went wrong (app should have exited)
