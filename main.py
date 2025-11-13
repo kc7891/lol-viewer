@@ -138,7 +138,7 @@ class ViewerListItemWidget(QWidget):
     def init_ui(self, display_name: str):
         """Initialize the UI components"""
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(4, 2, 4, 2)
+        layout.setContentsMargins(8, 4, 8, 4)
         layout.setSpacing(4)
 
         # Visibility toggle button (placed first)
@@ -782,7 +782,7 @@ class MainWindow(QMainWindow):
                 padding: 5px;
             }
             QListWidget::item {
-                padding: 8px;
+                padding: 0px;
                 border-radius: 4px;
             }
             QListWidget::item:hover {
