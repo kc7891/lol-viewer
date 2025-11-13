@@ -106,31 +106,40 @@ pyinstaller lol-viewer.spec
 
 #### For Windows
 
+**Note:** The application uses **onedir** format (not onefile) to include all DLLs and eliminate VC++ Redistributable dependency.
+
 **Debug Version:**
 ```bash
-pyinstaller --onefile --windowed --name lol-viewer-debug --add-data "champions.json;." main.py
+pyinstaller lol-viewer-debug.spec
+# Output: dist/lol-viewer-debug/ (folder containing exe and _internal/)
 ```
 
 **Release Version:**
 ```bash
-pyinstaller --onefile --windowed --name lol-viewer --add-data "champions.json;." main.py
+pyinstaller lol-viewer.spec
+# Output: dist/lol-viewer/ (folder containing exe and _internal/)
 ```
 
-#### For macOS/Linux
+**Building the Installer:**
 
-**Debug Version:**
-```bash
-pyinstaller --onefile --windowed --name lol-viewer-debug --add-data "champions.json:." main.py
-```
+After building with PyInstaller, create the installer with Inno Setup:
 
-**Release Version:**
 ```bash
-pyinstaller --onefile --windowed --name lol-viewer --add-data "champions.json:." main.py
+# Install Inno Setup (if not already installed)
+choco install innosetup
+
+# Build installer
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" lol-viewer.iss
+# Output: installer_output/lol-viewer-setup.exe
 ```
 
 ### After Building
 
-The executable will be created in the `dist` folder and can be run standalone.
+The onedir build creates a folder in `dist/` containing:
+- `lol-viewer.exe` (main executable)
+- `_internal/` (all DLLs and dependencies)
+
+**For distribution**, use the installer (`lol-viewer-setup.exe`) which handles installation to Program Files, Start Menu shortcuts, and more.
 
 ## Auto-Update Mechanism
 
@@ -140,8 +149,8 @@ The application includes an automatic update feature that checks for new version
 
 1. **Version Check**: On startup, the app checks GitHub Releases API for the latest version
 2. **User Prompt**: If a newer version is available, a dialog asks if the user wants to update
-3. **Download**: If confirmed, the new executable is downloaded with a progress indicator
-4. **Installation**: A batch script replaces the current executable and restarts the app
+3. **Download**: If confirmed, the installer is downloaded with a progress indicator
+4. **Installation**: The installer runs in silent mode, automatically updating the application
 
 ### Automated Release Process
 
@@ -182,9 +191,10 @@ BREAKING CHANGE: Old configuration files are not compatible"
 1. GitHub Actions analyzes commit messages
 2. Automatically bumps version in `main.py`
 3. Creates git tag (e.g., `v0.3.0`)
-4. Builds `lol-viewer.exe` on Windows
-5. Creates GitHub Release with exe attached
-6. Users receive update notification on next launch
+4. Builds application with PyInstaller (onedir format)
+5. Creates Windows installer with Inno Setup (`lol-viewer-setup.exe`)
+6. Creates GitHub Release with installer attached
+7. Users receive update notification on next launch
 
 **Total time: ~10 minutes from merge to release**
 

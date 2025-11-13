@@ -109,7 +109,7 @@ class Updater:
 
     def get_download_url(self, release_info: dict) -> str:
         """
-        Get the download URL for the appropriate executable
+        Get the download URL for the installer
 
         Args:
             release_info: Release information from GitHub API
@@ -123,29 +123,23 @@ class Updater:
         for asset in assets:
             logger.info(f"  - {asset['name']}")
 
-        # Determine which executable to download based on current running exe
-        current_exe = os.path.basename(sys.argv[0])
-        is_debug = 'debug' in current_exe.lower()
-
-        # Look for the appropriate asset
-        target_name = 'lol-viewer-debug.exe' if is_debug else 'lol-viewer.exe'
-
-        # Priority 1: Direct .exe file
+        # Priority 1: Setup/installer .exe file
         for asset in assets:
-            if asset['name'] == target_name:
-                logger.info(f"Found exact match: {asset['name']}")
+            asset_name = asset['name'].lower()
+            if 'setup' in asset_name and asset_name.endswith('.exe'):
+                logger.info(f"Found installer: {asset['name']}")
                 return asset['browser_download_url']
 
         # Priority 2: Any .exe file
         for asset in assets:
             if asset['name'].endswith('.exe'):
-                logger.warning(f"Exact match not found, using: {asset['name']}")
+                logger.info(f"Found exe file: {asset['name']}")
                 return asset['browser_download_url']
 
-        # Priority 3: .zip file containing exe
+        # Priority 3: .zip file (legacy support)
         for asset in assets:
             if asset['name'].endswith('.zip'):
-                logger.info(f"Found zip file: {asset['name']}, will extract exe from it")
+                logger.warning(f"Found zip file: {asset['name']} - zip format is deprecated, please use installer")
                 return asset['browser_download_url']
 
         logger.error("No suitable download asset found (.exe or .zip)")
@@ -153,30 +147,29 @@ class Updater:
 
     def download_update(self, download_url: str) -> str:
         """
-        Download the update file
+        Download the installer
 
         Args:
             download_url: URL to download from
 
         Returns:
-            Path to downloaded exe file or None if failed
+            Path to downloaded installer or None if failed
         """
         try:
-            logger.info(f"Downloading update from: {download_url}")
+            logger.info(f"Downloading installer from: {download_url}")
 
-            # Determine if downloading zip or exe
-            is_zip = download_url.endswith('.zip')
-            suffix = '.zip' if is_zip else '.exe'
+            # Determine file extension
+            suffix = '.exe' if download_url.endswith('.exe') else '.zip'
 
             # Create progress dialog (non-cancelable for reliability)
             progress = QProgressDialog(
-                "Downloading update...\nThis may take a few minutes for large files.",
+                "Downloading installer...\nThis may take a few minutes.",
                 None,  # No cancel button
                 0, 100,
                 self.parent_widget
             )
             progress.setWindowModality(Qt.WindowModality.WindowModal)
-            progress.setWindowTitle("Downloading Update")
+            progress.setWindowTitle("Downloading Installer")
             progress.setMinimumDuration(0)  # Show immediately
             progress.setCancelButton(None)  # Remove cancel button
 
@@ -204,7 +197,7 @@ class Updater:
                     downloaded_mb = downloaded / (1024 * 1024)
                     progress.setValue(percent)
                     progress.setLabelText(
-                        f"Downloading update...\n"
+                        f"Downloading installer...\n"
                         f"{downloaded_mb:.1f} MB / {total_mb:.1f} MB ({percent}%)"
                     )
 
@@ -212,52 +205,14 @@ class Updater:
             progress.close()
 
             logger.info(f"Download completed: {temp_path}")
-
-            # If zip file, extract exe
-            if is_zip:
-                logger.info("Extracting exe from zip file...")
-
-                # Show extraction progress
-                extract_progress = QProgressDialog(
-                    "Extracting update files...",
-                    None,
-                    0, 0,
-                    self.parent_widget
-                )
-                extract_progress.setWindowModality(Qt.WindowModality.WindowModal)
-                extract_progress.setWindowTitle("Extracting")
-                extract_progress.setCancelButton(None)
-                extract_progress.show()
-
-                exe_path = self._extract_exe_from_zip(temp_path)
-
-                extract_progress.close()
-
-                # Clean up zip file
-                try:
-                    os.unlink(temp_path)
-                except:
-                    pass
-
-                if not exe_path:
-                    QMessageBox.critical(
-                        self.parent_widget,
-                        "Extraction Failed",
-                        "Failed to extract executable from zip file"
-                    )
-                    return None
-
-                logger.info(f"Exe extracted to: {exe_path}")
-                return exe_path
-            else:
-                return temp_path
+            return temp_path
 
         except Exception as e:
-            logger.error(f"Failed to download update: {e}")
+            logger.error(f"Failed to download installer: {e}")
             QMessageBox.critical(
                 self.parent_widget,
                 "Download Failed",
-                f"Failed to download update:\n{str(e)}"
+                f"Failed to download installer:\n{str(e)}"
             )
             return None
 
@@ -302,99 +257,58 @@ class Updater:
             logger.error(f"Failed to extract exe from zip: {e}")
             return None
 
-    def apply_update(self, new_exe_path: str):
+    def apply_update(self, installer_path: str):
         """
-        Apply the update immediately by launching batch script and exiting
+        Apply the update by running the installer and exiting
 
         Args:
-            new_exe_path: Path to the new executable
+            installer_path: Path to the downloaded installer
         """
         try:
             current_exe = sys.argv[0]
 
             # Check if running as executable (not python script)
             if not current_exe.endswith('.exe'):
-                logger.warning("Not running as .exe, cannot apply update")
+                logger.warning("Not running as .exe, cannot apply update automatically")
                 QMessageBox.information(
                     self.parent_widget,
                     "Update Downloaded",
                     "Update has been downloaded but cannot be applied automatically "
                     "when running from Python script.\n\n"
-                    f"Downloaded file: {new_exe_path}"
+                    f"Downloaded file: {installer_path}\n\n"
+                    "Please run the installer manually."
                 )
                 return
 
-            # Create batch script to replace exe
-            batch_script = self._create_update_script(current_exe, new_exe_path)
-
-            logger.info("Launching update script and exiting application")
+            logger.info(f"Running installer: {installer_path}")
 
             # Show info to user
             QMessageBox.information(
                 self.parent_widget,
                 "Update Ready",
-                "The application will now close and update.\n"
-                "Please wait a moment, the updated version will start automatically."
+                "The installer will now run to update the application.\n"
+                "Please follow the installer prompts.\n\n"
+                "The application will close now."
             )
 
-            # Launch batch script and exit
-            subprocess.Popen([batch_script], shell=True)
+            # Launch installer with silent mode flags
+            # /SILENT = silent installation (no prompts)
+            # /CLOSEAPPLICATIONS = automatically close running instances
+            # /RESTARTAPPLICATIONS = restart app after installation
+            subprocess.Popen([installer_path, '/SILENT', '/CLOSEAPPLICATIONS', '/RESTARTAPPLICATIONS'])
+
+            logger.info("Installer launched, exiting application")
             sys.exit(0)
 
         except Exception as e:
-            logger.error(f"Failed to apply update: {e}")
+            logger.error(f"Failed to run installer: {e}")
             QMessageBox.critical(
                 self.parent_widget,
                 "Update Failed",
-                f"Failed to apply update:\n{str(e)}\n\n"
-                f"Downloaded file: {new_exe_path}"
+                f"Failed to run installer:\n{str(e)}\n\n"
+                f"Downloaded file: {installer_path}\n\n"
+                "Please run the installer manually."
             )
-
-    def _create_update_script(self, current_exe: str, new_exe: str) -> str:
-        """
-        Create a batch script to replace the executable
-
-        Args:
-            current_exe: Path to current executable
-            new_exe: Path to new executable
-
-        Returns:
-            Path to the batch script
-        """
-        batch_content = f"""@echo off
-echo Updating LoL Viewer...
-timeout /t 2 /nobreak >nul
-
-:retry
-del /f /q "{current_exe}" 2>nul
-if exist "{current_exe}" (
-    timeout /t 1 /nobreak >nul
-    goto retry
-)
-
-move /y "{new_exe}" "{current_exe}"
-
-if exist "{current_exe}" (
-    echo Update completed. Starting application...
-    start "" "{current_exe}"
-) else (
-    echo Update failed!
-    pause
-)
-
-del "%~f0"
-"""
-
-        # Create temp batch file
-        batch_file = tempfile.NamedTemporaryFile(
-            mode='w',
-            delete=False,
-            suffix='.bat'
-        )
-        batch_file.write(batch_content)
-        batch_file.close()
-
-        return batch_file.name
 
     def check_and_update(self):
         """
@@ -424,11 +338,11 @@ del "%~f0"
             )
             return False
 
-        # Download update
-        new_exe_path = self.download_update(download_url)
-        if not new_exe_path:
+        # Download installer
+        installer_path = self.download_update(download_url)
+        if not installer_path:
             return False
 
-        # Apply update immediately (will exit app)
-        self.apply_update(new_exe_path)
+        # Run installer (will exit app)
+        self.apply_update(installer_path)
         return True  # If we reach here, something went wrong (app should have exited)

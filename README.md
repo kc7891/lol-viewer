@@ -19,14 +19,21 @@ A desktop application for easily viewing League of Legends champion information 
 
 - You can check your picked champion build and opposite counter champ automaticaly with this app.
 
-## Download
+## Download & Installation
 
-Download the latest version from the [Releases](../../releases) page.
+1. Download `lol-viewer-setup.exe` from the [Releases](../../releases) page
+2. Run the installer
+3. Follow the installation wizard
+4. Launch LoL Viewer from Start Menu or Desktop shortcut
 
 ### System Requirements
 
 - Windows 10/11 (64-bit)
 - No additional software required!
+
+### Automatic Updates
+
+The application checks for updates on startup. When a new version is available, you'll be prompted to update automatically.
 
 ## Development
 
