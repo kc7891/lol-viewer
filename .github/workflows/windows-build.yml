@@ -43,19 +43,19 @@ jobs:
 
     - name: Package Application
       run: |
-        mkdir package
-        copy dist\lol-viewer.exe package\
-        echo "LoL Viewer - League of Legends Champion Viewer" > package\README.txt
-        echo. >> package\README.txt
-        echo "To enable debug logging:" >> package\README.txt
-        echo "Rename lol-viewer.exe to lol-viewer-debug.exe" >> package\README.txt
+        cd dist
+        echo "LoL Viewer - League of Legends Champion Viewer" > lol-viewer\README.txt
+        echo. >> lol-viewer\README.txt
+        echo "To enable debug logging:" >> lol-viewer\README.txt
+        echo "Rename lol-viewer.exe to lol-viewer-debug.exe" >> lol-viewer\README.txt
+        powershell Compress-Archive -Path lol-viewer -DestinationPath lol-viewer-windows.zip
       shell: cmd
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: lol-viewer-windows
-        path: package/
+        path: dist/lol-viewer-windows.zip
         retention-days: 90
 
     # Upload to GitHub Release if this is a tag push
@@ -63,7 +63,7 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/v')
       uses: softprops/action-gh-release@v1
       with:
-        files: dist/lol-viewer.exe
+        files: dist/lol-viewer-windows.zip
         fail_on_unmatched_files: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -76,7 +76,8 @@ jobs:
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo ""
         echo "Release: ${{ github.ref_name }}"
-        echo "Executable: lol-viewer.exe"
+        echo "Package: lol-viewer-windows.zip (includes all DLLs)"
+        echo "No VC++ Redistributable required!"
         echo ""
         echo "Users will receive update notifications on next app launch!"
         echo ""

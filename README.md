@@ -26,8 +26,7 @@ Download the latest version from the [Releases](../../releases) page.
 ### System Requirements
 
 - Windows 10/11 (64-bit)
-- **Microsoft Visual C++ Redistributable** (required)
-  - If you get a DLL error, download and install: [VC++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+- No additional software required!
 
 ## Development
 
