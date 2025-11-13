@@ -126,6 +126,115 @@ from logger import log
 from lcu_detector import ChampionDetectorService
 
 
+class ViewerListItemWidget(QWidget):
+    """Custom widget for viewer list items with visibility toggle and close buttons"""
+
+    def __init__(self, display_name: str, viewer: 'ChampionViewerWidget', parent_window: 'MainWindow'):
+        super().__init__()
+        self.viewer = viewer
+        self.parent_window = parent_window
+        self.init_ui(display_name)
+
+    def init_ui(self, display_name: str):
+        """Initialize the UI components"""
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 4, 8, 4)
+        layout.setSpacing(4)
+
+        # Visibility toggle button (placed first)
+        self.visibility_button = QPushButton()
+        self.update_visibility_icon()
+        self.visibility_button.setToolTip("Toggle visibility")
+        self.visibility_button.setStyleSheet("""
+            QPushButton {
+                padding: 0px;
+                background-color: #3a3a3a;
+                border: 1px solid #555555;
+                border-radius: 3px;
+                min-width: 26px;
+                max-width: 26px;
+                min-height: 26px;
+                max-height: 26px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #4a4a4a;
+                border: 1px solid #666666;
+            }
+            QPushButton:pressed {
+                background-color: #2a2a2a;
+            }
+        """)
+        self.visibility_button.clicked.connect(self.toggle_visibility)
+        layout.addWidget(self.visibility_button)
+
+        # Close button (placed second)
+        self.close_button = QPushButton("✕")
+        self.close_button.setToolTip("Close viewer")
+        self.close_button.setStyleSheet("""
+            QPushButton {
+                padding: 0px;
+                background-color: #3a3a3a;
+                color: #cccccc;
+                border: 1px solid #555555;
+                border-radius: 3px;
+                font-size: 14px;
+                font-weight: bold;
+                min-width: 26px;
+                max-width: 26px;
+                min-height: 26px;
+                max-height: 26px;
+            }
+            QPushButton:hover {
+                background-color: #5a3a3a;
+                border: 1px solid #aa5555;
+                color: #ffffff;
+            }
+            QPushButton:pressed {
+                background-color: #4a2a2a;
+            }
+        """)
+        self.close_button.clicked.connect(self.close_viewer)
+        layout.addWidget(self.close_button)
+
+        # Display name label (placed last, with stretch)
+        self.name_label = QLabel(display_name)
+        self.name_label.setStyleSheet("""
+            QLabel {
+                color: #ffffff;
+                font-size: 12px;
+                background-color: transparent;
+            }
+        """)
+        layout.addWidget(self.name_label, 1)  # Stretch to take available space
+
+    def update_visibility_icon(self):
+        """Update visibility button icon based on viewer visibility"""
+        if self.viewer.isVisible():
+            self.visibility_button.setText("−")
+        else:
+            self.visibility_button.setText("+")
+
+    def toggle_visibility(self):
+        """Toggle viewer visibility"""
+        if self.viewer.isVisible():
+            self.viewer.hide()
+            if self.viewer not in self.parent_window.hidden_viewers:
+                self.parent_window.hidden_viewers.append(self.viewer)
+        else:
+            self.viewer.show()
+            if self.viewer in self.parent_window.hidden_viewers:
+                self.parent_window.hidden_viewers.remove(self.viewer)
+
+        self.update_visibility_icon()
+        self.parent_window.update_viewers_list()
+
+    def close_viewer(self):
+        """Close the viewer"""
+        self.parent_window.close_viewer(self.viewer)
+
+
 class ChampionViewerWidget(QWidget):
     """Widget containing champion input, build/counter buttons, and web view"""
 
@@ -673,7 +782,7 @@ class MainWindow(QMainWindow):
                 padding: 5px;
             }
             QListWidget::item {
-                padding: 8px;
+                padding: 0px;
                 border-radius: 4px;
             }
             QListWidget::item:hover {
@@ -864,8 +973,15 @@ class MainWindow(QMainWindow):
             display_name = viewer.get_display_name()
             if not viewer.isVisible():
                 display_name = f"[Hidden] {display_name}"
-            item = QListWidgetItem(display_name)
+
+            # Create list item
+            item = QListWidgetItem()
             self.viewers_list.addItem(item)
+
+            # Create custom widget for this item
+            item_widget = ViewerListItemWidget(display_name, viewer, self)
+            item.setSizeHint(item_widget.sizeHint())
+            self.viewers_list.setItemWidget(item, item_widget)
 
     def close_all_viewers(self):
         """Close all viewer widgets"""
@@ -936,6 +1052,10 @@ class MainWindow(QMainWindow):
             logger.info(f"Auto-opening counter page for enemy {champion_name} in new viewer {target_viewer.viewer_id} at position {position}")
             target_viewer.champion_input.setText(champion_name)
             target_viewer.open_counter()
+
+            # Hide opponent pick window by default
+            self.hide_viewer(target_viewer)
+            logger.info(f"Opponent pick window for {champion_name} hidden by default")
 
     def closeEvent(self, event):
         """Handle window close event"""
