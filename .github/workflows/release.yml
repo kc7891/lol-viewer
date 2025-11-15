@@ -241,11 +241,17 @@ jobs:
         with:
           path: lol-viewer.iss
 
+      - name: Package Installer as Zip
+        run: |
+          cd installer_output
+          powershell Compress-Archive -Path lol-viewer-setup.exe -DestinationPath lol-viewer-setup.zip
+        shell: cmd
+
       - name: Upload to Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ needs.release.outputs.new_version }}
-          files: installer_output/lol-viewer-setup.exe
+          files: installer_output/lol-viewer-setup.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
