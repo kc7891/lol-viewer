@@ -2,7 +2,7 @@
 ; This script creates a Windows installer for the application
 
 #define MyAppName "LoL Viewer"
-#define MyAppVersion "0.2.0"
+#define MyAppVersion "0.2.2"
 #define MyAppPublisher "kc7891"
 #define MyAppURL "https://github.com/kc7891/lol-viewer"
 #define MyAppExeName "lol-viewer.exe"
@@ -18,6 +18,7 @@ AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
+DisableDirPage=no
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=installer_output
@@ -28,7 +29,8 @@ SetupIconFile=assets\icons\app_icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
-PrivilegesRequired=admin
+PrivilegesRequired=lowest
+PrivilegesRequiredOverridesAllowed=dialog
 ; Silent install support
 CloseApplications=yes
 RestartApplications=yes
