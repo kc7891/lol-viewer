@@ -47,8 +47,8 @@ jobs:
             echo "type=${{ github.event.inputs.version_type }}" >> $GITHUB_OUTPUT
             echo "Manual version bump: ${{ github.event.inputs.version_type }}"
           else
-            # Automatic detection from commit messages
-            COMMITS=$(git log --format=%s $(git describe --tags --abbrev=0 2>/dev/null || echo "")..HEAD 2>/dev/null || git log --format=%s)
+            # Automatic detection from commit messages (including PR body for squash merges)
+            COMMITS=$(git log --format=%B $(git describe --tags --abbrev=0 2>/dev/null || echo "")..HEAD 2>/dev/null || git log --format=%B)
 
             echo "Analyzing commits:"
             echo "$COMMITS"
