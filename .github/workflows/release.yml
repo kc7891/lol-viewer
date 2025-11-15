@@ -20,6 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      new_version: ${{ steps.version.outputs.new }}
+      tag_exists: ${{ steps.check_tag.outputs.exists }}
 
     steps:
       - name: Checkout code
@@ -158,15 +161,15 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.check_tag.outputs.exists == 'false'
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.version.outputs.new }}
-          release_name: v${{ steps.version.outputs.new }}
+          name: v${{ steps.version.outputs.new }}
           body_path: release_notes.md
           draft: false
           prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Summary
         if: steps.check_tag.outputs.exists == 'false'
@@ -180,11 +183,89 @@ jobs:
           echo "Tag: v${{ steps.version.outputs.new }}"
           echo ""
           echo "Next steps:"
-          echo "  • Windows build workflow will start automatically"
-          echo "  • lol-viewer.exe will be built and uploaded to the release"
+          echo "  • Windows installer build will start next"
+          echo "  • lol-viewer-setup.exe will be uploaded to the release"
           echo "  • Users will receive update notifications on next app launch"
           echo ""
           echo "Release URL:"
           echo "  https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.new }}"
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  # Build Windows installer after release is created
+  build-installer:
+    needs: release
+    if: needs.release.outputs.tag_exists == 'false'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.release.outputs.new_version }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Fetch champion data
+        run: |
+          python fetch_champions.py
+          python -c "import json; data = json.load(open('champions.json', 'r', encoding='utf-8')); print(f'{len(data)} champions loaded')"
+
+      - name: Verify build prerequisites
+        run: python check_build.py
+
+      - name: Build Release Version
+        run: pyinstaller lol-viewer.spec
+
+      - name: Update Installer Version
+        run: |
+          $version = python -c "import main; print(main.__version__)"
+          $issContent = Get-Content lol-viewer.iss -Raw
+          $issContent = $issContent -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"$version`""
+          Set-Content lol-viewer.iss -Value $issContent
+          Write-Host "Updated installer version to: $version"
+        shell: pwsh
+
+      - name: Build Installer
+        uses: Minionguyjpro/inno-setup-action@v1.2.3
+        with:
+          path: lol-viewer.iss
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.release.outputs.new_version }}
+          files: installer_output/lol-viewer-setup.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Summary
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✓ Installer built and uploaded to release"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "Release: v${{ needs.release.outputs.new_version }}"
+          echo "Package: lol-viewer-setup.exe (single-file installer)"
+          echo "No VC++ Redistributable required!"
+          echo ""
+          echo "Installer includes:"
+          echo "  - Automatic Program Files installation"
+          echo "  - Start Menu shortcuts"
+          echo "  - Optional desktop shortcut"
+          echo "  - Silent update support"
+          echo ""
+          echo "Users will receive update notifications on next app launch!"
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        shell: bash
