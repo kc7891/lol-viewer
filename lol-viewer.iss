@@ -2,7 +2,7 @@
 ; This script creates a Windows installer for the application
 
 #define MyAppName "LoL Viewer"
-#define MyAppVersion "0.2.0"
+#define MyAppVersion "0.2.2"
 #define MyAppPublisher "kc7891"
 #define MyAppURL "https://github.com/kc7891/lol-viewer"
 #define MyAppExeName "lol-viewer.exe"
@@ -17,7 +17,7 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={autopf}\{#MyAppName}
+DefaultDirName={localappdata}\{#MyAppName}
 DisableDirPage=no
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
