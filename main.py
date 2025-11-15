@@ -897,10 +897,6 @@ class MainWindow(QMainWindow):
 
         main_layout.addWidget(self.main_content_stack)
 
-        # Add initial 2 viewers
-        self.add_viewer()
-        self.add_viewer()
-
         # Set default tab to Viewers (index 1) after all widgets are created
         self.sidebar.setCurrentIndex(1)
         self.main_content_stack.setCurrentIndex(1)
