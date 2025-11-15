@@ -15,6 +15,9 @@ from PyQt6.QtWidgets import (
     QTabWidget, QStackedWidget, QComboBox
 )
 
+# Application version
+__version__ = "0.2.0"
+
 
 class LCUConnectionStatusWidget(QWidget):
     """Widget displaying LCU connection status with animated dots"""
