@@ -291,11 +291,11 @@ class Updater:
                 "The application will close now."
             )
 
-            # Launch installer with silent mode flags
-            # /SILENT = silent installation (no prompts)
+            # Launch installer with UI visible
             # /CLOSEAPPLICATIONS = automatically close running instances
             # /RESTARTAPPLICATIONS = restart app after installation
-            subprocess.Popen([installer_path, '/SILENT', '/CLOSEAPPLICATIONS', '/RESTARTAPPLICATIONS'])
+            # Note: No /SILENT flag - shows normal installer UI for better UX
+            subprocess.Popen([installer_path, '/CLOSEAPPLICATIONS', '/RESTARTAPPLICATIONS'])
 
             logger.info("Installer launched, exiting application")
             sys.exit(0)
