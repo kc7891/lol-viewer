@@ -51,7 +51,7 @@ jobs:
       shell: pwsh
 
     - name: Build Installer
-      uses: Minionguyjpro/inno-setup-action@v1.0.1
+      uses: Minionguyjpro/inno-setup-action@v1.2.3
       with:
         path: lol-viewer.iss
 
