@@ -2,13 +2,15 @@ name: Windows Build
 
 on:
   push:
-    branches: [ "main", "claude/*" ]
+    branches: [ "claude/*" ]  # Only for development branches (main is handled by release.yml)
   pull_request:
     branches: [ "main" ]
 
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write  # Required for uploading to releases
 
     steps:
     - uses: actions/checkout@v4
@@ -37,19 +39,37 @@ jobs:
       run: |
         pyinstaller lol-viewer.spec
 
-    - name: Package Application
+    - name: Update Installer Version
       run: |
-        mkdir package
-        copy dist\lol-viewer.exe package\
-        echo "LoL Viewer - League of Legends Champion Viewer" > package\README.txt
-        echo. >> package\README.txt
-        echo "To enable debug logging:" >> package\README.txt
-        echo "Rename lol-viewer.exe to lol-viewer-debug.exe" >> package\README.txt
-      shell: cmd
+        $version = python -c "import main; print(main.__version__)"
+        $issContent = Get-Content lol-viewer.iss -Raw
+        $issContent = $issContent -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"$version`""
+        Set-Content lol-viewer.iss -Value $issContent
+        Write-Host "Updated installer version to: $version"
+      shell: pwsh
+
+    - name: Build Installer
+      uses: Minionguyjpro/inno-setup-action@v1.2.3
+      with:
+        path: lol-viewer.iss
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: lol-viewer-windows
-        path: package/
+        name: lol-viewer-setup
+        path: installer_output/lol-viewer-setup.exe
         retention-days: 90
+
+    - name: Build Summary
+      run: |
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "✓ Test build completed"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "Branch: ${{ github.ref_name }}"
+        echo "Package: lol-viewer-setup.exe (test build)"
+        echo ""
+        echo "The installer artifact is available for download in the Actions tab."
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      shell: bash

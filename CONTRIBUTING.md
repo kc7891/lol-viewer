@@ -18,13 +18,25 @@ git clone https://github.com/kc7891/lol-viewer.git
 cd lol-viewer
 ```
 
-2. 依存関係をインストール
+2. **Git hooksをインストール（重要）**
+
+コミットメッセージのフォーマットを強制するため、必ずhooksをインストールしてください：
+
+```bash
+# Linux/Mac
+bash setup-hooks.sh
+
+# Windows
+setup-hooks.bat
+```
+
+3. 依存関係をインストール
 
 ```bash
 pip install -r requirements.txt
 ```
 
-3. アプリケーションを実行
+4. アプリケーションを実行
 
 ```bash
 python main.py
@@ -98,14 +110,74 @@ lol-viewer/
 
 ### コミットメッセージ
 
-明確で説明的なコミットメッセージを書いてください：
+**Conventional Commits形式が必須です**。Git hooksにより、不正なフォーマットのコミットは拒否されます。
 
+形式：
 ```
-Add feature to display multiple champion builds
+type(optional-scope): description
 
-- Implement split view for comparing builds
-- Add UI controls for managing multiple views
+[optional body]
+
+[optional footer]
 ```
+
+#### 有効なタイプ
+
+- `feat`: 新機能 → minor バージョンアップ (0.2.0 → 0.3.0)
+- `fix`: バグ修正 → patch バージョンアップ (0.2.0 → 0.2.1)
+- `docs`: ドキュメント変更
+- `style`: コードフォーマット（ロジック変更なし）
+- `refactor`: リファクタリング
+- `test`: テスト追加・更新
+- `chore`: メンテナンス作業
+- `ci`: CI/CD変更
+- `perf`: パフォーマンス改善
+
+#### 例
+
+```bash
+# 良いコミット ✓
+git commit -m "feat: ダークモードサポートを追加"
+git commit -m "fix(ui): 小画面でのボタン配置を修正"
+git commit -m "docs: インストール手順を更新"
+git commit -m "test: updaterモジュールのユニットテストを追加"
+
+# 悪いコミット ✗ (git hookにより拒否されます)
+git commit -m "新機能追加"
+git commit -m "バグ修正"
+git commit -m "更新"
+```
+
+#### 破壊的変更
+
+破壊的変更の場合は、タイプの後に `!` を付けるか、フッターに `BREAKING CHANGE:` を含めます：
+
+```bash
+git commit -m "feat!: APIを再設計
+
+BREAKING CHANGE: API署名が変更されました"
+```
+
+これによりmajorバージョンアップ (0.2.0 → 1.0.0) がトリガーされます。
+
+## 自動リリースプロセス
+
+**バージョン管理は完全に自動化されています！** 手動でバージョンを更新する必要はありません。
+
+### 仕組み
+
+PRが`main`にマージされると：
+
+1. GitHub Actionsがコミットメッセージを解析
+2. `main.py`の`__version__`を自動更新
+3. Gitタグを作成 (例: `v0.3.0`)
+4. Windows環境で`lol-viewer.exe`をビルド
+5. GitHub Releaseを作成してexeを添付
+6. ユーザーは次回起動時に自動的に更新通知を受け取る
+
+**マージから約10分でリリース完了！**
+
+詳細は[DEV.md](DEV.md)の「Auto-Update Mechanism」セクションを参照してください。
 
 ## テスト
 

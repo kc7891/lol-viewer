@@ -15,6 +15,9 @@ from PyQt6.QtWidgets import (
     QTabWidget, QStackedWidget, QComboBox
 )
 
+# Application version
+__version__ = "0.2.0"
+
 
 class LCUConnectionStatusWidget(QWidget):
     """Widget displaying LCU connection status with animated dots"""
@@ -124,6 +127,238 @@ logger = logging.getLogger(__name__)
 from champion_data import ChampionData, setup_champion_input
 from logger import log
 from lcu_detector import ChampionDetectorService
+
+
+class SettingsDialog(QWidget):
+    """Settings dialog with version information and manual update check"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent, Qt.WindowType.Window)
+        self.setWindowTitle("Settings")
+        self.setFixedSize(500, 400)
+        self.init_ui()
+
+    def init_ui(self):
+        """Initialize the UI"""
+        layout = QVBoxLayout(self)
+        layout.setSpacing(20)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # Title
+        title_label = QLabel("Settings")
+        title_label.setStyleSheet("""
+            QLabel {
+                font-size: 18pt;
+                font-weight: bold;
+                color: #ffffff;
+                background-color: transparent;
+            }
+        """)
+        layout.addWidget(title_label)
+
+        # Version section
+        version_group = QWidget()
+        version_layout = QVBoxLayout(version_group)
+        version_layout.setSpacing(10)
+
+        version_title = QLabel("Version Information")
+        version_title.setStyleSheet("""
+            QLabel {
+                font-size: 12pt;
+                font-weight: bold;
+                color: #ffffff;
+                background-color: transparent;
+            }
+        """)
+        version_layout.addWidget(version_title)
+
+        # Current version
+        self.current_version_label = QLabel(f"Current version: {__version__}")
+        self.current_version_label.setStyleSheet("""
+            QLabel {
+                font-size: 11pt;
+                color: #cccccc;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+        version_layout.addWidget(self.current_version_label)
+
+        # Latest version (initially unknown)
+        self.latest_version_label = QLabel("Latest version: Checking...")
+        self.latest_version_label.setStyleSheet("""
+            QLabel {
+                font-size: 11pt;
+                color: #cccccc;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+        version_layout.addWidget(self.latest_version_label)
+
+        # Status message
+        self.status_label = QLabel("")
+        self.status_label.setStyleSheet("""
+            QLabel {
+                font-size: 10pt;
+                color: #aaaaaa;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+        self.status_label.setWordWrap(True)
+        version_layout.addWidget(self.status_label)
+
+        layout.addWidget(version_group)
+
+        # Update button
+        self.update_button = QPushButton("Check for Updates")
+        self.update_button.setStyleSheet("""
+            QPushButton {
+                padding: 10px 20px;
+                font-size: 11pt;
+                background-color: #0d7377;
+                color: #ffffff;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #14a0a6;
+            }
+            QPushButton:pressed {
+                background-color: #0a5c5f;
+            }
+            QPushButton:disabled {
+                background-color: #555555;
+                color: #888888;
+            }
+        """)
+        self.update_button.clicked.connect(self.check_for_updates)
+        layout.addWidget(self.update_button)
+
+        layout.addStretch()
+
+        # Close button
+        close_button = QPushButton("Close")
+        close_button.setStyleSheet("""
+            QPushButton {
+                padding: 10px 20px;
+                font-size: 11pt;
+                background-color: #3a3a3a;
+                color: #ffffff;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #4a4a4a;
+            }
+            QPushButton:pressed {
+                background-color: #2a2a2a;
+            }
+        """)
+        close_button.clicked.connect(self.close)
+        layout.addWidget(close_button)
+
+        # Apply dark theme
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #1e1e1e;
+                color: #ffffff;
+            }
+        """)
+
+        # Check for updates on open
+        QTimer.singleShot(100, self.check_latest_version)
+
+    def check_latest_version(self):
+        """Check latest version without prompting update"""
+        try:
+            from updater import Updater
+            updater = Updater(__version__, parent_widget=self)
+
+            has_update, release_info = updater.check_for_updates()
+
+            if release_info:
+                latest_version = release_info.get('tag_name', 'Unknown').lstrip('v')
+                self.latest_version_label.setText(f"Latest version: {latest_version}")
+
+                if has_update:
+                    self.status_label.setText("✓ New version available!")
+                    self.status_label.setStyleSheet("""
+                        QLabel {
+                            font-size: 10pt;
+                            color: #14a0a6;
+                            background-color: transparent;
+                            padding: 5px;
+                        }
+                    """)
+                else:
+                    self.status_label.setText("✓ You have the latest version")
+                    self.status_label.setStyleSheet("""
+                        QLabel {
+                            font-size: 10pt;
+                            color: #4a9d4a;
+                            background-color: transparent;
+                            padding: 5px;
+                        }
+                    """)
+            else:
+                self.latest_version_label.setText("Latest version: Unable to check")
+                self.status_label.setText("⚠ Could not connect to update server")
+                self.status_label.setStyleSheet("""
+                    QLabel {
+                        font-size: 10pt;
+                        color: #d95d39;
+                        background-color: transparent;
+                        padding: 5px;
+                    }
+                """)
+
+        except Exception as e:
+            logger.error(f"Error checking for updates: {e}")
+            self.latest_version_label.setText("Latest version: Error")
+            self.status_label.setText(f"✗ Error: {str(e)}")
+            self.status_label.setStyleSheet("""
+                QLabel {
+                    font-size: 10pt;
+                    color: #d95d39;
+                    background-color: transparent;
+                    padding: 5px;
+                }
+            """)
+
+    def check_for_updates(self):
+        """Manual update check with full update flow"""
+        self.update_button.setEnabled(False)
+        self.update_button.setText("Checking...")
+        self.status_label.setText("Checking for updates...")
+
+        try:
+            from updater import Updater
+            updater = Updater(__version__, parent_widget=self)
+
+            logger.info("Manual update check initiated from settings")
+            # check_and_update will handle the full update flow
+            updater.check_and_update()
+
+            # If we reach here, no update was applied or user declined
+            self.check_latest_version()
+
+        except Exception as e:
+            logger.error(f"Error during manual update check: {e}")
+            self.status_label.setText(f"✗ Error: {str(e)}")
+            self.status_label.setStyleSheet("""
+                QLabel {
+                    font-size: 10pt;
+                    color: #d95d39;
+                    background-color: transparent;
+                    padding: 5px;
+                }
+            """)
+        finally:
+            self.update_button.setEnabled(True)
+            self.update_button.setText("Check for Updates")
+
 
 
 class ViewerListItemWidget(QWidget):
@@ -820,6 +1055,28 @@ class MainWindow(QMainWindow):
         toolbar_layout.setSpacing(10)
         toolbar_layout.setContentsMargins(10, 10, 10, 10)
 
+        # Settings button (left side)
+        self.settings_button = QPushButton("⚙ Settings")
+        self.settings_button.setStyleSheet("""
+            QPushButton {
+                padding: 8px 16px;
+                font-size: 10pt;
+                background-color: #3a3a3a;
+                color: #aaaaaa;
+                border: 1px solid #555555;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #4a4a4a;
+                color: #ffffff;
+            }
+            QPushButton:pressed {
+                background-color: #2a2a2a;
+            }
+        """)
+        self.settings_button.clicked.connect(self.show_settings)
+        toolbar_layout.addWidget(self.settings_button)
+
         toolbar_layout.addStretch()
 
         # Close all button
@@ -1056,6 +1313,11 @@ class MainWindow(QMainWindow):
             # Hide opponent pick window by default
             self.hide_viewer(target_viewer)
             logger.info(f"Opponent pick window for {champion_name} hidden by default")
+
+    def show_settings(self):
+        """Show settings dialog"""
+        settings_dialog = SettingsDialog(self)
+        settings_dialog.show()
 
     def closeEvent(self, event):
         """Handle window close event"""
