@@ -123,26 +123,33 @@ class Updater:
         for asset in assets:
             logger.info(f"  - {asset['name']}")
 
-        # Priority 1: Setup/installer .exe file
+        # Priority 1: .zip file containing installer (preferred for faster downloads)
+        for asset in assets:
+            asset_name = asset['name'].lower()
+            if 'setup' in asset_name and asset_name.endswith('.zip'):
+                logger.info(f"Found zip installer: {asset['name']}")
+                return asset['browser_download_url']
+
+        # Priority 2: Any .zip file
+        for asset in assets:
+            if asset['name'].endswith('.zip'):
+                logger.info(f"Found zip file: {asset['name']}")
+                return asset['browser_download_url']
+
+        # Priority 3: Setup/installer .exe file (fallback)
         for asset in assets:
             asset_name = asset['name'].lower()
             if 'setup' in asset_name and asset_name.endswith('.exe'):
-                logger.info(f"Found installer: {asset['name']}")
+                logger.info(f"Found installer exe: {asset['name']}")
                 return asset['browser_download_url']
 
-        # Priority 2: Any .exe file
+        # Priority 4: Any .exe file
         for asset in assets:
             if asset['name'].endswith('.exe'):
                 logger.info(f"Found exe file: {asset['name']}")
                 return asset['browser_download_url']
 
-        # Priority 3: .zip file (legacy support)
-        for asset in assets:
-            if asset['name'].endswith('.zip'):
-                logger.warning(f"Found zip file: {asset['name']} - zip format is deprecated, please use installer")
-                return asset['browser_download_url']
-
-        logger.error("No suitable download asset found (.exe or .zip)")
+        logger.error("No suitable download asset found (.zip or .exe)")
         return None
 
     def download_update(self, download_url: str) -> str:
@@ -262,7 +269,7 @@ class Updater:
         Apply the update by running the installer and exiting
 
         Args:
-            installer_path: Path to the downloaded installer
+            installer_path: Path to the downloaded installer (can be .exe or .zip)
         """
         try:
             current_exe = sys.argv[0]
@@ -280,7 +287,26 @@ class Updater:
                 )
                 return
 
-            logger.info(f"Running installer: {installer_path}")
+            # If downloaded file is a zip, extract the installer first
+            final_installer_path = installer_path
+            if installer_path.endswith('.zip'):
+                logger.info(f"Extracting installer from zip: {installer_path}")
+                final_installer_path = self._extract_exe_from_zip(installer_path)
+
+                if not final_installer_path:
+                    logger.error("Failed to extract installer from zip")
+                    QMessageBox.critical(
+                        self.parent_widget,
+                        "Update Failed",
+                        "Failed to extract installer from zip file.\n\n"
+                        f"Downloaded file: {installer_path}\n\n"
+                        "Please extract and run the installer manually."
+                    )
+                    return
+
+                logger.info(f"Extracted installer to: {final_installer_path}")
+
+            logger.info(f"Running installer: {final_installer_path}")
 
             # Show info to user
             QMessageBox.information(
@@ -295,7 +321,7 @@ class Updater:
             # /CLOSEAPPLICATIONS = automatically close running instances
             # /RESTARTAPPLICATIONS = restart app after installation
             # Note: No /SILENT flag - shows normal installer UI for better UX
-            subprocess.Popen([installer_path, '/CLOSEAPPLICATIONS', '/RESTARTAPPLICATIONS'])
+            subprocess.Popen([final_installer_path, '/CLOSEAPPLICATIONS', '/RESTARTAPPLICATIONS'])
 
             logger.info("Installer launched, exiting application")
             sys.exit(0)

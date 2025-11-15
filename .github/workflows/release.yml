@@ -241,11 +241,22 @@ jobs:
         with:
           path: lol-viewer.iss
 
+      - name: Zip Installer
+        run: |
+          Compress-Archive -Path "installer_output/lol-viewer-setup.exe" -DestinationPath "installer_output/lol-viewer-setup.zip"
+          Write-Host "✓ Created zip archive: lol-viewer-setup.zip"
+          $zipSize = (Get-Item "installer_output/lol-viewer-setup.zip").Length / 1MB
+          $exeSize = (Get-Item "installer_output/lol-viewer-setup.exe").Length / 1MB
+          Write-Host "Exe size: $($exeSize.ToString('F2')) MB"
+          Write-Host "Zip size: $($zipSize.ToString('F2')) MB"
+          Write-Host "Compression ratio: $((($zipSize / $exeSize) * 100).ToString('F1'))%"
+        shell: pwsh
+
       - name: Upload to Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ needs.release.outputs.new_version }}
-          files: installer_output/lol-viewer-setup.exe
+          files: installer_output/lol-viewer-setup.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
