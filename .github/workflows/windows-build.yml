@@ -41,9 +41,6 @@ jobs:
       run: |
         pyinstaller lol-viewer.spec
 
-    - name: Install Inno Setup
-      run: choco install innosetup -y
-
     - name: Update Installer Version
       run: |
         $version = python -c "import main; print(main.__version__)"
@@ -54,10 +51,9 @@ jobs:
       shell: pwsh
 
     - name: Build Installer
-      run: |
-        iscc lol-viewer.iss
-        Write-Host "Installer built successfully"
-      shell: pwsh
+      uses: Minionguyjpro/inno-setup-action@v1.0.1
+      with:
+        path: lol-viewer.iss
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
