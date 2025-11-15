@@ -55,7 +55,7 @@ jobs:
 
     - name: Build Installer
       run: |
-        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" lol-viewer.iss
+        iscc lol-viewer.iss
         Write-Host "Installer built successfully"
       shell: pwsh
 
