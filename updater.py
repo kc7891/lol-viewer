@@ -238,6 +238,27 @@ class Updater:
             logger.error(f"Failed to extract exe from zip: {e}")
             return None
 
+    def _get_installation_dir(self) -> str:
+        """
+        Get the current installation directory
+
+        Returns:
+            Installation directory path, or None if not running as executable
+        """
+        try:
+            current_exe = sys.executable if getattr(sys, 'frozen', False) else sys.argv[0]
+
+            if not current_exe.endswith('.exe'):
+                return None
+
+            # Get the directory containing the executable
+            install_dir = os.path.dirname(os.path.abspath(current_exe))
+            logger.info(f"Current installation directory: {install_dir}")
+            return install_dir
+        except Exception as e:
+            logger.error(f"Failed to get installation directory: {e}")
+            return None
+
     def apply_update(self, installer_path: str):
         """
         Apply the update by extracting zip and running the installer
@@ -275,20 +296,41 @@ class Updater:
 
             logger.info(f"Running installer: {setup_exe_path}")
 
+            # Get current installation directory to preserve it
+            install_dir = self._get_installation_dir()
+
             # Show info to user
             QMessageBox.information(
                 self.parent_widget,
                 "Update Ready",
                 "The installer will now run to update the application.\n"
-                "Please follow the installer prompts.\n\n"
+                "The update will run silently with a progress window.\n\n"
                 "The application will close now."
             )
 
-            # Launch installer with UI visible
-            # /CLOSEAPPLICATIONS = automatically close running instances
-            # /RESTARTAPPLICATIONS = restart app after installation
-            # Note: No /SILENT flag - shows normal installer UI for better UX
-            subprocess.Popen([setup_exe_path, '/CLOSEAPPLICATIONS', '/RESTARTAPPLICATIONS'])
+            # Build installer arguments for silent update
+            # /SILENT = Silent mode (no wizard dialogs, but shows progress window)
+            # /CLOSEAPPLICATIONS = Automatically close running instances
+            # /RESTARTAPPLICATIONS = Restart app after installation
+            # /SUPPRESSMSGBOXES = Suppress message boxes (use default responses)
+            # /NORESTART = Don't restart Windows (app restart handled by /RESTARTAPPLICATIONS)
+            # /DIR="path" = Preserve installation directory
+            installer_args = [
+                setup_exe_path,
+                '/SILENT',
+                '/CLOSEAPPLICATIONS',
+                '/RESTARTAPPLICATIONS',
+                '/SUPPRESSMSGBOXES',
+                '/NORESTART'
+            ]
+
+            # Add installation directory if available
+            if install_dir:
+                installer_args.append(f'/DIR={install_dir}')
+                logger.info(f"Preserving installation directory: {install_dir}")
+
+            logger.info(f"Launching installer with args: {installer_args}")
+            subprocess.Popen(installer_args)
 
             logger.info("Installer launched, exiting application")
             sys.exit(0)
