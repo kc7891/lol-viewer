@@ -267,7 +267,8 @@ class Updater:
             installer_path: Path to the downloaded installer zip
         """
         try:
-            current_exe = sys.argv[0]
+            # Use sys.executable for frozen apps (PyInstaller), sys.argv[0] otherwise
+            current_exe = sys.executable if getattr(sys, 'frozen', False) else sys.argv[0]
 
             # Check if running as executable (not python script)
             if not current_exe.endswith('.exe'):
@@ -324,8 +325,9 @@ class Updater:
             ]
 
             # Add installation directory if available
+            # Use quotes to handle paths with spaces (e.g., "C:\Program Files\LoL Viewer")
             if install_dir:
-                installer_args.append(f'/DIR={install_dir}')
+                installer_args.append(f'/DIR="{install_dir}"')
                 logger.info(f"Preserving installation directory: {install_dir}")
 
             logger.info(f"Launching installer with args: {installer_args}")
