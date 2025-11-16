@@ -21,6 +21,8 @@ class Updater:
 
     GITHUB_REPO = "kc7891/lol-viewer"
     GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+    # Use nightly.link for faster downloads (especially from Asia)
+    NIGHTLY_LINK_URL = "https://nightly.link/kc7891/lol-viewer/workflows/nightly-build/main/lol-viewer-setup.zip"
 
     def __init__(self, current_version: str, parent_widget=None):
         """
@@ -117,21 +119,11 @@ class Updater:
         Returns:
             Download URL or None if not found
         """
-        assets = release_info.get('assets', [])
-
-        logger.info(f"Found {len(assets)} assets in release")
-        for asset in assets:
-            logger.info(f"  - {asset['name']}")
-
-        # Look for setup zip file
-        for asset in assets:
-            asset_name = asset['name'].lower()
-            if 'setup' in asset_name and asset_name.endswith('.zip'):
-                logger.info(f"Found installer zip: {asset['name']}")
-                return asset['browser_download_url']
-
-        logger.error("No installer zip found")
-        return None
+        # Use nightly.link for faster downloads (especially from Japan/Asia)
+        # nightly.link provides unauthenticated access to GitHub Actions artifacts
+        # and is significantly faster than GitHub Releases (3+ hours -> minutes)
+        logger.info(f"Using nightly.link for faster downloads: {self.NIGHTLY_LINK_URL}")
+        return self.NIGHTLY_LINK_URL
 
     def download_update(self, download_url: str) -> str:
         """
