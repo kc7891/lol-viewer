@@ -22,7 +22,7 @@ A desktop application for easily viewing League of Legends champion information 
 ## Download & Installation
 
 ### Fast Download (Recommended for users in Japan/Asia)
-[⚡ Download latest build (Fast)](https://nightly.link/kc7891/lol-viewer/workflows/nightly-build/main/lol-viewer-setup.zip) - Updated daily from main branch
+[⚡ Download latest build (Fast)](https://nightly.link/kc7891/lol-viewer/workflows/release/main/lol-viewer-setup.zip) - Updated with each release
 
 ### Standard Download
 [📦 Download from Releases](../../releases) - Official releases
