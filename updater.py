@@ -315,6 +315,7 @@ class Updater:
             # /SUPPRESSMSGBOXES = Suppress message boxes (use default responses)
             # /NORESTART = Don't restart Windows
             # /DIR="path" = Preserve installation directory
+            # Note: Language is automatically preserved via UsePreviousLanguage=yes in .iss
             # Note: App restart is handled by [Run] section in .iss (no skipifsilent flag)
             installer_args = [
                 setup_exe_path,
