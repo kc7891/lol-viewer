@@ -23,6 +23,15 @@ class Updater:
     GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
     # Use nightly.link for faster downloads (especially from Asia)
     # References the release workflow which runs on every release
+    #
+    # NOTE: We use nightly.link instead of GitHub Releases assets because:
+    # - GitHub Releases asset downloads are extremely slow from Japan/Asia (3+ hours for ~130MB)
+    # - nightly.link provides CDN-accelerated downloads (completes in minutes)
+    #
+    # IMPORTANT: nightly.link fetches artifacts from the latest successful workflow run on main branch,
+    # which may not always match the latest GitHub Release version. This can cause version mismatch issues
+    # where the app detects a newer version is available but downloads an older artifact.
+    # Unfortunately, this is an acceptable trade-off to ensure downloads complete successfully for users in Asia.
     NIGHTLY_LINK_URL = "https://nightly.link/kc7891/lol-viewer/workflows/release/main/lol-viewer-setup.zip"
 
     def __init__(self, current_version: str, parent_widget=None):
@@ -123,6 +132,11 @@ class Updater:
         # Use nightly.link for faster downloads (especially from Japan/Asia)
         # nightly.link provides unauthenticated access to GitHub Actions artifacts
         # and is significantly faster than GitHub Releases (3+ hours -> minutes)
+        #
+        # NOTE: We intentionally ignore release_info['assets'] here because downloading
+        # from GitHub Releases assets is extremely slow from Japan/Asia regions.
+        # While this can cause version mismatches (downloading v0.5.3 when v0.6.0 is latest),
+        # it's better than having downloads fail or take hours to complete.
         logger.info(f"Using nightly.link for faster downloads: {self.NIGHTLY_LINK_URL}")
         return self.NIGHTLY_LINK_URL
 
