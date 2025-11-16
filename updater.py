@@ -109,7 +109,7 @@ class Updater:
 
     def get_download_url(self, release_info: dict) -> str:
         """
-        Get the download URL for the installer
+        Get the download URL for the installer zip
 
         Args:
             release_info: Release information from GitHub API
@@ -123,26 +123,14 @@ class Updater:
         for asset in assets:
             logger.info(f"  - {asset['name']}")
 
-        # Priority 1: Setup/installer .exe file
+        # Look for setup zip file
         for asset in assets:
             asset_name = asset['name'].lower()
-            if 'setup' in asset_name and asset_name.endswith('.exe'):
-                logger.info(f"Found installer: {asset['name']}")
+            if 'setup' in asset_name and asset_name.endswith('.zip'):
+                logger.info(f"Found installer zip: {asset['name']}")
                 return asset['browser_download_url']
 
-        # Priority 2: Any .exe file
-        for asset in assets:
-            if asset['name'].endswith('.exe'):
-                logger.info(f"Found exe file: {asset['name']}")
-                return asset['browser_download_url']
-
-        # Priority 3: .zip file (legacy support)
-        for asset in assets:
-            if asset['name'].endswith('.zip'):
-                logger.warning(f"Found zip file: {asset['name']} - zip format is deprecated, please use installer")
-                return asset['browser_download_url']
-
-        logger.error("No suitable download asset found (.exe or .zip)")
+        logger.error("No installer zip found")
         return None
 
     def download_update(self, download_url: str) -> str:
@@ -259,10 +247,10 @@ class Updater:
 
     def apply_update(self, installer_path: str):
         """
-        Apply the update by running the installer and exiting
+        Apply the update by extracting zip and running the installer
 
         Args:
-            installer_path: Path to the downloaded installer
+            installer_path: Path to the downloaded installer zip
         """
         try:
             current_exe = sys.argv[0]
@@ -276,11 +264,23 @@ class Updater:
                     "Update has been downloaded but cannot be applied automatically "
                     "when running from Python script.\n\n"
                     f"Downloaded file: {installer_path}\n\n"
-                    "Please run the installer manually."
+                    "Please extract and run the installer manually."
                 )
                 return
 
-            logger.info(f"Running installer: {installer_path}")
+            # Extract setup.exe from zip
+            logger.info(f"Extracting installer from: {installer_path}")
+            setup_exe_path = self._extract_exe_from_zip(installer_path)
+
+            if not setup_exe_path:
+                QMessageBox.critical(
+                    self.parent_widget,
+                    "Update Failed",
+                    "Failed to extract installer from zip file."
+                )
+                return
+
+            logger.info(f"Running installer: {setup_exe_path}")
 
             # Show info to user
             QMessageBox.information(
@@ -295,7 +295,7 @@ class Updater:
             # /CLOSEAPPLICATIONS = automatically close running instances
             # /RESTARTAPPLICATIONS = restart app after installation
             # Note: No /SILENT flag - shows normal installer UI for better UX
-            subprocess.Popen([installer_path, '/CLOSEAPPLICATIONS', '/RESTARTAPPLICATIONS'])
+            subprocess.Popen([setup_exe_path, '/CLOSEAPPLICATIONS', '/RESTARTAPPLICATIONS'])
 
             logger.info("Installer launched, exiting application")
             sys.exit(0)
@@ -307,7 +307,7 @@ class Updater:
                 "Update Failed",
                 f"Failed to run installer:\n{str(e)}\n\n"
                 f"Downloaded file: {installer_path}\n\n"
-                "Please run the installer manually."
+                "Please extract and run the installer manually."
             )
 
     def check_and_update(self):

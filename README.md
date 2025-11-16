@@ -21,10 +21,11 @@ A desktop application for easily viewing League of Legends champion information 
 
 ## Download & Installation
 
-1. Download `lol-viewer-setup.exe` from the [Releases](../../releases) page
-2. Run the installer
-3. Follow the installation wizard
-4. Launch LoL Viewer from Start Menu or Desktop shortcut
+1. Download `lol-viewer-setup.zip` from the [Releases](../../releases) page
+2. Extract the zip file
+3. Run `lol-viewer-setup.exe`
+4. Follow the installation wizard
+5. Launch LoL Viewer from Start Menu or Desktop shortcut
 
 ### System Requirements
 
