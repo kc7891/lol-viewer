@@ -72,10 +72,11 @@ jobs:
       - name: Get current version and bump
         id: version
         run: |
-          # Extract current version from main.py
-          CURRENT_VERSION=$(grep -oP '__version__ = "\K[^"]+' main.py)
+          # Get current version from latest git tag (source of truth)
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          CURRENT_VERSION=${LATEST_TAG#v}  # Remove 'v' prefix
           echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          echo "Current version: $CURRENT_VERSION"
+          echo "Current version (from git tag): $CURRENT_VERSION"
 
           # Bump version using Python
           NEW_VERSION=$(python3 << EOF
