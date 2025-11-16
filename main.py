@@ -6,7 +6,7 @@ import sys
 import logging
 import os
 from datetime import datetime
-from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer
+from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer, QSettings
 from PyQt6.QtGui import QColor, QIcon
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
 )
 
 # Application version
-__version__ = "0.3.2"
+__version__ = "0.4.1"
 
 
 class LCUConnectionStatusWidget(QWidget):
@@ -874,7 +874,7 @@ class MainWindow(QMainWindow):
 
         # Create sidebar container with status widget at bottom
         sidebar_container = QWidget()
-        sidebar_container.setFixedWidth(200)
+        sidebar_container.setMinimumWidth(150)
         sidebar_container.setStyleSheet("QWidget { background-color: #252525; }")
         sidebar_layout = QVBoxLayout(sidebar_container)
         sidebar_layout.setSpacing(0)
@@ -882,7 +882,19 @@ class MainWindow(QMainWindow):
         sidebar_layout.addWidget(self.sidebar)
         sidebar_layout.addWidget(self.connection_status_widget)
 
-        main_layout.addWidget(sidebar_container)
+        # Create splitter for resizable sidebar
+        self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.main_splitter.setChildrenCollapsible(False)
+        self.main_splitter.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #444444;
+                width: 2px;
+            }
+            QSplitter::handle:hover {
+                background-color: #0d7377;
+            }
+        """)
+        self.main_splitter.addWidget(sidebar_container)
 
         # Right side - stacked widget for switching between Live Game and Viewers
         self.main_content_stack = QStackedWidget()
@@ -895,7 +907,17 @@ class MainWindow(QMainWindow):
         self.create_viewers_page()
         self.main_content_stack.addWidget(self.viewers_page)
 
-        main_layout.addWidget(self.main_content_stack)
+        # Add main content to splitter
+        self.main_splitter.addWidget(self.main_content_stack)
+
+        # Add splitter to main layout
+        main_layout.addWidget(self.main_splitter)
+
+        # Restore saved sidebar width
+        self.restore_sidebar_width()
+
+        # Connect splitter moved signal to save width
+        self.main_splitter.splitterMoved.connect(self.save_sidebar_width)
 
         # Set default tab to Viewers (index 1) after all widgets are created
         self.sidebar.setCurrentIndex(1)
@@ -951,7 +973,6 @@ class MainWindow(QMainWindow):
     def create_sidebar(self):
         """Create the left sidebar with tabs for Live Game and Viewers"""
         self.sidebar = QTabWidget()
-        self.sidebar.setFixedWidth(200)
         self.sidebar.setStyleSheet("""
             QTabWidget {
                 background-color: #252525;
@@ -1035,6 +1056,24 @@ class MainWindow(QMainWindow):
         """Handle sidebar tab change and update main content"""
         # Switch main content stack to match sidebar tab
         self.main_content_stack.setCurrentIndex(index)
+
+    def save_sidebar_width(self):
+        """Save the current sidebar width to settings"""
+        settings = QSettings("LoLViewer", "LoLViewer")
+        sizes = self.main_splitter.sizes()
+        if len(sizes) > 0:
+            settings.setValue("sidebar_width", sizes[0])
+
+    def restore_sidebar_width(self):
+        """Restore the sidebar width from settings"""
+        settings = QSettings("LoLViewer", "LoLViewer")
+        saved_width = settings.value("sidebar_width", 200, type=int)
+        # Get current sizes
+        current_sizes = self.main_splitter.sizes()
+        if len(current_sizes) == 2:
+            total_width = sum(current_sizes)
+            # Set sidebar to saved width, remaining to content area
+            self.main_splitter.setSizes([saved_width, total_width - saved_width])
 
     def create_toolbar(self):
         """Create the top toolbar with add and close all buttons"""
