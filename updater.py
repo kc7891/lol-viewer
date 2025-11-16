@@ -22,7 +22,8 @@ class Updater:
     GITHUB_REPO = "kc7891/lol-viewer"
     GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
     # Use nightly.link for faster downloads (especially from Asia)
-    NIGHTLY_LINK_URL = "https://nightly.link/kc7891/lol-viewer/workflows/nightly-build/main/lol-viewer-setup.zip"
+    # References the release workflow which runs on every release
+    NIGHTLY_LINK_URL = "https://nightly.link/kc7891/lol-viewer/workflows/release/main/lol-viewer-setup.zip"
 
     def __init__(self, current_version: str, parent_widget=None):
         """
