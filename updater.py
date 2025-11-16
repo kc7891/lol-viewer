@@ -70,7 +70,7 @@ class Updater:
                 return True, release_data
             else:
                 logger.info(f"✓ Application is up to date (current: {self.current_version}, latest: {latest_version})")
-                return False, None
+                return False, release_data  # Return release_data even when up-to-date
 
         except requests.exceptions.RequestException as e:
             logger.warning(f"Failed to check for updates: {e}")
