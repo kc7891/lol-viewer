@@ -35,6 +35,8 @@ PrivilegesRequiredOverridesAllowed=dialog
 CloseApplications=yes
 ; Note: App restart is handled by [Run] section (postinstall without skipifsilent)
 ; RestartApplications is not used to prevent duplicate launches
+; Automatically use the language from previous installation
+UsePreviousLanguage=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
