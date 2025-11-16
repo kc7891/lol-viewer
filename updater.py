@@ -311,15 +311,14 @@ class Updater:
             # Build installer arguments for silent update
             # /SILENT = Silent mode (no wizard dialogs, but shows progress window)
             # /CLOSEAPPLICATIONS = Automatically close running instances
-            # /RESTARTAPPLICATIONS = Restart app after installation
             # /SUPPRESSMSGBOXES = Suppress message boxes (use default responses)
-            # /NORESTART = Don't restart Windows (app restart handled by /RESTARTAPPLICATIONS)
+            # /NORESTART = Don't restart Windows
             # /DIR="path" = Preserve installation directory
+            # Note: App restart is handled by [Run] section in .iss (no skipifsilent flag)
             installer_args = [
                 setup_exe_path,
                 '/SILENT',
                 '/CLOSEAPPLICATIONS',
-                '/RESTARTAPPLICATIONS',
                 '/SUPPRESSMSGBOXES',
                 '/NORESTART'
             ]
