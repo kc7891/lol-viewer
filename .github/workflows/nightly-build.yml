@@ -55,17 +55,11 @@ jobs:
       with:
         path: lol-viewer.iss
 
-    - name: Package Installer as Zip
-      run: |
-        cd installer_output
-        Compress-Archive -Path lol-viewer-setup.exe -DestinationPath lol-viewer-setup.zip
-      shell: pwsh
-
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: lol-viewer-setup
-        path: installer_output/lol-viewer-setup.zip
+        path: installer_output/lol-viewer-setup.exe
         retention-days: 90
 
     - name: Build Summary
