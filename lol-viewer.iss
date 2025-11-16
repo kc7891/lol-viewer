@@ -33,7 +33,8 @@ PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 ; Silent install support
 CloseApplications=yes
-RestartApplications=yes
+; Note: App restart is handled by [Run] section (postinstall without skipifsilent)
+; RestartApplications is not used to prevent duplicate launches
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
