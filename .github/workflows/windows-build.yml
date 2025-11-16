@@ -56,8 +56,8 @@ jobs:
     - name: Package Installer as Zip
       run: |
         cd installer_output
-        powershell Compress-Archive -Path lol-viewer-setup.exe -DestinationPath lol-viewer-setup.zip
-      shell: cmd
+        Compress-Archive -Path lol-viewer-setup.exe -DestinationPath lol-viewer-setup.zip
+      shell: pwsh
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
