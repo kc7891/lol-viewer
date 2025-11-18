@@ -319,23 +319,18 @@ class Updater:
                 self.parent_widget,
                 "Update Ready",
                 "The installer will now run to update the application.\n"
-                "The update will run silently with a progress window.\n\n"
+                "Please follow the installer wizard to complete the update.\n\n"
                 "The application will close now."
             )
 
-            # Build installer arguments for silent update
-            # /SILENT = Silent mode (no wizard dialogs, but shows progress window)
+            # Build installer arguments
             # /CLOSEAPPLICATIONS = Automatically close running instances
-            # /SUPPRESSMSGBOXES = Suppress message boxes (use default responses)
             # /NORESTART = Don't restart Windows
             # /DIR="path" = Preserve installation directory
             # Note: Language is automatically preserved via UsePreviousLanguage=yes in .iss
-            # Note: App restart is handled by [Run] section in .iss (no skipifsilent flag)
             installer_args = [
                 setup_exe_path,
-                '/SILENT',
                 '/CLOSEAPPLICATIONS',
-                '/SUPPRESSMSGBOXES',
                 '/NORESTART'
             ]
 
