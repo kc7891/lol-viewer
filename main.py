@@ -1067,7 +1067,7 @@ class MainWindow(QMainWindow):
     def restore_sidebar_width(self):
         """Restore the sidebar width from settings"""
         settings = QSettings("LoLViewer", "LoLViewer")
-        saved_width = settings.value("sidebar_width", 200, type=int)
+        saved_width = settings.value("sidebar_width", 150, type=int)
         # Get current sizes
         current_sizes = self.main_splitter.sizes()
         if len(current_sizes) == 2:
