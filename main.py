@@ -1067,7 +1067,7 @@ class MainWindow(QMainWindow):
     def restore_sidebar_width(self):
         """Restore the sidebar width from settings"""
         settings = QSettings("LoLViewer", "LoLViewer")
-        saved_width = settings.value("sidebar_width", 150, type=int)
+        saved_width = settings.value("sidebar_width", 200, type=int)
         # Always set sidebar width explicitly using window's initial width
         # This prevents QSplitter from defaulting to 50/50 split on first launch
         initial_window_width = 1600  # Default window width set in init_ui
