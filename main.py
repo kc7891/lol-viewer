@@ -1068,12 +1068,10 @@ class MainWindow(QMainWindow):
         """Restore the sidebar width from settings"""
         settings = QSettings("LoLViewer", "LoLViewer")
         saved_width = settings.value("sidebar_width", 200, type=int)
-        # Get current sizes
-        current_sizes = self.main_splitter.sizes()
-        if len(current_sizes) == 2:
-            total_width = sum(current_sizes)
-            # Set sidebar to saved width, remaining to content area
-            self.main_splitter.setSizes([saved_width, total_width - saved_width])
+        # Always set sidebar width explicitly using window's initial width
+        # This prevents QSplitter from defaulting to 50/50 split on first launch
+        initial_window_width = 1600  # Default window width set in init_ui
+        self.main_splitter.setSizes([saved_width, initial_window_width - saved_width])
 
     def create_toolbar(self):
         """Create the top toolbar with add and close all buttons"""
