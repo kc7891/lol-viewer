@@ -18,6 +18,12 @@ from PyQt6.QtWidgets import (
 # Application version
 __version__ = "0.7.0"
 
+# Default analytics URLs
+DEFAULT_BUILD_URL = "https://lolalytics.com/lol/{name}/build/"
+DEFAULT_COUNTER_URL = "https://lolalytics.com/lol/{name}/counters/"
+DEFAULT_ARAM_URL = "https://u.gg/lol/champions/aram/{name}-aram"
+DEFAULT_LIVE_GAME_URL = "https://u.gg/lol/lg-splash"
+
 
 class LCUConnectionStatusWidget(QWidget):
     """Widget displaying LCU connection status with animated dots"""
@@ -246,13 +252,14 @@ class ChampionViewerWidget(QWidget):
     hide_requested = pyqtSignal(object)   # Signal to request hiding this viewer
     champion_updated = pyqtSignal(object)  # Signal when champion name is updated
 
-    def __init__(self, viewer_id: int, champion_data: ChampionData = None, is_picked: bool = False):
+    def __init__(self, viewer_id: int, champion_data: ChampionData = None, is_picked: bool = False, main_window=None):
         super().__init__()
         self.viewer_id = viewer_id
         self.current_champion = ""
         self.champion_data = champion_data
         self.current_page_type = ""  # "build" or "counter"
         self.is_picked = is_picked  # Whether this viewer was created from champion pick
+        self.main_window = main_window  # Reference to MainWindow for URL settings
         self.init_ui()
 
     def init_ui(self):
@@ -459,7 +466,7 @@ class ChampionViewerWidget(QWidget):
         self.resize(500, self.height())
 
     def open_build(self):
-        """Open the LoLAnalytics build page for the entered champion"""
+        """Open the build page for the entered champion"""
         champion_name = self.champion_input.text().strip().lower()
 
         if not champion_name:
@@ -471,14 +478,14 @@ class ChampionViewerWidget(QWidget):
 
         # Get selected lane
         lane = self.lane_selector.currentData()
-        url = self.get_lolalytics_build_url(champion_name, lane)
+        url = self.get_build_url(champion_name, lane)
         self.web_view.setUrl(QUrl(url))
         self.champion_input.setFocus()
         # Notify parent window that champion name has been updated
         self.champion_updated.emit(self)
 
     def open_counter(self):
-        """Open the LoLAnalytics counter page for the entered champion"""
+        """Open the counter page for the entered champion"""
         champion_name = self.champion_input.text().strip().lower()
 
         if not champion_name:
@@ -490,14 +497,14 @@ class ChampionViewerWidget(QWidget):
 
         # Get selected lane
         lane = self.lane_selector.currentData()
-        url = self.get_lolalytics_counter_url(champion_name, lane)
+        url = self.get_counter_url(champion_name, lane)
         self.web_view.setUrl(QUrl(url))
         self.champion_input.setFocus()
         # Notify parent window that champion name has been updated
         self.champion_updated.emit(self)
 
     def open_aram(self):
-        """Open the u.gg ARAM page for the entered champion"""
+        """Open the ARAM page for the entered champion"""
         champion_name = self.champion_input.text().strip().lower()
 
         if not champion_name:
@@ -507,8 +514,7 @@ class ChampionViewerWidget(QWidget):
         self.current_champion = champion_name
         self.current_page_type = "aram"
 
-        # Always use u.gg ARAM URL
-        url = self.get_ugg_aram_build_url(champion_name)
+        url = self.get_aram_url(champion_name)
         logger.info(f"Opening ARAM page for {champion_name}: {url}")
 
         self.web_view.setUrl(QUrl(url))
@@ -524,35 +530,43 @@ class ChampionViewerWidget(QWidget):
             return f"{self.current_champion} | {self.current_page_type}"
         return "(Empty)"
 
-    @staticmethod
-    def get_lolalytics_build_url(champion_name: str, lane: str = "") -> str:
-        """Generate the LoLAnalytics build URL for a given champion"""
-        base_url = f"https://lolalytics.com/lol/{champion_name.lower()}/build/"
+    def get_build_url(self, champion_name: str, lane: str = "") -> str:
+        """Generate the build URL for a given champion using configured URL template"""
+        if not self.main_window:
+            # Fallback to default URL if main_window reference is not available
+            base_url = DEFAULT_BUILD_URL.replace("{name}", champion_name.lower())
+        else:
+            base_url = self.main_window.build_url.replace("{name}", champion_name.lower())
+
         if lane:
+            # Add lane as query parameter
             return f"{base_url}?lane={lane}"
         return base_url
 
-    @staticmethod
-    def get_lolalytics_counter_url(champion_name: str, lane: str = "") -> str:
-        """Generate the LoLAnalytics counter URL for a given champion"""
-        base_url = f"https://lolalytics.com/lol/{champion_name.lower()}/counters/"
+    def get_counter_url(self, champion_name: str, lane: str = "") -> str:
+        """Generate the counter URL for a given champion using configured URL template"""
+        if not self.main_window:
+            # Fallback to default URL if main_window reference is not available
+            base_url = DEFAULT_COUNTER_URL.replace("{name}", champion_name.lower())
+        else:
+            base_url = self.main_window.counter_url.replace("{name}", champion_name.lower())
+
         if lane:
+            # Add lane as query parameter
             return f"{base_url}?lane={lane}"
         return base_url
 
-    @staticmethod
-    def get_ugg_aram_build_url(champion_name: str) -> str:
-        """Generate the u.gg ARAM build URL for a given champion
-
-        Args:
-            champion_name: Champion name (e.g., "Ashe", "MasterYi")
-
-        Returns:
-            str: u.gg ARAM URL (e.g., "https://u.gg/lol/champions/aram/ashe-aram")
-        """
-        # Format champion name for u.gg: lowercase, no spaces
-        formatted_name = champion_name.lower().replace(" ", "")
-        return f"https://u.gg/lol/champions/aram/{formatted_name}-aram"
+    def get_aram_url(self, champion_name: str) -> str:
+        """Generate the ARAM URL for a given champion using configured URL template"""
+        if not self.main_window:
+            # Fallback to default URL if main_window reference is not available
+            # Format champion name: lowercase, no spaces (for compatibility with u.gg format)
+            formatted_name = champion_name.lower().replace(" ", "")
+            return DEFAULT_ARAM_URL.replace("{name}", formatted_name)
+        else:
+            # Format champion name: lowercase, no spaces (for compatibility with u.gg format)
+            formatted_name = champion_name.lower().replace(" ", "")
+            return self.main_window.aram_url.replace("{name}", formatted_name)
 
 
 class MainWindow(QMainWindow):
@@ -564,6 +578,13 @@ class MainWindow(QMainWindow):
         self.hidden_viewers = []  # List of hidden viewer widgets
         self.next_viewer_id = 0  # Counter for assigning viewer IDs
         self.champion_data = ChampionData()  # Load champion data
+
+        # Load URL settings
+        self.settings = QSettings("LoLViewer", "LoLViewer")
+        self.build_url = self.settings.value("build_url", DEFAULT_BUILD_URL, type=str)
+        self.counter_url = self.settings.value("counter_url", DEFAULT_COUNTER_URL, type=str)
+        self.aram_url = self.settings.value("aram_url", DEFAULT_ARAM_URL, type=str)
+        self.live_game_url = self.settings.value("live_game_url", DEFAULT_LIVE_GAME_URL, type=str)
 
         # Initialize champion detector service
         logger.info("Initializing ChampionDetectorService...")
@@ -700,16 +721,16 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(0, self.update_viewers_list)
 
     def create_live_game_page(self):
-        """Create the Live Game page with u.gg web view"""
+        """Create the Live Game page with web view using configured URL"""
         self.live_game_page = QWidget()
         live_game_layout = QVBoxLayout(self.live_game_page)
         live_game_layout.setSpacing(0)
         live_game_layout.setContentsMargins(0, 0, 0, 0)
 
-        # WebView for u.gg
+        # WebView using configured live game URL
         self.live_game_web_view = QWebEngineView()
         self.live_game_web_view.page().setBackgroundColor(QColor("#1e1e1e"))
-        self.live_game_web_view.setUrl(QUrl("https://u.gg/lol/lg-splash"))
+        self.live_game_web_view.setUrl(QUrl(self.live_game_url))
         live_game_layout.addWidget(self.live_game_web_view)
 
     def create_viewers_page(self):
@@ -746,7 +767,17 @@ class MainWindow(QMainWindow):
     def create_settings_page(self):
         """Create the Settings page with version information and update check"""
         self.settings_page = QWidget()
-        settings_layout = QVBoxLayout(self.settings_page)
+        settings_scroll = QScrollArea()
+        settings_scroll.setWidgetResizable(True)
+        settings_scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #1e1e1e;
+            }
+        """)
+
+        settings_content = QWidget()
+        settings_layout = QVBoxLayout(settings_content)
         settings_layout.setSpacing(20)
         settings_layout.setContentsMargins(40, 40, 40, 40)
 
@@ -761,6 +792,183 @@ class MainWindow(QMainWindow):
             }
         """)
         settings_layout.addWidget(title_label)
+
+        # Analytics URLs section
+        url_group = QWidget()
+        url_layout = QVBoxLayout(url_group)
+        url_layout.setSpacing(15)
+
+        url_title = QLabel("Analytics URLs")
+        url_title.setStyleSheet("""
+            QLabel {
+                font-size: 12pt;
+                font-weight: bold;
+                color: #ffffff;
+                background-color: transparent;
+            }
+        """)
+        url_layout.addWidget(url_title)
+
+        url_description = QLabel("Configure URLs for each analytics type. Use {name} as placeholder for champion name, {lane} for lane parameter.")
+        url_description.setStyleSheet("""
+            QLabel {
+                font-size: 9pt;
+                color: #aaaaaa;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+        url_description.setWordWrap(True)
+        url_layout.addWidget(url_description)
+
+        # Build URL
+        build_url_label = QLabel("Build URL:")
+        build_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #cccccc; background-color: transparent; }")
+        url_layout.addWidget(build_url_label)
+
+        self.build_url_input = QLineEdit()
+        self.build_url_input.setPlaceholderText("e.g., https://lolalytics.com/lol/{name}/build/")
+        self.build_url_input.setStyleSheet("""
+            QLineEdit {
+                padding: 8px;
+                font-size: 10pt;
+                background-color: #2b2b2b;
+                color: #ffffff;
+                border: 1px solid #444444;
+                border-radius: 4px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #0d7377;
+            }
+        """)
+        url_layout.addWidget(self.build_url_input)
+
+        # Counter URL
+        counter_url_label = QLabel("Counter URL:")
+        counter_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #cccccc; background-color: transparent; }")
+        url_layout.addWidget(counter_url_label)
+
+        self.counter_url_input = QLineEdit()
+        self.counter_url_input.setPlaceholderText("e.g., https://lolalytics.com/lol/{name}/counters/")
+        self.counter_url_input.setStyleSheet("""
+            QLineEdit {
+                padding: 8px;
+                font-size: 10pt;
+                background-color: #2b2b2b;
+                color: #ffffff;
+                border: 1px solid #444444;
+                border-radius: 4px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #0d7377;
+            }
+        """)
+        url_layout.addWidget(self.counter_url_input)
+
+        # ARAM URL
+        aram_url_label = QLabel("ARAM URL:")
+        aram_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #cccccc; background-color: transparent; }")
+        url_layout.addWidget(aram_url_label)
+
+        self.aram_url_input = QLineEdit()
+        self.aram_url_input.setPlaceholderText("e.g., https://u.gg/lol/champions/aram/{name}-aram")
+        self.aram_url_input.setStyleSheet("""
+            QLineEdit {
+                padding: 8px;
+                font-size: 10pt;
+                background-color: #2b2b2b;
+                color: #ffffff;
+                border: 1px solid #444444;
+                border-radius: 4px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #0d7377;
+            }
+        """)
+        url_layout.addWidget(self.aram_url_input)
+
+        # Live Game URL
+        live_game_url_label = QLabel("Live Game URL:")
+        live_game_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #cccccc; background-color: transparent; }")
+        url_layout.addWidget(live_game_url_label)
+
+        self.live_game_url_input = QLineEdit()
+        self.live_game_url_input.setPlaceholderText("e.g., https://u.gg/lol/lg-splash")
+        self.live_game_url_input.setStyleSheet("""
+            QLineEdit {
+                padding: 8px;
+                font-size: 10pt;
+                background-color: #2b2b2b;
+                color: #ffffff;
+                border: 1px solid #444444;
+                border-radius: 4px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #0d7377;
+            }
+        """)
+        url_layout.addWidget(self.live_game_url_input)
+
+        # URL buttons
+        url_buttons_layout = QHBoxLayout()
+
+        self.save_urls_button = QPushButton("Save URLs")
+        self.save_urls_button.setStyleSheet("""
+            QPushButton {
+                padding: 8px 16px;
+                font-size: 10pt;
+                background-color: #0d7377;
+                color: #ffffff;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #14a0a6;
+            }
+            QPushButton:pressed {
+                background-color: #0a5c5f;
+            }
+        """)
+        self.save_urls_button.clicked.connect(self.save_url_settings)
+        url_buttons_layout.addWidget(self.save_urls_button)
+
+        self.reset_urls_button = QPushButton("Reset to Defaults")
+        self.reset_urls_button.setStyleSheet("""
+            QPushButton {
+                padding: 8px 16px;
+                font-size: 10pt;
+                background-color: #3a3a3a;
+                color: #aaaaaa;
+                border: 1px solid #555555;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #4a4a4a;
+                color: #ffffff;
+            }
+            QPushButton:pressed {
+                background-color: #2a2a2a;
+            }
+        """)
+        self.reset_urls_button.clicked.connect(self.reset_url_settings)
+        url_buttons_layout.addWidget(self.reset_urls_button)
+
+        url_buttons_layout.addStretch()
+        url_layout.addLayout(url_buttons_layout)
+
+        # URL save status label
+        self.url_status_label = QLabel("")
+        self.url_status_label.setStyleSheet("""
+            QLabel {
+                font-size: 9pt;
+                color: #aaaaaa;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+        url_layout.addWidget(self.url_status_label)
+
+        settings_layout.addWidget(url_group)
 
         # Version section
         version_group = QWidget()
@@ -843,6 +1051,16 @@ class MainWindow(QMainWindow):
         settings_layout.addWidget(self.update_button)
 
         settings_layout.addStretch()
+
+        settings_scroll.setWidget(settings_content)
+
+        # Set scroll area as the settings page content
+        page_layout = QVBoxLayout(self.settings_page)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.addWidget(settings_scroll)
+
+        # Load saved URL settings
+        self.load_url_settings()
 
     def create_sidebar(self):
         """Create the left sidebar with tabs for Live Game and Viewers"""
@@ -954,17 +1172,94 @@ class MainWindow(QMainWindow):
         if index == 2:
             QTimer.singleShot(100, self.check_latest_version)
 
+    def load_url_settings(self):
+        """Load URL settings from QSettings and populate input fields"""
+        self.build_url_input.setText(self.build_url)
+        self.counter_url_input.setText(self.counter_url)
+        self.aram_url_input.setText(self.aram_url)
+        self.live_game_url_input.setText(self.live_game_url)
+
+    def save_url_settings(self):
+        """Save URL settings to QSettings"""
+        self.build_url = self.build_url_input.text().strip()
+        self.counter_url = self.counter_url_input.text().strip()
+        self.aram_url = self.aram_url_input.text().strip()
+        self.live_game_url = self.live_game_url_input.text().strip()
+
+        # Validate that URLs are not empty
+        if not self.build_url or not self.counter_url or not self.aram_url or not self.live_game_url:
+            self.url_status_label.setText("✗ Error: All URLs must be filled")
+            self.url_status_label.setStyleSheet("""
+                QLabel {
+                    font-size: 9pt;
+                    color: #d95d39;
+                    background-color: transparent;
+                    padding: 5px;
+                }
+            """)
+            return
+
+        self.settings.setValue("build_url", self.build_url)
+        self.settings.setValue("counter_url", self.counter_url)
+        self.settings.setValue("aram_url", self.aram_url)
+        self.settings.setValue("live_game_url", self.live_game_url)
+
+        # Update live game URL immediately
+        self.live_game_web_view.setUrl(QUrl(self.live_game_url))
+
+        self.url_status_label.setText("✓ URLs saved successfully")
+        self.url_status_label.setStyleSheet("""
+            QLabel {
+                font-size: 9pt;
+                color: #4a9d4a;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+
+        logger.info(f"URL settings saved - Build: {self.build_url}, Counter: {self.counter_url}, ARAM: {self.aram_url}, Live Game: {self.live_game_url}")
+
+    def reset_url_settings(self):
+        """Reset URL settings to defaults"""
+        self.build_url = DEFAULT_BUILD_URL
+        self.counter_url = DEFAULT_COUNTER_URL
+        self.aram_url = DEFAULT_ARAM_URL
+        self.live_game_url = DEFAULT_LIVE_GAME_URL
+
+        self.build_url_input.setText(self.build_url)
+        self.counter_url_input.setText(self.counter_url)
+        self.aram_url_input.setText(self.aram_url)
+        self.live_game_url_input.setText(self.live_game_url)
+
+        self.settings.setValue("build_url", self.build_url)
+        self.settings.setValue("counter_url", self.counter_url)
+        self.settings.setValue("aram_url", self.aram_url)
+        self.settings.setValue("live_game_url", self.live_game_url)
+
+        # Update live game URL immediately
+        self.live_game_web_view.setUrl(QUrl(self.live_game_url))
+
+        self.url_status_label.setText("✓ URLs reset to defaults")
+        self.url_status_label.setStyleSheet("""
+            QLabel {
+                font-size: 9pt;
+                color: #4a9d4a;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+
+        logger.info("URL settings reset to defaults")
+
     def save_sidebar_width(self):
         """Save the current sidebar width to settings"""
-        settings = QSettings("LoLViewer", "LoLViewer")
         sizes = self.main_splitter.sizes()
         if len(sizes) > 0:
-            settings.setValue("sidebar_width", sizes[0])
+            self.settings.setValue("sidebar_width", sizes[0])
 
     def restore_sidebar_width(self):
         """Restore the sidebar width from settings"""
-        settings = QSettings("LoLViewer", "LoLViewer")
-        saved_width = settings.value("sidebar_width", 200, type=int)
+        saved_width = self.settings.value("sidebar_width", 200, type=int)
         # Always set sidebar width explicitly using window's initial width
         # This prevents QSplitter from defaulting to 50/50 split on first launch
         initial_window_width = 1600  # Default window width set in init_ui
@@ -1046,8 +1341,8 @@ class MainWindow(QMainWindow):
             )
             return None
 
-        # Create new viewer
-        viewer = ChampionViewerWidget(self.next_viewer_id, self.champion_data, is_picked)
+        # Create new viewer with reference to main window for URL settings
+        viewer = ChampionViewerWidget(self.next_viewer_id, self.champion_data, is_picked, main_window=self)
         self.next_viewer_id += 1
 
         # Connect signals
