@@ -446,6 +446,31 @@ class ChampionViewerWidget(QWidget):
         """)
         control_layout.addWidget(self.lane_selector, stretch=1)
 
+        # Refresh button
+        self.refresh_button = QPushButton("⟳")
+        self.refresh_button.setToolTip("Refresh page")
+        self.refresh_button.setStyleSheet("""
+            QPushButton {
+                padding: 8px;
+                font-size: 14pt;
+                background-color: #2b2b2b;
+                color: #ffffff;
+                border: 1px solid #444444;
+                border-radius: 4px;
+                min-width: 40px;
+                max-width: 40px;
+            }
+            QPushButton:hover {
+                background-color: #3a3a3a;
+                border: 1px solid #0d7377;
+            }
+            QPushButton:pressed {
+                background-color: #1a1a1a;
+            }
+        """)
+        self.refresh_button.clicked.connect(self.refresh_page)
+        control_layout.addWidget(self.refresh_button)
+
         layout.addLayout(control_layout)
 
         # WebView
@@ -515,6 +540,11 @@ class ChampionViewerWidget(QWidget):
         self.champion_input.setFocus()
         # Notify parent window that champion name has been updated
         self.champion_updated.emit(self)
+
+    def refresh_page(self):
+        """Refresh the current web page"""
+        logger.info("Refreshing web page")
+        self.web_view.reload()
 
     def get_display_name(self) -> str:
         """Get display name for this viewer"""
