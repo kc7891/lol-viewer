@@ -324,13 +324,12 @@ class Updater:
             )
 
             # Build installer arguments
-            # /CLOSEAPPLICATIONS = Automatically close running instances
             # /NORESTART = Don't restart Windows
             # /DIR="path" = Preserve installation directory
             # Note: Language is automatically preserved via UsePreviousLanguage=yes in .iss
+            # Note: /CLOSEAPPLICATIONS is NOT used to prevent Vanguard from crashing
             installer_args = [
                 setup_exe_path,
-                '/CLOSEAPPLICATIONS',
                 '/NORESTART'
             ]
 
