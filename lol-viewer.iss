@@ -32,7 +32,11 @@ ArchitecturesInstallIn64BitMode=x64
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 ; Silent install support
-CloseApplications=yes
+; CloseApplications=no to prevent Vanguard from crashing when updating
+; CloseApplicationsFilter limits the check to only lol-viewer.exe
+; This prevents false detection of Vanguard (vgc.exe) monitoring file access
+CloseApplications=no
+CloseApplicationsFilter=lol-viewer.exe
 ; Note: App restart is handled by [Run] section (postinstall without skipifsilent)
 ; RestartApplications is not used to prevent duplicate launches
 ; Automatically use the language from previous installation
