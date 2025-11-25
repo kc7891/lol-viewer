@@ -62,3 +62,20 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
+
+[Registry]
+; Save installation path to registry for persistence across updates
+Root: HKCU; Subkey: "Software\{#MyAppPublisher}\{#MyAppName}"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; Flags: uninsdeletekey
+
+[Code]
+// Read previous installation path from registry and set as default
+procedure InitializeWizard();
+var
+  PrevPath: String;
+begin
+  if RegQueryStringValue(HKEY_CURRENT_USER, 'Software\{#MyAppPublisher}\{#MyAppName}', 'InstallPath', PrevPath) then
+  begin
+    if DirExists(PrevPath) then
+      WizardForm.DirEdit.Text := PrevPath;
+  end;
+end;
