@@ -32,7 +32,9 @@ ArchitecturesInstallIn64BitMode=x64
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 ; Silent install support
-CloseApplications=yes
+; CloseApplications=no to prevent Vanguard from crashing when updating
+; The updater.py checks for running League/Vanguard processes before applying updates
+CloseApplications=no
 ; Note: App restart is handled by [Run] section (postinstall without skipifsilent)
 ; RestartApplications is not used to prevent duplicate launches
 ; Automatically use the language from previous installation
