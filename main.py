@@ -252,6 +252,7 @@ class ChampionViewerWidget(QWidget):
         self.current_champion = ""
         self.champion_data = champion_data
         self.current_page_type = ""  # "build" or "counter"
+        self.current_url = ""  # Store the current URL for refresh functionality
         self.is_picked = is_picked  # Whether this viewer was created from champion pick
         self.init_ui()
 
@@ -497,6 +498,7 @@ class ChampionViewerWidget(QWidget):
         # Get selected lane
         lane = self.lane_selector.currentData()
         url = self.get_lolalytics_build_url(champion_name, lane)
+        self.current_url = url  # Store URL for refresh functionality
         self.web_view.setUrl(QUrl(url))
         self.champion_input.setFocus()
         # Notify parent window that champion name has been updated
@@ -516,6 +518,7 @@ class ChampionViewerWidget(QWidget):
         # Get selected lane
         lane = self.lane_selector.currentData()
         url = self.get_lolalytics_counter_url(champion_name, lane)
+        self.current_url = url  # Store URL for refresh functionality
         self.web_view.setUrl(QUrl(url))
         self.champion_input.setFocus()
         # Notify parent window that champion name has been updated
@@ -536,15 +539,20 @@ class ChampionViewerWidget(QWidget):
         url = self.get_ugg_aram_build_url(champion_name)
         logger.info(f"Opening ARAM page for {champion_name}: {url}")
 
+        self.current_url = url  # Store URL for refresh functionality
         self.web_view.setUrl(QUrl(url))
         self.champion_input.setFocus()
         # Notify parent window that champion name has been updated
         self.champion_updated.emit(self)
 
     def refresh_page(self):
-        """Refresh the current web page"""
-        logger.info("Refreshing web page")
-        self.web_view.reload()
+        """Refresh the current web page by reopening the original URL"""
+        if self.current_url:
+            logger.info(f"Refreshing web page by reopening URL: {self.current_url}")
+            self.web_view.setUrl(QUrl(self.current_url))
+        else:
+            logger.info("No URL stored, using standard reload")
+            self.web_view.reload()
 
     def get_display_name(self) -> str:
         """Get display name for this viewer"""
