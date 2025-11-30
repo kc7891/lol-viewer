@@ -62,5 +62,6 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 ; For silent updates, this ensures the app restarts after update
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall
 
-[UninstallDelete]
-Type: filesandordirs; Name: "{app}"
+; Note: [UninstallDelete] section removed to preserve user settings
+; The settings.json file created by the application will remain after uninstall
+; This allows settings to persist across reinstallations

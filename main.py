@@ -7,6 +7,7 @@ import logging
 import os
 from datetime import datetime
 from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer, QSettings
+from settings_manager import SettingsManager, migrate_from_qsettings
 from PyQt6.QtGui import QColor, QIcon
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
@@ -617,12 +618,26 @@ class MainWindow(QMainWindow):
         self.next_viewer_id = 0  # Counter for assigning viewer IDs
         self.champion_data = ChampionData()  # Load champion data
 
-        # Load URL settings
-        self.settings = QSettings("LoLViewer", "LoLViewer")
-        self.build_url = self.settings.value("build_url", DEFAULT_BUILD_URL, type=str)
-        self.counter_url = self.settings.value("counter_url", DEFAULT_COUNTER_URL, type=str)
-        self.aram_url = self.settings.value("aram_url", DEFAULT_ARAM_URL, type=str)
-        self.live_game_url = self.settings.value("live_game_url", DEFAULT_LIVE_GAME_URL, type=str)
+        # Load URL settings using SettingsManager (JSON file in app directory)
+        # This ensures settings persist across application updates
+        self._default_settings = {
+            "build_url": DEFAULT_BUILD_URL,
+            "counter_url": DEFAULT_COUNTER_URL,
+            "aram_url": DEFAULT_ARAM_URL,
+            "live_game_url": DEFAULT_LIVE_GAME_URL,
+            "sidebar_width": 200
+        }
+        self.settings_manager = SettingsManager(defaults=self._default_settings)
+
+        # Migrate from old QSettings (registry/config) to new JSON file if needed
+        self._qsettings = QSettings("LoLViewer", "LoLViewer")
+        migrate_from_qsettings(self.settings_manager, self._qsettings)
+
+        # Load settings
+        self.build_url = self.settings_manager.get("build_url")
+        self.counter_url = self.settings_manager.get("counter_url")
+        self.aram_url = self.settings_manager.get("aram_url")
+        self.live_game_url = self.settings_manager.get("live_game_url")
 
         # Initialize champion detector service
         logger.info("Initializing ChampionDetectorService...")
@@ -1211,14 +1226,14 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(100, self.check_latest_version)
 
     def load_url_settings(self):
-        """Load URL settings from QSettings and populate input fields"""
+        """Load URL settings from SettingsManager and populate input fields"""
         self.build_url_input.setText(self.build_url)
         self.counter_url_input.setText(self.counter_url)
         self.aram_url_input.setText(self.aram_url)
         self.live_game_url_input.setText(self.live_game_url)
 
     def save_url_settings(self):
-        """Save URL settings to QSettings"""
+        """Save URL settings to settings file"""
         self.build_url = self.build_url_input.text().strip()
         self.counter_url = self.counter_url_input.text().strip()
         self.aram_url = self.aram_url_input.text().strip()
@@ -1237,10 +1252,12 @@ class MainWindow(QMainWindow):
             """)
             return
 
-        self.settings.setValue("build_url", self.build_url)
-        self.settings.setValue("counter_url", self.counter_url)
-        self.settings.setValue("aram_url", self.aram_url)
-        self.settings.setValue("live_game_url", self.live_game_url)
+        self.settings_manager.set_multiple({
+            "build_url": self.build_url,
+            "counter_url": self.counter_url,
+            "aram_url": self.aram_url,
+            "live_game_url": self.live_game_url
+        })
 
         # Update live game URL immediately
         self.live_game_web_view.setUrl(QUrl(self.live_game_url))
@@ -1269,10 +1286,12 @@ class MainWindow(QMainWindow):
         self.aram_url_input.setText(self.aram_url)
         self.live_game_url_input.setText(self.live_game_url)
 
-        self.settings.setValue("build_url", self.build_url)
-        self.settings.setValue("counter_url", self.counter_url)
-        self.settings.setValue("aram_url", self.aram_url)
-        self.settings.setValue("live_game_url", self.live_game_url)
+        self.settings_manager.set_multiple({
+            "build_url": self.build_url,
+            "counter_url": self.counter_url,
+            "aram_url": self.aram_url,
+            "live_game_url": self.live_game_url
+        })
 
         # Update live game URL immediately
         self.live_game_web_view.setUrl(QUrl(self.live_game_url))
@@ -1293,11 +1312,11 @@ class MainWindow(QMainWindow):
         """Save the current sidebar width to settings"""
         sizes = self.main_splitter.sizes()
         if len(sizes) > 0:
-            self.settings.setValue("sidebar_width", sizes[0])
+            self.settings_manager.set("sidebar_width", sizes[0])
 
     def restore_sidebar_width(self):
         """Restore the sidebar width from settings"""
-        saved_width = self.settings.value("sidebar_width", 200, type=int)
+        saved_width = self.settings_manager.get("sidebar_width", 200)
         # Always set sidebar width explicitly using window's initial width
         # This prevents QSplitter from defaulting to 50/50 split on first launch
         initial_window_width = 1600  # Default window width set in init_ui
