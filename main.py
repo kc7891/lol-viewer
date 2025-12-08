@@ -7,13 +7,13 @@ import logging
 import os
 from datetime import datetime
 from typing import Callable, List, Optional
-from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer, QSettings
+from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer, QSettings, QEvent
 from PyQt6.QtGui import QColor, QIcon
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QMessageBox,
     QScrollArea, QSplitter, QListWidget, QListWidgetItem, QLabel,
-    QTabWidget, QStackedWidget, QComboBox, QCheckBox, QMenu
+    QTabWidget, QStackedWidget, QComboBox, QCheckBox
 )
 
 # Application version
@@ -40,6 +40,29 @@ FEATURE_FLAG_DEFINITIONS = {
         "default": False,
     },
 }
+
+SUGGESTION_POPUP_STYLE = """
+QListWidget {
+    background-color: #2b2b2b;
+    color: #ffffff;
+    border: 1px solid #0d7377;
+    border-radius: 4px;
+    outline: none;
+    padding: 0px;
+}
+QListWidget::item {
+    padding: 8px;
+    border-bottom: 1px solid #3a3a3a;
+    height: 30px;
+}
+QListWidget::item:selected {
+    background-color: #0d7377;
+    color: #ffffff;
+}
+QListWidget::item:hover {
+    background-color: #3a3a3a;
+}
+"""
 
 
 class LCUConnectionStatusWidget(QWidget):
@@ -331,12 +354,22 @@ class OpponentChampionLineEdit(QLineEdit):
     def __init__(self, suggestion_provider: Optional[Callable[[], List[str]]] = None, parent=None):
         super().__init__(parent)
         self.suggestion_provider = suggestion_provider
-        self._suggestion_menu: Optional[QMenu] = None
+        self._suggestion_popup: Optional[QListWidget] = None
+        self.textEdited.connect(self._close_suggestion_popup)
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
         if event.button() == Qt.MouseButton.LeftButton:
             self._maybe_show_suggestions()
+
+    def eventFilter(self, obj, event):
+        if obj == self._suggestion_popup and event.type() in (
+            QEvent.Type.Hide,
+            QEvent.Type.Close,
+            QEvent.Type.FocusOut,
+        ):
+            self._suggestion_popup = None
+        return super().eventFilter(obj, event)
 
     def _maybe_show_suggestions(self):
         """Show contextual suggestions when the input is empty."""
@@ -350,41 +383,43 @@ class OpponentChampionLineEdit(QLineEdit):
         if not suggestions:
             return
 
-        # Close existing menu if still open
-        if self._suggestion_menu and self._suggestion_menu.isVisible():
-            self._suggestion_menu.close()
+        self._show_popup(suggestions)
 
-        menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu {
-                background-color: #2b2b2b;
-                border: 1px solid #0d7377;
-                border-radius: 4px;
-            }
-            QMenu::item {
-                padding: 6px 16px;
-                color: #ffffff;
-            }
-            QMenu::item:selected {
-                background-color: #0d7377;
-            }
-        """)
+    def _show_popup(self, suggestions: List[str]):
+        self._close_suggestion_popup()
+
+        popup = QListWidget()
+        popup.setStyleSheet(SUGGESTION_POPUP_STYLE)
+        popup.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        popup.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        popup.setMouseTracking(True)
+        popup.installEventFilter(self)
+
+        width = max(self.width(), 250)
+        popup.setMinimumWidth(width)
+        popup.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         for name in suggestions:
-            action = menu.addAction(name)
-            action.triggered.connect(lambda checked=False, champ=name: self._apply_suggestion(champ))
+            item = QListWidgetItem(name)
+            popup.addItem(item)
 
-        menu.aboutToHide.connect(self._clear_suggestion_menu)
-        menu.popup(self.mapToGlobal(self.rect().bottomLeft()))
-        self._suggestion_menu = menu
+        popup.itemClicked.connect(lambda item: self._apply_suggestion(item.text()))
+        popup.itemActivated.connect(lambda item: self._apply_suggestion(item.text()))
+
+        popup.move(self.mapToGlobal(self.rect().bottomLeft()))
+        popup.show()
+        self._suggestion_popup = popup
+
+    def _close_suggestion_popup(self):
+        if self._suggestion_popup:
+            self._suggestion_popup.close()
+            self._suggestion_popup = None
 
     def _apply_suggestion(self, text: str):
         """Fill the line edit with the selected suggestion."""
         self.setText(text)
         self.setFocus()
-
-    def _clear_suggestion_menu(self):
-        self._suggestion_menu = None
+        self._close_suggestion_popup()
 
 
 class ChampionViewerWidget(QWidget):
@@ -504,7 +539,7 @@ class ChampionViewerWidget(QWidget):
 
         # Opponent champion input
         self.opponent_champion_input = OpponentChampionLineEdit(
-            suggestion_provider=self._get_counter_suggestions
+            suggestion_provider=self._get_open_champion_suggestions
         )
         self.opponent_champion_input.setPlaceholderText("Opponent champion (click to pick from Counter tab)")
         self.opponent_champion_input.setStyleSheet(line_edit_style)
@@ -762,10 +797,10 @@ class ChampionViewerWidget(QWidget):
             return parts[0]
         return " | ".join(parts)
 
-    def _get_counter_suggestions(self) -> List[str]:
-        """Fetch opponent suggestions from the main window counter tabs."""
-        if self.main_window and hasattr(self.main_window, "get_counter_champion_suggestions"):
-            return self.main_window.get_counter_champion_suggestions()
+    def _get_open_champion_suggestions(self) -> List[str]:
+        """Fetch opponent suggestions from all open viewers."""
+        if self.main_window and hasattr(self.main_window, "get_open_champion_suggestions"):
+            return self.main_window.get_open_champion_suggestions(exclude_viewer=self)
         return []
 
     def get_build_url(self, champion_name: str, lane: str = "") -> str:
@@ -1972,20 +2007,28 @@ class MainWindow(QMainWindow):
             item.setSizeHint(item_widget.sizeHint())
             self.viewers_list.setItemWidget(item, item_widget)
 
-    def get_counter_champion_suggestions(self) -> List[str]:
-        """Return unique champion names currently shown in counter tabs."""
+    def get_open_champion_suggestions(self, exclude_viewer: Optional[ChampionViewerWidget] = None) -> List[str]:
+        """Return unique champion names currently shown across all viewers."""
         suggestions: List[str] = []
         seen = set()
+
         for viewer in self.viewers:
-            if viewer.current_page_type != "counter" or not viewer.current_champion:
+            if exclude_viewer is not None and viewer is exclude_viewer:
                 continue
 
-            normalized = viewer.current_champion.lower()
-            if normalized in seen:
-                continue
+            candidates = [
+                getattr(viewer, "current_champion", ""),
+                getattr(viewer, "current_opponent_champion", ""),
+            ]
 
-            seen.add(normalized)
-            suggestions.append(viewer.current_champion)
+            for name in candidates:
+                if not name:
+                    continue
+                normalized = name.lower()
+                if normalized in seen:
+                    continue
+                seen.add(normalized)
+                suggestions.append(name)
 
         return suggestions
 

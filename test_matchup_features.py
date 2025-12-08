@@ -37,21 +37,22 @@ def test_matchup_url_uses_custom_template():
     assert url == "https://example.com/ahri-zed-middle"
 
 
-def test_get_counter_champion_suggestions_deduplicates_and_filters():
-    """Counter suggestions should only include unique counter-tab champions."""
+def test_get_open_champion_suggestions_deduplicates_and_excludes_self():
+    """Suggestions should include all other open champions (and matchup opponents)."""
 
     class DummyViewer:
-        def __init__(self, champion, page_type):
+        def __init__(self, champion, opponent=""):
             self.current_champion = champion
-            self.current_page_type = page_type
+            self.current_opponent_champion = opponent
 
     window = MainWindow.__new__(MainWindow)
+    viewer_self = DummyViewer("self")
     window.viewers = [
-        DummyViewer("ahri", "counter"),
-        DummyViewer("ahri", "counter"),  # duplicate should be ignored
-        DummyViewer("zed", "build"),     # not a counter tab
-        DummyViewer("lux", "counter"),
+        viewer_self,
+        DummyViewer("ahri", "zed"),
+        DummyViewer("ahri"),  # duplicate champion should be ignored
+        DummyViewer("lux"),
     ]
 
-    suggestions = MainWindow.get_counter_champion_suggestions(window)
-    assert suggestions == ["ahri", "lux"]
+    suggestions = MainWindow.get_open_champion_suggestions(window, exclude_viewer=viewer_self)
+    assert suggestions == ["ahri", "zed", "lux"]
