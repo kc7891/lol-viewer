@@ -410,7 +410,7 @@ class OpponentChampionLineEdit(QLineEdit):
         popup.show()
         self._suggestion_popup = popup
 
-    def _close_suggestion_popup(self):
+    def _close_suggestion_popup(self, *_):
         if self._suggestion_popup:
             self._suggestion_popup.close()
             self._suggestion_popup = None
