@@ -734,6 +734,7 @@ class ChampionViewerWidget(QWidget):
 
         self.current_champion = champion_name
         self.current_page_type = "counter"
+        self.current_opponent_champion = ""
 
         # Get selected lane
         lane = self.lane_selector.currentData()
@@ -754,6 +755,7 @@ class ChampionViewerWidget(QWidget):
 
         self.current_champion = champion_name
         self.current_page_type = "aram"
+        self.current_opponent_champion = ""
 
         url = self.get_aram_url(champion_name)
         logger.info(f"Opening ARAM page for {champion_name}: {url}")
