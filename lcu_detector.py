@@ -10,7 +10,7 @@ from typing import Optional, Dict, Callable
 import requests
 import urllib3
 import psutil
-from PyQt6.QtCore import QTimer, QObject, pyqtSignal
+from PyQt6.QtCore import QTimer, QObject, pyqtSignal, QCoreApplication
 
 # Import logger for debug output
 try:
@@ -251,6 +251,53 @@ class ChampionDetector:
             logger.error(f"Error detecting champions: {e}")
             return (None, [])
 
+    def detect_champion(self) -> Optional[str]:
+        """Detect own champion only (backwards-compatible helper).
+
+        Returns:
+            Optional[str]: champion name if detected, otherwise None.
+        """
+        try:
+            phase = self.phase_tracker.update_phase()
+
+            if phase == 'ChampSelect':
+                data = self.lcu_manager.make_request("/lol-champ-select/v1/session")
+                if not data:
+                    return None
+
+                own_champion_result = self._detect_own_champion_from_data(data)
+                if own_champion_result:
+                    champion_id, lane = own_champion_result
+                    if champion_id and champion_id > 0:
+                        self.current_champion_id = champion_id
+                        self.current_champion_name = self.champion_map.get(champion_id)
+                        self.current_lane = lane
+                        if self.current_champion_name:
+                            logger.info(
+                                f"Detected champion in champ select: {self.current_champion_name} (lane: {lane})"
+                            )
+                return self.current_champion_name
+
+            if phase == 'InProgress':
+                return self.current_champion_name
+
+            if phase == 'None' or phase == 'Lobby':
+                # Not in game - reset state
+                if self.current_champion_name:
+                    logger.info("Game ended, resetting champion state")
+                self.current_champion_id = None
+                self.current_champion_name = None
+                self.current_lane = None
+                self.detected_enemy_champions.clear()
+                return None
+
+            # Other phases - keep current state
+            return self.current_champion_name
+
+        except Exception as e:
+            logger.error(f"Error detecting champion: {e}")
+            return None
+
     def _detect_own_champion_from_data(self, data: dict) -> Optional[tuple]:
         """Detect own champion and lane from champ select session data
 
@@ -327,6 +374,11 @@ class ChampionDetectorService(QObject):
 
     def __init__(self):
         super().__init__()
+        # Ensure a Qt event loop exists so QTimer can run in headless/tests.
+        # (Tests may instantiate this service without creating QApplication.)
+        self._qt_app = None
+        if QCoreApplication.instance() is None:
+            self._qt_app = QCoreApplication([])
         log("[LCU] ChampionDetectorService.__init__ called")
         self.lcu_manager = LCUConnectionManager()
         self.phase_tracker = GamePhaseTracker(self.lcu_manager)

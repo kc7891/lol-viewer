@@ -10,6 +10,8 @@ os.environ.setdefault("QT_OPENGL", "software")
 os.environ.setdefault("QTWEBENGINE_DISABLE_SANDBOX", "1")
 os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS", "--no-sandbox --disable-gpu")
 os.environ.setdefault("LOL_VIEWER_DISABLE_WEBENGINE", "1")
+os.environ.setdefault("LOL_VIEWER_DISABLE_LCU_SERVICE", "1")
+os.environ.setdefault("LOL_VIEWER_DISABLE_DIALOGS", "1")
 
 import pytest
 from PyQt6.QtWidgets import QApplication

@@ -62,6 +62,32 @@ python test_autocomplete.py
 python main.py
 ```
 
+## Feature Flags
+
+This project uses **Feature Flags** to ship changes safely and avoid breaking stable workflows.
+
+### Where flags live
+
+- **Definitions**: `main.py` → `FEATURE_FLAG_DEFINITIONS`
+- **Persistence**: stored via `QSettings` under `feature_flags/<key>`
+- **UI**: Settings page bottom → **Feature Flags** section (toggle ON/OFF)
+
+### How to add a new flag (implementation checklist)
+
+1. Add a new entry to `FEATURE_FLAG_DEFINITIONS` in `main.py` (default should usually be **OFF**).
+2. Guard the new behavior behind the flag:
+   - Example: `if self.feature_flags.get("your_flag_key", False): ...`
+3. Ensure **flag OFF** keeps the app usable (degraded behavior is OK; crashes are not).
+4. If the feature needs a restart to take effect, keep it explicit (the UI hints that restart may be required).
+
+### When a feature cannot be flag-gated (important)
+
+Some changes are hard or risky to split behind a Feature Flag (examples: bootstrapping/startup path, updater core flow,
+irreversible data migration, or changes that would require maintaining two complex code paths).
+
+**Operational rule**: when an implementer judges a change is not reasonable to gate, they must confirm with the requester
+whether to proceed **without Feature Flag split** (and how to mitigate risk: Beta-only rollout, smaller PRs, release plan, etc.).
+
 ## Building
 
 `champions.json` is embedded into the executable, so no separate deployment is needed.
