@@ -2,7 +2,16 @@
 """
 Simple test program to verify QCompleter is working
 """
+import os
 import sys
+
+# Headless-friendly defaults for CI environments (no display server).
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ.setdefault("QT_OPENGL", "software")
+os.environ.setdefault("QTWEBENGINE_DISABLE_SANDBOX", "1")
+os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS", "--no-sandbox --disable-gpu")
+os.environ.setdefault("LOL_VIEWER_DISABLE_WEBENGINE", "1")
+
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QLabel
 from PyQt6.QtCore import Qt
 from champion_data import ChampionData, setup_champion_input
