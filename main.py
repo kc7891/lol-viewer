@@ -105,6 +105,26 @@ def _webengine_disabled() -> bool:
     return False
 
 
+def _lcu_service_disabled() -> bool:
+    """Whether background LCU polling should be disabled (e.g., tests)."""
+    if os.environ.get("LOL_VIEWER_DISABLE_LCU_SERVICE") == "1":
+        return True
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return True
+    return False
+
+
+def _ui_dialogs_disabled() -> bool:
+    """Disable modal dialogs in headless/test environments."""
+    if os.environ.get("LOL_VIEWER_DISABLE_DIALOGS") == "1":
+        return True
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return True
+    if os.environ.get("QT_QPA_PLATFORM") in {"offscreen", "minimal"}:
+        return True
+    return False
+
+
 class NullWebView(QWidget):
     """Fallback widget when QWebEngineView cannot be used (headless/CI).
 
@@ -317,6 +337,16 @@ class ChampionViewerWidget(QWidget):
         self.is_picked = is_picked  # Whether this viewer was created from champion pick
         self.main_window = main_window  # Reference to MainWindow for URL settings
         self.init_ui()
+
+    @staticmethod
+    def get_lolalytics_build_url(champion_name: str) -> str:
+        """Legacy helper used by tests: build URL for a champion."""
+        return DEFAULT_BUILD_URL.replace("{name}", champion_name)
+
+    @staticmethod
+    def get_lolalytics_counter_url(champion_name: str) -> str:
+        """Legacy helper used by tests: counter URL for a champion."""
+        return DEFAULT_COUNTER_URL.replace("{name}", champion_name)
 
     def init_ui(self):
         """Initialize the UI components"""
@@ -616,12 +646,24 @@ class ChampionViewerWidget(QWidget):
             self.web_view.reload()
 
     def get_display_name(self) -> str:
-        """Get display name for this viewer"""
-        if self.current_champion and self.current_page_type:
-            if self.is_picked:
-                return f"{self.current_champion} | {self.current_page_type} | picked"
-            return f"{self.current_champion} | {self.current_page_type}"
-        return "(Empty)"
+        """Get display name for this viewer (used in sidebar)."""
+        base = f"View #{self.viewer_id + 1}"
+
+        champ_raw = (self.current_champion or "").strip()
+        champ_display = champ_raw.title() if champ_raw else ""
+
+        if not champ_display:
+            return base
+
+        # Keep extra context when available, but remain readable.
+        parts = [f"{base}: {champ_display}"]
+        if self.current_page_type:
+            parts.append(self.current_page_type)
+        if self.is_picked:
+            parts.append("picked")
+        if len(parts) == 1:
+            return parts[0]
+        return " | ".join(parts)
 
     def get_build_url(self, champion_name: str, lane: str = "") -> str:
         """Generate the build URL for a given champion using configured URL template"""
@@ -856,9 +898,17 @@ class MainWindow(QMainWindow):
 
         viewers_layout.addWidget(self.viewers_splitter)
 
-        # Start champion detection service
-        logger.info("Starting champion detection service")
-        self.champion_detector.start(interval_ms=2000)
+        # Create initial viewers (default 2) if none exist yet
+        if len(self.viewers) == 0:
+            self.add_viewer()
+            self.add_viewer()
+
+        # Start champion detection service (disabled in tests/headless if needed)
+        if _lcu_service_disabled():
+            logger.info("LCU champion detection service disabled")
+        else:
+            logger.info("Starting champion detection service")
+            self.champion_detector.start(interval_ms=2000)
 
     def create_settings_page(self):
         """Create the Settings page with version information and update check"""
@@ -1575,11 +1625,14 @@ class MainWindow(QMainWindow):
             is_picked: Whether this viewer was created from champion pick
         """
         if len(self.viewers) >= self.MAX_VIEWERS:
-            QMessageBox.warning(
-                self,
-                "Maximum Viewers Reached",
-                f"You can only have up to {self.MAX_VIEWERS} viewers."
-            )
+            if _ui_dialogs_disabled():
+                logger.warning("Maximum viewers reached; dialog suppressed in headless/test mode")
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Maximum Viewers Reached",
+                    f"You can only have up to {self.MAX_VIEWERS} viewers."
+                )
             return None
 
         # Create new viewer with reference to main window for URL settings
