@@ -92,6 +92,18 @@ class LCUConnectionManager:
             logger.error(f"Error checking if client is running: {e}")
         return False
 
+    def disconnect(self, reason: str = ""):
+        """Reset connection credentials."""
+        if self.connected:
+            msg = f"Disconnected from LCU"
+            if reason:
+                msg += f": {reason}"
+            log(f"[LCU] {msg}")
+            logger.info(msg)
+        self.connected = False
+        self.port = None
+        self.password = None
+
     def get_auth_header(self) -> str:
         """Get authorization header for LCU API"""
         credentials = f"riot:{self.password}"
@@ -115,9 +127,11 @@ class LCUConnectionManager:
                 return None
         except requests.exceptions.RequestException as e:
             logger.debug(f"Request error for {endpoint}: {e}")
+            self.disconnect(reason=str(e))
             return None
         except Exception as e:
             logger.error(f"Unexpected error making request to {endpoint}: {e}")
+            self.disconnect(reason=str(e))
             return None
 
 
@@ -338,17 +352,44 @@ class ChampionDetectorService(QObject):
         self.last_connection_status: str = "connecting"  # Track connection status
         self.running = False
         self.check_count = 0  # Track number of checks for logging
+        self.base_interval_ms = 2000
+        self.max_interval_ms = 60000
+        self.current_interval_ms = self.base_interval_ms
+        self.is_checking = False
         log("[LCU] ChampionDetectorService initialized")
         logger.info("ChampionDetectorService initialized")
 
-    def start(self, interval_ms: int = 2000):
+    def _set_connection_status(self, status: str):
+        """Emit connection status changes once."""
+        if self.last_connection_status != status:
+            self.last_connection_status = status
+            self.connection_status_changed.emit(status)
+            log(f"[LCU] Status changed to: {status}")
+            logger.info(f"Status changed to: {status}")
+
+    def _clear_champion_state(self):
+        """Reset cached champion data when connection drops."""
+        if self.last_champion or self.last_lane:
+            log(f"[LCU] Clearing cached champion data due to disconnect")
+            logger.debug("Clearing cached champion data after disconnect")
+        self.last_champion = None
+        self.last_lane = None
+        self.detector.current_champion_id = None
+        self.detector.current_champion_name = None
+        self.detector.current_lane = None
+        self.detector.detected_enemy_champions.clear()
+
+    def start(self, interval_ms: int = 2000, max_interval_ms: int = 60000):
         """Start champion detection (polls every interval_ms milliseconds)"""
         log(f"[LCU] Starting champion detection service (interval: {interval_ms}ms)")
         log(f"[LCU] Will check for LoL client every {interval_ms/1000:.1f} seconds")
         logger.info(f"Starting champion detection service (interval: {interval_ms}ms)")
         self.running = True
         self.check_count = 0
-        self.timer.start(interval_ms)
+        self.base_interval_ms = interval_ms
+        self.max_interval_ms = max(interval_ms, max_interval_ms)
+        self.current_interval_ms = self.base_interval_ms
+        self._set_timer_interval(self.base_interval_ms)
         is_active = self.timer.isActive()
         log(f"[LCU] Timer started successfully, is active: {is_active}")
         logger.info(f"Timer started, is active: {is_active}")
@@ -359,8 +400,60 @@ class ChampionDetectorService(QObject):
         self.running = False
         self.timer.stop()
 
-    def _check_champion(self):
+    def manual_connect_attempt(self):
+        """Immediately try to connect to the client on user request."""
+        log("[LCU] Manual connection attempt requested")
+        logger.info("Manual LCU connection attempt requested")
+        if not self.running:
+            log("[LCU] Service not running; starting with default interval")
+            self.start(self.base_interval_ms, self.max_interval_ms)
+            return
+
+        self._reset_backoff()
+        if not self.timer.isActive():
+            self._set_timer_interval(self.current_interval_ms)
+        self._set_connection_status("connecting")
+        self._check_champion(force=True)
+
+    def _set_timer_interval(self, interval_ms: int):
+        """Update timer interval if it changed."""
+        if interval_ms <= 0:
+            interval_ms = self.base_interval_ms
+
+        if interval_ms != self.current_interval_ms:
+            log(f"[LCU] Updating polling interval: {self.current_interval_ms} -> {interval_ms} ms")
+            logger.info(f"Polling interval updated: {self.current_interval_ms} -> {interval_ms} ms")
+        self.current_interval_ms = interval_ms
+        if self.running:
+            self.timer.start(self.current_interval_ms)
+
+    def _increase_backoff(self):
+        """Exponential backoff when client is not running."""
+        if self.current_interval_ms >= self.max_interval_ms:
+            return
+
+        new_interval = min(self.current_interval_ms * 2, self.max_interval_ms)
+        if new_interval != self.current_interval_ms:
+            log(f"[LCU] Client not found; backing off to {new_interval}ms")
+            logger.debug(f"Backoff applied, new interval: {new_interval}ms")
+            self._set_timer_interval(new_interval)
+
+    def _reset_backoff(self):
+        """Reset polling interval to the base value."""
+        if self.current_interval_ms != self.base_interval_ms:
+            log(f"[LCU] Resetting polling interval to base {self.base_interval_ms}ms")
+            logger.info("Polling interval reset to base")
+            self._set_timer_interval(self.base_interval_ms)
+
+    def _check_champion(self, force: bool = False):
         """Check for champion changes (called by timer)"""
+        if force:
+            logger.debug("Forced champion check triggered")
+        if self.is_checking:
+            logger.debug("Skipping check; previous check still running")
+            return
+
+        self.is_checking = True
         try:
             self.check_count += 1
             # Log every 10 checks (every 20 seconds) to avoid spam
@@ -369,42 +462,44 @@ class ChampionDetectorService(QObject):
 
             logger.debug(f"Check #{self.check_count}: connected={self.lcu_manager.connected}")
 
-            # Track previous connection state
-            was_connected = self.lcu_manager.connected
+            is_running = self.lcu_manager.is_client_running()
+            logger.debug(f"Client running: {is_running}, connected={self.lcu_manager.connected}")
+
+            if not is_running:
+                if self.check_count % 10 == 1:
+                    log("[LCU] LoL client not running")
+                if self.lcu_manager.connected:
+                    self.lcu_manager.disconnect("client closed")
+                self._increase_backoff()
+                self._set_connection_status("disconnected")
+                self._clear_champion_state()
+                return
+
+            # LoL client is running - ensure we're polling quickly
+            self._reset_backoff()
 
             # Try to connect if not connected
             if not self.lcu_manager.connected:
-                # Update status to connecting if we're trying to connect
-                if self.last_connection_status != "connecting":
-                    self.last_connection_status = "connecting"
-                    self.connection_status_changed.emit("connecting")
-                    log("[LCU] Status changed to: connecting")
+                self._set_connection_status("connecting")
+                connected = self.lcu_manager.connect()
+                log(f"[LCU] Connection attempt result: {connected}")
+                logger.info(f"Connection attempt result: {connected}")
+                if not connected:
+                    return
 
-                is_running = self.lcu_manager.is_client_running()
-                if self.check_count % 10 == 1:
-                    log(f"[LCU] LoL client running: {is_running}")
-                logger.debug(f"Client running check: {is_running}")
+            # Ensure status reflects active connection
+            self._set_connection_status("connected")
 
-                if is_running:
-                    connected = self.lcu_manager.connect()
-                    log(f"[LCU] Connection attempt result: {connected}")
-                    logger.info(f"Connection attempt result: {connected}")
-
-                    # If we just connected, emit connected status
-                    if connected and self.last_connection_status != "connected":
-                        self.last_connection_status = "connected"
-                        self.connection_status_changed.emit("connected")
-                        log("[LCU] Status changed to: connected")
-            else:
-                # We are connected, make sure status is updated
-                if self.last_connection_status != "connected":
-                    self.last_connection_status = "connected"
-                    self.connection_status_changed.emit("connected")
-                    log("[LCU] Status changed to: connected")
+            own_result = None
+            enemy_champions = []
 
             # Detect champions (both own and enemy in a single API call)
             if self.lcu_manager.connected:
                 own_result, enemy_champions = self.detector.detect_champion_and_enemies()
+            else:
+                # Connection dropped during detection attempt, retry next tick
+                self._set_connection_status("connecting")
+                return
 
                 # Handle own champion detection
                 if own_result:
@@ -432,8 +527,14 @@ class ChampionDetectorService(QObject):
                     logger.info(f"Enemy champion detected: {enemy_champion}")
                     self.enemy_champion_detected.emit(enemy_champion)
 
+            # Connection might have been lost during API calls
+            if not self.lcu_manager.connected:
+                self._set_connection_status("connecting")
+
         except Exception as e:
             log(f"[LCU] Error in champion check: {e}")
             logger.error(f"Error in champion check: {e}")
             import traceback
             traceback.print_exc()
+        finally:
+            self.is_checking = False

@@ -1008,6 +1008,61 @@ class MainWindow(QMainWindow):
 
         settings_layout.addWidget(url_group)
 
+        # LCU connection controls
+        connection_group = QWidget()
+        connection_layout = QVBoxLayout(connection_group)
+        connection_layout.setSpacing(10)
+
+        connection_title = QLabel("LCU Connection")
+        connection_title.setStyleSheet("""
+            QLabel {
+                font-size: 12pt;
+                font-weight: bold;
+                color: #ffffff;
+                background-color: transparent;
+            }
+        """)
+        connection_layout.addWidget(connection_title)
+
+        connection_description = QLabel("LoLクライアントを後から起動した場合は、下のボタンを押すと即座に接続を再試行します。")
+        connection_description.setWordWrap(True)
+        connection_description.setStyleSheet("""
+            QLabel {
+                font-size: 9pt;
+                color: #aaaaaa;
+                background-color: transparent;
+                padding: 5px 0px;
+            }
+        """)
+        connection_layout.addWidget(connection_description)
+
+        self.lcu_connect_button = QPushButton("Retry LCU Connection")
+        self.lcu_connect_button.setStyleSheet("""
+            QPushButton {
+                padding: 8px 16px;
+                font-size: 10pt;
+                background-color: #3a3a3a;
+                color: #aaaaaa;
+                border: 1px solid #555555;
+                border-radius: 4px;
+            }
+            QPushButton:hover:enabled {
+                background-color: #4a4a4a;
+                color: #ffffff;
+            }
+            QPushButton:pressed:enabled {
+                background-color: #2a2a2a;
+            }
+            QPushButton:disabled {
+                background-color: #2a2a2a;
+                color: #666666;
+            }
+        """)
+        self.lcu_connect_button.clicked.connect(self.manual_connect_lcu)
+        connection_layout.addWidget(self.lcu_connect_button)
+
+        settings_layout.addWidget(connection_group)
+
         # Version section
         version_group = QWidget()
         version_layout = QVBoxLayout(version_group)
@@ -1288,6 +1343,31 @@ class MainWindow(QMainWindow):
         """)
 
         logger.info("URL settings reset to defaults")
+
+    def manual_connect_lcu(self):
+        """Trigger an immediate attempt to connect to the LoL client."""
+        if not hasattr(self, "lcu_connect_button"):
+            return
+
+        button = self.lcu_connect_button
+        if not button.isEnabled():
+            return
+
+        button.setEnabled(False)
+        button.setText("Connecting...")
+        QApplication.processEvents()
+
+        try:
+            if hasattr(self, "champion_detector"):
+                self.champion_detector.manual_connect_attempt()
+        finally:
+            QTimer.singleShot(1500, self.reset_lcu_connect_button)
+
+    def reset_lcu_connect_button(self):
+        """Restore the LCU connect button state."""
+        if hasattr(self, "lcu_connect_button"):
+            self.lcu_connect_button.setEnabled(True)
+            self.lcu_connect_button.setText("Retry LCU Connection")
 
     def save_sidebar_width(self):
         """Save the current sidebar width to settings"""
