@@ -45,14 +45,14 @@ class Updater:
         self.current_version = current_version
         self.parent_widget = parent_widget
 
-    def check_for_updates(self) -> tuple[bool, dict]:
+    def check_for_updates(self) -> tuple[bool, dict | None]:
         """
         Check if a new version is available
 
         Returns:
             Tuple of (has_update, release_info)
             - has_update: True if new version available
-            - release_info: Dict with release information or None
+            - release_info: Dict with release information when check succeeds; None on failure
         """
         try:
             logger.info(f"Checking for updates (current version: {self.current_version})")
@@ -79,7 +79,9 @@ class Updater:
                 return True, release_data
             else:
                 logger.info(f"✓ Application is up to date (current: {self.current_version}, latest: {latest_version})")
-                return False, None
+                # Important: returning None here makes callers unable to distinguish
+                # "up to date" from "failed to check". Return release data on success.
+                return False, release_data
 
         except requests.exceptions.RequestException as e:
             logger.warning(f"Failed to check for updates: {e}")
