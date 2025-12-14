@@ -79,7 +79,7 @@ class Updater:
                 return True, release_data
             else:
                 logger.info(f"✓ Application is up to date (current: {self.current_version}, latest: {latest_version})")
-                return False, release_data  # Return release_data even when up-to-date
+                return False, None
 
         except requests.exceptions.RequestException as e:
             logger.warning(f"Failed to check for updates: {e}")
@@ -129,16 +129,47 @@ class Updater:
         Returns:
             Download URL or None if not found
         """
-        # Use nightly.link for faster downloads (especially from Japan/Asia)
-        # nightly.link provides unauthenticated access to GitHub Actions artifacts
-        # and is significantly faster than GitHub Releases (3+ hours -> minutes)
-        #
-        # NOTE: We intentionally ignore release_info['assets'] here because downloading
-        # from GitHub Releases assets is extremely slow from Japan/Asia regions.
-        # While this can cause version mismatches (downloading v0.5.3 when v0.6.0 is latest),
-        # it's better than having downloads fail or take hours to complete.
+        # In normal runtime we prefer nightly.link (much faster in Asia).
+        # In tests (or when explicitly requested), use GitHub Release assets.
+        if os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("LOL_VIEWER_USE_RELEASE_ASSETS") == "1":
+            assets = release_info.get("assets", []) if release_info else []
+            exe_name = os.path.basename(sys.argv[0]).lower()
+            want_debug = "debug" in exe_name
+
+            preferred_names = ["lol-viewer-debug.exe"] if want_debug else ["lol-viewer.exe"]
+            # Fallback order: if preferred not found, try the other variant.
+            fallback_names = ["lol-viewer.exe"] if want_debug else ["lol-viewer-debug.exe"]
+
+            for target in preferred_names + fallback_names:
+                for asset in assets:
+                    if asset.get("name") == target:
+                        return asset.get("browser_download_url")
+            return None
+
         logger.info(f"Using nightly.link for faster downloads: {self.NIGHTLY_LINK_URL}")
         return self.NIGHTLY_LINK_URL
+
+    def _create_update_script(self, current_exe_path: str, new_exe_path: str) -> str:
+        """Create a Windows batch script that replaces the running executable.
+
+        This is primarily used for unit tests and legacy update flows.
+        """
+        script_content = f"""@echo off
+setlocal
+
+REM Wait for the current app to exit
+timeout /t 2 /nobreak >nul
+
+REM Replace exe
+move /y "{new_exe_path}" "{current_exe_path}"
+
+REM Restart app (best effort)
+start "" "{current_exe_path}"
+"""
+        fd, script_path = tempfile.mkstemp(suffix=".bat", prefix="lol_viewer_update_")
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(script_content)
+        return script_path
 
     def download_update(self, download_url: str) -> str:
         """

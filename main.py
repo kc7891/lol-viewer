@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QMessageBox,
     QScrollArea, QSplitter, QListWidget, QListWidgetItem, QLabel,
-    QTabWidget, QStackedWidget, QComboBox
+    QTabWidget, QStackedWidget, QComboBox, QCheckBox
 )
 
 # Application version
@@ -23,6 +23,18 @@ DEFAULT_BUILD_URL = "https://lolalytics.com/lol/{name}/build/"
 DEFAULT_COUNTER_URL = "https://lolalytics.com/lol/{name}/counters/"
 DEFAULT_ARAM_URL = "https://u.gg/lol/champions/aram/{name}-aram"
 DEFAULT_LIVE_GAME_URL = "https://u.gg/lol/lg-splash"
+
+# Feature flags (toggle in Settings page).
+# Add new flags here when introducing gated behavior.
+# NOTE: Keys are persisted via QSettings at "feature_flags/<key>".
+FEATURE_FLAG_DEFINITIONS = {
+    # Example flags (safe defaults OFF). Wire them into behavior as needed.
+    "experimental_features": {
+        "label": "Enable experimental features",
+        "description": "Turns on experimental behaviors that may be unstable.",
+        "default": False,
+    },
+}
 
 
 class LCUConnectionStatusWidget(QWidget):
@@ -78,6 +90,69 @@ class LCUConnectionStatusWidget(QWidget):
             self.dot_count = 1
             self.status_label.setText("connecting.")
 from PyQt6.QtWebEngineWidgets import QWebEngineView
+
+
+def _webengine_disabled() -> bool:
+    """Whether QWebEngine should be disabled (e.g., headless test runs)."""
+    if os.environ.get("LOL_VIEWER_DISABLE_WEBENGINE") == "1":
+        return True
+    # Common headless platforms for Qt tests.
+    if os.environ.get("QT_QPA_PLATFORM") in {"offscreen", "minimal"}:
+        return True
+    # Pytest sets this env var for the current test item.
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return True
+    return False
+
+
+def _lcu_service_disabled() -> bool:
+    """Whether background LCU polling should be disabled (e.g., tests)."""
+    if os.environ.get("LOL_VIEWER_DISABLE_LCU_SERVICE") == "1":
+        return True
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return True
+    return False
+
+
+def _ui_dialogs_disabled() -> bool:
+    """Disable modal dialogs in headless/test environments."""
+    if os.environ.get("LOL_VIEWER_DISABLE_DIALOGS") == "1":
+        return True
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return True
+    if os.environ.get("QT_QPA_PLATFORM") in {"offscreen", "minimal"}:
+        return True
+    return False
+
+
+class NullWebView(QWidget):
+    """Fallback widget when QWebEngineView cannot be used (headless/CI).
+
+    Provides a minimal subset of QWebEngineView's API used by the app.
+    """
+
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        label = QLabel("Web view disabled (headless mode)")
+        label.setStyleSheet("QLabel { color: #aaaaaa; padding: 10px; }")
+        label.setWordWrap(True)
+        layout.addWidget(label)
+        self._last_url = None
+
+    def page(self):
+        return self
+
+    def setBackgroundColor(self, _color: QColor):
+        # No-op for compatibility
+        return None
+
+    def setUrl(self, url: QUrl):
+        self._last_url = url
+
+    def reload(self):
+        return None
 
 
 def setup_logging():
@@ -262,6 +337,16 @@ class ChampionViewerWidget(QWidget):
         self.is_picked = is_picked  # Whether this viewer was created from champion pick
         self.main_window = main_window  # Reference to MainWindow for URL settings
         self.init_ui()
+
+    @staticmethod
+    def get_lolalytics_build_url(champion_name: str) -> str:
+        """Legacy helper used by tests: build URL for a champion."""
+        return DEFAULT_BUILD_URL.replace("{name}", champion_name)
+
+    @staticmethod
+    def get_lolalytics_counter_url(champion_name: str) -> str:
+        """Legacy helper used by tests: counter URL for a champion."""
+        return DEFAULT_COUNTER_URL.replace("{name}", champion_name)
 
     def init_ui(self):
         """Initialize the UI components"""
@@ -482,8 +567,8 @@ class ChampionViewerWidget(QWidget):
         layout.addLayout(control_layout)
 
         # WebView
-        self.web_view = QWebEngineView()
-        # Set dark background color for web view to match dark theme
+        self.web_view = NullWebView() if _webengine_disabled() else QWebEngineView()
+        # Set dark background color for web view to match dark theme (no-op in NullWebView)
         self.web_view.page().setBackgroundColor(QColor("#1e1e1e"))
         layout.addWidget(self.web_view)
 
@@ -561,12 +646,24 @@ class ChampionViewerWidget(QWidget):
             self.web_view.reload()
 
     def get_display_name(self) -> str:
-        """Get display name for this viewer"""
-        if self.current_champion and self.current_page_type:
-            if self.is_picked:
-                return f"{self.current_champion} | {self.current_page_type} | picked"
-            return f"{self.current_champion} | {self.current_page_type}"
-        return "(Empty)"
+        """Get display name for this viewer (used in sidebar)."""
+        base = f"View #{self.viewer_id + 1}"
+
+        champ_raw = (self.current_champion or "").strip()
+        champ_display = champ_raw.title() if champ_raw else ""
+
+        if not champ_display:
+            return base
+
+        # Keep extra context when available, but remain readable.
+        parts = [f"{base}: {champ_display}"]
+        if self.current_page_type:
+            parts.append(self.current_page_type)
+        if self.is_picked:
+            parts.append("picked")
+        if len(parts) == 1:
+            return parts[0]
+        return " | ".join(parts)
 
     def get_build_url(self, champion_name: str, lane: str = "") -> str:
         """Generate the build URL for a given champion using configured URL template"""
@@ -623,6 +720,9 @@ class MainWindow(QMainWindow):
         self.counter_url = self.settings.value("counter_url", DEFAULT_COUNTER_URL, type=str)
         self.aram_url = self.settings.value("aram_url", DEFAULT_ARAM_URL, type=str)
         self.live_game_url = self.settings.value("live_game_url", DEFAULT_LIVE_GAME_URL, type=str)
+
+        # Load feature flags
+        self.feature_flags = self.load_feature_flags()
 
         # Initialize champion detector service
         logger.info("Initializing ChampionDetectorService...")
@@ -766,7 +866,7 @@ class MainWindow(QMainWindow):
         live_game_layout.setContentsMargins(0, 0, 0, 0)
 
         # WebView using configured live game URL
-        self.live_game_web_view = QWebEngineView()
+        self.live_game_web_view = NullWebView() if _webengine_disabled() else QWebEngineView()
         self.live_game_web_view.page().setBackgroundColor(QColor("#1e1e1e"))
         self.live_game_web_view.setUrl(QUrl(self.live_game_url))
         live_game_layout.addWidget(self.live_game_web_view)
@@ -798,9 +898,17 @@ class MainWindow(QMainWindow):
 
         viewers_layout.addWidget(self.viewers_splitter)
 
-        # Start champion detection service
-        logger.info("Starting champion detection service")
-        self.champion_detector.start(interval_ms=2000)
+        # Create initial viewers (default 2) if none exist yet
+        if len(self.viewers) == 0:
+            self.add_viewer()
+            self.add_viewer()
+
+        # Start champion detection service (disabled in tests/headless if needed)
+        if _lcu_service_disabled():
+            logger.info("LCU champion detection service disabled")
+        else:
+            logger.info("Starting champion detection service")
+            self.champion_detector.start(interval_ms=2000)
 
     def create_settings_page(self):
         """Create the Settings page with version information and update check"""
@@ -1143,6 +1251,99 @@ class MainWindow(QMainWindow):
         self.update_button.clicked.connect(self.check_for_updates)
         settings_layout.addWidget(self.update_button)
 
+        # Feature flags section (bottom)
+        flags_group = QWidget()
+        flags_layout = QVBoxLayout(flags_group)
+        flags_layout.setSpacing(10)
+
+        flags_title = QLabel("Feature Flags")
+        flags_title.setStyleSheet("""
+            QLabel {
+                font-size: 12pt;
+                font-weight: bold;
+                color: #ffffff;
+                background-color: transparent;
+            }
+        """)
+        flags_layout.addWidget(flags_title)
+
+        flags_description = QLabel(
+            "Toggle experimental or gated features. If something breaks, turn the flag OFF and restart the app."
+        )
+        flags_description.setStyleSheet("""
+            QLabel {
+                font-size: 9pt;
+                color: #aaaaaa;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+        flags_description.setWordWrap(True)
+        flags_layout.addWidget(flags_description)
+
+        self.feature_flag_checkboxes = {}
+        if not FEATURE_FLAG_DEFINITIONS:
+            no_flags_label = QLabel("No feature flags available in this build.")
+            no_flags_label.setStyleSheet("QLabel { font-size: 10pt; color: #cccccc; background-color: transparent; padding: 5px; }")
+            flags_layout.addWidget(no_flags_label)
+        else:
+            for key, meta in FEATURE_FLAG_DEFINITIONS.items():
+                checkbox = QCheckBox(meta.get("label", key))
+                checkbox.setChecked(bool(self.feature_flags.get(key, meta.get("default", False))))
+                if meta.get("description"):
+                    checkbox.setToolTip(meta["description"])
+                checkbox.setStyleSheet("""
+                    QCheckBox {
+                        font-size: 10pt;
+                        color: #cccccc;
+                        background-color: transparent;
+                        padding: 4px;
+                    }
+                    QCheckBox::indicator {
+                        width: 16px;
+                        height: 16px;
+                    }
+                """)
+                checkbox.stateChanged.connect(lambda state, k=key: self.set_feature_flag(k, state == 2))
+                self.feature_flag_checkboxes[key] = checkbox
+                flags_layout.addWidget(checkbox)
+
+        flags_buttons_layout = QHBoxLayout()
+        self.reset_flags_button = QPushButton("Reset Flags to Defaults")
+        self.reset_flags_button.setStyleSheet("""
+            QPushButton {
+                padding: 8px 16px;
+                font-size: 10pt;
+                background-color: #3a3a3a;
+                color: #aaaaaa;
+                border: 1px solid #555555;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #4a4a4a;
+                color: #ffffff;
+            }
+            QPushButton:pressed {
+                background-color: #2a2a2a;
+            }
+        """)
+        self.reset_flags_button.clicked.connect(self.reset_feature_flags)
+        flags_buttons_layout.addWidget(self.reset_flags_button)
+        flags_buttons_layout.addStretch()
+        flags_layout.addLayout(flags_buttons_layout)
+
+        self.flags_status_label = QLabel("")
+        self.flags_status_label.setStyleSheet("""
+            QLabel {
+                font-size: 9pt;
+                color: #aaaaaa;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+        flags_layout.addWidget(self.flags_status_label)
+
+        settings_layout.addWidget(flags_group)
         settings_layout.addStretch()
 
         settings_scroll.setWidget(settings_content)
@@ -1154,6 +1355,7 @@ class MainWindow(QMainWindow):
 
         # Load saved URL settings
         self.load_url_settings()
+        self.load_feature_flag_settings()
 
     def create_sidebar(self):
         """Create the left sidebar with tabs for Live Game and Viewers"""
@@ -1271,6 +1473,57 @@ class MainWindow(QMainWindow):
         self.counter_url_input.setText(self.counter_url)
         self.aram_url_input.setText(self.aram_url)
         self.live_game_url_input.setText(self.live_game_url)
+
+    def load_feature_flags(self) -> dict:
+        """Load feature flags from QSettings using definitions as defaults."""
+        flags = {}
+        for key, meta in FEATURE_FLAG_DEFINITIONS.items():
+            default_value = bool(meta.get("default", False))
+            flags[key] = self.settings.value(f"feature_flags/{key}", default_value, type=bool)
+        return flags
+
+    def load_feature_flag_settings(self):
+        """Populate feature flag checkboxes from loaded flags."""
+        if not hasattr(self, "feature_flag_checkboxes"):
+            return
+        for key, checkbox in self.feature_flag_checkboxes.items():
+            meta = FEATURE_FLAG_DEFINITIONS.get(key, {})
+            checkbox.setChecked(bool(self.feature_flags.get(key, meta.get("default", False))))
+
+    def set_feature_flag(self, key: str, enabled: bool):
+        """Persist a feature flag change and update in-memory state."""
+        self.feature_flags[key] = bool(enabled)
+        self.settings.setValue(f"feature_flags/{key}", bool(enabled))
+        if hasattr(self, "flags_status_label"):
+            self.flags_status_label.setText(f"✓ Flag '{key}' set to {'ON' if enabled else 'OFF'} (restart may be required)")
+            self.flags_status_label.setStyleSheet("""
+                QLabel {
+                    font-size: 9pt;
+                    color: #4a9d4a;
+                    background-color: transparent;
+                    padding: 5px;
+                }
+            """)
+        logger.info(f"Feature flag updated: {key}={enabled}")
+
+    def reset_feature_flags(self):
+        """Reset all feature flags to their default values."""
+        for key, meta in FEATURE_FLAG_DEFINITIONS.items():
+            default_value = bool(meta.get("default", False))
+            self.feature_flags[key] = default_value
+            self.settings.setValue(f"feature_flags/{key}", default_value)
+        self.load_feature_flag_settings()
+        if hasattr(self, "flags_status_label"):
+            self.flags_status_label.setText("✓ Feature flags reset to defaults")
+            self.flags_status_label.setStyleSheet("""
+                QLabel {
+                    font-size: 9pt;
+                    color: #4a9d4a;
+                    background-color: transparent;
+                    padding: 5px;
+                }
+            """)
+        logger.info("Feature flags reset to defaults")
 
     def save_url_settings(self):
         """Save URL settings to QSettings"""
@@ -1452,11 +1705,14 @@ class MainWindow(QMainWindow):
             is_picked: Whether this viewer was created from champion pick
         """
         if len(self.viewers) >= self.MAX_VIEWERS:
-            QMessageBox.warning(
-                self,
-                "Maximum Viewers Reached",
-                f"You can only have up to {self.MAX_VIEWERS} viewers."
-            )
+            if _ui_dialogs_disabled():
+                logger.warning("Maximum viewers reached; dialog suppressed in headless/test mode")
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Maximum Viewers Reached",
+                    f"You can only have up to {self.MAX_VIEWERS} viewers."
+                )
             return None
 
         # Create new viewer with reference to main window for URL settings
