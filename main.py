@@ -884,9 +884,9 @@ class MainWindow(QMainWindow):
         # Connect splitter moved signal to save width
         self.main_splitter.splitterMoved.connect(self.save_sidebar_width)
 
-        # Set default tab to Viewers (index 1) after all widgets are created
-        self.sidebar.setCurrentIndex(1)
-        self.main_content_stack.setCurrentIndex(1)
+        # Set default tab to Live Game (index 0) after all widgets are created
+        self.sidebar.setCurrentIndex(0)
+        self.main_content_stack.setCurrentIndex(0)
 
         # Update viewers list after window is shown to fix initial [Hidden] tag issue
         QTimer.singleShot(0, self.update_viewers_list)
