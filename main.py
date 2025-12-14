@@ -661,22 +661,19 @@ class ChampionViewerWidget(QWidget):
     def get_display_name(self) -> str:
         """Get display name for this viewer (used in sidebar)."""
         # Prefer meaningful labels over internal viewer numbering.
-        # (Regression fix: avoid showing "View #n" *when we have champion context*.)
+        # Regression fix: avoid showing "View #n" labels in the sidebar.
         champ_raw = (self.current_champion or "").strip()
         champ_display = champ_raw.title() if champ_raw else ""
 
-        if self.current_page_type and champ_display:
-            label = f"{champ_display} | {self.current_page_type}"
-            if self.is_picked:
-                label += " | picked"
-            return label
+        if not champ_display:
+            return "(Empty)"
 
-        if champ_display:
-            # If a champion is set but page type isn't known yet, still show champion.
-            return champ_display
-
-        # Keep a stable identifier for empty viewers (tests/UI rely on this).
-        return f"View #{self.viewer_id + 1}"
+        parts = [champ_display]
+        if self.current_page_type:
+            parts.append(self.current_page_type)
+        if self.is_picked:
+            parts.append("picked")
+        return " | ".join(parts)
 
     def get_build_url(self, champion_name: str, lane: str = "") -> str:
         """Generate the build URL for a given champion using configured URL template"""
@@ -1869,10 +1866,6 @@ class MainWindow(QMainWindow):
         """
         logger.info(f"Champion detected: {champion_name} (lane: {lane})")
 
-        # Ensure the user actually sees the auto-opened viewer.
-        self.sidebar.setCurrentIndex(1)
-        self.main_content_stack.setCurrentIndex(1)
-
         # Always create a new viewer at the leftmost position (index 0)
         if len(self.viewers) >= self.MAX_VIEWERS:
             logger.warning("Cannot auto-open champion build: maximum viewers reached")
@@ -1919,10 +1912,6 @@ class MainWindow(QMainWindow):
         """
         logger.info(f"Enemy champion detected: {champion_name}")
 
-        # Ensure the user actually sees the auto-opened counter viewer.
-        self.sidebar.setCurrentIndex(1)
-        self.main_content_stack.setCurrentIndex(1)
-
         if len(self.viewers) >= self.MAX_VIEWERS:
             logger.warning("Cannot auto-open enemy champion counter: maximum viewers reached")
             return
@@ -1939,12 +1928,10 @@ class MainWindow(QMainWindow):
             logger.info(f"Auto-opening counter page for enemy {champion_name} in new viewer {target_viewer.viewer_id} at position {position}")
             target_viewer.champion_input.setText(champion_name)
             target_viewer.open_counter()
-            # If this viewer was previously hidden for any reason, ensure it's visible now.
-            if not target_viewer.isVisible():
-                target_viewer.show()
-            if target_viewer in self.hidden_viewers:
-                self.hidden_viewers.remove(target_viewer)
-            self.update_viewers_list()
+
+            # Hide opponent pick window by default
+            self.hide_viewer(target_viewer)
+            logger.info(f"Opponent pick window for {champion_name} hidden by default")
 
     def check_latest_version(self):
         """Check latest version without prompting update"""
