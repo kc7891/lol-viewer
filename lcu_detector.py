@@ -141,6 +141,9 @@ class GamePhaseTracker:
     def __init__(self, lcu_manager: LCUConnectionManager):
         self.lcu_manager = lcu_manager
         self.current_phase = "None"
+        # Cache the last gameflow session payload so other components can
+        # read queue/gameMode without issuing extra requests.
+        self.last_session_data: Optional[dict] = None
         logger.info("GamePhaseTracker initialized")
 
     def update_phase(self) -> str:
@@ -148,6 +151,7 @@ class GamePhaseTracker:
         try:
             data = self.lcu_manager.make_request("/lol-gameflow/v1/session")
             if data:
+                self.last_session_data = data
                 new_phase = data.get('phase', 'None')
                 if new_phase != self.current_phase:
                     logger.info(f"Game phase changed: {self.current_phase} -> {new_phase}")
@@ -155,6 +159,7 @@ class GamePhaseTracker:
                 return self.current_phase
             else:
                 # If we can't get the session, assume None
+                self.last_session_data = None
                 if self.current_phase != "None":
                     logger.debug("Could not get gameflow session, assuming None")
                     self.current_phase = "None"
@@ -162,6 +167,41 @@ class GamePhaseTracker:
         except Exception as e:
             logger.error(f"Error updating game phase: {e}")
             return self.current_phase
+
+    def get_queue_id(self) -> Optional[int]:
+        """Best-effort extraction of queueId from cached gameflow session."""
+        data = self.last_session_data or {}
+        game_data = data.get("gameData") or {}
+        queue = game_data.get("queue")
+        # Common shapes:
+        # - {"queue": {"id": 450, "gameMode": "ARAM", ...}}
+        # - {"queue": {"queueId": 450, ...}}
+        # - {"queue": 450}
+        if isinstance(queue, int):
+            return queue
+        if isinstance(queue, dict):
+            for key in ("id", "queueId"):
+                if key in queue and queue[key] is not None:
+                    try:
+                        return int(queue[key])
+                    except Exception:
+                        return None
+        return None
+
+    def get_queue_game_mode(self) -> Optional[str]:
+        """Best-effort extraction of queue gameMode from cached gameflow session."""
+        data = self.last_session_data or {}
+        game_data = data.get("gameData") or {}
+        queue = game_data.get("queue") or {}
+        if isinstance(queue, dict):
+            mode = queue.get("gameMode") or queue.get("mode")
+            if isinstance(mode, str) and mode:
+                return mode
+        # Sometimes gameMode is at gameData root.
+        mode = game_data.get("gameMode")
+        if isinstance(mode, str) and mode:
+            return mode
+        return None
 
     def is_in_champ_select(self) -> bool:
         """Check if currently in champion select"""
@@ -553,31 +593,31 @@ class ChampionDetectorService(QObject):
                 self._set_connection_status("connecting")
                 return
 
-                # Handle own champion detection
-                if own_result:
-                    champion, lane = own_result
-                    log(f"[LCU] Detected champion: {champion} (lane: {lane})")
-                    logger.debug(f"Detected champion: {champion} (lane: {lane})")
+            # Handle own champion detection
+            if own_result:
+                champion, lane = own_result
+                log(f"[LCU] Detected champion: {champion} (lane: {lane})")
+                logger.debug(f"Detected champion: {champion} (lane: {lane})")
 
-                    # Emit signal if champion or lane changed
-                    if champion != self.last_champion or lane != self.last_lane:
-                        log(f"[LCU] Champion/lane changed: ({self.last_champion}, {self.last_lane}) -> ({champion}, {lane})")
-                        logger.info(f"Champion/lane changed: ({self.last_champion}, {self.last_lane}) -> ({champion}, {lane})")
-                        self.last_champion = champion
-                        self.last_lane = lane
-                        self.champion_detected.emit(champion, lane)
-                elif self.last_champion:
-                    # Champion was cleared
-                    log(f"[LCU] Champion cleared: {self.last_champion}")
-                    logger.debug(f"Champion cleared: {self.last_champion}")
-                    self.last_champion = None
-                    self.last_lane = None
+                # Emit signal if champion or lane changed
+                if champion != self.last_champion or lane != self.last_lane:
+                    log(f"[LCU] Champion/lane changed: ({self.last_champion}, {self.last_lane}) -> ({champion}, {lane})")
+                    logger.info(f"Champion/lane changed: ({self.last_champion}, {self.last_lane}) -> ({champion}, {lane})")
+                    self.last_champion = champion
+                    self.last_lane = lane
+                    self.champion_detected.emit(champion, lane)
+            elif self.last_champion:
+                # Champion was cleared
+                log(f"[LCU] Champion cleared: {self.last_champion}")
+                logger.debug(f"Champion cleared: {self.last_champion}")
+                self.last_champion = None
+                self.last_lane = None
 
-                # Handle enemy champion detection
-                for enemy_champion in enemy_champions:
-                    log(f"[LCU] Enemy champion detected: {enemy_champion}")
-                    logger.info(f"Enemy champion detected: {enemy_champion}")
-                    self.enemy_champion_detected.emit(enemy_champion)
+            # Handle enemy champion detection
+            for enemy_champion in enemy_champions:
+                log(f"[LCU] Enemy champion detected: {enemy_champion}")
+                logger.info(f"Enemy champion detected: {enemy_champion}")
+                self.enemy_champion_detected.emit(enemy_champion)
 
             # Connection might have been lost during API calls
             if not self.lcu_manager.connected:
@@ -590,3 +630,20 @@ class ChampionDetectorService(QObject):
             traceback.print_exc()
         finally:
             self.is_checking = False
+
+    def get_current_queue_id(self) -> Optional[int]:
+        """Return current queueId (best effort, cached from gameflow)."""
+        if not self.lcu_manager.connected:
+            return None
+        # Ensure phase_tracker has attempted at least one update recently.
+        if self.phase_tracker.last_session_data is None:
+            self.phase_tracker.update_phase()
+        return self.phase_tracker.get_queue_id()
+
+    def get_current_game_mode(self) -> Optional[str]:
+        """Return current gameMode (best effort, cached from gameflow)."""
+        if not self.lcu_manager.connected:
+            return None
+        if self.phase_tracker.last_session_data is None:
+            self.phase_tracker.update_phase()
+        return self.phase_tracker.get_queue_game_mode()
