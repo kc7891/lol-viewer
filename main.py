@@ -34,7 +34,20 @@ FEATURE_FLAG_DEFINITIONS = {
         "description": "Turns on experimental behaviors that may be unstable.",
         "default": False,
     },
+    "auto_open_aram_tab_on_pick": {
+        "label": "Auto-open ARAM tab on pick (ARAM / ARAM: Mayhem)",
+        "description": "When enabled, during champ select in ARAM (including ARAM: Mayhem), auto-open the ARAM page instead of Build.",
+        "default": False,
+    },
 }
+
+# Queue IDs used to detect ARAM / ARAM: Mayhem.
+# - ARAM (Howling Abyss): 450 (current), plus a few legacy/special variants.
+# - ARAM: Mayhem queue IDs are not present in Riot's static queues.json; these IDs
+#   are confirmed from CommunityDragon queue metadata:
+#   https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/queues.json
+ARAM_QUEUE_IDS = {450, 65, 100, 720}
+ARAM_MAYHEM_QUEUE_IDS = {2400, 2401, 2403, 2405, 3240, 3270}
 
 
 class LCUConnectionStatusWidget(QWidget):
@@ -738,6 +751,29 @@ class MainWindow(QMainWindow):
 
         # Connect status signal after UI is initialized
         self.champion_detector.connection_status_changed.connect(self.connection_status_widget.set_status)
+
+    def _current_queue_snapshot(self) -> tuple[object, object]:
+        """Best-effort snapshot of current (queue_id, game_mode) from LCU."""
+        try:
+            queue_id = None
+            game_mode = None
+            if hasattr(self, "champion_detector") and self.champion_detector:
+                queue_id = self.champion_detector.get_current_queue_id()
+                game_mode = self.champion_detector.get_current_game_mode()
+            return queue_id, game_mode
+        except Exception:
+            return None, None
+
+    def _is_aram_like_mode(self) -> bool:
+        """Return True if current match is ARAM or ARAM: Mayhem."""
+        queue_id, game_mode = self._current_queue_snapshot()
+        if queue_id in ARAM_MAYHEM_QUEUE_IDS:
+            return True
+        if queue_id in ARAM_QUEUE_IDS:
+            return True
+        if isinstance(game_mode, str) and game_mode.strip().upper() == "ARAM":
+            return True
+        return False
 
     @staticmethod
     def get_resource_path(relative_path):
@@ -1841,26 +1877,35 @@ class MainWindow(QMainWindow):
         # Create new viewer at position 0 (leftmost) with is_picked=True
         target_viewer = self.add_viewer(position=0, is_picked=True)
 
-        # Open the build page in the new viewer with lane
+        # Open the appropriate page in the new viewer.
         if target_viewer:
-            logger.info(f"Auto-opening build page for {champion_name} (lane: {lane}) in new viewer {target_viewer.viewer_id} at leftmost position")
+            auto_aram = bool(self.feature_flags.get("auto_open_aram_tab_on_pick", False))
+            open_aram = auto_aram and self._is_aram_like_mode()
+
+            logger.info(
+                f"Auto-opening {'ARAM' if open_aram else 'build'} page for {champion_name} (lane: {lane}) "
+                f"in new viewer {target_viewer.viewer_id} at leftmost position"
+            )
             target_viewer.champion_input.setText(champion_name)
 
-            # Set lane selector if lane was detected
-            if lane:
-                # Find the index of the lane in the combo box
-                lane_found = False
-                for i in range(target_viewer.lane_selector.count()):
-                    if target_viewer.lane_selector.itemData(i) == lane:
-                        target_viewer.lane_selector.setCurrentIndex(i)
-                        logger.debug(f"Set lane selector to: {lane}")
-                        lane_found = True
-                        break
+            if open_aram:
+                target_viewer.open_aram()
+            else:
+                # Set lane selector if lane was detected
+                if lane:
+                    # Find the index of the lane in the combo box
+                    lane_found = False
+                    for i in range(target_viewer.lane_selector.count()):
+                        if target_viewer.lane_selector.itemData(i) == lane:
+                            target_viewer.lane_selector.setCurrentIndex(i)
+                            logger.debug(f"Set lane selector to: {lane}")
+                            lane_found = True
+                            break
 
-                if not lane_found:
-                    logger.warning(f"Lane '{lane}' not found in lane selector options")
+                    if not lane_found:
+                        logger.warning(f"Lane '{lane}' not found in lane selector options")
 
-            target_viewer.open_build()
+                target_viewer.open_build()
 
     def on_enemy_champion_detected(self, champion_name: str):
         """Handle enemy champion detection - automatically open counter page
