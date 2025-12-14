@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QMessageBox,
     QScrollArea, QSplitter, QListWidget, QListWidgetItem, QLabel,
-    QTabWidget, QStackedWidget, QComboBox, QCheckBox
+    QTabWidget, QStackedWidget, QComboBox, QCheckBox, QButtonGroup
 )
 
 # Application version
@@ -346,6 +346,9 @@ class ChampionViewerWidget(QWidget):
         self.current_champion = ""
         self.champion_data = champion_data
         self.current_page_type = ""  # "build" or "counter"
+        # UI-selected mode (0=Build, 1=Counter, 2=ARAM). This is the "tab" the user selected,
+        # and can be set even before a champion is entered.
+        self.selected_mode_index = 0
         self.current_url = ""  # Store the current URL for refresh functionality
         self.is_picked = is_picked  # Whether this viewer was created from champion pick
         self.main_window = main_window  # Reference to MainWindow for URL settings
@@ -443,7 +446,8 @@ class ChampionViewerWidget(QWidget):
                 border: 1px solid #0d7377;
             }
         """)
-        self.champion_input.returnPressed.connect(self.open_build)
+        # Open the currently selected mode when pressing Enter.
+        self.champion_input.returnPressed.connect(self.open_selected_mode)
         control_layout.addWidget(self.champion_input, stretch=3)
 
         # Set up autocomplete if champion data is available
@@ -467,8 +471,11 @@ class ChampionViewerWidget(QWidget):
             QPushButton:pressed {
                 background-color: #0a5c5f;
             }
+            QPushButton:checked {
+                background-color: #0a5c5f;
+            }
         """)
-        self.build_button.clicked.connect(self.open_build)
+        self.build_button.clicked.connect(lambda _=False: self._on_mode_button_clicked(0))
         control_layout.addWidget(self.build_button, stretch=1)
 
         # Counter button
@@ -488,8 +495,11 @@ class ChampionViewerWidget(QWidget):
             QPushButton:pressed {
                 background-color: #b34b2d;
             }
+            QPushButton:checked {
+                background-color: #b34b2d;
+            }
         """)
-        self.counter_button.clicked.connect(self.open_counter)
+        self.counter_button.clicked.connect(lambda _=False: self._on_mode_button_clicked(1))
         control_layout.addWidget(self.counter_button, stretch=1)
 
         # ARAM button
@@ -509,9 +519,22 @@ class ChampionViewerWidget(QWidget):
             QPushButton:pressed {
                 background-color: #7c3aed;
             }
+            QPushButton:checked {
+                background-color: #7c3aed;
+            }
         """)
-        self.aram_button.clicked.connect(self.open_aram)
+        self.aram_button.clicked.connect(lambda _=False: self._on_mode_button_clicked(2))
         control_layout.addWidget(self.aram_button, stretch=1)
+
+        # Treat Build/Counter/ARAM as "tabs" (exclusive selection).
+        self.mode_button_group = QButtonGroup(self)
+        self.mode_button_group.setExclusive(True)
+        for idx, btn in enumerate([self.build_button, self.counter_button, self.aram_button]):
+            btn.setCheckable(True)
+            self.mode_button_group.addButton(btn, idx)
+
+        # Default Viewer-internal tab to 0 (Build).
+        self._set_selected_mode_index(0)
 
         # Lane selector
         self.lane_selector = QComboBox()
@@ -589,8 +612,42 @@ class ChampionViewerWidget(QWidget):
         self.setMinimumWidth(300)
         self.resize(500, self.height())
 
+    def _set_selected_mode_index(self, index: int):
+        """Update the selected mode tab (0=Build, 1=Counter, 2=ARAM) without forcing navigation."""
+        try:
+            index = int(index)
+        except Exception:
+            index = 0
+        if index not in (0, 1, 2):
+            index = 0
+        self.selected_mode_index = index
+        if hasattr(self, "mode_button_group") and self.mode_button_group:
+            btn = self.mode_button_group.button(index)
+            if btn is not None and not btn.isChecked():
+                btn.setChecked(True)
+
+    def _on_mode_button_clicked(self, index: int):
+        """Handle user selecting a mode 'tab'. If a champion is entered, navigate immediately."""
+        self._set_selected_mode_index(index)
+        champion_name = self.champion_input.text().strip().lower()
+        if not champion_name:
+            # Allow selecting the tab without showing an error.
+            self.champion_input.setFocus()
+            return
+        self.open_selected_mode()
+
+    def open_selected_mode(self):
+        """Open the page for the currently selected mode tab."""
+        index = getattr(self, "selected_mode_index", 0)
+        if index == 1:
+            return self.open_counter()
+        if index == 2:
+            return self.open_aram()
+        return self.open_build()
+
     def open_build(self):
         """Open the build page for the entered champion"""
+        self._set_selected_mode_index(0)
         champion_name = self.champion_input.text().strip().lower()
 
         if not champion_name:
@@ -611,6 +668,7 @@ class ChampionViewerWidget(QWidget):
 
     def open_counter(self):
         """Open the counter page for the entered champion"""
+        self._set_selected_mode_index(1)
         champion_name = self.champion_input.text().strip().lower()
 
         if not champion_name:
@@ -631,6 +689,7 @@ class ChampionViewerWidget(QWidget):
 
     def open_aram(self):
         """Open the ARAM page for the entered champion"""
+        self._set_selected_mode_index(2)
         champion_name = self.champion_input.text().strip().lower()
 
         if not champion_name:
