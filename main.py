@@ -716,6 +716,7 @@ class ChampionViewerWidget(QWidget):
 
 class MainWindow(QMainWindow):
     MAX_VIEWERS = 20  # Maximum number of viewers allowed
+    DEFAULT_INITIAL_VIEWERS = 0  # Start with 0 viewers by default
 
     def __init__(self):
         super().__init__()
@@ -931,10 +932,10 @@ class MainWindow(QMainWindow):
 
         viewers_layout.addWidget(self.viewers_splitter)
 
-        # Create initial viewers (default 2) if none exist yet
-        if len(self.viewers) == 0:
-            self.add_viewer()
-            self.add_viewer()
+        # Create initial viewers (default 0) if none exist yet
+        if len(self.viewers) == 0 and self.DEFAULT_INITIAL_VIEWERS > 0:
+            for _ in range(self.DEFAULT_INITIAL_VIEWERS):
+                self.add_viewer()
 
         # Start champion detection service (disabled in tests/headless if needed)
         if _lcu_service_disabled():

@@ -155,10 +155,9 @@ class TestMainWindow:
         assert window.champion_data is not None
 
     def test_main_window_has_initial_viewers(self, qapp):
-        """Test main window has initial 2 viewers"""
+        """Test main window starts with 0 viewers by default"""
         window = MainWindow()
-        assert len(window.viewers) == 2
-        assert all(isinstance(v, ChampionViewerWidget) for v in window.viewers)
+        assert len(window.viewers) == 0
 
     def test_main_window_size(self, qapp):
         """Test main window has correct initial size"""
@@ -176,6 +175,7 @@ class TestMainWindow:
     def test_close_viewer(self, qapp):
         """Test closing a viewer"""
         window = MainWindow()
+        window.add_viewer()
         initial_count = len(window.viewers)
         viewer_to_close = window.viewers[0]
         window.close_viewer(viewer_to_close)
@@ -184,6 +184,7 @@ class TestMainWindow:
     def test_hide_viewer(self, qapp):
         """Test hiding a viewer"""
         window = MainWindow()
+        window.add_viewer()
         viewer_to_hide = window.viewers[0]
         window.hide_viewer(viewer_to_hide)
         assert viewer_to_hide in window.hidden_viewers
@@ -192,13 +193,17 @@ class TestMainWindow:
     def test_update_viewers_list(self, qapp):
         """Test updating viewers list in sidebar"""
         window = MainWindow()
-        assert window.viewers_list.count() == 2
+        assert window.viewers_list.count() == 0
         window.add_viewer()
-        assert window.viewers_list.count() == 3
+        assert window.viewers_list.count() == 1
+        window.add_viewer()
+        assert window.viewers_list.count() == 2
 
     def test_close_all_viewers(self, qapp):
         """Test closing all viewers"""
         window = MainWindow()
+        window.add_viewer()
+        window.add_viewer()
         window.close_all_viewers()
         assert len(window.viewers) == 0
 
