@@ -40,7 +40,9 @@ class TestUpdater:
             has_update, release_info = updater.check_for_updates()
 
         assert has_update is False
-        assert release_info is None
+        # Successful check should still return release info (used by UI to show latest version)
+        assert release_info is not None
+        assert release_info['tag_name'] == 'v1.0.0'
 
     def test_version_comparison_older_remote(self):
         """Test that older remote version is not treated as update"""
@@ -56,7 +58,9 @@ class TestUpdater:
             has_update, release_info = updater.check_for_updates()
 
         assert has_update is False
-        assert release_info is None
+        # Successful check should still return release info (used by UI to show latest version)
+        assert release_info is not None
+        assert release_info['tag_name'] == 'v1.5.0'
 
     def test_network_error_handling(self):
         """Test that network errors are handled gracefully"""
