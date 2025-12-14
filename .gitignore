@@ -29,6 +29,11 @@ installer_output/
 Thumbs.db
 desktop.ini
 
+# Core dumps
+core
+core.*
+*.core
+
 # Package directory
 package/
 
