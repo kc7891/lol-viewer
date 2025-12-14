@@ -85,7 +85,8 @@ class TestChampionViewerWidget:
         widget = ChampionViewerWidget(0, champion_data)
         assert widget.get_display_name() == "View #1"
         widget.current_champion = "ashe"
-        assert widget.get_display_name() == "View #1: Ashe"
+        # When a champion is set, prefer the champion name over internal viewer numbering.
+        assert widget.get_display_name() == "Ashe"
 
 
 class TestChampionData:
