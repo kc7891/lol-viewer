@@ -660,22 +660,19 @@ class ChampionViewerWidget(QWidget):
 
     def get_display_name(self) -> str:
         """Get display name for this viewer (used in sidebar)."""
-        base = f"View #{self.viewer_id + 1}"
-
+        # Prefer meaningful labels over internal viewer numbering.
+        # Regression fix: avoid showing "View #n" labels in the sidebar.
         champ_raw = (self.current_champion or "").strip()
         champ_display = champ_raw.title() if champ_raw else ""
 
         if not champ_display:
-            return base
+            return "(Empty)"
 
-        # Keep extra context when available, but remain readable.
-        parts = [f"{base}: {champ_display}"]
+        parts = [champ_display]
         if self.current_page_type:
             parts.append(self.current_page_type)
         if self.is_picked:
             parts.append("picked")
-        if len(parts) == 1:
-            return parts[0]
         return " | ".join(parts)
 
     def get_build_url(self, champion_name: str, lane: str = "") -> str:

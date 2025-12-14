@@ -83,9 +83,10 @@ class TestChampionViewerWidget:
     def test_widget_display_name(self, qapp, champion_data):
         """Test widget display name"""
         widget = ChampionViewerWidget(0, champion_data)
-        assert widget.get_display_name() == "View #1"
+        assert widget.get_display_name() == "(Empty)"
         widget.current_champion = "ashe"
-        assert widget.get_display_name() == "View #1: Ashe"
+        # When a champion is set, prefer the champion name over internal viewer numbering.
+        assert widget.get_display_name() == "Ashe"
 
 
 class TestChampionData:
