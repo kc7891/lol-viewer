@@ -33,17 +33,6 @@ DEFAULT_LIVE_GAME_URL = "https://u.gg/lol/lg-splash"
 # Add new flags here when introducing gated behavior.
 # NOTE: Keys are persisted via QSettings at "feature_flags/<key>".
 FEATURE_FLAG_DEFINITIONS = {
-    # Example flags (safe defaults OFF). Wire them into behavior as needed.
-    "experimental_features": {
-        "label": "Enable experimental features",
-        "description": "Turns on experimental behaviors that may be unstable.",
-        "default": False,
-    },
-    "auto_open_aram_tab_on_pick": {
-        "label": "Auto-open ARAM tab on pick (ARAM / ARAM: Mayhem)",
-        "description": "When enabled, during champ select in ARAM (including ARAM: Mayhem), auto-open the ARAM page instead of Build.",
-        "default": False,
-    },
     "matchup_build": {
         "label": "Enable matchup build (vs) input",
         "description": "Adds an optional opponent champion field to open LoLalytics matchup (vs) build pages.",
@@ -983,6 +972,9 @@ class MainWindow(QMainWindow):
         self.aram_url = self.settings.value("aram_url", DEFAULT_ARAM_URL, type=str)
         self.live_game_url = self.settings.value("live_game_url", DEFAULT_LIVE_GAME_URL, type=str)
 
+        # Cleanup deprecated/unknown persisted feature flags (avoid leaving "junk" data)
+        self.cleanup_feature_flag_settings()
+
         # Load feature flags
         self.feature_flags = self.load_feature_flags()
 
@@ -1626,40 +1618,41 @@ class MainWindow(QMainWindow):
                 self.feature_flag_checkboxes[key] = checkbox
                 flags_layout.addWidget(checkbox)
 
-        flags_buttons_layout = QHBoxLayout()
-        self.reset_flags_button = QPushButton("Reset Flags to Defaults")
-        self.reset_flags_button.setStyleSheet("""
-            QPushButton {
-                padding: 8px 16px;
-                font-size: 10pt;
-                background-color: #3a3a3a;
-                color: #aaaaaa;
-                border: 1px solid #555555;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #4a4a4a;
-                color: #ffffff;
-            }
-            QPushButton:pressed {
-                background-color: #2a2a2a;
-            }
-        """)
-        self.reset_flags_button.clicked.connect(self.reset_feature_flags)
-        flags_buttons_layout.addWidget(self.reset_flags_button)
-        flags_buttons_layout.addStretch()
-        flags_layout.addLayout(flags_buttons_layout)
+        if FEATURE_FLAG_DEFINITIONS:
+            flags_buttons_layout = QHBoxLayout()
+            self.reset_flags_button = QPushButton("Reset Flags to Defaults")
+            self.reset_flags_button.setStyleSheet("""
+                QPushButton {
+                    padding: 8px 16px;
+                    font-size: 10pt;
+                    background-color: #3a3a3a;
+                    color: #aaaaaa;
+                    border: 1px solid #555555;
+                    border-radius: 4px;
+                }
+                QPushButton:hover {
+                    background-color: #4a4a4a;
+                    color: #ffffff;
+                }
+                QPushButton:pressed {
+                    background-color: #2a2a2a;
+                }
+            """)
+            self.reset_flags_button.clicked.connect(self.reset_feature_flags)
+            flags_buttons_layout.addWidget(self.reset_flags_button)
+            flags_buttons_layout.addStretch()
+            flags_layout.addLayout(flags_buttons_layout)
 
-        self.flags_status_label = QLabel("")
-        self.flags_status_label.setStyleSheet("""
-            QLabel {
-                font-size: 9pt;
-                color: #aaaaaa;
-                background-color: transparent;
-                padding: 5px;
-            }
-        """)
-        flags_layout.addWidget(self.flags_status_label)
+            self.flags_status_label = QLabel("")
+            self.flags_status_label.setStyleSheet("""
+                QLabel {
+                    font-size: 9pt;
+                    color: #aaaaaa;
+                    background-color: transparent;
+                    padding: 5px;
+                }
+            """)
+            flags_layout.addWidget(self.flags_status_label)
 
         settings_layout.addWidget(flags_group)
         settings_layout.addStretch()
@@ -1801,6 +1794,48 @@ class MainWindow(QMainWindow):
             default_value = bool(meta.get("default", False))
             flags[key] = self.settings.value(f"feature_flags/{key}", default_value, type=bool)
         return flags
+
+    def cleanup_feature_flag_settings(self):
+        """Remove persisted feature flag keys that are no longer defined.
+
+        This prevents old FeatureFlag settings from staying on user machines forever
+        after a feature becomes standard (or a flag is removed).
+        """
+        if not hasattr(self, "settings") or self.settings is None:
+            return
+
+        defined = set(FEATURE_FLAG_DEFINITIONS.keys())
+        persisted: set[str] = set()
+
+        try:
+            self.settings.beginGroup("feature_flags")
+            persisted = set(self.settings.childKeys())
+        except Exception as e:
+            logger.warning(f"Failed to list persisted feature flags: {e}")
+            return
+        finally:
+            try:
+                self.settings.endGroup()
+            except Exception:
+                pass
+
+        to_remove = sorted(persisted - defined)
+        if not to_remove:
+            return
+
+        try:
+            self.settings.beginGroup("feature_flags")
+            for key in to_remove:
+                self.settings.remove(key)
+        except Exception as e:
+            logger.warning(f"Failed to cleanup persisted feature flags: {e}")
+        finally:
+            try:
+                self.settings.endGroup()
+            except Exception:
+                pass
+
+        logger.info(f"Removed deprecated feature flag keys: {to_remove}")
 
     def load_feature_flag_settings(self):
         """Populate feature flag checkboxes from loaded flags."""
@@ -2217,8 +2252,7 @@ class MainWindow(QMainWindow):
 
         # Open the appropriate page in the new viewer.
         if target_viewer:
-            auto_aram = bool(self.feature_flags.get("auto_open_aram_tab_on_pick", False))
-            open_aram = auto_aram and self._is_aram_like_mode()
+            open_aram = self._is_aram_like_mode()
 
             logger.info(
                 f"Auto-opening {'ARAM' if open_aram else 'build'} page for {champion_name} (lane: {lane}) "
