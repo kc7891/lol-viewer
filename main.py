@@ -395,10 +395,13 @@ class OpponentChampionLineEdit(QLineEdit):
     def _show_popup(self, suggestions: List[str]):
         self._close_suggestion_popup()
 
-        popup = QListWidget()
+        # NOTE:
+        # Creating the popup without a parent + deleting it immediately from within
+        # a mouse-click handler can cause unstable behavior (including hard crashes)
+        # in some Qt/PyQt6 builds. Use a parent and close it asynchronously.
+        popup = QListWidget(self)
         popup.setStyleSheet(SUGGESTION_POPUP_STYLE)
         popup.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
-        popup.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         popup.setMouseTracking(True)
         popup.installEventFilter(self)
 
@@ -418,15 +421,24 @@ class OpponentChampionLineEdit(QLineEdit):
         self._suggestion_popup = popup
 
     def _close_suggestion_popup(self, *_):
-        if self._suggestion_popup:
-            self._suggestion_popup.close()
-            self._suggestion_popup = None
+        popup = self._suggestion_popup
+        if not popup:
+            return
+
+        # Detach first to avoid re-entrancy issues.
+        self._suggestion_popup = None
+        try:
+            popup.hide()
+        finally:
+            # Ensure deletion happens after the current event loop iteration.
+            popup.deleteLater()
 
     def _apply_suggestion(self, text: str):
         """Fill the line edit with the selected suggestion."""
         self.setText(text)
         self.setFocus()
-        self._close_suggestion_popup()
+        # Avoid destroying the popup inside the click handler call stack.
+        QTimer.singleShot(0, self._close_suggestion_popup)
 
 
 class ChampionViewerWidget(QWidget):
@@ -598,6 +610,8 @@ class ChampionViewerWidget(QWidget):
             # Set up autocomplete if champion data is available
             if self.champion_data:
                 setup_champion_input(self.champion_input, self.champion_data)
+                # Match Champion Name behavior: typing in the opponent field also suggests champions.
+                setup_champion_input(self.opponent_champion_input, self.champion_data)
 
         # Build button
         self.build_button = QPushButton("Build")
