@@ -15,6 +15,7 @@ os.environ.setdefault("LOL_VIEWER_DISABLE_DIALOGS", "1")
 
 import pytest
 from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import Qt
 from main import ChampionViewerWidget, MainWindow
 from champion_data import ChampionData
 
@@ -214,3 +215,63 @@ class TestMainWindow:
         initial_count = len(window.viewers)
         window.add_viewer()
         assert len(window.viewers) == initial_count
+
+
+class TestOpponentChampionInput:
+    """Regression tests for opponent input (matchup_build feature)."""
+
+    def test_opponent_context_suggestions_on_click_and_select(self, qapp, qtbot, champion_data):
+        """Clicking an empty opponent field swaps completer to context suggestions safely."""
+        window = MainWindow()
+        window.feature_flags["matchup_build"] = True
+
+        # Provide at least one "open" champion suggestion from another viewer.
+        if window.viewers:
+            window.viewers[0].current_champion = "ashe"
+
+        viewer = ChampionViewerWidget(999, champion_data, main_window=window)
+        qtbot.addWidget(viewer)
+        viewer.show()
+
+        opponent = viewer.opponent_champion_input
+        assert opponent is not None
+        opponent.clear()
+        opponent.setFocus()
+
+        qtbot.mouseClick(opponent, Qt.MouseButton.LeftButton)
+        qtbot.wait(10)
+
+        model = opponent.completer().model()
+        # In tests/headless, the popup isn't opened; we validate the model swap instead.
+        assert hasattr(model, "stringList")
+        items = [s.strip().lower() for s in model.stringList()]
+        assert "ashe" in items
+
+        # Ensure pathFromIndex is safe for non-champion models (no hard crash).
+        row = items.index("ashe")
+        idx = model.index(row, 0)
+        assert opponent.completer().pathFromIndex(idx).strip().lower() == "ashe"
+
+    def test_opponent_completer_inserts_champion_id(self, qapp, qtbot, champion_data):
+        """Opponent field uses the same ChampionCompleter behavior as Champion Name."""
+        window = MainWindow()
+        window.feature_flags["matchup_build"] = True
+
+        viewer = ChampionViewerWidget(1000, champion_data, main_window=window)
+        qtbot.addWidget(viewer)
+        viewer.show()
+
+        opponent = viewer.opponent_champion_input
+        completer = opponent.completer()
+        model = completer.model()
+        assert model is not None
+
+        # Find the "Ashe" row in the full champion model and verify it maps to "ashe".
+        target_index = None
+        for row in range(model.rowCount()):
+            idx = model.index(row, 0)
+            if (idx.data() or "").lower().startswith("ashe"):
+                target_index = idx
+                break
+        assert target_index is not None
+        assert completer.pathFromIndex(target_index) == "ashe"

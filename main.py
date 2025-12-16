@@ -6,8 +6,8 @@ import sys
 import logging
 import os
 from datetime import datetime
-from typing import Callable, List, Optional
-from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer, QSettings, QEvent
+from typing import List, Optional
+from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer, QSettings
 from PyQt6.QtGui import QColor, QIcon
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
@@ -47,30 +47,6 @@ FEATURE_FLAG_DEFINITIONS = {
 #   https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/queues.json
 ARAM_QUEUE_IDS = {450, 65, 100, 720}
 ARAM_MAYHEM_QUEUE_IDS = {2400, 2401, 2403, 2405, 3240, 3270}
-
-SUGGESTION_POPUP_STYLE = """
-QListWidget {
-    background-color: #2b2b2b;
-    color: #ffffff;
-    border: 1px solid #0d7377;
-    border-radius: 4px;
-    outline: none;
-    padding: 0px;
-}
-QListWidget::item {
-    padding: 8px;
-    border-bottom: 1px solid #3a3a3a;
-    height: 30px;
-}
-QListWidget::item:selected {
-    background-color: #0d7377;
-    color: #ffffff;
-}
-QListWidget::item:hover {
-    background-color: #3a3a3a;
-}
-"""
-
 
 class LCUConnectionStatusWidget(QWidget):
     """Widget displaying LCU connection status with animated dots"""
@@ -240,7 +216,7 @@ def setup_logging():
 logger = logging.getLogger(__name__)
 
 # Import these after logger setup
-from champion_data import ChampionData, setup_champion_input
+from champion_data import ChampionData, setup_champion_input, setup_opponent_champion_input
 from logger import log
 from lcu_detector import ChampionDetectorService
 
@@ -353,92 +329,6 @@ class ViewerListItemWidget(QWidget):
     def close_viewer(self):
         """Close the viewer"""
         self.parent_window.close_viewer(self.viewer)
-
-
-class OpponentChampionLineEdit(QLineEdit):
-    """Line edit that can show context-based suggestions when empty."""
-
-    def __init__(self, suggestion_provider: Optional[Callable[[], List[str]]] = None, parent=None):
-        super().__init__(parent)
-        self.suggestion_provider = suggestion_provider
-        self._suggestion_popup: Optional[QListWidget] = None
-        self.textEdited.connect(self._close_suggestion_popup)
-
-    def mousePressEvent(self, event):
-        super().mousePressEvent(event)
-        if event.button() == Qt.MouseButton.LeftButton:
-            self._maybe_show_suggestions()
-
-    def eventFilter(self, obj, event):
-        if obj == self._suggestion_popup and event.type() in (
-            QEvent.Type.Hide,
-            QEvent.Type.Close,
-            QEvent.Type.FocusOut,
-        ):
-            self._suggestion_popup = None
-        return super().eventFilter(obj, event)
-
-    def _maybe_show_suggestions(self):
-        """Show contextual suggestions when the input is empty."""
-        if self.text().strip():
-            return
-
-        if not self.suggestion_provider:
-            return
-
-        suggestions = self.suggestion_provider() or []
-        if not suggestions:
-            return
-
-        self._show_popup(suggestions)
-
-    def _show_popup(self, suggestions: List[str]):
-        self._close_suggestion_popup()
-
-        # NOTE:
-        # Creating the popup without a parent + deleting it immediately from within
-        # a mouse-click handler can cause unstable behavior (including hard crashes)
-        # in some Qt/PyQt6 builds. Use a parent and close it asynchronously.
-        popup = QListWidget(self)
-        popup.setStyleSheet(SUGGESTION_POPUP_STYLE)
-        popup.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
-        popup.setMouseTracking(True)
-        popup.installEventFilter(self)
-
-        width = max(self.width(), 250)
-        popup.setMinimumWidth(width)
-        popup.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-
-        for name in suggestions:
-            item = QListWidgetItem(name)
-            popup.addItem(item)
-
-        popup.itemClicked.connect(lambda item: self._apply_suggestion(item.text()))
-        popup.itemActivated.connect(lambda item: self._apply_suggestion(item.text()))
-
-        popup.move(self.mapToGlobal(self.rect().bottomLeft()))
-        popup.show()
-        self._suggestion_popup = popup
-
-    def _close_suggestion_popup(self, *_):
-        popup = self._suggestion_popup
-        if not popup:
-            return
-
-        # Detach first to avoid re-entrancy issues.
-        self._suggestion_popup = None
-        try:
-            popup.hide()
-        finally:
-            # Ensure deletion happens after the current event loop iteration.
-            popup.deleteLater()
-
-    def _apply_suggestion(self, text: str):
-        """Fill the line edit with the selected suggestion."""
-        self.setText(text)
-        self.setFocus()
-        # Avoid destroying the popup inside the click handler call stack.
-        QTimer.singleShot(0, self._close_suggestion_popup)
 
 
 class ChampionViewerWidget(QWidget):
@@ -591,9 +481,7 @@ class ChampionViewerWidget(QWidget):
             self.champion_input.returnPressed.connect(self.open_selected_mode)
 
             # Opponent champion input
-            self.opponent_champion_input = OpponentChampionLineEdit(
-                suggestion_provider=self._get_open_champion_suggestions
-            )
+            self.opponent_champion_input = QLineEdit()
             self.opponent_champion_input.setPlaceholderText(
                 "Opponent champion (click to pick from Counter tab)"
             )
@@ -610,8 +498,11 @@ class ChampionViewerWidget(QWidget):
             # Set up autocomplete if champion data is available
             if self.champion_data:
                 setup_champion_input(self.champion_input, self.champion_data)
-                # Match Champion Name behavior: typing in the opponent field also suggests champions.
-                setup_champion_input(self.opponent_champion_input, self.champion_data)
+                setup_opponent_champion_input(
+                    self.opponent_champion_input,
+                    self.champion_data,
+                    suggestion_provider=self._get_open_champion_suggestions,
+                )
 
         # Build button
         self.build_button = QPushButton("Build")
