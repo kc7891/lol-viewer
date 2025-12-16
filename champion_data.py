@@ -7,7 +7,7 @@ import json
 import os
 import sys
 from typing import Dict, List, Optional
-from PyQt6.QtCore import Qt, QSize, QRect, QUrl
+from PyQt6.QtCore import Qt, QSize, QRect, QUrl, QObject, QEvent, QTimer, QStringListModel
 from PyQt6.QtGui import QStandardItemModel, QStandardItem, QPixmap, QImage
 from PyQt6.QtWidgets import (
     QCompleter, QStyledItemDelegate, QStyleOptionViewItem,
@@ -320,13 +320,23 @@ class ChampionCompleter(QCompleter):
     def pathFromIndex(self, index):
         """Return the champion ID instead of the display text"""
         if index.isValid():
-            item = self.model_data.itemFromIndex(index)
-            if item:
-                # Return champion ID instead of display text
-                champ_id = item.data(Qt.ItemDataRole.UserRole + 2)
-                if champ_id:
-                    log(f"[ChampionCompleter] pathFromIndex returning: {champ_id}")
-                    return champ_id
+            # IMPORTANT:
+            # This completer may temporarily be used with a different model
+            # (e.g., opponent context suggestions). Never call itemFromIndex()
+            # on a foreign model index; it can lead to hard crashes.
+            if index.model() is self.model_data:
+                item = self.model_data.itemFromIndex(index)
+                if item:
+                    # Return champion ID instead of display text
+                    champ_id = item.data(Qt.ItemDataRole.UserRole + 2)
+                    if champ_id:
+                        log(f"[ChampionCompleter] pathFromIndex returning: {champ_id}")
+                        return champ_id
+            else:
+                # For non-champion models (e.g., QStringListModel), fall back to the displayed text.
+                value = index.data(Qt.ItemDataRole.DisplayRole)
+                if isinstance(value, str) and value:
+                    return value
         # Fallback to default behavior
         return super().pathFromIndex(index)
 
@@ -395,4 +405,117 @@ def setup_champion_input(line_edit: QLineEdit, champion_data: ChampionData):
     # pathFromIndex() now handles inserting the champion ID
     # No need for manual activated handler
 
+    return completer
+
+
+class _OpponentContextCompleterController(QObject):
+    """Switch a QLineEdit's QCompleter model based on input state.
+
+    - When the user clicks the line edit while empty: show 'context' suggestions.
+    - When the user types (or after activation): restore the full champion completer model.
+    """
+
+    def __init__(self, line_edit: QLineEdit, completer: QCompleter, suggestion_provider, parent=None):
+        super().__init__(parent or line_edit)
+        self._line_edit = line_edit
+        self._completer = completer
+        self._suggestion_provider = suggestion_provider
+
+        # Keep references to models so we can swap safely.
+        self._champion_model = completer.model()
+        self._context_model = QStringListModel(self)
+
+        self._line_edit.installEventFilter(self)
+        self._line_edit.textEdited.connect(self._on_text_edited)
+        self._completer.activated.connect(self._on_activated)
+
+    def eventFilter(self, obj, event):
+        if obj is self._line_edit and event.type() == QEvent.Type.MouseButtonPress:
+            if getattr(event, "button", None) and event.button() == Qt.MouseButton.LeftButton:
+                if not self._line_edit.text().strip():
+                    self._show_context_suggestions()
+                else:
+                    self._restore_champion_model()
+        return super().eventFilter(obj, event)
+
+    def _show_context_suggestions(self):
+        provider = self._suggestion_provider
+        if provider is None:
+            return
+
+        try:
+            suggestions = provider() or []
+        except Exception:
+            suggestions = []
+
+        # Avoid showing an empty popup.
+        suggestions = [s for s in suggestions if isinstance(s, str) and s.strip()]
+        if not suggestions:
+            return
+
+        # Deduplicate while preserving order.
+        seen = set()
+        unique: List[str] = []
+        for s in suggestions:
+            key = s.strip().lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(s.strip())
+
+        self._context_model.setStringList(unique)
+        self._completer.setModel(self._context_model)
+        self._completer.setCompletionPrefix("")
+
+        # Defer opening the popup until after the click event finishes.
+        #
+        # NOTE:
+        # Qt's offscreen/minimal platform plugins used in CI/tests can be unstable
+        # when showing Popup windows (QCompleter popup tries to grab keyboard).
+        # In those environments we only swap the model; we do not open the popup.
+        if os.environ.get("PYTEST_CURRENT_TEST"):
+            return
+        if os.environ.get("QT_QPA_PLATFORM") in {"offscreen", "minimal"}:
+            return
+        QTimer.singleShot(0, self._completer.complete)
+
+    def _restore_champion_model(self):
+        if self._completer.model() is not self._champion_model:
+            self._completer.setModel(self._champion_model)
+
+    def _on_text_edited(self, _text: str):
+        # As soon as the user starts typing, revert to full champion suggestions.
+        if self._completer.model() is not self._champion_model:
+            try:
+                popup = self._completer.popup()
+                if popup is not None:
+                    popup.hide()
+            except Exception:
+                pass
+        self._restore_champion_model()
+
+    def _on_activated(self, *_):
+        # After choosing a context suggestion, ensure future suggestions use the champion model.
+        QTimer.singleShot(0, self._restore_champion_model)
+
+
+def setup_opponent_champion_input(
+    line_edit: QLineEdit,
+    champion_data: ChampionData,
+    suggestion_provider,
+):
+    """Set up opponent champion input with Champion Name-equivalent autocomplete.
+
+    Behavior:
+    - If the user types: use the normal champion autocomplete (same as Champion Name).
+    - If the user hasn't typed anything and clicks while empty: show context suggestions
+      provided by suggestion_provider (e.g., champions currently open in other viewers).
+    """
+    completer = setup_champion_input(line_edit, champion_data)
+    _OpponentContextCompleterController(
+        line_edit=line_edit,
+        completer=completer,
+        suggestion_provider=suggestion_provider,
+        parent=line_edit,
+    )
     return completer
