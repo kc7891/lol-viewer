@@ -369,7 +369,12 @@ start "" "{current_exe_path}"
             # Add installation directory if available
             # Use quotes to handle paths with spaces (e.g., "C:\Program Files\LoL Viewer")
             if install_dir:
-                installer_args.append(f'/DIR="{install_dir}"')
+                # IMPORTANT (Windows): When passing a list of args to subprocess, Python will add
+                # quoting as needed. If we embed quotes inside the /DIR value, the installer may
+                # receive them literally and treat the path as relative, which can lead to a
+                # duplicated drive prefix like "D:\D:\Program Files\...".
+                install_dir = install_dir.strip('"')
+                installer_args.append(f'/DIR={install_dir}')
                 logger.info(f"Preserving installation directory: {install_dir}")
 
             logger.info(f"Launching installer with args: {installer_args}")
