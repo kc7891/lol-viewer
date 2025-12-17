@@ -1080,10 +1080,7 @@ class MainWindow(QMainWindow):
 
         viewers_layout.addWidget(self.viewers_splitter)
 
-        # Create initial viewers (default 2) if none exist yet
-        if len(self.viewers) == 0:
-            self.add_viewer()
-            self.add_viewer()
+        # Do not auto-create viewers on launch (default 0).
 
         # Start champion detection service (disabled in tests/headless if needed)
         if _lcu_service_disabled():
