@@ -29,6 +29,10 @@ DEFAULT_MATCHUP_URL = (
 DEFAULT_ARAM_URL = "https://u.gg/lol/champions/aram/{name}-aram"
 DEFAULT_LIVE_GAME_URL = "https://u.gg/lol/lg-splash"
 
+# UI glyphs
+# Keep these consistent across the app to avoid subtle visual mismatches.
+CLOSE_BUTTON_GLYPH = "×"
+
 # Feature flags (toggle in Settings page).
 # Add new flags here when introducing gated behavior.
 # NOTE: Keys are persisted via QSettings at "feature_flags/<key>".
@@ -266,7 +270,7 @@ class ViewerListItemWidget(QWidget):
         layout.addWidget(self.visibility_button)
 
         # Close button (placed second)
-        self.close_button = QPushButton("✕")
+        self.close_button = QPushButton(CLOSE_BUTTON_GLYPH)
         self.close_button.setToolTip("Close viewer")
         self.close_button.setStyleSheet("""
             QPushButton {
@@ -401,7 +405,7 @@ class ChampionViewerWidget(QWidget):
         header_layout.addWidget(self.hide_button)
 
         # Close button
-        self.close_button = QPushButton("×")
+        self.close_button = QPushButton(CLOSE_BUTTON_GLYPH)
         self.close_button.setToolTip("Close this viewer")
         self.close_button.setStyleSheet("""
             QPushButton {
