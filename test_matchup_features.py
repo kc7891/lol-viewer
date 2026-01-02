@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Tests for matchup-specific functionality (FeatureFlag-gated in UI).
+"""Tests for matchup-specific functionality.
 
-These tests validate the helper methods/constants that are safe to keep even when
-`matchup_build` is OFF.
+These tests validate helper methods/constants used by the matchup (vs) build flow.
 """
 
 import os
