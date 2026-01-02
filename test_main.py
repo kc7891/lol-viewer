@@ -220,12 +220,11 @@ class TestMainWindow:
 
 
 class TestOpponentChampionInput:
-    """Regression tests for opponent input (matchup_build feature)."""
+    """Regression tests for opponent champion input (standard feature)."""
 
     def test_opponent_context_suggestions_on_click_and_select(self, qapp, qtbot, champion_data):
         """Clicking an empty opponent field swaps completer to context suggestions safely."""
         window = MainWindow()
-        window.feature_flags["matchup_build"] = True
 
         # Provide at least one "open" champion suggestion from another viewer.
         seed = window.add_viewer()
@@ -258,7 +257,6 @@ class TestOpponentChampionInput:
     def test_opponent_completer_inserts_champion_id(self, qapp, qtbot, champion_data):
         """Opponent field uses the same ChampionCompleter behavior as Champion Name."""
         window = MainWindow()
-        window.feature_flags["matchup_build"] = True
 
         viewer = ChampionViewerWidget(1000, champion_data, main_window=window)
         qtbot.addWidget(viewer)

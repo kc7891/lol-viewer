@@ -34,15 +34,10 @@ DEFAULT_LIVE_GAME_URL = "https://u.gg/lol/lg-splash"
 CLOSE_BUTTON_GLYPH = "×"
 
 # Feature flags (toggle in Settings page).
-# Add new flags here when introducing gated behavior.
 # NOTE: Keys are persisted via QSettings at "feature_flags/<key>".
-FEATURE_FLAG_DEFINITIONS = {
-    "matchup_build": {
-        "label": "Enable matchup build (vs) input",
-        "description": "Adds an optional opponent champion field to open LoLalytics matchup (vs) build pages.",
-        "default": False,
-    },
-}
+#
+# This build currently ships with no gated/experimental features.
+FEATURE_FLAG_DEFINITIONS: dict = {}
 
 # Queue IDs used to detect ARAM / ARAM: Mayhem.
 # - ARAM (Howling Abyss): 450 (current), plus a few legacy/special variants.
@@ -434,79 +429,49 @@ class ChampionViewerWidget(QWidget):
         control_layout = QHBoxLayout()
         control_layout.setSpacing(8)
 
-        matchup_enabled = bool(
-            self.main_window
-            and getattr(self.main_window, "feature_flags", {}).get("matchup_build", False)
+        line_edit_style = """
+            QLineEdit {
+                padding: 8px;
+                font-size: 11pt;
+                background-color: #2b2b2b;
+                color: #ffffff;
+                border: 1px solid #444444;
+                border-radius: 4px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #0d7377;
+            }
+        """
+
+        # Champion name input (self)
+        self.champion_input = QLineEdit()
+        self.champion_input.setPlaceholderText("Champion name (e.g., ashe, swain, アッシュ)")
+        self.champion_input.setStyleSheet(line_edit_style)
+        self.champion_input.returnPressed.connect(self.open_selected_mode)
+
+        # Opponent champion input (standard feature)
+        self.opponent_champion_input = QLineEdit()
+        self.opponent_champion_input.setPlaceholderText(
+            "Opponent champion (click to pick from Counter tab)"
         )
+        self.opponent_champion_input.setStyleSheet(line_edit_style)
+        self.opponent_champion_input.returnPressed.connect(self.open_selected_mode)
 
-        if not matchup_enabled:
-            # Champion name input (default)
-            self.champion_input = QLineEdit()
-            self.champion_input.setPlaceholderText("Champion name (e.g., ashe, swain, アッシュ)")
-            self.champion_input.setStyleSheet("""
-                QLineEdit {
-                    padding: 8px;
-                    font-size: 11pt;
-                    background-color: #2b2b2b;
-                    color: #ffffff;
-                    border: 1px solid #444444;
-                    border-radius: 4px;
-                }
-                QLineEdit:focus {
-                    border: 1px solid #0d7377;
-                }
-            """)
-            # Open the currently selected mode when pressing Enter.
-            self.champion_input.returnPressed.connect(self.open_selected_mode)
-            control_layout.addWidget(self.champion_input, stretch=3)
+        names_layout = QHBoxLayout()
+        names_layout.setContentsMargins(0, 0, 0, 0)
+        names_layout.setSpacing(6)
+        names_layout.addWidget(self.champion_input)
+        names_layout.addWidget(self.opponent_champion_input)
+        control_layout.addLayout(names_layout, stretch=3)
 
-            # Set up autocomplete if champion data is available
-            if self.champion_data:
-                setup_champion_input(self.champion_input, self.champion_data)
-        else:
-            line_edit_style = """
-                QLineEdit {
-                    padding: 8px;
-                    font-size: 11pt;
-                    background-color: #2b2b2b;
-                    color: #ffffff;
-                    border: 1px solid #444444;
-                    border-radius: 4px;
-                }
-                QLineEdit:focus {
-                    border: 1px solid #0d7377;
-                }
-            """
-
-            # Champion name input (self)
-            self.champion_input = QLineEdit()
-            self.champion_input.setPlaceholderText("Champion name (e.g., ashe, swain, アッシュ)")
-            self.champion_input.setStyleSheet(line_edit_style)
-            self.champion_input.returnPressed.connect(self.open_selected_mode)
-
-            # Opponent champion input
-            self.opponent_champion_input = QLineEdit()
-            self.opponent_champion_input.setPlaceholderText(
-                "Opponent champion (click to pick from Counter tab)"
+        # Set up autocomplete if champion data is available
+        if self.champion_data:
+            setup_champion_input(self.champion_input, self.champion_data)
+            setup_opponent_champion_input(
+                self.opponent_champion_input,
+                self.champion_data,
+                suggestion_provider=self._get_open_champion_suggestions,
             )
-            self.opponent_champion_input.setStyleSheet(line_edit_style)
-            self.opponent_champion_input.returnPressed.connect(self.open_selected_mode)
-
-            names_layout = QHBoxLayout()
-            names_layout.setContentsMargins(0, 0, 0, 0)
-            names_layout.setSpacing(6)
-            names_layout.addWidget(self.champion_input)
-            names_layout.addWidget(self.opponent_champion_input)
-            control_layout.addLayout(names_layout, stretch=3)
-
-            # Set up autocomplete if champion data is available
-            if self.champion_data:
-                setup_champion_input(self.champion_input, self.champion_data)
-                setup_opponent_champion_input(
-                    self.opponent_champion_input,
-                    self.champion_data,
-                    suggestion_provider=self._get_open_champion_suggestions,
-                )
 
         # Build button
         self.build_button = QPushButton("Build")
@@ -714,15 +679,11 @@ class ChampionViewerWidget(QWidget):
         # Get selected lane
         lane = self.lane_selector.currentData()
 
-        matchup_enabled = bool(
-            self.main_window
-            and getattr(self.main_window, "feature_flags", {}).get("matchup_build", False)
-        )
         opponent_name = ""
-        if matchup_enabled and getattr(self, "opponent_champion_input", None) is not None:
+        if getattr(self, "opponent_champion_input", None) is not None:
             opponent_name = self.opponent_champion_input.text().strip().lower()
 
-        if matchup_enabled and opponent_name:
+        if opponent_name:
             self.current_opponent_champion = opponent_name
             url = self.get_matchup_url(champion_name, opponent_name, lane or "")
         else:
@@ -1138,15 +1099,10 @@ class MainWindow(QMainWindow):
         """)
         url_layout.addWidget(url_title)
 
-        if self.feature_flags.get("matchup_build", False):
-            url_description = QLabel(
-                "Configure URLs for each analytics type. Use {name} as placeholder for champion name, {lane} for lane parameter. "
-                "For matchup URLs, use {champion_name1}, {champion_name2}, {lane_name}."
-            )
-        else:
-            url_description = QLabel(
-                "Configure URLs for each analytics type. Use {name} as placeholder for champion name, {lane} for lane parameter."
-            )
+        url_description = QLabel(
+            "Configure URLs for each analytics type. Use {name} as placeholder for champion name, {lane} for lane parameter. "
+            "For matchup URLs, use {champion_name1}, {champion_name2}, {lane_name}."
+        )
         url_description.setStyleSheet("""
             QLabel {
                 font-size: 9pt;
@@ -1180,30 +1136,29 @@ class MainWindow(QMainWindow):
         """)
         url_layout.addWidget(self.build_url_input)
 
-        # Matchup URL (FeatureFlag: matchup_build)
-        if self.feature_flags.get("matchup_build", False):
-            matchup_url_label = QLabel("Matchup URL:")
-            matchup_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #cccccc; background-color: transparent; }")
-            url_layout.addWidget(matchup_url_label)
+        # Matchup URL
+        matchup_url_label = QLabel("Matchup URL:")
+        matchup_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #cccccc; background-color: transparent; }")
+        url_layout.addWidget(matchup_url_label)
 
-            self.matchup_url_input = QLineEdit()
-            self.matchup_url_input.setPlaceholderText(
-                "e.g., https://lolalytics.com/lol/{champion_name1}/vs/{champion_name2}/build/?lane={lane_name}&vslane={lane_name}"
-            )
-            self.matchup_url_input.setStyleSheet("""
-                QLineEdit {
-                    padding: 8px;
-                    font-size: 10pt;
-                    background-color: #2b2b2b;
-                    color: #ffffff;
-                    border: 1px solid #444444;
-                    border-radius: 4px;
-                }
-                QLineEdit:focus {
-                    border: 1px solid #0d7377;
-                }
-            """)
-            url_layout.addWidget(self.matchup_url_input)
+        self.matchup_url_input = QLineEdit()
+        self.matchup_url_input.setPlaceholderText(
+            "e.g., https://lolalytics.com/lol/{champion_name1}/vs/{champion_name2}/build/?lane={lane_name}&vslane={lane_name}"
+        )
+        self.matchup_url_input.setStyleSheet("""
+            QLineEdit {
+                padding: 8px;
+                font-size: 10pt;
+                background-color: #2b2b2b;
+                color: #ffffff;
+                border: 1px solid #444444;
+                border-radius: 4px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #0d7377;
+            }
+        """)
+        url_layout.addWidget(self.matchup_url_input)
 
         # Counter URL
         counter_url_label = QLabel("Counter URL:")
@@ -1468,41 +1423,38 @@ class MainWindow(QMainWindow):
         settings_layout.addWidget(self.update_button)
 
         # Feature flags section (bottom)
-        flags_group = QWidget()
-        flags_layout = QVBoxLayout(flags_group)
-        flags_layout.setSpacing(10)
+        # Only render if this build defines any flags.
+        if FEATURE_FLAG_DEFINITIONS:
+            flags_group = QWidget()
+            flags_layout = QVBoxLayout(flags_group)
+            flags_layout.setSpacing(10)
 
-        flags_title = QLabel("Feature Flags")
-        flags_title.setStyleSheet("""
-            QLabel {
-                font-size: 12pt;
-                font-weight: bold;
-                color: #ffffff;
-                background-color: transparent;
-            }
-        """)
-        flags_layout.addWidget(flags_title)
+            flags_title = QLabel("Feature Flags")
+            flags_title.setStyleSheet("""
+                QLabel {
+                    font-size: 12pt;
+                    font-weight: bold;
+                    color: #ffffff;
+                    background-color: transparent;
+                }
+            """)
+            flags_layout.addWidget(flags_title)
 
-        flags_description = QLabel(
-            "Toggle experimental or gated features. If something breaks, turn the flag OFF and restart the app."
-        )
-        flags_description.setStyleSheet("""
-            QLabel {
-                font-size: 9pt;
-                color: #aaaaaa;
-                background-color: transparent;
-                padding: 5px;
-            }
-        """)
-        flags_description.setWordWrap(True)
-        flags_layout.addWidget(flags_description)
+            flags_description = QLabel(
+                "Toggle experimental or gated features. If something breaks, turn the flag OFF and restart the app."
+            )
+            flags_description.setStyleSheet("""
+                QLabel {
+                    font-size: 9pt;
+                    color: #aaaaaa;
+                    background-color: transparent;
+                    padding: 5px;
+                }
+            """)
+            flags_description.setWordWrap(True)
+            flags_layout.addWidget(flags_description)
 
-        self.feature_flag_checkboxes = {}
-        if not FEATURE_FLAG_DEFINITIONS:
-            no_flags_label = QLabel("No feature flags available in this build.")
-            no_flags_label.setStyleSheet("QLabel { font-size: 10pt; color: #cccccc; background-color: transparent; padding: 5px; }")
-            flags_layout.addWidget(no_flags_label)
-        else:
+            self.feature_flag_checkboxes = {}
             for key, meta in FEATURE_FLAG_DEFINITIONS.items():
                 checkbox = QCheckBox(meta.get("label", key))
                 checkbox.setChecked(bool(self.feature_flags.get(key, meta.get("default", False))))
@@ -1524,7 +1476,6 @@ class MainWindow(QMainWindow):
                 self.feature_flag_checkboxes[key] = checkbox
                 flags_layout.addWidget(checkbox)
 
-        if FEATURE_FLAG_DEFINITIONS:
             flags_buttons_layout = QHBoxLayout()
             self.reset_flags_button = QPushButton("Reset Flags to Defaults")
             self.reset_flags_button.setStyleSheet("""
@@ -1560,7 +1511,7 @@ class MainWindow(QMainWindow):
             """)
             flags_layout.addWidget(self.flags_status_label)
 
-        settings_layout.addWidget(flags_group)
+            settings_layout.addWidget(flags_group)
         settings_layout.addStretch()
 
         settings_scroll.setWidget(settings_content)
@@ -1572,7 +1523,8 @@ class MainWindow(QMainWindow):
 
         # Load saved URL settings
         self.load_url_settings()
-        self.load_feature_flag_settings()
+        if FEATURE_FLAG_DEFINITIONS:
+            self.load_feature_flag_settings()
 
     def create_sidebar(self):
         """Create the left sidebar with tabs for Live Game and Viewers"""
@@ -1789,16 +1741,14 @@ class MainWindow(QMainWindow):
     def save_url_settings(self):
         """Save URL settings to QSettings"""
         self.build_url = self.build_url_input.text().strip()
-        if hasattr(self, "matchup_url_input") and self.feature_flags.get("matchup_build", False):
+        if hasattr(self, "matchup_url_input"):
             self.matchup_url = self.matchup_url_input.text().strip()
         self.counter_url = self.counter_url_input.text().strip()
         self.aram_url = self.aram_url_input.text().strip()
         self.live_game_url = self.live_game_url_input.text().strip()
 
         # Validate that URLs are not empty
-        required = [self.build_url, self.counter_url, self.aram_url, self.live_game_url]
-        if hasattr(self, "matchup_url_input") and self.feature_flags.get("matchup_build", False):
-            required.insert(1, self.matchup_url)
+        required = [self.build_url, self.matchup_url, self.counter_url, self.aram_url, self.live_game_url]
         if not all(required):
             self.url_status_label.setText("✗ Error: All URLs must be filled")
             self.url_status_label.setStyleSheet("""
@@ -1812,7 +1762,7 @@ class MainWindow(QMainWindow):
             return
 
         self.settings.setValue("build_url", self.build_url)
-        if hasattr(self, "matchup_url_input") and self.feature_flags.get("matchup_build", False):
+        if hasattr(self, "matchup_url_input"):
             self.settings.setValue("matchup_url", self.matchup_url)
         self.settings.setValue("counter_url", self.counter_url)
         self.settings.setValue("aram_url", self.aram_url)
@@ -1831,42 +1781,32 @@ class MainWindow(QMainWindow):
             }
         """)
 
-        if hasattr(self, "matchup_url_input") and self.feature_flags.get("matchup_build", False):
-            logger.info(
-                "URL settings saved - Build: %s, Matchup: %s, Counter: %s, ARAM: %s, Live Game: %s",
-                self.build_url,
-                self.matchup_url,
-                self.counter_url,
-                self.aram_url,
-                self.live_game_url,
-            )
-        else:
-            logger.info(
-                "URL settings saved - Build: %s, Counter: %s, ARAM: %s, Live Game: %s",
-                self.build_url,
-                self.counter_url,
-                self.aram_url,
-                self.live_game_url,
-            )
+        logger.info(
+            "URL settings saved - Build: %s, Matchup: %s, Counter: %s, ARAM: %s, Live Game: %s",
+            self.build_url,
+            getattr(self, "matchup_url", ""),
+            self.counter_url,
+            self.aram_url,
+            self.live_game_url,
+        )
 
     def reset_url_settings(self):
         """Reset URL settings to defaults"""
         self.build_url = DEFAULT_BUILD_URL
         self.counter_url = DEFAULT_COUNTER_URL
-        if self.feature_flags.get("matchup_build", False):
-            self.matchup_url = DEFAULT_MATCHUP_URL
+        self.matchup_url = DEFAULT_MATCHUP_URL
         self.aram_url = DEFAULT_ARAM_URL
         self.live_game_url = DEFAULT_LIVE_GAME_URL
 
         self.build_url_input.setText(self.build_url)
-        if hasattr(self, "matchup_url_input") and self.feature_flags.get("matchup_build", False):
+        if hasattr(self, "matchup_url_input"):
             self.matchup_url_input.setText(self.matchup_url)
         self.counter_url_input.setText(self.counter_url)
         self.aram_url_input.setText(self.aram_url)
         self.live_game_url_input.setText(self.live_game_url)
 
         self.settings.setValue("build_url", self.build_url)
-        if hasattr(self, "matchup_url_input") and self.feature_flags.get("matchup_build", False):
+        if hasattr(self, "matchup_url_input"):
             self.settings.setValue("matchup_url", self.matchup_url)
         self.settings.setValue("counter_url", self.counter_url)
         self.settings.setValue("aram_url", self.aram_url)
