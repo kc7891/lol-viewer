@@ -4,9 +4,12 @@ Script to fetch champion data from League of Legends official website
 and create a champion dictionary with English names, Japanese names, and image URLs.
 """
 import json
+import os
 import re
 import requests
 from bs4 import BeautifulSoup
+
+THUMBNAIL_DIR = "champion_thumbnails"
 
 
 def fetch_champions_from_url(url: str) -> dict:
@@ -149,6 +152,7 @@ def build_champion_dictionary():
                 'english_name': en_data['name'],
                 'japanese_name': ja_name,
                 'image_url': en_data.get('image', ''),
+                'thumbnail_path': '',
                 'id': champ_id
             }
 
@@ -198,10 +202,55 @@ def get_fallback_champion_data():
             'english_name': en_name,
             'japanese_name': ja_name,
             'image_url': image_url,
+            'thumbnail_path': '',
             'id': champ_id
         }
 
     return champion_dict
+
+
+def download_thumbnails(champion_dict: dict):
+    """
+    Download thumbnail images for all champions.
+
+    Args:
+        champion_dict: The champion dictionary with image_url entries
+    """
+    os.makedirs(THUMBNAIL_DIR, exist_ok=True)
+
+    total = len(champion_dict)
+    downloaded = 0
+    skipped = 0
+    failed = 0
+
+    for champ_id, data in champion_dict.items():
+        image_url = data.get('image_url', '')
+        if not image_url:
+            failed += 1
+            continue
+
+        filename = f"{champ_id}.png"
+        filepath = os.path.join(THUMBNAIL_DIR, filename)
+
+        # Skip if already downloaded
+        if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+            data['thumbnail_path'] = os.path.join(THUMBNAIL_DIR, filename)
+            skipped += 1
+            continue
+
+        try:
+            resp = requests.get(image_url, timeout=10)
+            resp.raise_for_status()
+            with open(filepath, 'wb') as f:
+                f.write(resp.content)
+            data['thumbnail_path'] = os.path.join(THUMBNAIL_DIR, filename)
+            downloaded += 1
+        except Exception as e:
+            print(f"  Failed to download thumbnail for {champ_id}: {e}")
+            data['thumbnail_path'] = ''
+            failed += 1
+
+    print(f"Thumbnails: {downloaded} downloaded, {skipped} skipped (cached), {failed} failed (total: {total})")
 
 
 def save_champion_data(champion_dict: dict, output_file: str = "champions.json"):
@@ -225,10 +274,14 @@ def main():
     try:
         champion_dict = build_champion_dictionary()
 
+        # Download thumbnail images
+        print("\nDownloading champion thumbnails...")
+        download_thumbnails(champion_dict)
+
         # Print some sample data
         print("\nSample champions:")
         for i, (champ_id, data) in enumerate(list(champion_dict.items())[:5]):
-            print(f"  {champ_id}: {data['english_name']} / {data['japanese_name']}")
+            print(f"  {champ_id}: {data['english_name']} / {data['japanese_name']} (thumbnail: {data.get('thumbnail_path', 'N/A')})")
             if i >= 4:
                 break
 

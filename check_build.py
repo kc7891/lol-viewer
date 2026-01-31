@@ -54,6 +54,14 @@ def check_build_prerequisites():
             print(f"[FAIL] champions.json is invalid: {e}")
             all_present = False
 
+    # Check champion_thumbnails directory
+    thumbnails_dir = os.path.join(script_dir, 'champion_thumbnails')
+    if os.path.isdir(thumbnails_dir):
+        thumbnail_files = [f for f in os.listdir(thumbnails_dir) if f.endswith('.png')]
+        print(f"[OK]   champion_thumbnails/ contains {len(thumbnail_files)} images")
+    else:
+        print(f"[WARN] champion_thumbnails/ directory not found (thumbnails will be downloaded at runtime)")
+
     print()
     print("=" * 60)
 

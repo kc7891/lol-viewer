@@ -31,9 +31,11 @@ class ChampionData:
         # If running as PyInstaller bundle, look for data file in temp folder
         if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
             # Running as compiled executable
+            self.base_dir = sys._MEIPASS
             self.data_file = os.path.join(sys._MEIPASS, data_file)
         else:
             # Running as script
+            self.base_dir = os.path.dirname(os.path.abspath(data_file)) or '.'
             self.data_file = data_file
 
         self.champions: Dict[str, dict] = {}
@@ -62,6 +64,25 @@ class ChampionData:
             import traceback
             traceback.print_exc()
             self.champions = {}
+
+    def get_thumbnail_path(self, champ_id: str) -> str:
+        """
+        Get the absolute path to a champion's local thumbnail image.
+
+        Args:
+            champ_id: Champion ID (lowercase key)
+
+        Returns:
+            Absolute file path if the thumbnail exists, empty string otherwise
+        """
+        data = self.champions.get(champ_id, {})
+        rel_path = data.get('thumbnail_path', '')
+        if not rel_path:
+            return ''
+        abs_path = os.path.join(self.base_dir, rel_path)
+        if os.path.exists(abs_path):
+            return abs_path
+        return ''
 
     def search(self, query: str) -> List[dict]:
         """
@@ -92,6 +113,7 @@ class ChampionData:
                     'english_name': data.get('english_name', ''),
                     'japanese_name': data.get('japanese_name', ''),
                     'image_url': data.get('image_url', ''),
+                    'thumbnail_path': self.get_thumbnail_path(champ_id),
                     'display_name': f"{data.get('english_name', '')} ({data.get('japanese_name', '')})"
                 })
 
@@ -132,19 +154,27 @@ class ChampionImageCache:
         self.network_manager = QNetworkAccessManager()
         self.pending_requests: Dict[str, List] = {}
 
-    def get_image(self, url: str, callback=None) -> Optional[QPixmap]:
+    def get_image(self, url: str, callback=None, local_path: str = '') -> Optional[QPixmap]:
         """
-        Get image from cache or download it.
+        Get image from local file, cache, or download it.
 
         Args:
-            url: Image URL
+            url: Image URL (used as cache key and fallback download source)
             callback: Optional callback function to call when image is loaded
+            local_path: Optional local file path to load from (preferred over URL)
 
         Returns:
-            QPixmap if available in cache, None otherwise
+            QPixmap if available in cache or locally, None otherwise
         """
         if url in self.cache:
             return self.cache[url]
+
+        # Try loading from local file first
+        if local_path and os.path.exists(local_path):
+            pixmap = QPixmap(local_path)
+            if not pixmap.isNull():
+                self.cache[url] = pixmap
+                return pixmap
 
         # If not in cache and callback provided, download it
         if callback:
@@ -195,6 +225,7 @@ class ChampionItemDelegate(QStyledItemDelegate):
         english_name = index.data(Qt.ItemDataRole.UserRole + 3)  # English name
         japanese_name = index.data(Qt.ItemDataRole.UserRole)
         image_url = index.data(Qt.ItemDataRole.UserRole + 1)
+        thumbnail_path = index.data(Qt.ItemDataRole.UserRole + 4) or ''
 
         # Fallback if data is missing
         if not english_name:
@@ -218,7 +249,7 @@ class ChampionItemDelegate(QStyledItemDelegate):
             image_size
         )
 
-        pixmap = self.image_cache.get_image(image_url)
+        pixmap = self.image_cache.get_image(image_url, local_path=thumbnail_path)
         if pixmap:
             scaled_pixmap = pixmap.scaled(
                 image_size, image_size,
@@ -348,6 +379,7 @@ class ChampionCompleter(QCompleter):
             english_name = data.get('english_name', '')
             japanese_name = data.get('japanese_name', '')
             image_url = data.get('image_url', '')
+            thumbnail_path = self.champion_data.get_thumbnail_path(champ_id)
 
             # DisplayRole is used for both filtering and display
             # Format: "English - Japanese" (searchable and readable)
@@ -359,6 +391,7 @@ class ChampionCompleter(QCompleter):
             item.setData(image_url, Qt.ItemDataRole.UserRole + 1)       # Image URL
             item.setData(champ_id, Qt.ItemDataRole.UserRole + 2)        # Champion ID
             item.setData(english_name, Qt.ItemDataRole.UserRole + 3)    # English name
+            item.setData(thumbnail_path, Qt.ItemDataRole.UserRole + 4)  # Local thumbnail path
 
             self.model_data.appendRow(item)
             count += 1

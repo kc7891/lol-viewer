@@ -142,6 +142,7 @@ class TestChampionData:
         assert 'english_name' in champ
         assert 'japanese_name' in champ
         assert 'image_url' in champ
+        assert 'thumbnail_path' in champ
         assert 'id' in champ
 
 

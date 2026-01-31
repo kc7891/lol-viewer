@@ -16,6 +16,7 @@ a = Analysis(
     binaries=[],
     datas=[
         (os.path.join(spec_root, 'champions.json'), '.'),  # Embed champions.json
+        (os.path.join(spec_root, 'champion_thumbnails'), 'champion_thumbnails'),  # Embed champion thumbnails
         (os.path.join(spec_root, 'assets', 'icons', 'main-icon.png'), os.path.join('assets', 'icons')),  # Embed icon
     ],
     hiddenimports=[

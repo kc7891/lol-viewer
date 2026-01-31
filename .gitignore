@@ -40,3 +40,6 @@ package/
 # Logs
 *.log
 logs/
+
+# Champion thumbnails (generated at build time by fetch_champions.py)
+champion_thumbnails/

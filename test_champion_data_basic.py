@@ -54,6 +54,7 @@ def test_champion_data_module():
     assert 'english_name' in ashe, "english_name field missing"
     assert 'japanese_name' in ashe, "japanese_name field missing"
     assert 'image_url' in ashe, "image_url field missing"
+    assert 'thumbnail_path' in ashe, "thumbnail_path field missing"
     assert 'id' in ashe, "id field missing"
     print(f"[OK] Champion data structure is correct")
 
