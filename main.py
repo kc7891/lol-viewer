@@ -221,7 +221,7 @@ def setup_logging():
 logger = logging.getLogger(__name__)
 
 # Import these after logger setup
-from champion_data import ChampionData, setup_champion_input, setup_opponent_champion_input
+from champion_data import ChampionData, ChampionImageCache, setup_champion_input, setup_opponent_champion_input
 from logger import log
 from lcu_detector import ChampionDetectorService
 
@@ -1648,51 +1648,91 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(8, 4, 8, 4)
         layout.setSpacing(2)
 
-        self._matchup_rows: list[tuple[QLabel, QLabel]] = []
+        self._matchup_image_cache = ChampionImageCache()
+        # Each row: (ally_icon, ally_name, enemy_name, enemy_icon)
+        self._matchup_rows: list[tuple[QLabel, QLabel, QLabel, QLabel]] = []
         self._matchup_data: list[tuple[str, str]] = [("", "")] * 5  # (ally, enemy)
+
+        icon_size = 24
+        name_style_ally = "QLabel { font-size: 9pt; color: #5bc0de; background-color: transparent; }"
+        name_style_enemy = "QLabel { font-size: 9pt; color: #d9534f; background-color: transparent; }"
+        icon_style = "QLabel { background-color: transparent; }"
 
         for _ in range(5):
             row = QWidget()
             row_layout = QHBoxLayout(row)
-            row_layout.setContentsMargins(4, 2, 4, 2)
-            row_layout.setSpacing(0)
+            row_layout.setContentsMargins(4, 1, 4, 1)
+            row_layout.setSpacing(4)
 
-            ally_label = QLabel("-")
-            ally_label.setStyleSheet(
-                "QLabel { font-size: 9pt; color: #5bc0de; background-color: transparent; }"
-            )
-            ally_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            ally_icon = QLabel()
+            ally_icon.setFixedSize(icon_size, icon_size)
+            ally_icon.setStyleSheet(icon_style)
+
+            ally_name = QLabel("-")
+            ally_name.setStyleSheet(name_style_ally)
+            ally_name.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
             vs_label = QLabel("vs")
             vs_label.setStyleSheet(
                 "QLabel { font-size: 8pt; color: #666666; background-color: transparent; }"
             )
             vs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            vs_label.setFixedWidth(24)
+            vs_label.setFixedWidth(20)
 
-            enemy_label = QLabel("-")
-            enemy_label.setStyleSheet(
-                "QLabel { font-size: 9pt; color: #d9534f; background-color: transparent; }"
-            )
-            enemy_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            enemy_name = QLabel("-")
+            enemy_name.setStyleSheet(name_style_enemy)
+            enemy_name.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
-            row_layout.addWidget(ally_label, 1)
+            enemy_icon = QLabel()
+            enemy_icon.setFixedSize(icon_size, icon_size)
+            enemy_icon.setStyleSheet(icon_style)
+
+            row_layout.addWidget(ally_icon, 0)
+            row_layout.addWidget(ally_name, 1)
             row_layout.addWidget(vs_label, 0)
-            row_layout.addWidget(enemy_label, 1)
+            row_layout.addWidget(enemy_name, 1)
+            row_layout.addWidget(enemy_icon, 0)
 
             layout.addWidget(row)
-            self._matchup_rows.append((ally_label, enemy_label))
+            self._matchup_rows.append((ally_icon, ally_name, enemy_name, enemy_icon))
 
         return container
+
+    def _set_matchup_icon(self, icon_label: QLabel, champion_name: str):
+        """Set a matchup row icon from champion image URL."""
+        size = icon_label.width() or 24
+        if not champion_name:
+            icon_label.clear()
+            return
+        champ = self.champion_data.get_champion(champion_name)
+        if not champ:
+            icon_label.clear()
+            return
+        url = champ.get("image_url", "")
+        if not url:
+            icon_label.clear()
+            return
+        pixmap = self._matchup_image_cache.get_image(
+            url,
+            callback=lambda pm, lbl=icon_label, s=size: lbl.setPixmap(
+                pm.scaled(s, s, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            ),
+        )
+        if pixmap:
+            icon_label.setPixmap(
+                pixmap.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            )
 
     def update_matchup_list(self):
         """Refresh the matchup list widget from current matchup data."""
         if not self.feature_flags.get("matchup_list", False):
             return
-        for i, (ally_label, enemy_label) in enumerate(self._matchup_rows):
+        for i, (ally_icon, ally_name, enemy_name, enemy_icon) in enumerate(self._matchup_rows):
             ally, enemy = self._matchup_data[i] if i < len(self._matchup_data) else ("", "")
-            ally_label.setText(ally if ally else "-")
-            enemy_label.setText(enemy if enemy else "-")
+            ally_name.setText(ally if ally else "-")
+            enemy_name.setText(enemy if enemy else "-")
+            self._set_matchup_icon(ally_icon, ally)
+            self._set_matchup_icon(enemy_icon, enemy)
 
     def set_matchup_entry(self, index: int, ally: str = "", enemy: str = ""):
         """Set a single matchup row (0-4)."""
