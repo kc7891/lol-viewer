@@ -244,6 +244,7 @@ class QrCodeOverlay(QWidget):
             self.hide()
             return
         self.show()
+        self.raise_()
         self._reposition()
 
     # -- internal --
@@ -265,6 +266,7 @@ class QrCodeOverlay(QWidget):
         x = p.width() - self.width() - margin
         y = p.height() - self.height() - margin
         self.move(max(x, 0), max(y, 0))
+        self.raise_()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -1856,6 +1858,8 @@ class MainWindow(QMainWindow):
                 }
             """)
         logger.info(f"Feature flag updated: {key}={enabled}")
+        if key == "qr_code_overlay":
+            self._apply_qr_overlay_flag(enabled)
 
     def reset_feature_flags(self):
         """Reset all feature flags to their default values."""
@@ -1864,6 +1868,8 @@ class MainWindow(QMainWindow):
             self.feature_flags[key] = default_value
             self.settings.setValue(f"feature_flags/{key}", default_value)
         self.load_feature_flag_settings()
+        # Apply side-effects for flags that need runtime updates
+        self._apply_qr_overlay_flag(self.feature_flags.get("qr_code_overlay", False))
         if hasattr(self, "flags_status_label"):
             self.flags_status_label.setText("✓ Feature flags reset to defaults")
             self.flags_status_label.setStyleSheet("""
@@ -1875,6 +1881,32 @@ class MainWindow(QMainWindow):
                 }
             """)
         logger.info("Feature flags reset to defaults")
+
+    def _apply_qr_overlay_flag(self, enabled: bool):
+        """Dynamically add or remove QR overlays on all web views."""
+        # Live game page
+        if enabled:
+            if not getattr(self, "_live_game_qr_overlay", None):
+                self._live_game_qr_overlay = _install_qr_overlay(self.live_game_web_view)
+            self._live_game_qr_overlay.set_url(self.live_game_url)
+        else:
+            if getattr(self, "_live_game_qr_overlay", None):
+                self._live_game_qr_overlay.hide()
+                self._live_game_qr_overlay.deleteLater()
+                self._live_game_qr_overlay = None
+
+        # Champion viewers
+        for viewer in self.viewers:
+            if enabled:
+                if viewer._qr_overlay is None:
+                    viewer._qr_overlay = _install_qr_overlay(viewer.web_view)
+                if viewer.current_url:
+                    viewer._qr_overlay.set_url(viewer.current_url)
+            else:
+                if viewer._qr_overlay is not None:
+                    viewer._qr_overlay.hide()
+                    viewer._qr_overlay.deleteLater()
+                    viewer._qr_overlay = None
 
     def save_url_settings(self):
         """Save URL settings to QSettings"""
