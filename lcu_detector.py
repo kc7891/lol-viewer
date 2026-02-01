@@ -251,7 +251,7 @@ class ChampionDetector:
         """Detect own champion and enemy champions in a single API call
 
         Returns:
-            tuple: ((champion_name, lane), [enemy_champion_names])
+            tuple: ((champion_name, lane), [enemy_champion_names], [(ally, enemy) matchup_pairs])
         """
         try:
             phase = self.phase_tracker.update_phase()
@@ -260,7 +260,7 @@ class ChampionDetector:
                 # In champion select - get from LCU API
                 data = self.lcu_manager.make_request("/lol-champ-select/v1/session")
                 if not data:
-                    return (None, [])
+                    return (None, [], [])
 
                 # Detect own champion
                 own_champion_result = self._detect_own_champion_from_data(data)
@@ -278,13 +278,16 @@ class ChampionDetector:
                 # Detect enemy champions
                 enemy_champions = self._detect_enemy_champions_from_data(data)
 
+                # Extract matchup pairs
+                matchup_pairs = self.get_matchup_pairs_from_data(data)
+
                 own_result = (self.current_champion_name, self.current_lane) if self.current_champion_name else None
-                return (own_result, enemy_champions)
+                return (own_result, enemy_champions, matchup_pairs)
 
             elif phase == 'InProgress':
                 # In game - return the champion selected during champ select
                 own_result = (self.current_champion_name, self.current_lane) if self.current_champion_name else None
-                return (own_result, [])
+                return (own_result, [], [])
 
             elif phase == 'None' or phase == 'Lobby':
                 # Not in game - reset state
@@ -294,16 +297,16 @@ class ChampionDetector:
                 self.current_champion_name = None
                 self.current_lane = None
                 self.detected_enemy_champions.clear()
-                return (None, [])
+                return (None, [], [])
 
             else:
                 # Other phases - keep current state
                 own_result = (self.current_champion_name, self.current_lane) if self.current_champion_name else None
-                return (own_result, [])
+                return (own_result, [], [])
 
         except Exception as e:
             logger.error(f"Error detecting champions: {e}")
-            return (None, [])
+            return (None, [], [])
 
     def detect_champion(self) -> Optional[str]:
         """Detect own champion only (backwards-compatible helper).
@@ -418,12 +421,43 @@ class ChampionDetector:
             logger.error(f"Error detecting enemy champions from data: {e}")
             return []
 
+    def get_matchup_pairs_from_data(self, data: dict) -> list:
+        """Extract positional matchup pairs (ally, enemy) from champ select data.
+
+        Returns:
+            list of (ally_champion_name, enemy_champion_name) tuples (up to 5).
+            Empty string is used when a champion is not yet picked.
+        """
+        try:
+            my_team = data.get('myTeam', [])
+            their_team = data.get('theirTeam', [])
+
+            pairs = []
+            for i in range(max(len(my_team), len(their_team))):
+                ally = ""
+                enemy = ""
+                if i < len(my_team):
+                    cid = my_team[i].get('championId', 0)
+                    if cid > 0:
+                        ally = self.champion_map.get(cid, "")
+                if i < len(their_team):
+                    cid = their_team[i].get('championId', 0)
+                    if cid > 0:
+                        enemy = self.champion_map.get(cid, "")
+                pairs.append((ally, enemy))
+
+            return pairs[:5]
+        except Exception as e:
+            logger.error(f"Error extracting matchup pairs: {e}")
+            return []
+
 
 class ChampionDetectorService(QObject):
     """Qt service for champion detection with signals"""
 
     champion_detected = pyqtSignal(str, str)  # Emits (champion_name, lane)
     enemy_champion_detected = pyqtSignal(str)  # Emits enemy champion_name
+    matchup_pairs_updated = pyqtSignal(list)  # Emits list of (ally_name, enemy_name) tuples (up to 5)
     connection_status_changed = pyqtSignal(str)  # Emits connection status: "connecting", "connected", "disconnected"
 
     def __init__(self):
@@ -584,14 +618,19 @@ class ChampionDetectorService(QObject):
 
             own_result = None
             enemy_champions = []
+            matchup_pairs = []
 
             # Detect champions (both own and enemy in a single API call)
             if self.lcu_manager.connected:
-                own_result, enemy_champions = self.detector.detect_champion_and_enemies()
+                own_result, enemy_champions, matchup_pairs = self.detector.detect_champion_and_enemies()
             else:
                 # Connection dropped during detection attempt, retry next tick
                 self._set_connection_status("connecting")
                 return
+
+            # Emit matchup pairs if available
+            if matchup_pairs:
+                self.matchup_pairs_updated.emit(matchup_pairs)
 
             # Handle own champion detection
             if own_result:
