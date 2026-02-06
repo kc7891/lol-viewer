@@ -223,6 +223,7 @@ class ChampionDetector:
         self.current_lane: Optional[str] = None
         self.current_summoner_id: Optional[int] = None  # cached for team identification in InProgress
         self.detected_enemy_champions: set = set()  # Track detected enemy champions by ID
+        self._cached_matchup_pairs: list = []  # Cache pairs to merge incomplete data
         self.champion_map: Dict[int, str] = {}
         logger.info("ChampionDetector initialized")
         self._load_champion_map()
@@ -301,6 +302,7 @@ class ChampionDetector:
                 self.current_lane = None
                 self.current_summoner_id = None
                 self.detected_enemy_champions.clear()
+                self._cached_matchup_pairs = []
                 return (None, [], [])
 
             else:
@@ -463,6 +465,7 @@ class ChampionDetector:
         """Extract matchup pairs from gameData (teamOne/teamTwo) in the cached gameflow session.
 
         Uses cached summonerId to determine which team is ally/enemy.
+        Merges with previously cached pairs to handle incomplete data (e.g., late-loading champions).
 
         Returns:
             list of (ally_champion_name, enemy_champion_name) tuples (up to 5).
@@ -470,23 +473,13 @@ class ChampionDetector:
         try:
             session = self.phase_tracker.last_session_data
             if not session:
-                return []
+                return self._cached_matchup_pairs
             game_data = session.get('gameData') or {}
             team_one = game_data.get('teamOne') or []
             team_two = game_data.get('teamTwo') or []
 
-            # Debug: log structure
-            logger.info(f"[matchup] gameData keys: {list(game_data.keys())}")
-            logger.info(f"[matchup] teamOne: {len(team_one)}, teamTwo: {len(team_two)}")
-            for i, p in enumerate(team_one):
-                cid = p.get('championId', 0) if isinstance(p, dict) else 0
-                logger.info(f"[matchup] teamOne[{i}] championId={cid} -> {self.champion_map.get(cid, '?')}")
-            for i, p in enumerate(team_two):
-                cid = p.get('championId', 0) if isinstance(p, dict) else 0
-                logger.info(f"[matchup] teamTwo[{i}] championId={cid} -> {self.champion_map.get(cid, '?')}")
-
             if not team_one and not team_two:
-                return []
+                return self._cached_matchup_pairs
 
             # Determine which team is ours using cached summonerId
             my_team, their_team = team_one, team_two
@@ -509,11 +502,18 @@ class ChampionDetector:
                         enemy = self.champion_map.get(cid, "")
                 pairs.append((ally, enemy))
 
-            logger.info(f"[matchup] result pairs: {pairs}")
-            return pairs[:5]
+            # Merge with cached pairs: keep existing values if new value is empty
+            merged = []
+            for i in range(5):
+                new_ally, new_enemy = pairs[i] if i < len(pairs) else ("", "")
+                cached_ally, cached_enemy = self._cached_matchup_pairs[i] if i < len(self._cached_matchup_pairs) else ("", "")
+                merged.append((new_ally or cached_ally, new_enemy or cached_enemy))
+
+            self._cached_matchup_pairs = merged
+            return merged
         except Exception as e:
             logger.error(f"Error extracting matchup pairs from gameData: {e}")
-            return []
+            return self._cached_matchup_pairs
 
 
 class ChampionDetectorService(QObject):
@@ -569,6 +569,7 @@ class ChampionDetectorService(QObject):
         self.detector.current_lane = None
         self.detector.current_summoner_id = None
         self.detector.detected_enemy_champions.clear()
+        self.detector._cached_matchup_pairs = []
         self.matchup_pairs_updated.emit([])
 
     def start(self, interval_ms: int = 2000, max_interval_ms: int = 60000):
