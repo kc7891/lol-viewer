@@ -173,14 +173,19 @@ class NullWebView(QWidget):
 
 
 class QrCodeOverlay(QWidget):
-    """Floating QR-code overlay anchored to the bottom-right of a parent widget."""
+    """Floating QR-code overlay anchored to the bottom-right of a target widget."""
 
     _QR_SIZE = 120  # px (image), padded by layout margins
 
-    def __init__(self, parent: QWidget):
+    def __init__(self, parent: QWidget, target: QWidget):
+        """
+        Args:
+            parent: The container widget to parent this overlay to.
+            target: The widget (e.g., web view) whose geometry determines positioning.
+        """
         super().__init__(parent)
+        self._target = target
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
-        self.setWindowFlags(Qt.WindowType.Widget)
 
         self._collapsed = False
 
@@ -203,7 +208,7 @@ class QrCodeOverlay(QWidget):
         # Toggle (minimise / restore) button
         self._toggle_btn = QPushButton("QR")
         self._toggle_btn.setFixedSize(32, 32)
-        self._toggle_btn.setToolTip("Toggle QR code overlay")
+        self._toggle_btn.setToolTip("Hide QR code")
         self._toggle_btn.setStyleSheet(
             "QPushButton { background-color: rgba(30,30,30,200); color: #ffffff; "
             "border: 1px solid #555; border-radius: 4px; font-size: 9pt; font-weight: bold; }"
@@ -214,6 +219,9 @@ class QrCodeOverlay(QWidget):
 
         self._current_url: str = ""
         self.hide()  # hidden until a URL is set
+
+        # Listen for resize/move events on the target widget
+        self._target.installEventFilter(self)
 
     # -- public API --
 
@@ -244,7 +252,6 @@ class QrCodeOverlay(QWidget):
             self.hide()
             return
         self.show()
-        self.raise_()
         self._reposition()
 
     # -- internal --
@@ -252,39 +259,33 @@ class QrCodeOverlay(QWidget):
     def _toggle(self):
         self._collapsed = not self._collapsed
         self._qr_container.setVisible(not self._collapsed)
-        self._toggle_btn.setText("QR" if self._collapsed else "QR")
         self._toggle_btn.setToolTip("Show QR code" if self._collapsed else "Hide QR code")
         self._reposition()
 
     def _reposition(self):
-        """Pin to the bottom-right of the parent widget."""
-        p = self.parentWidget()
-        if p is None:
+        """Pin to the bottom-right of the target widget."""
+        if self._target is None:
             return
         self.adjustSize()
         margin = 10
-        x = p.width() - self.width() - margin
-        y = p.height() - self.height() - margin
-        self.move(max(x, 0), max(y, 0))
-        self.raise_()
+        # Map target's bottom-right corner to parent's coordinate system
+        target_rect = self._target.geometry()
+        x = target_rect.right() - self.width() - margin + 1
+        y = target_rect.bottom() - self.height() - margin + 1
+        self.move(max(x, target_rect.x()), max(y, target_rect.y()))
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self._reposition()
+    def eventFilter(self, obj, event):
+        """Reposition overlay when target widget is resized or moved."""
+        if obj is self._target:
+            from PyQt6.QtCore import QEvent
+            if event.type() in (QEvent.Type.Resize, QEvent.Type.Move):
+                self._reposition()
+        return super().eventFilter(obj, event)
 
 
-def _install_qr_overlay(web_view: QWidget) -> "QrCodeOverlay":
-    """Create a QrCodeOverlay parented to *web_view* and wire resize events."""
-    overlay = QrCodeOverlay(web_view)
-    # Monkey-patch resizeEvent so overlay follows the web view size.
-    _orig_resize = web_view.resizeEvent
-
-    def _patched_resize(event, _orig=_orig_resize, _ov=overlay):
-        if _orig is not None:
-            _orig(event)
-        _ov._reposition()
-
-    web_view.resizeEvent = _patched_resize
+def _install_qr_overlay(container: QWidget, web_view: QWidget) -> "QrCodeOverlay":
+    """Create a QrCodeOverlay as a sibling to the web view (both children of container)."""
+    overlay = QrCodeOverlay(container, web_view)
     return overlay
 
 
@@ -753,7 +754,7 @@ class ChampionViewerWidget(QWidget):
         # QR code overlay (feature-flagged)
         self._qr_overlay: Optional[QrCodeOverlay] = None
         if self.main_window and self.main_window.feature_flags.get("qr_code_overlay", False):
-            self._qr_overlay = _install_qr_overlay(self.web_view)
+            self._qr_overlay = _install_qr_overlay(self, self.web_view)
 
         # Set minimum and preferred width
         self.setMinimumWidth(300)
@@ -1155,7 +1156,7 @@ class MainWindow(QMainWindow):
         # QR code overlay for live game (feature-flagged)
         self._live_game_qr_overlay: Optional[QrCodeOverlay] = None
         if self.feature_flags.get("qr_code_overlay", False):
-            self._live_game_qr_overlay = _install_qr_overlay(self.live_game_web_view)
+            self._live_game_qr_overlay = _install_qr_overlay(self.live_game_page, self.live_game_web_view)
             self._live_game_qr_overlay.set_url(self.live_game_url)
 
     def create_viewers_page(self):
@@ -1887,7 +1888,7 @@ class MainWindow(QMainWindow):
         # Live game page
         if enabled:
             if not getattr(self, "_live_game_qr_overlay", None):
-                self._live_game_qr_overlay = _install_qr_overlay(self.live_game_web_view)
+                self._live_game_qr_overlay = _install_qr_overlay(self.live_game_page, self.live_game_web_view)
             self._live_game_qr_overlay.set_url(self.live_game_url)
         else:
             if getattr(self, "_live_game_qr_overlay", None):
@@ -1899,7 +1900,7 @@ class MainWindow(QMainWindow):
         for viewer in self.viewers:
             if enabled:
                 if viewer._qr_overlay is None:
-                    viewer._qr_overlay = _install_qr_overlay(viewer.web_view)
+                    viewer._qr_overlay = _install_qr_overlay(viewer, viewer.web_view)
                 if viewer.current_url:
                     viewer._qr_overlay.set_url(viewer.current_url)
             else:
