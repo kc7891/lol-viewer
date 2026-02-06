@@ -475,6 +475,16 @@ class ChampionDetector:
             team_one = game_data.get('teamOne') or []
             team_two = game_data.get('teamTwo') or []
 
+            # Debug: log structure
+            logger.info(f"[matchup] gameData keys: {list(game_data.keys())}")
+            logger.info(f"[matchup] teamOne: {len(team_one)}, teamTwo: {len(team_two)}")
+            for i, p in enumerate(team_one):
+                cid = p.get('championId', 0) if isinstance(p, dict) else 0
+                logger.info(f"[matchup] teamOne[{i}] championId={cid} -> {self.champion_map.get(cid, '?')}")
+            for i, p in enumerate(team_two):
+                cid = p.get('championId', 0) if isinstance(p, dict) else 0
+                logger.info(f"[matchup] teamTwo[{i}] championId={cid} -> {self.champion_map.get(cid, '?')}")
+
             if not team_one and not team_two:
                 return []
 
@@ -499,6 +509,7 @@ class ChampionDetector:
                         enemy = self.champion_map.get(cid, "")
                 pairs.append((ally, enemy))
 
+            logger.info(f"[matchup] result pairs: {pairs}")
             return pairs[:5]
         except Exception as e:
             logger.error(f"Error extracting matchup pairs from gameData: {e}")
