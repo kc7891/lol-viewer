@@ -313,7 +313,8 @@ class TestMatchupPairs:
         detector.current_summoner_id = 100
 
         pairs = detector.get_matchup_pairs_from_gamedata()
-        assert pairs == [('Ashe', 'Caitlyn')]
+        assert len(pairs) == 5
+        assert pairs[0] == ('Ashe', 'Caitlyn')
 
     def test_get_matchup_pairs_from_gamedata_team_two(self):
         """Test matchup pairs from gameData when player is on teamTwo"""
@@ -331,7 +332,8 @@ class TestMatchupPairs:
 
         pairs = detector.get_matchup_pairs_from_gamedata()
         # ally=Ashe (teamTwo), enemy=Caitlyn (teamOne)
-        assert pairs == [('Ashe', 'Caitlyn')]
+        assert len(pairs) == 5
+        assert pairs[0] == ('Ashe', 'Caitlyn')
 
     def test_get_matchup_pairs_from_gamedata_no_session(self):
         """Test matchup pairs when no session data is available"""
@@ -375,7 +377,8 @@ class TestMatchupPairs:
         own, enemies, pairs = detector.detect_champion_and_enemies()
         assert own == ('Ashe', 'bottom')
         assert enemies == []
-        assert pairs == [('Ashe', 'Caitlyn')]
+        assert len(pairs) == 5
+        assert pairs[0] == ('Ashe', 'Caitlyn')
 
 
 if __name__ == '__main__':
