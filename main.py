@@ -5,10 +5,11 @@ LoL Viewer - A simple application to view LoLAnalytics champion builds
 import sys
 import logging
 import os
+import io
 from datetime import datetime
 from typing import List, Optional
-from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer, QSettings
-from PyQt6.QtGui import QColor, QIcon
+from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer, QSettings, QByteArray
+from PyQt6.QtGui import QColor, QIcon, QPixmap
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QMessageBox,
@@ -37,7 +38,13 @@ CLOSE_BUTTON_GLYPH = "×"
 # NOTE: Keys are persisted via QSettings at "feature_flags/<key>".
 #
 # This build currently ships with no gated/experimental features.
-FEATURE_FLAG_DEFINITIONS: dict = {}
+FEATURE_FLAG_DEFINITIONS: dict = {
+    "qr_code_overlay": {
+        "label": "QR Code Overlay",
+        "default": False,
+        "description": "Show a QR code of the current page URL on the bottom-right of each web view",
+    },
+}
 
 # Queue IDs used to detect ARAM / ARAM: Mayhem.
 # - ARAM (Howling Abyss): 450 (current), plus a few legacy/special variants.
@@ -163,6 +170,123 @@ class NullWebView(QWidget):
 
     def reload(self):
         return None
+
+
+class QrCodeOverlay(QWidget):
+    """Floating QR-code overlay anchored to the bottom-right of a target widget."""
+
+    _QR_SIZE = 120  # px (image), padded by layout margins
+
+    def __init__(self, parent: QWidget, target: QWidget):
+        """
+        Args:
+            parent: The container widget to parent this overlay to.
+            target: The widget (e.g., web view) whose geometry determines positioning.
+        """
+        super().__init__(parent)
+        self._target = target
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
+
+        self._collapsed = False
+
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        # Container that holds the QR image (hidden when minimised)
+        self._qr_container = QWidget()
+        self._qr_container.setStyleSheet(
+            "background-color: #ffffff; border-radius: 6px;"
+        )
+        qr_layout = QVBoxLayout(self._qr_container)
+        qr_layout.setContentsMargins(6, 6, 6, 6)
+        self._qr_label = QLabel()
+        self._qr_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        qr_layout.addWidget(self._qr_label)
+        outer.addWidget(self._qr_container)
+
+        # Toggle (minimise / restore) button
+        self._toggle_btn = QPushButton("QR")
+        self._toggle_btn.setFixedSize(32, 32)
+        self._toggle_btn.setToolTip("Hide QR code")
+        self._toggle_btn.setStyleSheet(
+            "QPushButton { background-color: rgba(30,30,30,200); color: #ffffff; "
+            "border: 1px solid #555; border-radius: 4px; font-size: 9pt; font-weight: bold; }"
+            "QPushButton:hover { background-color: rgba(60,60,60,220); }"
+        )
+        self._toggle_btn.clicked.connect(self._toggle)
+        outer.addWidget(self._toggle_btn, alignment=Qt.AlignmentFlag.AlignRight)
+
+        self._current_url: str = ""
+        self.hide()  # hidden until a URL is set
+
+        # Listen for resize/move events on the target widget
+        self._target.installEventFilter(self)
+
+    # -- public API --
+
+    def set_url(self, url: str):
+        """Generate and display a QR code for *url*."""
+        if url == self._current_url:
+            return
+        self._current_url = url
+        if not url:
+            self.hide()
+            return
+        try:
+            import segno
+            qr = segno.make(url)
+            buf = io.BytesIO()
+            qr.save(buf, kind="png", scale=4, border=1)
+            buf.seek(0)
+            pixmap = QPixmap()
+            pixmap.loadFromData(QByteArray(buf.getvalue()))
+            pixmap = pixmap.scaled(
+                self._QR_SIZE, self._QR_SIZE,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            self._qr_label.setPixmap(pixmap)
+        except Exception:
+            logging.getLogger(__name__).debug("QR code generation failed for %s", url, exc_info=True)
+            self.hide()
+            return
+        self.show()
+        self._reposition()
+
+    # -- internal --
+
+    def _toggle(self):
+        self._collapsed = not self._collapsed
+        self._qr_container.setVisible(not self._collapsed)
+        self._toggle_btn.setToolTip("Show QR code" if self._collapsed else "Hide QR code")
+        self._reposition()
+
+    def _reposition(self):
+        """Pin to the bottom-right of the target widget."""
+        if self._target is None:
+            return
+        self.adjustSize()
+        margin = 10
+        # Map target's bottom-right corner to parent's coordinate system
+        target_rect = self._target.geometry()
+        x = target_rect.right() - self.width() - margin + 1
+        y = target_rect.bottom() - self.height() - margin + 1
+        self.move(max(x, target_rect.x()), max(y, target_rect.y()))
+
+    def eventFilter(self, obj, event):
+        """Reposition overlay when target widget is resized or moved."""
+        if obj is self._target:
+            from PyQt6.QtCore import QEvent
+            if event.type() in (QEvent.Type.Resize, QEvent.Type.Move):
+                self._reposition()
+        return super().eventFilter(obj, event)
+
+
+def _install_qr_overlay(container: QWidget, web_view: QWidget) -> "QrCodeOverlay":
+    """Create a QrCodeOverlay as a sibling to the web view (both children of container)."""
+    overlay = QrCodeOverlay(container, web_view)
+    return overlay
 
 
 def setup_logging():
@@ -627,6 +751,11 @@ class ChampionViewerWidget(QWidget):
         self.web_view.page().setBackgroundColor(QColor("#1e1e1e"))
         layout.addWidget(self.web_view)
 
+        # QR code overlay (feature-flagged)
+        self._qr_overlay: Optional[QrCodeOverlay] = None
+        if self.main_window and self.main_window.feature_flags.get("qr_code_overlay", False):
+            self._qr_overlay = _install_qr_overlay(self, self.web_view)
+
         # Set minimum and preferred width
         self.setMinimumWidth(300)
         self.resize(500, self.height())
@@ -691,6 +820,8 @@ class ChampionViewerWidget(QWidget):
             url = self.get_build_url(champion_name, lane)
 
         self.current_url = url  # Store URL for refresh functionality
+        if self._qr_overlay is not None:
+            self._qr_overlay.set_url(url)
         self.web_view.setUrl(QUrl(url))
         self.champion_input.setFocus()
         # Notify parent window that champion name has been updated
@@ -712,6 +843,8 @@ class ChampionViewerWidget(QWidget):
         lane = self.lane_selector.currentData()
         url = self.get_counter_url(champion_name, lane)
         self.current_url = url  # Store URL for refresh functionality
+        if self._qr_overlay is not None:
+            self._qr_overlay.set_url(url)
         self.web_view.setUrl(QUrl(url))
         self.champion_input.setFocus()
         # Notify parent window that champion name has been updated
@@ -733,6 +866,8 @@ class ChampionViewerWidget(QWidget):
         logger.info(f"Opening ARAM page for {champion_name}: {url}")
 
         self.current_url = url  # Store URL for refresh functionality
+        if self._qr_overlay is not None:
+            self._qr_overlay.set_url(url)
         self.web_view.setUrl(QUrl(url))
         self.champion_input.setFocus()
         # Notify parent window that champion name has been updated
@@ -1017,6 +1152,12 @@ class MainWindow(QMainWindow):
         self.live_game_web_view.page().setBackgroundColor(QColor("#1e1e1e"))
         self.live_game_web_view.setUrl(QUrl(self.live_game_url))
         live_game_layout.addWidget(self.live_game_web_view)
+
+        # QR code overlay for live game (feature-flagged)
+        self._live_game_qr_overlay: Optional[QrCodeOverlay] = None
+        if self.feature_flags.get("qr_code_overlay", False):
+            self._live_game_qr_overlay = _install_qr_overlay(self.live_game_page, self.live_game_web_view)
+            self._live_game_qr_overlay.set_url(self.live_game_url)
 
     def create_viewers_page(self):
         """Create the Viewers page with toolbar and viewers splitter"""
@@ -1718,6 +1859,8 @@ class MainWindow(QMainWindow):
                 }
             """)
         logger.info(f"Feature flag updated: {key}={enabled}")
+        if key == "qr_code_overlay":
+            self._apply_qr_overlay_flag(enabled)
 
     def reset_feature_flags(self):
         """Reset all feature flags to their default values."""
@@ -1726,6 +1869,8 @@ class MainWindow(QMainWindow):
             self.feature_flags[key] = default_value
             self.settings.setValue(f"feature_flags/{key}", default_value)
         self.load_feature_flag_settings()
+        # Apply side-effects for flags that need runtime updates
+        self._apply_qr_overlay_flag(self.feature_flags.get("qr_code_overlay", False))
         if hasattr(self, "flags_status_label"):
             self.flags_status_label.setText("✓ Feature flags reset to defaults")
             self.flags_status_label.setStyleSheet("""
@@ -1737,6 +1882,32 @@ class MainWindow(QMainWindow):
                 }
             """)
         logger.info("Feature flags reset to defaults")
+
+    def _apply_qr_overlay_flag(self, enabled: bool):
+        """Dynamically add or remove QR overlays on all web views."""
+        # Live game page
+        if enabled:
+            if not getattr(self, "_live_game_qr_overlay", None):
+                self._live_game_qr_overlay = _install_qr_overlay(self.live_game_page, self.live_game_web_view)
+            self._live_game_qr_overlay.set_url(self.live_game_url)
+        else:
+            if getattr(self, "_live_game_qr_overlay", None):
+                self._live_game_qr_overlay.hide()
+                self._live_game_qr_overlay.deleteLater()
+                self._live_game_qr_overlay = None
+
+        # Champion viewers
+        for viewer in self.viewers:
+            if enabled:
+                if viewer._qr_overlay is None:
+                    viewer._qr_overlay = _install_qr_overlay(viewer, viewer.web_view)
+                if viewer.current_url:
+                    viewer._qr_overlay.set_url(viewer.current_url)
+            else:
+                if viewer._qr_overlay is not None:
+                    viewer._qr_overlay.hide()
+                    viewer._qr_overlay.deleteLater()
+                    viewer._qr_overlay = None
 
     def save_url_settings(self):
         """Save URL settings to QSettings"""
