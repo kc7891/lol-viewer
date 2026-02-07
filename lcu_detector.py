@@ -221,7 +221,9 @@ class ChampionDetector:
         self.current_champion_id: Optional[int] = None
         self.current_champion_name: Optional[str] = None
         self.current_lane: Optional[str] = None
+        self.current_summoner_id: Optional[int] = None  # cached for team identification in InProgress
         self.detected_enemy_champions: set = set()  # Track detected enemy champions by ID
+        self._cached_matchup_pairs: list = []  # Cache pairs to merge incomplete data
         self.champion_map: Dict[int, str] = {}
         logger.info("ChampionDetector initialized")
         self._load_champion_map()
@@ -251,7 +253,7 @@ class ChampionDetector:
         """Detect own champion and enemy champions in a single API call
 
         Returns:
-            tuple: ((champion_name, lane), [enemy_champion_names])
+            tuple: ((champion_name, lane), [enemy_champion_names], [(ally, enemy) matchup_pairs])
         """
         try:
             phase = self.phase_tracker.update_phase()
@@ -260,7 +262,7 @@ class ChampionDetector:
                 # In champion select - get from LCU API
                 data = self.lcu_manager.make_request("/lol-champ-select/v1/session")
                 if not data:
-                    return (None, [])
+                    return (None, [], [])
 
                 # Detect own champion
                 own_champion_result = self._detect_own_champion_from_data(data)
@@ -278,13 +280,18 @@ class ChampionDetector:
                 # Detect enemy champions
                 enemy_champions = self._detect_enemy_champions_from_data(data)
 
+                # Extract matchup pairs
+                matchup_pairs = self.get_matchup_pairs_from_data(data)
+
                 own_result = (self.current_champion_name, self.current_lane) if self.current_champion_name else None
-                return (own_result, enemy_champions)
+                return (own_result, enemy_champions, matchup_pairs)
 
             elif phase == 'InProgress':
-                # In game - return the champion selected during champ select
+                # In game - return cached champion, and try to get full matchup pairs
+                # from gameData (covers ARAM / blind pick where enemies weren't visible in ChampSelect)
                 own_result = (self.current_champion_name, self.current_lane) if self.current_champion_name else None
-                return (own_result, [])
+                matchup_pairs = self.get_matchup_pairs_from_gamedata()
+                return (own_result, [], matchup_pairs)
 
             elif phase == 'None' or phase == 'Lobby':
                 # Not in game - reset state
@@ -293,17 +300,19 @@ class ChampionDetector:
                 self.current_champion_id = None
                 self.current_champion_name = None
                 self.current_lane = None
+                self.current_summoner_id = None
                 self.detected_enemy_champions.clear()
-                return (None, [])
+                self._cached_matchup_pairs = []
+                return (None, [], [])
 
             else:
                 # Other phases - keep current state
                 own_result = (self.current_champion_name, self.current_lane) if self.current_champion_name else None
-                return (own_result, [])
+                return (own_result, [], [])
 
         except Exception as e:
             logger.error(f"Error detecting champions: {e}")
-            return (None, [])
+            return (None, [], [])
 
     def detect_champion(self) -> Optional[str]:
         """Detect own champion only (backwards-compatible helper).
@@ -371,6 +380,10 @@ class ChampionDetector:
                 if player.get('cellId') == local_player_cell_id:
                     champion_id = player.get('championId', 0)
                     assigned_position = player.get('assignedPosition', '')
+                    # Cache summonerId for team identification in InProgress phase
+                    sid = player.get('summonerId')
+                    if sid:
+                        self.current_summoner_id = sid
 
                     # Convert LCU lane names to our format
                     # LCU uses: "top", "jungle", "middle", "bottom", "utility"
@@ -418,12 +431,113 @@ class ChampionDetector:
             logger.error(f"Error detecting enemy champions from data: {e}")
             return []
 
+    def get_matchup_pairs_from_data(self, data: dict) -> list:
+        """Extract positional matchup pairs (ally, enemy) from champ select data.
+
+        Returns:
+            list of (ally_champion_name, enemy_champion_name) tuples (up to 5).
+            Empty string is used when a champion is not yet picked.
+        """
+        try:
+            my_team = data.get('myTeam', [])
+            their_team = data.get('theirTeam', [])
+
+            pairs = []
+            for i in range(max(len(my_team), len(their_team))):
+                ally = ""
+                enemy = ""
+                if i < len(my_team):
+                    cid = my_team[i].get('championId', 0)
+                    if cid > 0:
+                        ally = self.champion_map.get(cid, "")
+                if i < len(their_team):
+                    cid = their_team[i].get('championId', 0)
+                    if cid > 0:
+                        enemy = self.champion_map.get(cid, "")
+                pairs.append((ally, enemy))
+
+            return pairs[:5]
+        except Exception as e:
+            logger.error(f"Error extracting matchup pairs: {e}")
+            return []
+
+    def get_matchup_pairs_from_gamedata(self) -> list:
+        """Extract matchup pairs from gameData (teamOne/teamTwo) in the cached gameflow session.
+
+        Uses cached summonerId to determine which team is ally/enemy.
+        Merges with previously cached pairs to handle incomplete data (e.g., late-loading champions).
+
+        Returns:
+            list of (ally_champion_name, enemy_champion_name) tuples (up to 5).
+        """
+        try:
+            session = self.phase_tracker.last_session_data
+            if not session:
+                return self._cached_matchup_pairs
+            game_data = session.get('gameData') or {}
+            team_one = game_data.get('teamOne') or []
+            team_two = game_data.get('teamTwo') or []
+
+            if not team_one and not team_two:
+                return self._cached_matchup_pairs
+
+            # Fetch summoner ID if not cached (e.g., app started mid-game)
+            if not self.current_summoner_id:
+                self._fetch_current_summoner_id()
+
+            # Determine which team is ours using summonerId
+            my_team, their_team = team_one, team_two
+            if self.current_summoner_id:
+                team_one_ids = {p.get('summonerId') for p in team_one}
+                if self.current_summoner_id not in team_one_ids:
+                    my_team, their_team = team_two, team_one
+
+            pairs = []
+            for i in range(max(len(my_team), len(their_team))):
+                ally = ""
+                enemy = ""
+                if i < len(my_team):
+                    cid = my_team[i].get('championId', 0)
+                    if cid and cid > 0:
+                        ally = self.champion_map.get(cid, "")
+                if i < len(their_team):
+                    cid = their_team[i].get('championId', 0)
+                    if cid and cid > 0:
+                        enemy = self.champion_map.get(cid, "")
+                pairs.append((ally, enemy))
+
+            # Merge with cached pairs: keep existing values if new value is empty
+            merged = []
+            for i in range(5):
+                new_ally, new_enemy = pairs[i] if i < len(pairs) else ("", "")
+                cached_ally, cached_enemy = self._cached_matchup_pairs[i] if i < len(self._cached_matchup_pairs) else ("", "")
+                merged.append((new_ally or cached_ally, new_enemy or cached_enemy))
+
+            self._cached_matchup_pairs = merged
+            return merged
+        except Exception as e:
+            logger.error(f"Error extracting matchup pairs from gameData: {e}")
+            return self._cached_matchup_pairs
+
+    def _fetch_current_summoner_id(self):
+        """Fetch and cache current summoner ID from LCU API."""
+        try:
+            data = self.lcu_manager.make_request("/lol-summoner/v1/current-summoner")
+            if data and isinstance(data, dict):
+                sid = data.get('summonerId')
+                if sid:
+                    self.current_summoner_id = sid
+                    logger.info(f"Fetched current summoner ID: {sid}")
+        except Exception as e:
+            logger.error(f"Error fetching current summoner ID: {e}")
+
 
 class ChampionDetectorService(QObject):
     """Qt service for champion detection with signals"""
 
     champion_detected = pyqtSignal(str, str)  # Emits (champion_name, lane)
     enemy_champion_detected = pyqtSignal(str)  # Emits enemy champion_name
+    matchup_pairs_updated = pyqtSignal(list)  # Emits list of (ally_name, enemy_name) tuples (up to 5)
     connection_status_changed = pyqtSignal(str)  # Emits connection status: "connecting", "connected", "disconnected"
 
     def __init__(self):
@@ -469,7 +583,10 @@ class ChampionDetectorService(QObject):
         self.detector.current_champion_id = None
         self.detector.current_champion_name = None
         self.detector.current_lane = None
+        self.detector.current_summoner_id = None
         self.detector.detected_enemy_champions.clear()
+        self.detector._cached_matchup_pairs = []
+        self.matchup_pairs_updated.emit([])
 
     def start(self, interval_ms: int = 2000, max_interval_ms: int = 60000):
         """Start champion detection (polls every interval_ms milliseconds)"""
@@ -584,14 +701,18 @@ class ChampionDetectorService(QObject):
 
             own_result = None
             enemy_champions = []
+            matchup_pairs = []
 
             # Detect champions (both own and enemy in a single API call)
             if self.lcu_manager.connected:
-                own_result, enemy_champions = self.detector.detect_champion_and_enemies()
+                own_result, enemy_champions, matchup_pairs = self.detector.detect_champion_and_enemies()
             else:
                 # Connection dropped during detection attempt, retry next tick
                 self._set_connection_status("connecting")
                 return
+
+            # Always emit matchup pairs (empty list clears the UI)
+            self.matchup_pairs_updated.emit(matchup_pairs)
 
             # Handle own champion detection
             if own_result:
