@@ -70,11 +70,13 @@ class LCUConnectionStatusWidget(QWidget):
 
     def init_ui(self):
         """Initialize the UI"""
+        self.setFixedHeight(48)
         self.setStyleSheet("QWidget { background-color: #090e14; }")
         layout = QHBoxLayout(self)
         layout.setContentsMargins(10, 5, 10, 5)
 
         self.status_label = QLabel("connecting.")
+        self.status_label.setFixedHeight(30)
         self.status_label.setStyleSheet("""
             QLabel {
                 font-size: 10px;
@@ -356,6 +358,7 @@ class ViewerListItemWidget(QWidget):
 
     def init_ui(self, display_name: str):
         """Initialize the UI components"""
+        self.setFixedHeight(45)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 4, 8, 4)
         layout.setSpacing(4)

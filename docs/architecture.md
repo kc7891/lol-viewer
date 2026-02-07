@@ -137,6 +137,18 @@ MainWindow.__init__()
 
 ボーダー半径は `6px` (`border-radius: 6px`) で統一。
 
+## UIサイズ仕様
+
+| コンポーネント | プロパティ | 値 | 備考 |
+|---------------|-----------|-----|------|
+| サイドバーアイテム (`ViewerListItemWidget`) | 高さ | 45px | `setFixedHeight(45)` (#72) |
+| LCUステータスラッパー (`LCUConnectionStatusWidget`) | 高さ | 48px | `setFixedHeight(48)` (#72) |
+| LCUステータスラベル | 高さ | 30px | `setFixedHeight(30)` (#72) |
+| マッチアップリスト行 | 高さ | 50px | `setFixedHeight(50)` |
+| ツールバー | 高さ | 60px | `setFixedHeight(60)` |
+| サイドバー | 最小幅 | 150px | `setMinimumWidth(150)` |
+| サイドバー | デフォルト幅 | 200px | QSettings `sidebar_width` |
+
 ## 機能ドキュメント
 
 個別機能の詳細は [features.md](./features.md) を参照。
