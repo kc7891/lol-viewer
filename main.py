@@ -1864,6 +1864,7 @@ class MainWindow(QMainWindow):
 
         for i in range(5):
             row = QWidget()
+            row.setFixedHeight(50)
             row_layout = QHBoxLayout(row)
             row_layout.setContentsMargins(4, 1, 4, 1)
             row_layout.setSpacing(4)
