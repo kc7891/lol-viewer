@@ -39,6 +39,11 @@ CLOSE_BUTTON_GLYPH = "×"
 #
 # This build currently ships with no gated/experimental features.
 FEATURE_FLAG_DEFINITIONS: dict = {
+    "matchup_list": {
+        "label": "Matchup List",
+        "description": "Show a 5-row matchup list in the sidebar displaying ally vs enemy champion picks.",
+        "default": False,
+    },
     "qr_code_overlay": {
         "label": "QR Code Overlay",
         "default": False,
@@ -339,7 +344,7 @@ def setup_logging():
 logger = logging.getLogger(__name__)
 
 # Import these after logger setup
-from champion_data import ChampionData, setup_champion_input, setup_opponent_champion_input
+from champion_data import ChampionData, ChampionImageCache, setup_champion_input, setup_opponent_champion_input
 from logger import log
 from lcu_detector import ChampionDetectorService
 
@@ -988,6 +993,7 @@ class MainWindow(QMainWindow):
         self.champion_detector = ChampionDetectorService()
         self.champion_detector.champion_detected.connect(self.on_champion_detected)
         self.champion_detector.enemy_champion_detected.connect(self.on_enemy_champion_detected)
+        self.champion_detector.matchup_pairs_updated.connect(self.on_matchup_pairs_updated)
         logger.info("ChampionDetectorService initialized and connected")
 
         # Create connection status widget
@@ -1090,6 +1096,12 @@ class MainWindow(QMainWindow):
         sidebar_layout.setSpacing(0)
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         sidebar_layout.addWidget(self.sidebar)
+
+        # Matchup list (ally vs enemy, 5 rows) — controlled by feature flag
+        self.matchup_list_widget = self._create_matchup_list_widget()
+        sidebar_layout.addWidget(self.matchup_list_widget)
+        self.matchup_list_widget.setVisible(self.feature_flags.get("matchup_list", False))
+
         sidebar_layout.addWidget(self.connection_status_widget)
 
         # Create splitter for resizable sidebar
@@ -1768,6 +1780,122 @@ class MainWindow(QMainWindow):
         # Connect tab change signal to update main content
         self.sidebar.currentChanged.connect(self.on_sidebar_tab_changed)
 
+    def _create_matchup_list_widget(self) -> QWidget:
+        """Create the 5-row matchup list widget showing ally vs enemy picks."""
+        container = QWidget()
+        container.setStyleSheet("QWidget { background-color: #252525; }")
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(8, 4, 8, 4)
+        layout.setSpacing(2)
+
+        self._matchup_image_cache = ChampionImageCache()
+        # Each row: (ally_icon, ally_name, enemy_name, enemy_icon)
+        self._matchup_rows: list[tuple[QLabel, QLabel, QLabel, QLabel]] = []
+        self._matchup_data: list[tuple[str, str]] = [("", "")] * 5  # (ally, enemy)
+
+        icon_size = 24
+        name_style_ally = "QLabel { font-size: 9pt; color: #5bc0de; background-color: transparent; }"
+        name_style_enemy = "QLabel { font-size: 9pt; color: #d9534f; background-color: transparent; }"
+        icon_style = "QLabel { background-color: transparent; }"
+
+        for _ in range(5):
+            row = QWidget()
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(4, 1, 4, 1)
+            row_layout.setSpacing(4)
+
+            ally_icon = QLabel()
+            ally_icon.setFixedSize(icon_size, icon_size)
+            ally_icon.setStyleSheet(icon_style)
+
+            ally_name = QLabel("-")
+            ally_name.setStyleSheet(name_style_ally)
+            ally_name.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
+            vs_label = QLabel("vs")
+            vs_label.setStyleSheet(
+                "QLabel { font-size: 8pt; color: #666666; background-color: transparent; }"
+            )
+            vs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            vs_label.setFixedWidth(20)
+
+            enemy_name = QLabel("-")
+            enemy_name.setStyleSheet(name_style_enemy)
+            enemy_name.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+            enemy_icon = QLabel()
+            enemy_icon.setFixedSize(icon_size, icon_size)
+            enemy_icon.setStyleSheet(icon_style)
+
+            row_layout.addWidget(ally_icon, 0)
+            row_layout.addWidget(ally_name, 1)
+            row_layout.addWidget(vs_label, 0)
+            row_layout.addWidget(enemy_name, 1)
+            row_layout.addWidget(enemy_icon, 0)
+
+            layout.addWidget(row)
+            self._matchup_rows.append((ally_icon, ally_name, enemy_name, enemy_icon))
+
+        return container
+
+    def _set_matchup_icon(self, icon_label: QLabel, champion_name: str):
+        """Set a matchup row icon from champion image URL."""
+        size = icon_label.width() or 24
+        if not champion_name:
+            icon_label.clear()
+            return
+        champ = self.champion_data.get_champion(champion_name)
+        if not champ:
+            icon_label.clear()
+            return
+        url = champ.get("image_url", "")
+        if not url:
+            icon_label.clear()
+            return
+        pixmap = self._matchup_image_cache.get_image(
+            url,
+            callback=lambda pm, lbl=icon_label, s=size: lbl.setPixmap(
+                pm.scaled(s, s, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            ),
+        )
+        if pixmap:
+            icon_label.setPixmap(
+                pixmap.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            )
+
+    def update_matchup_list(self):
+        """Refresh the matchup list widget from current matchup data."""
+        if not self.feature_flags.get("matchup_list", False):
+            return
+        for i, (ally_icon, ally_name, enemy_name, enemy_icon) in enumerate(self._matchup_rows):
+            ally, enemy = self._matchup_data[i] if i < len(self._matchup_data) else ("", "")
+            ally_name.setText(ally if ally else "-")
+            enemy_name.setText(enemy if enemy else "-")
+            self._set_matchup_icon(ally_icon, ally)
+            self._set_matchup_icon(enemy_icon, enemy)
+
+    def set_matchup_entry(self, index: int, ally: str = "", enemy: str = ""):
+        """Set a single matchup row (0-4)."""
+        if 0 <= index < 5:
+            self._matchup_data[index] = (ally, enemy)
+            self.update_matchup_list()
+
+    def clear_matchup_list(self):
+        """Clear all matchup entries."""
+        self._matchup_data = [("", "")] * 5
+        self.update_matchup_list()
+
+    def on_matchup_pairs_updated(self, pairs: list):
+        """Handle matchup pairs update from champion detector."""
+        if not self.feature_flags.get("matchup_list", False):
+            return
+        # Pad to 5 entries
+        padded = list(pairs[:5])
+        while len(padded) < 5:
+            padded.append(("", ""))
+        self._matchup_data = padded
+        self.update_matchup_list()
+
     def on_sidebar_tab_changed(self, index):
         """Handle sidebar tab change and update main content"""
         # Switch main content stack to match sidebar tab
@@ -1848,6 +1976,10 @@ class MainWindow(QMainWindow):
         """Persist a feature flag change and update in-memory state."""
         self.feature_flags[key] = bool(enabled)
         self.settings.setValue(f"feature_flags/{key}", bool(enabled))
+        if key == "matchup_list" and hasattr(self, "matchup_list_widget"):
+            self.matchup_list_widget.setVisible(bool(enabled))
+            if enabled:
+                self.update_matchup_list()
         if hasattr(self, "flags_status_label"):
             self.flags_status_label.setText(f"✓ Flag '{key}' set to {'ON' if enabled else 'OFF'} (restart may be required)")
             self.flags_status_label.setStyleSheet("""

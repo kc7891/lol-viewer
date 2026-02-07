@@ -267,5 +267,119 @@ class TestChampionDetectorService:
         assert service.timer.isActive() is False
 
 
+class TestMatchupPairs:
+    """Test cases for matchup pair extraction"""
+
+    def test_get_matchup_pairs_from_champ_select_data(self):
+        """Test matchup pairs from ChampSelect myTeam/theirTeam"""
+        manager = Mock()
+        phase_tracker = Mock()
+        detector = ChampionDetector(manager, phase_tracker)
+        detector.champion_map = {22: 'Ashe', 51: 'Caitlyn', 238: 'Zed'}
+
+        data = {
+            'myTeam': [{'championId': 22}],
+            'theirTeam': [{'championId': 51}, {'championId': 238}],
+        }
+        pairs = detector.get_matchup_pairs_from_data(data)
+        assert pairs == [('Ashe', 'Caitlyn'), ('', 'Zed')]
+
+    def test_get_matchup_pairs_unpicked(self):
+        """Test that unpicked champions (id=0) show as empty string"""
+        manager = Mock()
+        phase_tracker = Mock()
+        detector = ChampionDetector(manager, phase_tracker)
+        detector.champion_map = {22: 'Ashe'}
+
+        data = {
+            'myTeam': [{'championId': 22}, {'championId': 0}],
+            'theirTeam': [{'championId': 0}, {'championId': 0}],
+        }
+        pairs = detector.get_matchup_pairs_from_data(data)
+        assert pairs == [('Ashe', ''), ('', '')]
+
+    def test_get_matchup_pairs_from_gamedata_team_one(self):
+        """Test matchup pairs from gameData when player is on teamOne"""
+        manager = Mock()
+        phase_tracker = Mock()
+        phase_tracker.last_session_data = {
+            'gameData': {
+                'teamOne': [{'summonerId': 100, 'championId': 22}],
+                'teamTwo': [{'summonerId': 200, 'championId': 51}],
+            }
+        }
+        detector = ChampionDetector(manager, phase_tracker)
+        detector.champion_map = {22: 'Ashe', 51: 'Caitlyn'}
+        detector.current_summoner_id = 100
+
+        pairs = detector.get_matchup_pairs_from_gamedata()
+        assert len(pairs) == 5
+        assert pairs[0] == ('Ashe', 'Caitlyn')
+
+    def test_get_matchup_pairs_from_gamedata_team_two(self):
+        """Test matchup pairs from gameData when player is on teamTwo"""
+        manager = Mock()
+        phase_tracker = Mock()
+        phase_tracker.last_session_data = {
+            'gameData': {
+                'teamOne': [{'summonerId': 200, 'championId': 51}],
+                'teamTwo': [{'summonerId': 100, 'championId': 22}],
+            }
+        }
+        detector = ChampionDetector(manager, phase_tracker)
+        detector.champion_map = {22: 'Ashe', 51: 'Caitlyn'}
+        detector.current_summoner_id = 100
+
+        pairs = detector.get_matchup_pairs_from_gamedata()
+        # ally=Ashe (teamTwo), enemy=Caitlyn (teamOne)
+        assert len(pairs) == 5
+        assert pairs[0] == ('Ashe', 'Caitlyn')
+
+    def test_get_matchup_pairs_from_gamedata_no_session(self):
+        """Test matchup pairs when no session data is available"""
+        manager = Mock()
+        phase_tracker = Mock()
+        phase_tracker.last_session_data = None
+        detector = ChampionDetector(manager, phase_tracker)
+
+        assert detector.get_matchup_pairs_from_gamedata() == []
+
+    def test_detect_champion_and_enemies_clears_on_lobby(self):
+        """Test that None/Lobby phase resets summoner_id and returns empty pairs"""
+        manager = Mock()
+        phase_tracker = Mock()
+        phase_tracker.update_phase.return_value = 'Lobby'
+        detector = ChampionDetector(manager, phase_tracker)
+        detector.current_champion_name = 'Ashe'
+        detector.current_summoner_id = 100
+
+        result = detector.detect_champion_and_enemies()
+        assert result == (None, [], [])
+        assert detector.current_summoner_id is None
+
+    def test_detect_champion_and_enemies_in_progress_uses_gamedata(self):
+        """Test that InProgress phase uses gameData for matchup pairs"""
+        manager = Mock()
+        phase_tracker = Mock()
+        phase_tracker.update_phase.return_value = 'InProgress'
+        phase_tracker.last_session_data = {
+            'gameData': {
+                'teamOne': [{'summonerId': 100, 'championId': 22}],
+                'teamTwo': [{'summonerId': 200, 'championId': 51}],
+            }
+        }
+        detector = ChampionDetector(manager, phase_tracker)
+        detector.champion_map = {22: 'Ashe', 51: 'Caitlyn'}
+        detector.current_champion_name = 'Ashe'
+        detector.current_lane = 'bottom'
+        detector.current_summoner_id = 100
+
+        own, enemies, pairs = detector.detect_champion_and_enemies()
+        assert own == ('Ashe', 'bottom')
+        assert enemies == []
+        assert len(pairs) == 5
+        assert pairs[0] == ('Ashe', 'Caitlyn')
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
