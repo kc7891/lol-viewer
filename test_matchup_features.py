@@ -120,18 +120,57 @@ def test_on_matchup_pairs_preserves_user_reorder():
     assert window._matchup_data[1] == ("Ahri", "Zed")
 
 
-def test_on_matchup_pairs_resets_dirty_on_new_champions():
-    """When the champion set changes, user ordering should be discarded."""
+def test_on_matchup_pairs_merges_new_champion_into_empty_row():
+    """New allies should fill empty rows while existing allies keep positions. (#77)"""
+    window = _make_window_with_matchup_data()
+    # Ashe arrives at row 0
+    window.on_matchup_pairs_updated([("Ashe", "")])
+    assert window._matchup_data[0] == ("Ashe", "")
+
+    # User moves Ashe to row 2
+    window._matchup_move_row(0, 1)  # row 0 -> row 1
+    window._matchup_move_row(1, 1)  # row 1 -> row 2
+    assert window._matchup_data[2] == ("Ashe", "")
+    assert window._matchup_data[0] == ("", "")
+
+    # Detector fires with Ashe + new Lux
+    window.on_matchup_pairs_updated([("Ashe", "Zed"), ("Lux", "Yasuo")])
+
+    # Ashe stays at row 2 (enemy filled in), Lux goes to first empty row (0)
+    assert window._matchup_data[2] == ("Ashe", "Zed")
+    assert window._matchup_data[0] == ("Lux", "Yasuo")
+
+
+def test_on_matchup_pairs_removes_departed_ally():
+    """Allies that disappear from incoming data should be cleared. (#77)"""
     window = _make_window_with_matchup_data()
     window.on_matchup_pairs_updated([("Ahri", "Zed"), ("Lux", "Yasuo")])
-    window._matchup_move_row(1, -1)  # user reorder -> dirty
+    window._matchup_move_row(1, -1)  # Lux at 0, Ahri at 1
 
-    # New champion set (Garen replaces Ahri)
+    # Ahri is no longer in incoming, Garen replaces her
     window.on_matchup_pairs_updated([("Garen", "Zed"), ("Lux", "Yasuo")])
 
-    assert window._matchup_data[0] == ("Garen", "Zed")
-    assert window._matchup_data[1] == ("Lux", "Yasuo")
-    assert window._matchup_user_dirty is False
+    # Lux stays at row 0, Ahri's row cleared, Garen fills empty row 1
+    assert window._matchup_data[0] == ("Lux", "Yasuo")
+    assert window._matchup_data[1] == ("Garen", "Zed")
+
+
+def test_on_matchup_pairs_preserves_user_swapped_enemies():
+    """User-swapped enemies should not be overwritten by detector. (#77)"""
+    window = _make_window_with_matchup_data()
+    window.on_matchup_pairs_updated([("Ahri", "Zed"), ("Lux", "Yasuo")])
+
+    # User swaps enemies: Ahri vs Yasuo, Lux vs Zed
+    window._matchup_swap_enemies(0)
+    assert window._matchup_data[0] == ("Ahri", "Yasuo")
+    assert window._matchup_data[1] == ("Lux", "Zed")
+
+    # Detector fires with original pairing
+    window.on_matchup_pairs_updated([("Ahri", "Zed"), ("Lux", "Yasuo")])
+
+    # User's enemy swap must be preserved
+    assert window._matchup_data[0] == ("Ahri", "Yasuo")
+    assert window._matchup_data[1] == ("Lux", "Zed")
 
 
 def test_swap_enemies_sets_dirty_flag():
