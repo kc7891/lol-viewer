@@ -49,4 +49,4 @@ For development instructions, debug logging, and build information, please see [
 
 ## License
 
-This project is provided as-is for personal use.
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
