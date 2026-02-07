@@ -20,7 +20,7 @@
 | `ChampionViewerWidget` | チャンピオン情報を表示するWebビューウィジェット |
 | `QrCodeOverlay` | WebビューにQRコードを重ねて表示するフローティングウィジェット |
 | `LCUConnectionStatusWidget` | LCU接続状態を表示するステータスウィジェット |
-| `MatchupListWidget` | マッチアップリストをサイドバーに表示するウィジェット |
+| `MatchupListWidget` | マッチアップリストをビューアページ上部に表示するウィジェット |
 | `NullWebView` | テスト/ヘッドレス環境用のWebEngineView代替 |
 
 ### 外部モジュール
