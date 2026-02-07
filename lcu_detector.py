@@ -481,7 +481,11 @@ class ChampionDetector:
             if not team_one and not team_two:
                 return self._cached_matchup_pairs
 
-            # Determine which team is ours using cached summonerId
+            # Fetch summoner ID if not cached (e.g., app started mid-game)
+            if not self.current_summoner_id:
+                self._fetch_current_summoner_id()
+
+            # Determine which team is ours using summonerId
             my_team, their_team = team_one, team_two
             if self.current_summoner_id:
                 team_one_ids = {p.get('summonerId') for p in team_one}
@@ -514,6 +518,18 @@ class ChampionDetector:
         except Exception as e:
             logger.error(f"Error extracting matchup pairs from gameData: {e}")
             return self._cached_matchup_pairs
+
+    def _fetch_current_summoner_id(self):
+        """Fetch and cache current summoner ID from LCU API."""
+        try:
+            data = self.lcu_manager.make_request("/lol-summoner/v1/current-summoner")
+            if data and isinstance(data, dict):
+                sid = data.get('summonerId')
+                if sid:
+                    self.current_summoner_id = sid
+                    logger.info(f"Fetched current summoner ID: {sid}")
+        except Exception as e:
+            logger.error(f"Error fetching current summoner ID: {e}")
 
 
 class ChampionDetectorService(QObject):
