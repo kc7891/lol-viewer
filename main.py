@@ -41,7 +41,7 @@ CLOSE_BUTTON_GLYPH = "×"
 FEATURE_FLAG_DEFINITIONS: dict = {
     "matchup_list": {
         "label": "Matchup List",
-        "description": "Show a 5-row matchup list in the sidebar displaying ally vs enemy champion picks.",
+        "description": "Show a 5-row matchup list above the viewer toolbar displaying ally vs enemy champion picks.",
         "default": False,
     },
 }
@@ -1095,11 +1095,6 @@ class MainWindow(QMainWindow):
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         sidebar_layout.addWidget(self.sidebar)
 
-        # Matchup list (ally vs enemy, 5 rows) — controlled by feature flag
-        self.matchup_list_widget = self._create_matchup_list_widget()
-        sidebar_layout.addWidget(self.matchup_list_widget)
-        self.matchup_list_widget.setVisible(self.feature_flags.get("matchup_list", False))
-
         sidebar_layout.addWidget(self.connection_status_widget)
 
         # Create splitter for resizable sidebar
@@ -1175,6 +1170,11 @@ class MainWindow(QMainWindow):
         viewers_layout = QVBoxLayout(self.viewers_page)
         viewers_layout.setSpacing(0)
         viewers_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Matchup list (ally vs enemy, 5 rows) — controlled by feature flag
+        self.matchup_list_widget = self._create_matchup_list_widget()
+        self.matchup_list_widget.setVisible(self.feature_flags.get("matchup_list", False))
+        viewers_layout.addWidget(self.matchup_list_widget)
 
         # Top toolbar with add and close all buttons
         self.create_toolbar()
