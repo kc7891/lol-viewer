@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
 )
 
 # Application version
-__version__ = "0.16.1"
+__version__ = "0.17.0"
 
 # Default analytics URLs
 DEFAULT_BUILD_URL = "https://lolalytics.com/lol/{name}/build/"
