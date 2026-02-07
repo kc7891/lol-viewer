@@ -104,6 +104,39 @@ MainWindow.__init__()
       └─ サイドバー幅復元
 ```
 
+## カラーパレット
+
+アプリ全体のダークテーマは以下の配色で統一されている（issue #75 で定義）。
+
+| 変数名 | カラーコード | 用途 |
+|--------|-------------|------|
+| `--background` | `#0d1117` | ページ背景 |
+| `--foreground` | `#e2e8f0` | プライマリテキスト |
+| `--card` | `#141b24` | カード/パネル背景 |
+| `--card-foreground` | `#e2e8f0` | カード内テキスト |
+| `--primary` | `#00d6a1` | ボタン、アクティブ状態、ハイライト |
+| `--primary-foreground` | `#0d1117` | プライマリ背景上のテキスト |
+| `--secondary` | `#1c2330` | セカンダリ表面、ホバー状態 |
+| `--secondary-foreground` | `#c1c9d4` | セカンダリテキスト |
+| `--muted` | `#181f29` | 控えめな背景 |
+| `--muted-foreground` | `#6d7a8a` | プレースホルダー、ラベル |
+| `--border` | `#222a35` | 区切り線、ボーダー |
+| `--input` | `#222a35` | 入力フィールドのボーダー |
+| `--ring` | `#00d6a1` | フォーカスリング |
+| `--sidebar-background` | `#090e14` | サイドバー背景 |
+| `--sidebar-foreground` | `#c1c9d4` | サイドバーテキスト |
+| `--sidebar-primary` | `#00d6a1` | サイドバーのアクティブアイテム |
+| `--sidebar-accent` | `#171e28` | サイドバーのホバー/選択 |
+| `--sidebar-border` | `#1c2330` | サイドバーの区切り線 |
+| `--ally` | `#0078f5` | 味方チーム (青) |
+| `--enemy` | `#e0342c` | 敵チーム (赤) |
+| `--win` | `#22c55e` | 勝利インジケーター |
+| `--loss` | `#e0342c` | 敗北インジケーター |
+| `--destructive` | `#e0342c` | エラー/削除アクション |
+| `--destructive-foreground` | `#fafafa` | destructive背景上のテキスト |
+
+ボーダー半径は `6px` (`border-radius: 6px`) で統一。
+
 ## 機能ドキュメント
 
 個別機能の詳細は [features.md](./features.md) を参照。

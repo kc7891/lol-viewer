@@ -70,7 +70,7 @@ class LCUConnectionStatusWidget(QWidget):
 
     def init_ui(self):
         """Initialize the UI"""
-        self.setStyleSheet("QWidget { background-color: #252525; }")
+        self.setStyleSheet("QWidget { background-color: #090e14; }")
         layout = QHBoxLayout(self)
         layout.setContentsMargins(10, 5, 10, 5)
 
@@ -78,7 +78,7 @@ class LCUConnectionStatusWidget(QWidget):
         self.status_label.setStyleSheet("""
             QLabel {
                 font-size: 10px;
-                color: #cccccc;
+                color: #c1c9d4;
                 background-color: transparent;
             }
         """)
@@ -153,7 +153,7 @@ class NullWebView(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         label = QLabel("Web view disabled (headless mode)")
-        label.setStyleSheet("QLabel { color: #aaaaaa; padding: 10px; }")
+        label.setStyleSheet("QLabel { color: #6d7a8a; padding: 10px; }")
         label.setWordWrap(True)
         layout.addWidget(label)
         self._last_url = None
@@ -196,7 +196,7 @@ class QrCodeOverlay(QWidget):
         # Container that holds the QR image (hidden when minimised)
         self._qr_container = QWidget()
         self._qr_container.setStyleSheet(
-            "background-color: #ffffff; border-radius: 6px;"
+            "background-color: #e2e8f0; border-radius: 6px;"
         )
         qr_layout = QVBoxLayout(self._qr_container)
         qr_layout.setContentsMargins(6, 6, 6, 6)
@@ -210,9 +210,9 @@ class QrCodeOverlay(QWidget):
         self._toggle_btn.setFixedSize(32, 32)
         self._toggle_btn.setToolTip("Hide QR code")
         self._toggle_btn.setStyleSheet(
-            "QPushButton { background-color: rgba(30,30,30,200); color: #ffffff; "
-            "border: 1px solid #555; border-radius: 4px; font-size: 9pt; font-weight: bold; }"
-            "QPushButton:hover { background-color: rgba(60,60,60,220); }"
+            "QPushButton { background-color: rgba(13,17,23,200); color: #e2e8f0; "
+            "border: 1px solid #222a35; border-radius: 4px; font-size: 9pt; font-weight: bold; }"
+            "QPushButton:hover { background-color: rgba(28,35,48,220); }"
         )
         self._toggle_btn.clicked.connect(self._toggle)
         outer.addWidget(self._toggle_btn, alignment=Qt.AlignmentFlag.AlignRight)
@@ -367,8 +367,9 @@ class ViewerListItemWidget(QWidget):
         self.visibility_button.setStyleSheet("""
             QPushButton {
                 padding: 0px;
-                background-color: #3a3a3a;
-                border: 1px solid #555555;
+                background-color: #1c2330;
+                color: #e2e8f0;
+                border: 1px solid #222a35;
                 border-radius: 3px;
                 min-width: 26px;
                 max-width: 26px;
@@ -378,11 +379,11 @@ class ViewerListItemWidget(QWidget):
                 font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #4a4a4a;
-                border: 1px solid #666666;
+                background-color: #222a35;
+                border: 1px solid #00d6a1;
             }
             QPushButton:pressed {
-                background-color: #2a2a2a;
+                background-color: #141b24;
             }
         """)
         self.visibility_button.clicked.connect(self.toggle_visibility)
@@ -394,9 +395,9 @@ class ViewerListItemWidget(QWidget):
         self.close_button.setStyleSheet("""
             QPushButton {
                 padding: 0px;
-                background-color: #3a3a3a;
-                color: #cccccc;
-                border: 1px solid #555555;
+                background-color: #1c2330;
+                color: #c1c9d4;
+                border: 1px solid #222a35;
                 border-radius: 3px;
                 font-size: 14px;
                 font-weight: bold;
@@ -406,12 +407,12 @@ class ViewerListItemWidget(QWidget):
                 max-height: 26px;
             }
             QPushButton:hover {
-                background-color: #5a3a3a;
-                border: 1px solid #aa5555;
-                color: #ffffff;
+                background-color: #e0342c;
+                border: 1px solid #e0342c;
+                color: #fafafa;
             }
             QPushButton:pressed {
-                background-color: #4a2a2a;
+                background-color: #c02a23;
             }
         """)
         self.close_button.clicked.connect(self.close_viewer)
@@ -421,7 +422,7 @@ class ViewerListItemWidget(QWidget):
         self.name_label = QLabel(display_name)
         self.name_label.setStyleSheet("""
             QLabel {
-                color: #ffffff;
+                color: #e2e8f0;
                 font-size: 12px;
                 background-color: transparent;
             }
@@ -507,17 +508,17 @@ class ChampionViewerWidget(QWidget):
                 padding: 4px 8px;
                 font-size: 12pt;
                 font-weight: bold;
-                background-color: #555555;
-                color: #ffffff;
+                background-color: #1c2330;
+                color: #e2e8f0;
                 border: none;
-                border-radius: 4px;
+                border-radius: 6px;
                 min-width: 30px;
                 max-width: 30px;
                 min-height: 30px;
                 max-height: 30px;
             }
             QPushButton:hover {
-                background-color: #666666;
+                background-color: #222a35;
             }
         """)
         self.hide_button.clicked.connect(lambda: self.hide_requested.emit(self))
@@ -531,17 +532,17 @@ class ChampionViewerWidget(QWidget):
                 padding: 4px 8px;
                 font-size: 14pt;
                 font-weight: bold;
-                background-color: #d95d39;
-                color: #ffffff;
+                background-color: #e0342c;
+                color: #fafafa;
                 border: none;
-                border-radius: 4px;
+                border-radius: 6px;
                 min-width: 30px;
                 max-width: 30px;
                 min-height: 30px;
                 max-height: 30px;
             }
             QPushButton:hover {
-                background-color: #e67e50;
+                background-color: #e85550;
             }
         """)
         self.close_button.clicked.connect(lambda: self.close_requested.emit(self))
@@ -557,13 +558,13 @@ class ChampionViewerWidget(QWidget):
             QLineEdit {
                 padding: 8px;
                 font-size: 11pt;
-                background-color: #2b2b2b;
-                color: #ffffff;
-                border: 1px solid #444444;
-                border-radius: 4px;
+                background-color: #141b24;
+                color: #e2e8f0;
+                border: 1px solid #222a35;
+                border-radius: 6px;
             }
             QLineEdit:focus {
-                border: 1px solid #0d7377;
+                border: 1px solid #00d6a1;
             }
         """
 
@@ -603,19 +604,19 @@ class ChampionViewerWidget(QWidget):
             QPushButton {
                 padding: 8px 16px;
                 font-size: 11pt;
-                background-color: #0d7377;
-                color: #ffffff;
+                background-color: #00d6a1;
+                color: #0d1117;
                 border: none;
-                border-radius: 4px;
+                border-radius: 6px;
             }
             QPushButton:hover {
-                background-color: #14a0a6;
+                background-color: #00efb3;
             }
             QPushButton:pressed {
-                background-color: #0a5c5f;
+                background-color: #00b888;
             }
             QPushButton:checked {
-                background-color: #0a5c5f;
+                background-color: #00b888;
             }
         """)
         self.build_button.clicked.connect(lambda _=False: self._on_mode_button_clicked(0))
@@ -627,19 +628,19 @@ class ChampionViewerWidget(QWidget):
             QPushButton {
                 padding: 8px 16px;
                 font-size: 11pt;
-                background-color: #d95d39;
-                color: #ffffff;
+                background-color: #e0342c;
+                color: #fafafa;
                 border: none;
-                border-radius: 4px;
+                border-radius: 6px;
             }
             QPushButton:hover {
-                background-color: #e67e50;
+                background-color: #e85550;
             }
             QPushButton:pressed {
-                background-color: #b34b2d;
+                background-color: #c02a23;
             }
             QPushButton:checked {
-                background-color: #b34b2d;
+                background-color: #c02a23;
             }
         """)
         self.counter_button.clicked.connect(lambda _=False: self._on_mode_button_clicked(1))
@@ -652,9 +653,9 @@ class ChampionViewerWidget(QWidget):
                 padding: 8px 16px;
                 font-size: 11pt;
                 background-color: #8b5cf6;
-                color: #ffffff;
+                color: #fafafa;
                 border: none;
-                border-radius: 4px;
+                border-radius: 6px;
             }
             QPushButton:hover {
                 background-color: #a78bfa;
@@ -691,14 +692,14 @@ class ChampionViewerWidget(QWidget):
             QComboBox {
                 padding: 8px;
                 font-size: 11pt;
-                background-color: #2b2b2b;
-                color: #ffffff;
-                border: 1px solid #444444;
-                border-radius: 4px;
+                background-color: #141b24;
+                color: #e2e8f0;
+                border: 1px solid #222a35;
+                border-radius: 6px;
                 min-width: 40px;
             }
             QComboBox:hover {
-                border: 1px solid #0d7377;
+                border: 1px solid #00d6a1;
             }
             QComboBox::drop-down {
                 border: none;
@@ -710,10 +711,10 @@ class ChampionViewerWidget(QWidget):
                 height: 0px;
             }
             QComboBox QAbstractItemView {
-                background-color: #2b2b2b;
-                color: #ffffff;
-                selection-background-color: #0d7377;
-                border: 1px solid #444444;
+                background-color: #141b24;
+                color: #e2e8f0;
+                selection-background-color: #00d6a1;
+                border: 1px solid #222a35;
             }
         """)
         control_layout.addWidget(self.lane_selector, stretch=1)
@@ -725,19 +726,19 @@ class ChampionViewerWidget(QWidget):
             QPushButton {
                 padding: 8px;
                 font-size: 14pt;
-                background-color: #2b2b2b;
-                color: #ffffff;
-                border: 1px solid #444444;
-                border-radius: 4px;
+                background-color: #141b24;
+                color: #e2e8f0;
+                border: 1px solid #222a35;
+                border-radius: 6px;
                 min-width: 40px;
                 max-width: 40px;
             }
             QPushButton:hover {
-                background-color: #3a3a3a;
-                border: 1px solid #0d7377;
+                background-color: #1c2330;
+                border: 1px solid #00d6a1;
             }
             QPushButton:pressed {
-                background-color: #1a1a1a;
+                background-color: #090e14;
             }
         """)
         self.refresh_button.clicked.connect(self.refresh_page)
@@ -748,7 +749,7 @@ class ChampionViewerWidget(QWidget):
         # WebView
         self.web_view = NullWebView() if _webengine_disabled() else QWebEngineView()
         # Set dark background color for web view to match dark theme (no-op in NullWebView)
-        self.web_view.page().setBackgroundColor(QColor("#1e1e1e"))
+        self.web_view.page().setBackgroundColor(QColor("#0d1117"))
         layout.addWidget(self.web_view)
 
         # QR code overlay
@@ -1050,25 +1051,25 @@ class MainWindow(QMainWindow):
         # Apply dark theme to the main window
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #1e1e1e;
+                background-color: #0d1117;
             }
             QWidget {
-                background-color: #1e1e1e;
-                color: #ffffff;
+                background-color: #0d1117;
+                color: #e2e8f0;
             }
             QScrollBar:horizontal {
                 border: none;
-                background: #2b2b2b;
+                background: #141b24;
                 height: 12px;
                 margin: 0px 0px 0px 0px;
             }
             QScrollBar::handle:horizontal {
-                background: #555555;
+                background: #222a35;
                 min-width: 20px;
                 border-radius: 6px;
             }
             QScrollBar::handle:horizontal:hover {
-                background: #666666;
+                background: #00d6a1;
             }
             QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
                 border: none;
@@ -1089,7 +1090,7 @@ class MainWindow(QMainWindow):
         # Create sidebar container with status widget at bottom
         sidebar_container = QWidget()
         sidebar_container.setMinimumWidth(150)
-        sidebar_container.setStyleSheet("QWidget { background-color: #252525; }")
+        sidebar_container.setStyleSheet("QWidget { background-color: #090e14; }")
         sidebar_layout = QVBoxLayout(sidebar_container)
         sidebar_layout.setSpacing(0)
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
@@ -1102,11 +1103,11 @@ class MainWindow(QMainWindow):
         self.main_splitter.setChildrenCollapsible(False)
         self.main_splitter.setStyleSheet("""
             QSplitter::handle {
-                background-color: #444444;
+                background-color: #222a35;
                 width: 2px;
             }
             QSplitter::handle:hover {
-                background-color: #0d7377;
+                background-color: #00d6a1;
             }
         """)
         self.main_splitter.addWidget(sidebar_container)
@@ -1154,7 +1155,7 @@ class MainWindow(QMainWindow):
 
         # WebView using configured live game URL
         self.live_game_web_view = NullWebView() if _webengine_disabled() else QWebEngineView()
-        self.live_game_web_view.page().setBackgroundColor(QColor("#1e1e1e"))
+        self.live_game_web_view.page().setBackgroundColor(QColor("#0d1117"))
         self.live_game_web_view.setUrl(QUrl(self.live_game_url))
         live_game_layout.addWidget(self.live_game_web_view)
 
@@ -1184,11 +1185,11 @@ class MainWindow(QMainWindow):
         self.viewers_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.viewers_splitter.setStyleSheet("""
             QSplitter::handle {
-                background-color: #444444;
+                background-color: #222a35;
                 width: 2px;
             }
             QSplitter::handle:hover {
-                background-color: #0d7377;
+                background-color: #00d6a1;
             }
         """)
         self.viewers_splitter.setHandleWidth(6)
@@ -1213,7 +1214,7 @@ class MainWindow(QMainWindow):
         settings_scroll.setStyleSheet("""
             QScrollArea {
                 border: none;
-                background-color: #1e1e1e;
+                background-color: #0d1117;
             }
         """)
 
@@ -1228,7 +1229,7 @@ class MainWindow(QMainWindow):
             QLabel {
                 font-size: 18pt;
                 font-weight: bold;
-                color: #ffffff;
+                color: #e2e8f0;
                 background-color: transparent;
             }
         """)
@@ -1244,7 +1245,7 @@ class MainWindow(QMainWindow):
             QLabel {
                 font-size: 12pt;
                 font-weight: bold;
-                color: #ffffff;
+                color: #e2e8f0;
                 background-color: transparent;
             }
         """)
@@ -1257,7 +1258,7 @@ class MainWindow(QMainWindow):
         url_description.setStyleSheet("""
             QLabel {
                 font-size: 9pt;
-                color: #aaaaaa;
+                color: #6d7a8a;
                 background-color: transparent;
                 padding: 5px;
             }
@@ -1267,7 +1268,7 @@ class MainWindow(QMainWindow):
 
         # Build URL
         build_url_label = QLabel("Build URL:")
-        build_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #cccccc; background-color: transparent; }")
+        build_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #c1c9d4; background-color: transparent; }")
         url_layout.addWidget(build_url_label)
 
         self.build_url_input = QLineEdit()
@@ -1276,20 +1277,20 @@ class MainWindow(QMainWindow):
             QLineEdit {
                 padding: 8px;
                 font-size: 10pt;
-                background-color: #2b2b2b;
-                color: #ffffff;
-                border: 1px solid #444444;
-                border-radius: 4px;
+                background-color: #141b24;
+                color: #e2e8f0;
+                border: 1px solid #222a35;
+                border-radius: 6px;
             }
             QLineEdit:focus {
-                border: 1px solid #0d7377;
+                border: 1px solid #00d6a1;
             }
         """)
         url_layout.addWidget(self.build_url_input)
 
         # Matchup URL
         matchup_url_label = QLabel("Matchup URL:")
-        matchup_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #cccccc; background-color: transparent; }")
+        matchup_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #c1c9d4; background-color: transparent; }")
         url_layout.addWidget(matchup_url_label)
 
         self.matchup_url_input = QLineEdit()
@@ -1300,20 +1301,20 @@ class MainWindow(QMainWindow):
             QLineEdit {
                 padding: 8px;
                 font-size: 10pt;
-                background-color: #2b2b2b;
-                color: #ffffff;
-                border: 1px solid #444444;
-                border-radius: 4px;
+                background-color: #141b24;
+                color: #e2e8f0;
+                border: 1px solid #222a35;
+                border-radius: 6px;
             }
             QLineEdit:focus {
-                border: 1px solid #0d7377;
+                border: 1px solid #00d6a1;
             }
         """)
         url_layout.addWidget(self.matchup_url_input)
 
         # Counter URL
         counter_url_label = QLabel("Counter URL:")
-        counter_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #cccccc; background-color: transparent; }")
+        counter_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #c1c9d4; background-color: transparent; }")
         url_layout.addWidget(counter_url_label)
 
         self.counter_url_input = QLineEdit()
@@ -1322,20 +1323,20 @@ class MainWindow(QMainWindow):
             QLineEdit {
                 padding: 8px;
                 font-size: 10pt;
-                background-color: #2b2b2b;
-                color: #ffffff;
-                border: 1px solid #444444;
-                border-radius: 4px;
+                background-color: #141b24;
+                color: #e2e8f0;
+                border: 1px solid #222a35;
+                border-radius: 6px;
             }
             QLineEdit:focus {
-                border: 1px solid #0d7377;
+                border: 1px solid #00d6a1;
             }
         """)
         url_layout.addWidget(self.counter_url_input)
 
         # ARAM URL
         aram_url_label = QLabel("ARAM URL:")
-        aram_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #cccccc; background-color: transparent; }")
+        aram_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #c1c9d4; background-color: transparent; }")
         url_layout.addWidget(aram_url_label)
 
         self.aram_url_input = QLineEdit()
@@ -1344,20 +1345,20 @@ class MainWindow(QMainWindow):
             QLineEdit {
                 padding: 8px;
                 font-size: 10pt;
-                background-color: #2b2b2b;
-                color: #ffffff;
-                border: 1px solid #444444;
-                border-radius: 4px;
+                background-color: #141b24;
+                color: #e2e8f0;
+                border: 1px solid #222a35;
+                border-radius: 6px;
             }
             QLineEdit:focus {
-                border: 1px solid #0d7377;
+                border: 1px solid #00d6a1;
             }
         """)
         url_layout.addWidget(self.aram_url_input)
 
         # Live Game URL
         live_game_url_label = QLabel("Live Game URL:")
-        live_game_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #cccccc; background-color: transparent; }")
+        live_game_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #c1c9d4; background-color: transparent; }")
         url_layout.addWidget(live_game_url_label)
 
         self.live_game_url_input = QLineEdit()
@@ -1366,13 +1367,13 @@ class MainWindow(QMainWindow):
             QLineEdit {
                 padding: 8px;
                 font-size: 10pt;
-                background-color: #2b2b2b;
-                color: #ffffff;
-                border: 1px solid #444444;
-                border-radius: 4px;
+                background-color: #141b24;
+                color: #e2e8f0;
+                border: 1px solid #222a35;
+                border-radius: 6px;
             }
             QLineEdit:focus {
-                border: 1px solid #0d7377;
+                border: 1px solid #00d6a1;
             }
         """)
         url_layout.addWidget(self.live_game_url_input)
@@ -1385,16 +1386,16 @@ class MainWindow(QMainWindow):
             QPushButton {
                 padding: 8px 16px;
                 font-size: 10pt;
-                background-color: #0d7377;
-                color: #ffffff;
+                background-color: #00d6a1;
+                color: #0d1117;
                 border: none;
-                border-radius: 4px;
+                border-radius: 6px;
             }
             QPushButton:hover {
-                background-color: #14a0a6;
+                background-color: #00efb3;
             }
             QPushButton:pressed {
-                background-color: #0a5c5f;
+                background-color: #00b888;
             }
         """)
         self.save_urls_button.clicked.connect(self.save_url_settings)
@@ -1405,17 +1406,17 @@ class MainWindow(QMainWindow):
             QPushButton {
                 padding: 8px 16px;
                 font-size: 10pt;
-                background-color: #3a3a3a;
-                color: #aaaaaa;
-                border: 1px solid #555555;
-                border-radius: 4px;
+                background-color: #1c2330;
+                color: #c1c9d4;
+                border: 1px solid #222a35;
+                border-radius: 6px;
             }
             QPushButton:hover {
-                background-color: #4a4a4a;
-                color: #ffffff;
+                background-color: #222a35;
+                color: #e2e8f0;
             }
             QPushButton:pressed {
-                background-color: #2a2a2a;
+                background-color: #141b24;
             }
         """)
         self.reset_urls_button.clicked.connect(self.reset_url_settings)
@@ -1429,7 +1430,7 @@ class MainWindow(QMainWindow):
         self.url_status_label.setStyleSheet("""
             QLabel {
                 font-size: 9pt;
-                color: #aaaaaa;
+                color: #6d7a8a;
                 background-color: transparent;
                 padding: 5px;
             }
@@ -1448,7 +1449,7 @@ class MainWindow(QMainWindow):
             QLabel {
                 font-size: 12pt;
                 font-weight: bold;
-                color: #ffffff;
+                color: #e2e8f0;
                 background-color: transparent;
             }
         """)
@@ -1459,7 +1460,7 @@ class MainWindow(QMainWindow):
         connection_description.setStyleSheet("""
             QLabel {
                 font-size: 9pt;
-                color: #aaaaaa;
+                color: #6d7a8a;
                 background-color: transparent;
                 padding: 5px 0px;
             }
@@ -1471,21 +1472,21 @@ class MainWindow(QMainWindow):
             QPushButton {
                 padding: 8px 16px;
                 font-size: 10pt;
-                background-color: #3a3a3a;
-                color: #aaaaaa;
-                border: 1px solid #555555;
-                border-radius: 4px;
+                background-color: #1c2330;
+                color: #c1c9d4;
+                border: 1px solid #222a35;
+                border-radius: 6px;
             }
             QPushButton:hover:enabled {
-                background-color: #4a4a4a;
-                color: #ffffff;
+                background-color: #222a35;
+                color: #e2e8f0;
             }
             QPushButton:pressed:enabled {
-                background-color: #2a2a2a;
+                background-color: #141b24;
             }
             QPushButton:disabled {
-                background-color: #2a2a2a;
-                color: #666666;
+                background-color: #141b24;
+                color: #6d7a8a;
             }
         """)
         self.lcu_connect_button.clicked.connect(self.manual_connect_lcu)
@@ -1503,7 +1504,7 @@ class MainWindow(QMainWindow):
             QLabel {
                 font-size: 12pt;
                 font-weight: bold;
-                color: #ffffff;
+                color: #e2e8f0;
                 background-color: transparent;
             }
         """)
@@ -1514,7 +1515,7 @@ class MainWindow(QMainWindow):
         self.current_version_label.setStyleSheet("""
             QLabel {
                 font-size: 11pt;
-                color: #cccccc;
+                color: #c1c9d4;
                 background-color: transparent;
                 padding: 5px;
             }
@@ -1526,7 +1527,7 @@ class MainWindow(QMainWindow):
         self.latest_version_label.setStyleSheet("""
             QLabel {
                 font-size: 11pt;
-                color: #cccccc;
+                color: #c1c9d4;
                 background-color: transparent;
                 padding: 5px;
             }
@@ -1538,7 +1539,7 @@ class MainWindow(QMainWindow):
         self.status_label.setStyleSheet("""
             QLabel {
                 font-size: 10pt;
-                color: #aaaaaa;
+                color: #6d7a8a;
                 background-color: transparent;
                 padding: 5px;
             }
@@ -1554,20 +1555,20 @@ class MainWindow(QMainWindow):
             QPushButton {
                 padding: 10px 20px;
                 font-size: 11pt;
-                background-color: #0d7377;
-                color: #ffffff;
+                background-color: #00d6a1;
+                color: #0d1117;
                 border: none;
-                border-radius: 4px;
+                border-radius: 6px;
             }
             QPushButton:hover {
-                background-color: #14a0a6;
+                background-color: #00efb3;
             }
             QPushButton:pressed {
-                background-color: #0a5c5f;
+                background-color: #00b888;
             }
             QPushButton:disabled {
-                background-color: #555555;
-                color: #888888;
+                background-color: #1c2330;
+                color: #6d7a8a;
             }
         """)
         self.update_button.clicked.connect(self.check_for_updates)
@@ -1583,7 +1584,7 @@ class MainWindow(QMainWindow):
             QLabel {
                 font-size: 12pt;
                 font-weight: bold;
-                color: #ffffff;
+                color: #e2e8f0;
                 background-color: transparent;
             }
         """)
@@ -1595,7 +1596,7 @@ class MainWindow(QMainWindow):
         display_description.setStyleSheet("""
             QLabel {
                 font-size: 9pt;
-                color: #aaaaaa;
+                color: #6d7a8a;
                 background-color: transparent;
                 padding: 5px;
             }
@@ -1611,7 +1612,7 @@ class MainWindow(QMainWindow):
         self.qr_overlay_checkbox.setStyleSheet("""
             QCheckBox {
                 font-size: 10pt;
-                color: #cccccc;
+                color: #c1c9d4;
                 background-color: transparent;
                 padding: 4px;
             }
@@ -1639,7 +1640,7 @@ class MainWindow(QMainWindow):
                 QLabel {
                     font-size: 12pt;
                     font-weight: bold;
-                    color: #ffffff;
+                    color: #e2e8f0;
                     background-color: transparent;
                 }
             """)
@@ -1651,7 +1652,7 @@ class MainWindow(QMainWindow):
             flags_description.setStyleSheet("""
                 QLabel {
                     font-size: 9pt;
-                    color: #aaaaaa;
+                    color: #6d7a8a;
                     background-color: transparent;
                     padding: 5px;
                 }
@@ -1668,7 +1669,7 @@ class MainWindow(QMainWindow):
                 checkbox.setStyleSheet("""
                     QCheckBox {
                         font-size: 10pt;
-                        color: #cccccc;
+                        color: #c1c9d4;
                         background-color: transparent;
                         padding: 4px;
                     }
@@ -1687,17 +1688,17 @@ class MainWindow(QMainWindow):
                 QPushButton {
                     padding: 8px 16px;
                     font-size: 10pt;
-                    background-color: #3a3a3a;
-                    color: #aaaaaa;
-                    border: 1px solid #555555;
-                    border-radius: 4px;
+                    background-color: #1c2330;
+                    color: #c1c9d4;
+                    border: 1px solid #222a35;
+                    border-radius: 6px;
                 }
                 QPushButton:hover {
-                    background-color: #4a4a4a;
-                    color: #ffffff;
+                    background-color: #222a35;
+                    color: #e2e8f0;
                 }
                 QPushButton:pressed {
-                    background-color: #2a2a2a;
+                    background-color: #141b24;
                 }
             """)
             self.reset_flags_button.clicked.connect(self.reset_feature_flags)
@@ -1709,7 +1710,7 @@ class MainWindow(QMainWindow):
             self.flags_status_label.setStyleSheet("""
                 QLabel {
                     font-size: 9pt;
-                    color: #aaaaaa;
+                    color: #6d7a8a;
                     background-color: transparent;
                     padding: 5px;
                 }
@@ -1736,26 +1737,27 @@ class MainWindow(QMainWindow):
         self.sidebar = QTabWidget()
         self.sidebar.setStyleSheet("""
             QTabWidget {
-                background-color: #252525;
-                border-right: 1px solid #444444;
+                background-color: #090e14;
+                border-right: 1px solid #1c2330;
             }
             QTabWidget::pane {
                 border: none;
-                background-color: #252525;
+                background-color: #090e14;
             }
             QTabBar::tab {
-                background-color: #2b2b2b;
-                color: #ffffff;
+                background-color: #141b24;
+                color: #c1c9d4;
                 padding: 8px 16px;
                 border: none;
                 border-bottom: 2px solid transparent;
             }
             QTabBar::tab:selected {
-                background-color: #0d7377;
-                border-bottom: 2px solid #14a0a6;
+                background-color: #00d6a1;
+                color: #0d1117;
+                border-bottom: 2px solid #00efb3;
             }
             QTabBar::tab:hover {
-                background-color: #3a3a3a;
+                background-color: #171e28;
             }
         """)
 
@@ -1768,7 +1770,7 @@ class MainWindow(QMainWindow):
         live_game_label.setStyleSheet("""
             QLabel {
                 font-size: 10pt;
-                color: #aaaaaa;
+                color: #6d7a8a;
                 padding: 10px;
             }
         """)
@@ -1788,21 +1790,22 @@ class MainWindow(QMainWindow):
         self.viewers_list = QListWidget()
         self.viewers_list.setStyleSheet("""
             QListWidget {
-                background-color: #2b2b2b;
-                border: 1px solid #444444;
-                border-radius: 4px;
-                color: #ffffff;
+                background-color: #141b24;
+                border: 1px solid #222a35;
+                border-radius: 6px;
+                color: #e2e8f0;
                 padding: 5px;
             }
             QListWidget::item {
                 padding: 0px;
-                border-radius: 4px;
+                border-radius: 6px;
             }
             QListWidget::item:hover {
-                background-color: #3a3a3a;
+                background-color: #171e28;
             }
             QListWidget::item:selected {
-                background-color: #0d7377;
+                background-color: #00d6a1;
+                color: #0d1117;
             }
         """)
         self.viewers_list.itemDoubleClicked.connect(self.toggle_viewer_visibility)
@@ -1819,7 +1822,7 @@ class MainWindow(QMainWindow):
         settings_label.setStyleSheet("""
             QLabel {
                 font-size: 10pt;
-                color: #aaaaaa;
+                color: #6d7a8a;
                 padding: 10px;
             }
         """)
@@ -1838,7 +1841,7 @@ class MainWindow(QMainWindow):
     def _create_matchup_list_widget(self) -> QWidget:
         """Create the 5-row matchup list widget showing ally vs enemy picks."""
         container = QWidget()
-        container.setStyleSheet("QWidget { background-color: #252525; }")
+        container.setStyleSheet("QWidget { background-color: #090e14; }")
         layout = QVBoxLayout(container)
         layout.setContentsMargins(8, 4, 8, 4)
         layout.setSpacing(2)
@@ -1849,17 +1852,17 @@ class MainWindow(QMainWindow):
         self._matchup_data: list[tuple[str, str]] = [("", "")] * 5  # (ally, enemy)
 
         icon_size = 24
-        name_style_ally = "QLabel { font-size: 9pt; color: #5bc0de; background-color: transparent; }"
-        name_style_enemy = "QLabel { font-size: 9pt; color: #d9534f; background-color: transparent; }"
+        name_style_ally = "QLabel { font-size: 9pt; color: #0078f5; background-color: transparent; }"
+        name_style_enemy = "QLabel { font-size: 9pt; color: #e0342c; background-color: transparent; }"
         icon_style = "QLabel { background-color: transparent; }"
         small_btn_style = """
             QPushButton {
                 font-size: 8pt; padding: 0px; min-width: 20px; max-width: 20px;
-                min-height: 20px; max-height: 20px; background-color: #3a3a3a;
-                color: #cccccc; border: none; border-radius: 3px;
+                min-height: 20px; max-height: 20px; background-color: #1c2330;
+                color: #c1c9d4; border: none; border-radius: 3px;
             }
-            QPushButton:hover { background-color: #555555; }
-            QPushButton:pressed { background-color: #222222; }
+            QPushButton:hover { background-color: #222a35; }
+            QPushButton:pressed { background-color: #090e14; }
         """
 
         for i in range(5):
@@ -2123,7 +2126,7 @@ class MainWindow(QMainWindow):
             self.flags_status_label.setStyleSheet("""
                 QLabel {
                     font-size: 9pt;
-                    color: #4a9d4a;
+                    color: #22c55e;
                     background-color: transparent;
                     padding: 5px;
                 }
@@ -2142,7 +2145,7 @@ class MainWindow(QMainWindow):
             self.flags_status_label.setStyleSheet("""
                 QLabel {
                     font-size: 9pt;
-                    color: #4a9d4a;
+                    color: #22c55e;
                     background-color: transparent;
                     padding: 5px;
                 }
@@ -2198,7 +2201,7 @@ class MainWindow(QMainWindow):
             self.url_status_label.setStyleSheet("""
                 QLabel {
                     font-size: 9pt;
-                    color: #d95d39;
+                    color: #e0342c;
                     background-color: transparent;
                     padding: 5px;
                 }
@@ -2219,7 +2222,7 @@ class MainWindow(QMainWindow):
         self.url_status_label.setStyleSheet("""
             QLabel {
                 font-size: 9pt;
-                color: #4a9d4a;
+                color: #22c55e;
                 background-color: transparent;
                 padding: 5px;
             }
@@ -2263,7 +2266,7 @@ class MainWindow(QMainWindow):
         self.url_status_label.setStyleSheet("""
             QLabel {
                 font-size: 9pt;
-                color: #4a9d4a;
+                color: #22c55e;
                 background-color: transparent;
                 padding: 5px;
             }
@@ -2315,8 +2318,8 @@ class MainWindow(QMainWindow):
         self.toolbar = QWidget()
         self.toolbar.setStyleSheet("""
             QWidget {
-                background-color: #252525;
-                border-bottom: 1px solid #444444;
+                background-color: #090e14;
+                border-bottom: 1px solid #222a35;
             }
         """)
         self.toolbar.setFixedHeight(60)
@@ -2333,17 +2336,17 @@ class MainWindow(QMainWindow):
             QPushButton {
                 padding: 8px 16px;
                 font-size: 10pt;
-                background-color: #3a3a3a;
-                color: #aaaaaa;
-                border: 1px solid #555555;
-                border-radius: 4px;
+                background-color: #1c2330;
+                color: #c1c9d4;
+                border: 1px solid #222a35;
+                border-radius: 6px;
             }
             QPushButton:hover {
-                background-color: #4a4a4a;
-                color: #ffffff;
+                background-color: #222a35;
+                color: #e2e8f0;
             }
             QPushButton:pressed {
-                background-color: #2a2a2a;
+                background-color: #141b24;
             }
         """)
         self.close_all_button.clicked.connect(self.close_all_viewers)
@@ -2355,17 +2358,17 @@ class MainWindow(QMainWindow):
             QPushButton {
                 padding: 8px 16px;
                 font-size: 10pt;
-                background-color: #3a3a3a;
-                color: #aaaaaa;
-                border: 1px solid #555555;
-                border-radius: 4px;
+                background-color: #1c2330;
+                color: #c1c9d4;
+                border: 1px solid #222a35;
+                border-radius: 6px;
             }
             QPushButton:hover {
-                background-color: #4a4a4a;
-                color: #ffffff;
+                background-color: #222a35;
+                color: #e2e8f0;
             }
             QPushButton:pressed {
-                background-color: #2a2a2a;
+                background-color: #141b24;
             }
         """)
         self.add_button.clicked.connect(self.add_viewer)
@@ -2615,7 +2618,7 @@ class MainWindow(QMainWindow):
                     self.status_label.setStyleSheet("""
                         QLabel {
                             font-size: 10pt;
-                            color: #14a0a6;
+                            color: #00d6a1;
                             background-color: transparent;
                             padding: 5px;
                         }
@@ -2625,7 +2628,7 @@ class MainWindow(QMainWindow):
                     self.status_label.setStyleSheet("""
                         QLabel {
                             font-size: 10pt;
-                            color: #4a9d4a;
+                            color: #22c55e;
                             background-color: transparent;
                             padding: 5px;
                         }
@@ -2636,7 +2639,7 @@ class MainWindow(QMainWindow):
                 self.status_label.setStyleSheet("""
                     QLabel {
                         font-size: 10pt;
-                        color: #d95d39;
+                        color: #e0342c;
                         background-color: transparent;
                         padding: 5px;
                     }
@@ -2649,7 +2652,7 @@ class MainWindow(QMainWindow):
             self.status_label.setStyleSheet("""
                 QLabel {
                     font-size: 10pt;
-                    color: #d95d39;
+                    color: #e0342c;
                     background-color: transparent;
                     padding: 5px;
                 }
@@ -2678,7 +2681,7 @@ class MainWindow(QMainWindow):
             self.status_label.setStyleSheet("""
                 QLabel {
                     font-size: 10pt;
-                    color: #d95d39;
+                    color: #e0342c;
                     background-color: transparent;
                     padding: 5px;
                 }
