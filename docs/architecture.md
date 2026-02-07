@@ -184,6 +184,10 @@ LCUConnectionStatusWidget (48px)
 | connected | Riot API: Connected | `#00d6a1` (primary) |
 | disconnected | Riot API: Disconnected | `#e0342c` (destructive) |
 
+## ウィンドウデザイン
+
+ウィンドウレイアウトの設計は [design/window-design.md](./design/window-design.md) を参照。
+
 ## 機能ドキュメント
 
 個別機能の詳細は [features.md](./features.md) を参照。
