@@ -104,11 +104,6 @@ MainWindow.__init__()
       └─ サイドバー幅復元
 ```
 
-## QrCodeOverlay の仕組み
+## 機能ドキュメント
 
-- `QWidget` を継承したフローティングウィジェット
-- ターゲットウィジェットの右下に固定表示 (120×120px)
-- `segno` ライブラリでQRコードをPNG生成し `QLabel` に `QPixmap` として表示
-- トグルボタン (32×32px) で折りたたみ/展開
-- `eventFilter` でターゲットのリサイズ/移動を監視し自動的に位置を更新
-- `_install_qr_overlay()` ヘルパー関数でインスタンス生成とイベントフィルタ設定を行う
+個別機能の詳細は [features.md](./features.md) を参照。
