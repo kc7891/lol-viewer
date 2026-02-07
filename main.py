@@ -1780,6 +1780,9 @@ class MainWindow(QMainWindow):
         # Connect tab change signal to update main content
         self.sidebar.currentChanged.connect(self.on_sidebar_tab_changed)
 
+    # Lane order used when opening viewer from matchup list (#68)
+    MATCHUP_LANE_ORDER = ["top", "jungle", "middle", "bottom", "support"]
+
     def _create_matchup_list_widget(self) -> QWidget:
         """Create the 5-row matchup list widget showing ally vs enemy picks."""
         container = QWidget()
@@ -1797,12 +1800,33 @@ class MainWindow(QMainWindow):
         name_style_ally = "QLabel { font-size: 9pt; color: #5bc0de; background-color: transparent; }"
         name_style_enemy = "QLabel { font-size: 9pt; color: #d9534f; background-color: transparent; }"
         icon_style = "QLabel { background-color: transparent; }"
+        small_btn_style = """
+            QPushButton {
+                font-size: 8pt; padding: 0px; min-width: 20px; max-width: 20px;
+                min-height: 20px; max-height: 20px; background-color: #3a3a3a;
+                color: #cccccc; border: none; border-radius: 3px;
+            }
+            QPushButton:hover { background-color: #555555; }
+            QPushButton:pressed { background-color: #222222; }
+        """
 
-        for _ in range(5):
+        for i in range(5):
             row = QWidget()
             row_layout = QHBoxLayout(row)
             row_layout.setContentsMargins(4, 1, 4, 1)
             row_layout.setSpacing(4)
+
+            # Move up button (#67)
+            up_btn = QPushButton("▲")
+            up_btn.setToolTip("Move row up")
+            up_btn.setStyleSheet(small_btn_style)
+            up_btn.clicked.connect(lambda _, idx=i: self._matchup_move_row(idx, -1))
+
+            # Move down button (#67)
+            down_btn = QPushButton("▼")
+            down_btn.setToolTip("Move row down")
+            down_btn.setStyleSheet(small_btn_style)
+            down_btn.clicked.connect(lambda _, idx=i: self._matchup_move_row(idx, 1))
 
             ally_icon = QLabel()
             ally_icon.setFixedSize(icon_size, icon_size)
@@ -1812,12 +1836,11 @@ class MainWindow(QMainWindow):
             ally_name.setStyleSheet(name_style_ally)
             ally_name.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-            vs_label = QLabel("vs")
-            vs_label.setStyleSheet(
-                "QLabel { font-size: 8pt; color: #666666; background-color: transparent; }"
-            )
-            vs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            vs_label.setFixedWidth(20)
+            # Swap opponents button (#67)
+            swap_btn = QPushButton("⇄")
+            swap_btn.setToolTip("Swap opponents between this row and the next")
+            swap_btn.setStyleSheet(small_btn_style)
+            swap_btn.clicked.connect(lambda _, idx=i: self._matchup_swap_enemies(idx))
 
             enemy_name = QLabel("-")
             enemy_name.setStyleSheet(name_style_enemy)
@@ -1827,11 +1850,20 @@ class MainWindow(QMainWindow):
             enemy_icon.setFixedSize(icon_size, icon_size)
             enemy_icon.setStyleSheet(icon_style)
 
+            # Open viewer button (#68)
+            open_btn = QPushButton("↗")
+            open_btn.setToolTip("Open matchup in viewer")
+            open_btn.setStyleSheet(small_btn_style)
+            open_btn.clicked.connect(lambda _, idx=i: self._open_matchup_viewer(idx))
+
+            row_layout.addWidget(up_btn, 0)
+            row_layout.addWidget(down_btn, 0)
             row_layout.addWidget(ally_icon, 0)
             row_layout.addWidget(ally_name, 1)
-            row_layout.addWidget(vs_label, 0)
+            row_layout.addWidget(swap_btn, 0)
             row_layout.addWidget(enemy_name, 1)
             row_layout.addWidget(enemy_icon, 0)
+            row_layout.addWidget(open_btn, 0)
 
             layout.addWidget(row)
             self._matchup_rows.append((ally_icon, ally_name, enemy_name, enemy_icon))
@@ -1895,6 +1927,59 @@ class MainWindow(QMainWindow):
             padded.append(("", ""))
         self._matchup_data = padded
         self.update_matchup_list()
+
+    def _matchup_move_row(self, index: int, direction: int):
+        """Move a matchup row up (-1) or down (+1). (#67)"""
+        target = index + direction
+        if target < 0 or target >= 5:
+            return
+        self._matchup_data[index], self._matchup_data[target] = (
+            self._matchup_data[target],
+            self._matchup_data[index],
+        )
+        self.update_matchup_list()
+
+    def _matchup_swap_enemies(self, index: int):
+        """Swap the enemy champion between row *index* and the next row. (#67)
+
+        Allies stay fixed; only enemies are swapped.
+        """
+        target = index + 1
+        if target >= 5:
+            return
+        ally_a, enemy_a = self._matchup_data[index]
+        ally_b, enemy_b = self._matchup_data[target]
+        self._matchup_data[index] = (ally_a, enemy_b)
+        self._matchup_data[target] = (ally_b, enemy_a)
+        self.update_matchup_list()
+
+    def _open_matchup_viewer(self, index: int):
+        """Open a viewer with the matchup from row *index*. (#68)
+
+        Lane is determined by row position (0=top … 4=support).
+        Reuses the same logic as the Build button.
+        """
+        if index < 0 or index >= len(self._matchup_data):
+            return
+        ally, enemy = self._matchup_data[index]
+        if not ally:
+            return
+        lane = self.MATCHUP_LANE_ORDER[index] if index < len(self.MATCHUP_LANE_ORDER) else ""
+
+        # Create (or reuse) a viewer and trigger the build flow
+        viewer = self.add_viewer()
+        if not viewer:
+            return
+        viewer.champion_input.setText(ally)
+        if enemy and hasattr(viewer, "opponent_champion_input") and viewer.opponent_champion_input is not None:
+            viewer.opponent_champion_input.setText(enemy)
+        # Set lane
+        if lane:
+            for i in range(viewer.lane_selector.count()):
+                if viewer.lane_selector.itemData(i) == lane:
+                    viewer.lane_selector.setCurrentIndex(i)
+                    break
+        viewer.open_build()
 
     def on_sidebar_tab_changed(self, index):
         """Handle sidebar tab change and update main content"""
