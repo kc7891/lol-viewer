@@ -1847,6 +1847,7 @@ class MainWindow(QMainWindow):
         # Each row: (ally_icon, ally_name, enemy_name, enemy_icon)
         self._matchup_rows: list[tuple[QLabel, QLabel, QLabel, QLabel]] = []
         self._matchup_data: list[tuple[str, str]] = [("", "")] * 5  # (ally, enemy)
+        self._matchup_user_dirty = False  # True when user has manually reordered
 
         icon_size = 24
         name_style_ally = "QLabel { font-size: 9pt; color: #5bc0de; background-color: transparent; }"
@@ -1967,16 +1968,37 @@ class MainWindow(QMainWindow):
     def clear_matchup_list(self):
         """Clear all matchup entries."""
         self._matchup_data = [("", "")] * 5
+        self._matchup_user_dirty = False
         self.update_matchup_list()
 
+    @staticmethod
+    def _matchup_pairs_set(data: list[tuple[str, str]]) -> set[tuple[str, str]]:
+        """Return the set of non-empty (ally, enemy) pairs for comparison."""
+        return {(a, e) for a, e in data if a or e}
+
     def on_matchup_pairs_updated(self, pairs: list):
-        """Handle matchup pairs update from champion detector."""
+        """Handle matchup pairs update from champion detector.
+
+        If the user has manually reordered the list and the incoming data
+        contains the same set of champion pairs, preserve the user's
+        arrangement instead of overwriting it.  The dirty flag is cleared
+        when the underlying champion set actually changes (e.g. new picks
+        or a new game phase).  Fixes #77.
+        """
         if not self.feature_flags.get("matchup_list", False):
             return
         # Pad to 5 entries
         padded = list(pairs[:5])
         while len(padded) < 5:
             padded.append(("", ""))
+
+        if self._matchup_user_dirty:
+            # Only overwrite when the champion set itself changed
+            if self._matchup_pairs_set(padded) == self._matchup_pairs_set(self._matchup_data):
+                return  # same champions – keep user ordering
+            # Champion set changed – accept new data and clear dirty flag
+            self._matchup_user_dirty = False
+
         self._matchup_data = padded
         self.update_matchup_list()
 
@@ -1989,6 +2011,7 @@ class MainWindow(QMainWindow):
             self._matchup_data[target],
             self._matchup_data[index],
         )
+        self._matchup_user_dirty = True
         self.update_matchup_list()
 
     def _matchup_swap_enemies(self, index: int):
@@ -2003,6 +2026,7 @@ class MainWindow(QMainWindow):
         ally_b, enemy_b = self._matchup_data[target]
         self._matchup_data[index] = (ally_a, enemy_b)
         self._matchup_data[target] = (ally_b, enemy_a)
+        self._matchup_user_dirty = True
         self.update_matchup_list()
 
     def _open_matchup_viewer(self, index: int):

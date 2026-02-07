@@ -80,7 +80,7 @@ PyQt6のシグナル/スロットパターンを使用。
 |----------|--------|------|
 | `champion_detected` | `ChampionDetectorService` | 自チームのチャンピオン検出 |
 | `enemy_champion_detected` | `ChampionDetectorService` | 敵チームのチャンピオン検出 |
-| `matchup_pairs_updated` | `ChampionDetectorService` | マッチアップペア更新 |
+| `matchup_pairs_updated` | `ChampionDetectorService` | マッチアップペア更新 (ユーザーが並び替え済みの場合、同一チャンピオンセットでは上書きしない) |
 | `close_requested` | `ChampionViewerWidget` | ビューア閉鎖リクエスト |
 | `champion_updated` | `ChampionViewerWidget` | チャンピオン更新 |
 | `connection_status_changed` | `ChampionDetectorService` | LCU接続状態変更 |
