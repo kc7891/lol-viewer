@@ -44,11 +44,6 @@ FEATURE_FLAG_DEFINITIONS: dict = {
         "description": "Show a 5-row matchup list in the sidebar displaying ally vs enemy champion picks.",
         "default": False,
     },
-    "qr_code_overlay": {
-        "label": "QR Code Overlay",
-        "default": False,
-        "description": "Show a QR code of the current page URL on the bottom-right of each web view",
-    },
 }
 
 # Queue IDs used to detect ARAM / ARAM: Mayhem.
@@ -756,9 +751,9 @@ class ChampionViewerWidget(QWidget):
         self.web_view.page().setBackgroundColor(QColor("#1e1e1e"))
         layout.addWidget(self.web_view)
 
-        # QR code overlay (feature-flagged)
+        # QR code overlay
         self._qr_overlay: Optional[QrCodeOverlay] = None
-        if self.main_window and self.main_window.feature_flags.get("qr_code_overlay", False):
+        if self.main_window and self.main_window.qr_overlay_enabled:
             self._qr_overlay = _install_qr_overlay(self, self.web_view)
 
         # Set minimum and preferred width
@@ -988,6 +983,9 @@ class MainWindow(QMainWindow):
         # Load feature flags
         self.feature_flags = self.load_feature_flags()
 
+        # Load display settings
+        self.qr_overlay_enabled = self.settings.value("display/qr_code_overlay", True, type=bool)
+
         # Initialize champion detector service
         logger.info("Initializing ChampionDetectorService...")
         self.champion_detector = ChampionDetectorService()
@@ -1165,9 +1163,9 @@ class MainWindow(QMainWindow):
         self.live_game_web_view.setUrl(QUrl(self.live_game_url))
         live_game_layout.addWidget(self.live_game_web_view)
 
-        # QR code overlay for live game (feature-flagged)
+        # QR code overlay for live game
         self._live_game_qr_overlay: Optional[QrCodeOverlay] = None
-        if self.feature_flags.get("qr_code_overlay", False):
+        if self.qr_overlay_enabled:
             self._live_game_qr_overlay = _install_qr_overlay(self.live_game_page, self.live_game_web_view)
             self._live_game_qr_overlay.set_url(self.live_game_url)
 
@@ -1574,6 +1572,60 @@ class MainWindow(QMainWindow):
         """)
         self.update_button.clicked.connect(self.check_for_updates)
         settings_layout.addWidget(self.update_button)
+
+        # Display Settings section
+        display_group = QWidget()
+        display_layout = QVBoxLayout(display_group)
+        display_layout.setSpacing(10)
+
+        display_title = QLabel("Display Settings")
+        display_title.setStyleSheet("""
+            QLabel {
+                font-size: 12pt;
+                font-weight: bold;
+                color: #ffffff;
+                background-color: transparent;
+            }
+        """)
+        display_layout.addWidget(display_title)
+
+        display_description = QLabel(
+            "Configure display-related options."
+        )
+        display_description.setStyleSheet("""
+            QLabel {
+                font-size: 9pt;
+                color: #aaaaaa;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+        display_description.setWordWrap(True)
+        display_layout.addWidget(display_description)
+
+        self.qr_overlay_checkbox = QCheckBox("QR Code Overlay")
+        self.qr_overlay_checkbox.setChecked(self.qr_overlay_enabled)
+        self.qr_overlay_checkbox.setToolTip(
+            "Show a QR code of the current page URL on the bottom-right of each web view"
+        )
+        self.qr_overlay_checkbox.setStyleSheet("""
+            QCheckBox {
+                font-size: 10pt;
+                color: #cccccc;
+                background-color: transparent;
+                padding: 4px;
+            }
+            QCheckBox::indicator {
+                width: 16px;
+                height: 16px;
+            }
+        """)
+        self.qr_overlay_checkbox.stateChanged.connect(
+            lambda state: self._set_qr_overlay_enabled(state == 2)
+        )
+        display_layout.addWidget(self.qr_overlay_checkbox)
+
+        settings_layout.addWidget(display_group)
 
         # Feature flags section (bottom)
         # Only render if this build defines any flags.
@@ -2076,8 +2128,6 @@ class MainWindow(QMainWindow):
                 }
             """)
         logger.info(f"Feature flag updated: {key}={enabled}")
-        if key == "qr_code_overlay":
-            self._apply_qr_overlay_flag(enabled)
 
     def reset_feature_flags(self):
         """Reset all feature flags to their default values."""
@@ -2086,8 +2136,6 @@ class MainWindow(QMainWindow):
             self.feature_flags[key] = default_value
             self.settings.setValue(f"feature_flags/{key}", default_value)
         self.load_feature_flag_settings()
-        # Apply side-effects for flags that need runtime updates
-        self._apply_qr_overlay_flag(self.feature_flags.get("qr_code_overlay", False))
         if hasattr(self, "flags_status_label"):
             self.flags_status_label.setText("✓ Feature flags reset to defaults")
             self.flags_status_label.setStyleSheet("""
@@ -2100,7 +2148,14 @@ class MainWindow(QMainWindow):
             """)
         logger.info("Feature flags reset to defaults")
 
-    def _apply_qr_overlay_flag(self, enabled: bool):
+    def _set_qr_overlay_enabled(self, enabled: bool):
+        """Persist QR overlay display setting and apply immediately."""
+        self.qr_overlay_enabled = bool(enabled)
+        self.settings.setValue("display/qr_code_overlay", bool(enabled))
+        logger.info(f"Display setting updated: qr_code_overlay={enabled}")
+        self._apply_qr_overlay_setting(enabled)
+
+    def _apply_qr_overlay_setting(self, enabled: bool):
         """Dynamically add or remove QR overlays on all web views."""
         # Live game page
         if enabled:
