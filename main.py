@@ -71,26 +71,95 @@ class LCUConnectionStatusWidget(QWidget):
     def init_ui(self):
         """Initialize the UI"""
         self.setFixedHeight(48)
-        self.setStyleSheet("QWidget { background-color: #090e14; }")
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #090e14;
+                border-top: 1px solid #1c2330;
+            }
+        """)
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 5, 10, 5)
+        layout.setContentsMargins(10, 0, 10, 0)
 
-        self.status_label = QLabel("connecting.")
-        self.status_label.setFixedHeight(30)
+        # Inner container for vertically centering content
+        inner = QWidget()
+        inner.setFixedHeight(30)
+        inner.setStyleSheet("QWidget { border: none; }")
+        inner_layout = QHBoxLayout(inner)
+        inner_layout.setContentsMargins(0, 0, 0, 0)
+        inner_layout.setSpacing(6)
+
+        # Green/yellow/red dot indicator
+        self.dot_label = QLabel("\u25cf")
+        self.dot_label.setFixedWidth(10)
+        self.dot_label.setStyleSheet("""
+            QLabel {
+                font-size: 8px;
+                color: #6d7a8a;
+                background-color: transparent;
+                border: none;
+            }
+        """)
+        inner_layout.addWidget(self.dot_label)
+
+        # Wifi/signal icon
+        self.icon_label = QLabel("\u25e0")
+        self.icon_label.setFixedWidth(14)
+        self.icon_label.setStyleSheet("""
+            QLabel {
+                font-size: 11px;
+                color: #6d7a8a;
+                background-color: transparent;
+                border: none;
+            }
+        """)
+        inner_layout.addWidget(self.icon_label)
+
+        # Status text
+        self.status_label = QLabel("Riot API: Connecting")
         self.status_label.setStyleSheet("""
             QLabel {
                 font-size: 10px;
-                color: #c1c9d4;
+                color: #6d7a8a;
                 background-color: transparent;
+                border: none;
             }
         """)
-        layout.addWidget(self.status_label)
+        inner_layout.addWidget(self.status_label, 1)
+
+        layout.addWidget(inner)
+
+    def _apply_status_color(self, color: str):
+        """Apply color to all status indicator elements"""
+        self.dot_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: 8px;
+                color: {color};
+                background-color: transparent;
+                border: none;
+            }}
+        """)
+        self.icon_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: 11px;
+                color: {color};
+                background-color: transparent;
+                border: none;
+            }}
+        """)
+        self.status_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: 10px;
+                color: {color};
+                background-color: transparent;
+                border: none;
+            }}
+        """)
 
     def update_dots(self):
         """Update dot animation for connecting status"""
         if self.current_status == "connecting":
             dots = "." * self.dot_count
-            self.status_label.setText(f"connecting{dots}")
+            self.status_label.setText(f"Riot API: Connecting{dots}")
             self.dot_count = (self.dot_count % 3) + 1  # Cycle: 1 -> 2 -> 3 -> 1
 
     def set_status(self, status: str):
@@ -102,12 +171,15 @@ class LCUConnectionStatusWidget(QWidget):
         self.current_status = status
 
         if status == "connected":
-            self.status_label.setText("connected")
+            self.status_label.setText("Riot API: Connected")
+            self._apply_status_color("#00d6a1")
         elif status == "disconnected":
-            self.status_label.setText("disconnected")
+            self.status_label.setText("Riot API: Disconnected")
+            self._apply_status_color("#e0342c")
         elif status == "connecting":
             self.dot_count = 1
-            self.status_label.setText("connecting.")
+            self.status_label.setText("Riot API: Connecting.")
+            self._apply_status_color("#6d7a8a")
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 
@@ -348,7 +420,7 @@ from lcu_detector import ChampionDetectorService
 
 
 class ViewerListItemWidget(QWidget):
-    """Custom widget for viewer list items with visibility toggle and close buttons"""
+    """Custom widget for viewer list items showing champion icon, name and page type"""
 
     def __init__(self, display_name: str, viewer: 'ChampionViewerWidget', parent_window: 'MainWindow'):
         super().__init__()
@@ -361,101 +433,74 @@ class ViewerListItemWidget(QWidget):
         self.setFixedHeight(45)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 4, 8, 4)
-        layout.setSpacing(4)
+        layout.setSpacing(8)
 
-        # Visibility toggle button (placed first)
-        self.visibility_button = QPushButton()
-        self.update_visibility_icon()
-        self.visibility_button.setToolTip("Toggle visibility")
-        self.visibility_button.setStyleSheet("""
-            QPushButton {
-                padding: 0px;
+        # Champion icon
+        self.icon_label = QLabel()
+        self.icon_label.setFixedSize(30, 30)
+        self.icon_label.setStyleSheet("""
+            QLabel {
                 background-color: #1c2330;
-                color: #e2e8f0;
-                border: 1px solid #222a35;
-                border-radius: 3px;
-                min-width: 26px;
-                max-width: 26px;
-                min-height: 26px;
-                max-height: 26px;
-                font-size: 14px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #222a35;
-                border: 1px solid #00d6a1;
-            }
-            QPushButton:pressed {
-                background-color: #141b24;
+                border-radius: 6px;
             }
         """)
-        self.visibility_button.clicked.connect(self.toggle_visibility)
-        layout.addWidget(self.visibility_button)
+        layout.addWidget(self.icon_label)
+        self._load_champion_icon()
 
-        # Close button (placed second)
-        self.close_button = QPushButton(CLOSE_BUTTON_GLYPH)
-        self.close_button.setToolTip("Close viewer")
-        self.close_button.setStyleSheet("""
-            QPushButton {
-                padding: 0px;
-                background-color: #1c2330;
-                color: #c1c9d4;
-                border: 1px solid #222a35;
-                border-radius: 3px;
-                font-size: 14px;
-                font-weight: bold;
-                min-width: 26px;
-                max-width: 26px;
-                min-height: 26px;
-                max-height: 26px;
-            }
-            QPushButton:hover {
-                background-color: #e0342c;
-                border: 1px solid #e0342c;
-                color: #fafafa;
-            }
-            QPushButton:pressed {
-                background-color: #c02a23;
-            }
-        """)
-        self.close_button.clicked.connect(self.close_viewer)
-        layout.addWidget(self.close_button)
+        # Right side: name + page type stacked vertically
+        text_layout = QVBoxLayout()
+        text_layout.setContentsMargins(0, 0, 0, 0)
+        text_layout.setSpacing(0)
 
-        # Display name label (placed last, with stretch)
-        self.name_label = QLabel(display_name)
+        # Champion name
+        champ_name = (self.viewer.current_champion or "").strip().title() or "(Empty)"
+        self.name_label = QLabel(champ_name)
         self.name_label.setStyleSheet("""
             QLabel {
                 color: #e2e8f0;
                 font-size: 12px;
+                font-weight: bold;
                 background-color: transparent;
             }
         """)
-        layout.addWidget(self.name_label, 1)  # Stretch to take available space
+        text_layout.addWidget(self.name_label)
 
-    def update_visibility_icon(self):
-        """Update visibility button icon based on viewer visibility"""
-        if self.viewer.isVisible():
-            self.visibility_button.setText("−")
-        else:
-            self.visibility_button.setText("+")
+        # Page type label (e.g. "BUILD", "COUNTER", "ARAM")
+        page_type = (self.viewer.current_page_type or "").upper() or "BUILD"
+        self.type_label = QLabel(f"\u229e {page_type}")
+        self.type_label.setStyleSheet("""
+            QLabel {
+                color: #6d7a8a;
+                font-size: 9px;
+                background-color: transparent;
+            }
+        """)
+        text_layout.addWidget(self.type_label)
 
-    def toggle_visibility(self):
-        """Toggle viewer visibility"""
-        if self.viewer.isVisible():
-            self.viewer.hide()
-            if self.viewer not in self.parent_window.hidden_viewers:
-                self.parent_window.hidden_viewers.append(self.viewer)
-        else:
-            self.viewer.show()
-            if self.viewer in self.parent_window.hidden_viewers:
-                self.parent_window.hidden_viewers.remove(self.viewer)
+        layout.addLayout(text_layout, 1)
 
-        self.update_visibility_icon()
-        self.parent_window.update_viewers_list()
-
-    def close_viewer(self):
-        """Close the viewer"""
-        self.parent_window.close_viewer(self.viewer)
+    def _load_champion_icon(self):
+        """Load champion icon from image cache"""
+        champion_name = (self.viewer.current_champion or "").strip()
+        if not champion_name:
+            return
+        champ = self.parent_window.champion_data.get_champion(champion_name)
+        if not champ:
+            return
+        url = champ.get("image_url", "")
+        if not url:
+            return
+        cache = self.parent_window._sidebar_image_cache
+        pixmap = cache.get_image(
+            url,
+            callback=lambda pm, lbl=self.icon_label: lbl.setPixmap(
+                pm.scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            ),
+        )
+        if pixmap:
+            self.icon_label.setPixmap(
+                pixmap.scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            )
 
 
 class ChampionViewerWidget(QWidget):
@@ -1086,6 +1131,9 @@ class MainWindow(QMainWindow):
         main_layout = QHBoxLayout(central_widget)
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Image cache for sidebar champion icons
+        self._sidebar_image_cache = ChampionImageCache()
 
         # Left sidebar with tabs
         self.create_sidebar()
@@ -1785,30 +1833,70 @@ class MainWindow(QMainWindow):
 
         # Viewers tab
         viewers_widget = QWidget()
+        viewers_widget.setStyleSheet("QWidget { background-color: #090e14; }")
         viewers_layout = QVBoxLayout(viewers_widget)
-        viewers_layout.setSpacing(10)
+        viewers_layout.setSpacing(6)
         viewers_layout.setContentsMargins(10, 10, 10, 10)
+
+        # Header row: "WINDOWS" label + "+" button
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        windows_label = QLabel("WINDOWS")
+        windows_label.setStyleSheet("""
+            QLabel {
+                color: #6d7a8a;
+                font-size: 10px;
+                font-weight: bold;
+                letter-spacing: 1px;
+                background-color: transparent;
+            }
+        """)
+        header_layout.addWidget(windows_label)
+        header_layout.addStretch()
+
+        sidebar_add_button = QPushButton("+")
+        sidebar_add_button.setToolTip("Add Viewer")
+        sidebar_add_button.setStyleSheet("""
+            QPushButton {
+                padding: 0px;
+                background-color: transparent;
+                color: #6d7a8a;
+                border: none;
+                font-size: 16px;
+                font-weight: bold;
+                min-width: 20px;
+                max-width: 20px;
+                min-height: 20px;
+                max-height: 20px;
+            }
+            QPushButton:hover {
+                color: #e2e8f0;
+            }
+        """)
+        sidebar_add_button.clicked.connect(self.add_viewer)
+        header_layout.addWidget(sidebar_add_button)
+        viewers_layout.addLayout(header_layout)
 
         # List of all viewers
         self.viewers_list = QListWidget()
         self.viewers_list.setStyleSheet("""
             QListWidget {
-                background-color: #141b24;
-                border: 1px solid #222a35;
-                border-radius: 6px;
+                background-color: #090e14;
+                border: none;
                 color: #e2e8f0;
-                padding: 5px;
+                padding: 0px;
             }
             QListWidget::item {
                 padding: 0px;
-                border-radius: 6px;
+                border-left: 3px solid transparent;
+                border-radius: 0px;
             }
             QListWidget::item:hover {
                 background-color: #171e28;
             }
             QListWidget::item:selected {
-                background-color: #00d6a1;
-                color: #0d1117;
+                background-color: #141b24;
+                border-left: 3px solid #00d6a1;
             }
         """)
         self.viewers_list.itemDoubleClicked.connect(self.toggle_viewer_visibility)
