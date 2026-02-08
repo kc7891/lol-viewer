@@ -402,6 +402,8 @@ from lcu_detector import ChampionDetectorService
 class ViewerListItemWidget(QWidget):
     """Custom widget for viewer list items showing champion icon, name and page type"""
 
+    CLOSE_GLYPH = "\u00d7"  # ×
+
     def __init__(self, display_name: str, viewer: 'ChampionViewerWidget', parent_window: 'MainWindow'):
         super().__init__()
         self.viewer = viewer
@@ -410,11 +412,9 @@ class ViewerListItemWidget(QWidget):
 
     def init_ui(self, display_name: str):
         """Initialize the UI components"""
-        self.setFixedHeight(45)
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 0, 8, 0)
+        layout.setContentsMargins(8, 6, 8, 6)
         layout.setSpacing(8)
-        layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         # Champion icon
         self.icon_label = QLabel()
@@ -434,7 +434,6 @@ class ViewerListItemWidget(QWidget):
         text_layout = QVBoxLayout(text_widget)
         text_layout.setContentsMargins(0, 0, 0, 0)
         text_layout.setSpacing(1)
-        text_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         # Champion name
         champ_name = (self.viewer.current_champion or "").strip().title() or "(Empty)"
@@ -462,6 +461,49 @@ class ViewerListItemWidget(QWidget):
         text_layout.addWidget(self.type_label)
 
         layout.addWidget(text_widget, 1)
+
+        # Close button (visible on hover only)
+        self.close_button = QPushButton(self.CLOSE_GLYPH)
+        self.close_button.setToolTip("Close viewer")
+        self.close_button.setFixedSize(20, 20)
+        self.close_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.close_button.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                color: #6d7a8a;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                color: #e0342c;
+            }
+        """)
+        self.close_button.clicked.connect(self._close_viewer)
+        self.close_button.setVisible(False)
+        layout.addWidget(self.close_button)
+
+    def sizeHint(self):
+        """Return size based on actual content height."""
+        # 30px icon + 6px top margin + 6px bottom margin = 42px minimum
+        hint = super().sizeHint()
+        min_h = 30 + 12  # icon height + vertical margins
+        if hint.height() < min_h:
+            hint.setHeight(min_h)
+        return hint
+
+    def enterEvent(self, event):
+        """Show close button on hover"""
+        self.close_button.setVisible(True)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        """Hide close button when not hovering"""
+        self.close_button.setVisible(False)
+        super().leaveEvent(event)
+
+    def _close_viewer(self):
+        """Close the viewer"""
+        self.parent_window.close_viewer(self.viewer)
 
     def _load_champion_icon(self):
         """Load champion icon from image cache"""
@@ -2575,6 +2617,8 @@ class MainWindow(QMainWindow):
 
             # Create custom widget for this item
             item_widget = ViewerListItemWidget(display_name, viewer, self)
+            # Force layout calculation so sizeHint returns the real height
+            item_widget.adjustSize()
             item.setSizeHint(item_widget.sizeHint())
             self.viewers_list.setItemWidget(item, item_widget)
 
