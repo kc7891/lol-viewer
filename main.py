@@ -1853,6 +1853,8 @@ class MainWindow(QMainWindow):
         - Open button: open-blank style icon
         """
         container = QWidget()
+        # Title (24) + 5 rows (33 each) + 5 separators (1 each) = 194px
+        container.setFixedHeight(194)
         container.setStyleSheet("QWidget { background-color: #090e14; }")
         layout = QVBoxLayout(container)
         layout.setContentsMargins(8, 0, 8, 0)
