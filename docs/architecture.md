@@ -142,12 +142,46 @@ MainWindow.__init__()
 | コンポーネント | プロパティ | 値 | 備考 |
 |---------------|-----------|-----|------|
 | サイドバーアイテム (`ViewerListItemWidget`) | 高さ | 45px | `setFixedHeight(45)` (#72) |
+| サイドバーアイテム アイコン | サイズ | 30×30px | チャンピオンサムネイル (#72) |
 | LCUステータスラッパー (`LCUConnectionStatusWidget`) | 高さ | 48px | `setFixedHeight(48)` (#72) |
-| LCUステータスラベル | 高さ | 30px | `setFixedHeight(30)` (#72) |
+| LCUステータス内部コンテナ | 高さ | 30px | `setFixedHeight(30)` (#72) |
 | マッチアップリスト行 | 高さ | 50px | `setFixedHeight(50)` |
 | ツールバー | 高さ | 60px | `setFixedHeight(60)` |
 | サイドバー | 最小幅 | 150px | `setMinimumWidth(150)` |
 | サイドバー | デフォルト幅 | 200px | QSettings `sidebar_width` |
+
+## サイドバーデザイン (#72)
+
+### Viewersタブ構造
+
+```
+Viewers タブ
+├─ ヘッダー行: "WINDOWS" ラベル + "+" ボタン (ビューア追加)
+└─ QListWidget (ビューアリスト)
+    └─ ViewerListItemWidget (各アイテム 45px)
+        ├─ チャンピオンアイコン (30×30, ChampionImageCache)
+        └─ テキスト (VBox)
+            ├─ チャンピオン名 (12px, bold, #e2e8f0)
+            └─ ページタイプ (9px, #6d7a8a, "⊞ BUILD" 等)
+```
+
+選択中アイテムは左ボーダー (`3px solid #00d6a1`) でハイライト。
+
+### LCUステータスウィジェット
+
+```
+LCUConnectionStatusWidget (48px)
+└─ 内部コンテナ (30px)
+    ├─ ドットインジケーター (●)
+    ├─ 信号アイコン (◠)
+    └─ ステータステキスト ("Riot API: Connected" 等)
+```
+
+| 状態 | 表示テキスト | カラー |
+|------|-------------|--------|
+| connecting | Riot API: Connecting... | `#6d7a8a` (muted) |
+| connected | Riot API: Connected | `#00d6a1` (primary) |
+| disconnected | Riot API: Disconnected | `#e0342c` (destructive) |
 
 ## 機能ドキュメント
 
