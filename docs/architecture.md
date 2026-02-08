@@ -141,7 +141,7 @@ MainWindow.__init__()
 
 | コンポーネント | プロパティ | 値 | 備考 |
 |---------------|-----------|-----|------|
-| サイドバーアイテム (`ViewerListItemWidget`) | 高さ | 45px | `setFixedHeight(45)` (#72) |
+| サイドバーアイテム (`ViewerListItemWidget`) | 高さ | 可変 (最小42px) | コンテンツ依存、`sizeHint()` + `adjustSize()` (#72) |
 | サイドバーアイテム アイコン | サイズ | 30×30px | チャンピオンサムネイル (#72) |
 | LCUステータスラッパー (`LCUConnectionStatusWidget`) | 高さ | 48px | `setFixedHeight(48)` (#72) |
 | LCUステータス内部コンテナ | 高さ | 30px | `setFixedHeight(30)` (#72) |
@@ -158,14 +158,16 @@ MainWindow.__init__()
 Viewers タブ
 ├─ ヘッダー行: "WINDOWS" ラベル + "+" ボタン (ビューア追加)
 └─ QListWidget (ビューアリスト, FocusPolicy=NoFocus, outline無効)
-    └─ ViewerListItemWidget (各アイテム 45px, VCenter揃え)
+    └─ ViewerListItemWidget (高さ可変, adjustSize()で算出)
         ├─ チャンピオンアイコン (30×30, ChampionImageCache)
-        └─ テキスト (QWidget + VBox, VCenter揃え)
-            ├─ チャンピオン名 (12px, bold, #e2e8f0)
-            └─ ページタイプ (9px, #6d7a8a, "BUILD" 等, アイコンなし)
+        ├─ テキスト (QWidget + VBox)
+        │   ├─ チャンピオン名 (12px, bold, #e2e8f0)
+        │   └─ ページタイプ (9px, #6d7a8a, "BUILD" 等)
+        └─ 閉じるボタン (×, ホバー時のみ表示, #6d7a8a → hover: #e0342c)
 ```
 
 選択中アイテムは左ボーダー (`3px solid #00d6a1`) + 背景色変更でハイライト。フォーカス枠線は非表示。
+ホバー時にアイテム右端に閉じるボタン (×) を表示。背景・枠線なし、文字色のみで表現。
 
 ### LCUステータスウィジェット
 
