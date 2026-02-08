@@ -146,4 +146,4 @@ MainWindow.__init__()
 | ファイル | 内容 |
 |----------|------|
 | [design/build-detect.md](../design/build-detect.md) | チャンピオン自動検知機能の設計 |
-| [design/matchup-list.md](../design/matchup-list.md) | マッチアップリストのデザイン仕様 (#73) |
+| [docs/design/matchup-list.md](./design/matchup-list.md) | マッチアップリストのデザイン仕様 (#73) |
