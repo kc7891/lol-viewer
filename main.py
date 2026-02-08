@@ -90,7 +90,8 @@ class LCUConnectionStatusWidget(QWidget):
 
         # Green/yellow/red dot indicator
         self.dot_label = QLabel("\u25cf")
-        self.dot_label.setFixedWidth(10)
+        self.dot_label.setFixedSize(10, 30)
+        self.dot_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.dot_label.setStyleSheet("""
             QLabel {
                 font-size: 8px;
@@ -100,19 +101,6 @@ class LCUConnectionStatusWidget(QWidget):
             }
         """)
         inner_layout.addWidget(self.dot_label)
-
-        # Wifi/signal icon
-        self.icon_label = QLabel("\u25e0")
-        self.icon_label.setFixedWidth(14)
-        self.icon_label.setStyleSheet("""
-            QLabel {
-                font-size: 11px;
-                color: #6d7a8a;
-                background-color: transparent;
-                border: none;
-            }
-        """)
-        inner_layout.addWidget(self.icon_label)
 
         # Status text
         self.status_label = QLabel("Riot API: Connecting")
@@ -133,14 +121,6 @@ class LCUConnectionStatusWidget(QWidget):
         self.dot_label.setStyleSheet(f"""
             QLabel {{
                 font-size: 8px;
-                color: {color};
-                background-color: transparent;
-                border: none;
-            }}
-        """)
-        self.icon_label.setStyleSheet(f"""
-            QLabel {{
-                font-size: 11px;
                 color: {color};
                 background-color: transparent;
                 border: none;
@@ -432,8 +412,9 @@ class ViewerListItemWidget(QWidget):
         """Initialize the UI components"""
         self.setFixedHeight(45)
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 4, 8, 4)
+        layout.setContentsMargins(8, 0, 8, 0)
         layout.setSpacing(8)
+        layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         # Champion icon
         self.icon_label = QLabel()
@@ -448,9 +429,12 @@ class ViewerListItemWidget(QWidget):
         self._load_champion_icon()
 
         # Right side: name + page type stacked vertically
-        text_layout = QVBoxLayout()
+        text_widget = QWidget()
+        text_widget.setStyleSheet("QWidget { background-color: transparent; }")
+        text_layout = QVBoxLayout(text_widget)
         text_layout.setContentsMargins(0, 0, 0, 0)
-        text_layout.setSpacing(0)
+        text_layout.setSpacing(1)
+        text_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         # Champion name
         champ_name = (self.viewer.current_champion or "").strip().title() or "(Empty)"
@@ -467,7 +451,7 @@ class ViewerListItemWidget(QWidget):
 
         # Page type label (e.g. "BUILD", "COUNTER", "ARAM")
         page_type = (self.viewer.current_page_type or "").upper() or "BUILD"
-        self.type_label = QLabel(f"\u229e {page_type}")
+        self.type_label = QLabel(page_type)
         self.type_label.setStyleSheet("""
             QLabel {
                 color: #6d7a8a;
@@ -477,7 +461,7 @@ class ViewerListItemWidget(QWidget):
         """)
         text_layout.addWidget(self.type_label)
 
-        layout.addLayout(text_layout, 1)
+        layout.addWidget(text_widget, 1)
 
     def _load_champion_icon(self):
         """Load champion icon from image cache"""
@@ -1885,11 +1869,18 @@ class MainWindow(QMainWindow):
                 border: none;
                 color: #e2e8f0;
                 padding: 0px;
+                outline: none;
             }
             QListWidget::item {
                 padding: 0px;
                 border-left: 3px solid transparent;
                 border-radius: 0px;
+                outline: none;
+            }
+            QListWidget::item:focus {
+                outline: none;
+                border: none;
+                border-left: 3px solid transparent;
             }
             QListWidget::item:hover {
                 background-color: #171e28;
@@ -1897,8 +1888,10 @@ class MainWindow(QMainWindow):
             QListWidget::item:selected {
                 background-color: #141b24;
                 border-left: 3px solid #00d6a1;
+                outline: none;
             }
         """)
+        self.viewers_list.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.viewers_list.itemDoubleClicked.connect(self.toggle_viewer_visibility)
         viewers_layout.addWidget(self.viewers_list)
 
