@@ -1850,6 +1850,7 @@ class MainWindow(QMainWindow):
         # Each row: (ally_icon, ally_name, enemy_name, enemy_icon)
         self._matchup_rows: list[tuple[QLabel, QLabel, QLabel, QLabel]] = []
         self._matchup_data: list[tuple[str, str]] = [("", "")] * 5  # (ally, enemy)
+        self._matchup_user_dirty = False  # True when user has manually reordered
 
         icon_size = 24
         name_style_ally = "QLabel { font-size: 9pt; color: #0078f5; background-color: transparent; }"
@@ -1971,18 +1972,75 @@ class MainWindow(QMainWindow):
     def clear_matchup_list(self):
         """Clear all matchup entries."""
         self._matchup_data = [("", "")] * 5
+        self._matchup_user_dirty = False
         self.update_matchup_list()
 
     def on_matchup_pairs_updated(self, pairs: list):
-        """Handle matchup pairs update from champion detector."""
+        """Handle matchup pairs update from champion detector.
+
+        When the user has manually reordered the list (_matchup_user_dirty),
+        incoming data is *merged* instead of overwriting:
+        - Allies already placed by the user stay in their positions.
+        - Empty enemies are filled from incoming data.
+        - New allies are placed in empty rows.
+        - Allies no longer present in incoming data are removed.
+
+        Fixes #77.
+        """
         if not self.feature_flags.get("matchup_list", False):
             return
         # Pad to 5 entries
         padded = list(pairs[:5])
         while len(padded) < 5:
             padded.append(("", ""))
-        self._matchup_data = padded
+
+        if self._matchup_user_dirty:
+            self._merge_matchup_data(padded)
+        else:
+            self._matchup_data = padded
         self.update_matchup_list()
+
+    def _merge_matchup_data(self, incoming: list[tuple[str, str]]):
+        """Merge incoming matchup pairs while preserving user-arranged positions.
+
+        - Allies already in the list keep their current row and enemy assignment.
+        - If a kept ally has no enemy yet, fill it from incoming data.
+        - Allies no longer in incoming are removed (row cleared).
+        - New allies are placed in the first available empty row.
+        """
+        # Build lookup: ally -> enemy from incoming data
+        incoming_map: dict[str, str] = {}
+        incoming_order: list[tuple[str, str]] = []
+        for ally, enemy in incoming:
+            if ally:
+                incoming_map[ally] = enemy
+                incoming_order.append((ally, enemy))
+
+        accounted: set[str] = set()
+
+        # Pass 1: keep or clear existing rows
+        for i in range(5):
+            ally, enemy = self._matchup_data[i]
+            if not ally:
+                continue
+            if ally in incoming_map:
+                # Ally still valid – keep position; fill enemy if empty
+                if not enemy and incoming_map[ally]:
+                    self._matchup_data[i] = (ally, incoming_map[ally])
+                accounted.add(ally)
+            else:
+                # Ally no longer in incoming – clear row
+                self._matchup_data[i] = ("", "")
+
+        # Pass 2: place new allies in empty rows
+        for ally, enemy in incoming_order:
+            if ally in accounted:
+                continue
+            for i in range(5):
+                if not self._matchup_data[i][0]:
+                    self._matchup_data[i] = (ally, enemy)
+                    accounted.add(ally)
+                    break
 
     def _matchup_move_row(self, index: int, direction: int):
         """Move a matchup row up (-1) or down (+1). (#67)"""
@@ -1993,6 +2051,7 @@ class MainWindow(QMainWindow):
             self._matchup_data[target],
             self._matchup_data[index],
         )
+        self._matchup_user_dirty = True
         self.update_matchup_list()
 
     def _matchup_swap_enemies(self, index: int):
@@ -2007,6 +2066,7 @@ class MainWindow(QMainWindow):
         ally_b, enemy_b = self._matchup_data[target]
         self._matchup_data[index] = (ally_a, enemy_b)
         self._matchup_data[target] = (ally_b, enemy_a)
+        self._matchup_user_dirty = True
         self.update_matchup_list()
 
     def _open_matchup_viewer(self, index: int):
