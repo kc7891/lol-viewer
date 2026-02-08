@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QMessageBox,
     QScrollArea, QSplitter, QListWidget, QListWidgetItem, QLabel,
-    QTabWidget, QStackedWidget, QComboBox, QCheckBox, QButtonGroup
+    QTabWidget, QStackedWidget, QComboBox, QCheckBox, QButtonGroup, QFrame
 )
 
 # Application version
@@ -1838,24 +1838,73 @@ class MainWindow(QMainWindow):
     # Lane order used when opening viewer from matchup list (#68)
     MATCHUP_LANE_ORDER = ["top", "jungle", "middle", "bottom", "support"]
 
+    # Lane labels for matchup list rows (#73)
+    MATCHUP_LANE_LABELS = ["Top", "Jungle", "Mid", "Bot", "Support"]
+
     def _create_matchup_list_widget(self) -> QWidget:
-        """Create the 5-row matchup list widget showing ally vs enemy picks."""
+        """Create the 5-row matchup list widget showing ally vs enemy picks.
+
+        Design spec (#73):
+        - Section title height: 33px
+        - Individual item height: 49px
+        - Total list height: ~278px
+        """
         container = QWidget()
         container.setStyleSheet("QWidget { background-color: #090e14; }")
         layout = QVBoxLayout(container)
-        layout.setContentsMargins(8, 4, 8, 4)
-        layout.setSpacing(2)
+        layout.setContentsMargins(8, 0, 8, 0)
+        layout.setSpacing(0)
+
+        # Section title bar (#73): "CURRENT MATCHUP" left, "Ally vs Enemy" right
+        title_row = QWidget()
+        title_row.setFixedHeight(33)
+        title_layout = QHBoxLayout(title_row)
+        title_layout.setContentsMargins(4, 0, 4, 0)
+        title_layout.setSpacing(0)
+
+        title_left = QLabel("CURRENT MATCHUP")
+        title_left.setStyleSheet(
+            "QLabel { font-size: 9pt; font-weight: bold; color: #c1c9d4;"
+            " background-color: transparent; }"
+        )
+        title_left.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
+        title_right = QLabel(
+            '<span style="color: #0078f5;">Ally</span>'
+            ' <span style="color: #6d7a8a;">vs</span>'
+            ' <span style="color: #e0342c;">Enemy</span>'
+        )
+        title_right.setTextFormat(Qt.TextFormat.RichText)
+        title_right.setStyleSheet(
+            "QLabel { font-size: 9pt; background-color: transparent; }"
+        )
+        title_right.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+        title_layout.addWidget(title_left, 1)
+        title_layout.addWidget(title_right, 0)
+        layout.addWidget(title_row)
 
         self._matchup_image_cache = ChampionImageCache()
         # Each row: (ally_icon, ally_name, enemy_name, enemy_icon)
         self._matchup_rows: list[tuple[QLabel, QLabel, QLabel, QLabel]] = []
         self._matchup_data: list[tuple[str, str]] = [("", "")] * 5  # (ally, enemy)
 
-        icon_size = 24
-        name_style_ally = "QLabel { font-size: 9pt; color: #0078f5; background-color: transparent; }"
-        name_style_enemy = "QLabel { font-size: 9pt; color: #e0342c; background-color: transparent; }"
+        icon_size = 32
+        lane_label_style = "QLabel { font-size: 8pt; color: #6d7a8a; background-color: transparent; }"
+        name_style = "QLabel { font-size: 9pt; font-weight: bold; color: #e2e8f0; background-color: transparent; }"
+        vs_style = "QLabel { font-size: 8pt; color: #6d7a8a; background-color: transparent; }"
         icon_style = "QLabel { background-color: transparent; }"
+        separator_style = "QFrame { background-color: #1c2330; }"
         small_btn_style = """
+            QPushButton {
+                font-size: 7pt; padding: 0px; min-width: 16px; max-width: 16px;
+                min-height: 16px; max-height: 16px; background-color: transparent;
+                color: #6d7a8a; border: none;
+            }
+            QPushButton:hover { color: #c1c9d4; }
+            QPushButton:pressed { color: #e2e8f0; }
+        """
+        open_btn_style = """
             QPushButton {
                 font-size: 8pt; padding: 0px; min-width: 20px; max-width: 20px;
                 min-height: 20px; max-height: 20px; background-color: #1c2330;
@@ -1866,11 +1915,24 @@ class MainWindow(QMainWindow):
         """
 
         for i in range(5):
+            # Separator line between rows (#73)
+            sep = QFrame()
+            sep.setFrameShape(QFrame.Shape.HLine)
+            sep.setFixedHeight(1)
+            sep.setStyleSheet(separator_style)
+            layout.addWidget(sep)
+
             row = QWidget()
-            row.setFixedHeight(50)
+            row.setFixedHeight(49)
             row_layout = QHBoxLayout(row)
-            row_layout.setContentsMargins(4, 1, 4, 1)
-            row_layout.setSpacing(4)
+            row_layout.setContentsMargins(4, 0, 4, 0)
+            row_layout.setSpacing(6)
+
+            # Lane label (#73)
+            lane_label = QLabel(self.MATCHUP_LANE_LABELS[i])
+            lane_label.setFixedWidth(48)
+            lane_label.setStyleSheet(lane_label_style)
+            lane_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
             # Move up button (#67)
             up_btn = QPushButton("▲")
@@ -1889,37 +1951,57 @@ class MainWindow(QMainWindow):
             ally_icon.setStyleSheet(icon_style)
 
             ally_name = QLabel("-")
-            ally_name.setStyleSheet(name_style_ally)
+            ally_name.setStyleSheet(name_style)
             ally_name.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-            # Swap opponents button (#67)
+            # VS label (#73)
+            vs_label = QLabel("VS")
+            vs_label.setStyleSheet(vs_style)
+            vs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            # Swap opponents button (#67) — combined with VS label area
             swap_btn = QPushButton("⇄")
             swap_btn.setToolTip("Swap opponents between this row and the next")
             swap_btn.setStyleSheet(small_btn_style)
             swap_btn.clicked.connect(lambda _, idx=i: self._matchup_swap_enemies(idx))
 
             enemy_name = QLabel("-")
-            enemy_name.setStyleSheet(name_style_enemy)
+            enemy_name.setStyleSheet(name_style)
             enemy_name.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
             enemy_icon = QLabel()
             enemy_icon.setFixedSize(icon_size, icon_size)
             enemy_icon.setStyleSheet(icon_style)
 
-            # Open viewer button (#68)
+            # Open viewer button (#68) — not in design mockup, but required
             open_btn = QPushButton("↗")
             open_btn.setToolTip("Open matchup in viewer")
-            open_btn.setStyleSheet(small_btn_style)
+            open_btn.setStyleSheet(open_btn_style)
             open_btn.clicked.connect(lambda _, idx=i: self._open_matchup_viewer(idx))
 
+            # Right-side reorder buttons (#73)
+            up_btn_r = QPushButton("▲")
+            up_btn_r.setToolTip("Move row up")
+            up_btn_r.setStyleSheet(small_btn_style)
+            up_btn_r.clicked.connect(lambda _, idx=i: self._matchup_move_row(idx, -1))
+
+            down_btn_r = QPushButton("▼")
+            down_btn_r.setToolTip("Move row down")
+            down_btn_r.setStyleSheet(small_btn_style)
+            down_btn_r.clicked.connect(lambda _, idx=i: self._matchup_move_row(idx, 1))
+
+            row_layout.addWidget(lane_label, 0)
             row_layout.addWidget(up_btn, 0)
             row_layout.addWidget(down_btn, 0)
             row_layout.addWidget(ally_icon, 0)
             row_layout.addWidget(ally_name, 1)
+            row_layout.addWidget(vs_label, 0)
             row_layout.addWidget(swap_btn, 0)
             row_layout.addWidget(enemy_name, 1)
             row_layout.addWidget(enemy_icon, 0)
             row_layout.addWidget(open_btn, 0)
+            row_layout.addWidget(up_btn_r, 0)
+            row_layout.addWidget(down_btn_r, 0)
 
             layout.addWidget(row)
             self._matchup_rows.append((ally_icon, ally_name, enemy_name, enemy_icon))
