@@ -563,204 +563,206 @@ class ChampionViewerWidget(QWidget):
         return DEFAULT_COUNTER_URL.replace("{name}", champion_name)
 
     def init_ui(self):
-        """Initialize the UI components"""
+        """Initialize the UI components
+
+        Layout based on issue #74 wireframe:
+        ┌────────────────────────────────────────────────────┐
+        │ [icon] Darius vs Garen                             │  Header
+        ├────────────────────────────────────────────────────┤
+        │ [Build][Counter][ARAM]   [Darius▾] vs [Garen▾] ×  │  Control bar
+        ├────────────────────────────────────────────────────┤
+        │ WebView  /  Champion Selector                      │  Content
+        └────────────────────────────────────────────────────┘
+        """
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # -- Champion display header (icon + name + close/hide buttons) --
+        # Image cache (must init before UI elements that use it)
+        self._champion_icon_cache = ChampionImageCache()
+
+        # ── Header: [icon] "Champion vs Opponent" ──
         header_widget = QWidget()
         header_widget.setStyleSheet("QWidget { background-color: #141b24; }")
         header_layout = QHBoxLayout(header_widget)
-        header_layout.setContentsMargins(8, 6, 8, 6)
+        header_layout.setContentsMargins(10, 8, 10, 8)
         header_layout.setSpacing(8)
 
-        # Champion icon display
         self.champion_display_icon = QLabel()
-        self.champion_display_icon.setFixedSize(32, 32)
-        self.champion_display_icon.setStyleSheet("QLabel { background-color: transparent; border-radius: 6px; }")
+        self.champion_display_icon.setFixedSize(28, 28)
+        self.champion_display_icon.setStyleSheet(
+            "QLabel { background-color: transparent; border-radius: 14px; }"
+        )
         header_layout.addWidget(self.champion_display_icon)
 
-        # Champion name display
         self.champion_display_name = QLabel("")
         self.champion_display_name.setStyleSheet("""
             QLabel {
-                font-size: 12pt;
+                font-size: 11pt;
                 font-weight: bold;
                 color: #e2e8f0;
                 background-color: transparent;
             }
         """)
         header_layout.addWidget(self.champion_display_name)
-
         header_layout.addStretch()
-
-        # Hide button
-        self.hide_button = QPushButton("−")
-        self.hide_button.setToolTip("Hide this viewer")
-        self.hide_button.setStyleSheet("""
-            QPushButton {
-                padding: 4px 8px;
-                font-size: 12pt;
-                font-weight: bold;
-                background-color: #1c2330;
-                color: #e2e8f0;
-                border: none;
-                border-radius: 6px;
-                min-width: 30px;
-                max-width: 30px;
-                min-height: 30px;
-                max-height: 30px;
-            }
-            QPushButton:hover {
-                background-color: #222a35;
-            }
-        """)
-        self.hide_button.clicked.connect(lambda: self.hide_requested.emit(self))
-        header_layout.addWidget(self.hide_button)
-
-        # Close button
-        self.close_button = QPushButton(CLOSE_BUTTON_GLYPH)
-        self.close_button.setToolTip("Close this viewer")
-        self.close_button.setStyleSheet("""
-            QPushButton {
-                padding: 4px 8px;
-                font-size: 14pt;
-                font-weight: bold;
-                background-color: #e0342c;
-                color: #fafafa;
-                border: none;
-                border-radius: 6px;
-                min-width: 30px;
-                max-width: 30px;
-                min-height: 30px;
-                max-height: 30px;
-            }
-            QPushButton:hover {
-                background-color: #e85550;
-            }
-        """)
-        self.close_button.clicked.connect(lambda: self.close_requested.emit(self))
-        header_layout.addWidget(self.close_button)
 
         layout.addWidget(header_widget)
 
-        # -- Mode tab bar (Build / Counter / ARAM / Champion) --
-        tab_bar_widget = QWidget()
-        tab_bar_widget.setStyleSheet("QWidget { background-color: #0d1117; }")
-        tab_bar_layout = QHBoxLayout(tab_bar_widget)
-        tab_bar_layout.setContentsMargins(0, 0, 0, 0)
-        tab_bar_layout.setSpacing(0)
+        # ── Control bar: [Build][Counter][ARAM]  <stretch>  [Champ▾] vs [Opp▾] × ──
+        control_bar = QWidget()
+        control_bar.setStyleSheet("QWidget { background-color: #0d1117; }")
+        control_bar.setFixedHeight(36)
+        cb_layout = QHBoxLayout(control_bar)
+        cb_layout.setContentsMargins(4, 0, 4, 0)
+        cb_layout.setSpacing(0)
 
-        mode_tab_style_active = """
+        # -- Mode tab style (compact / shrunk) --
+        mode_tab_checked = """
             QPushButton {
-                padding: 8px 16px;
-                font-size: 10pt;
+                padding: 4px 10px;
+                font-size: 9pt;
+                font-weight: bold;
                 background-color: #00d6a1;
                 color: #0d1117;
                 border: none;
-                border-bottom: 2px solid #00efb3;
+                border-radius: 4px;
+                margin: 3px 2px;
             }
-            QPushButton:hover {
-                background-color: #00efb3;
-            }
+            QPushButton:hover { background-color: #00efb3; }
         """
-        mode_tab_style_inactive = """
+        mode_tab_unchecked = """
             QPushButton {
-                padding: 8px 16px;
-                font-size: 10pt;
-                background-color: #141b24;
-                color: #c1c9d4;
+                padding: 4px 10px;
+                font-size: 9pt;
+                background-color: transparent;
+                color: #6d7a8a;
                 border: none;
-                border-bottom: 2px solid transparent;
+                border-radius: 4px;
+                margin: 3px 2px;
             }
-            QPushButton:hover {
-                background-color: #171e28;
-                color: #e2e8f0;
-            }
+            QPushButton:hover { background-color: #1c2330; color: #e2e8f0; }
             QPushButton:checked {
+                font-weight: bold;
                 background-color: #00d6a1;
                 color: #0d1117;
-                border-bottom: 2px solid #00efb3;
             }
         """
 
-        # Build button
         self.build_button = QPushButton("Build")
-        self.build_button.setStyleSheet(mode_tab_style_inactive)
+        self.build_button.setStyleSheet(mode_tab_unchecked)
         self.build_button.clicked.connect(lambda _=False: self._on_mode_button_clicked(0))
-        tab_bar_layout.addWidget(self.build_button)
+        cb_layout.addWidget(self.build_button)
 
-        # Counter button
         self.counter_button = QPushButton("Counter")
-        self.counter_button.setStyleSheet(mode_tab_style_inactive)
+        self.counter_button.setStyleSheet(mode_tab_unchecked)
         self.counter_button.clicked.connect(lambda _=False: self._on_mode_button_clicked(1))
-        tab_bar_layout.addWidget(self.counter_button)
+        cb_layout.addWidget(self.counter_button)
 
-        # ARAM button
         self.aram_button = QPushButton("ARAM")
-        self.aram_button.setStyleSheet(mode_tab_style_inactive)
+        self.aram_button.setStyleSheet(mode_tab_unchecked)
         self.aram_button.clicked.connect(lambda _=False: self._on_mode_button_clicked(2))
-        tab_bar_layout.addWidget(self.aram_button)
+        cb_layout.addWidget(self.aram_button)
 
-        # Champion selector tab button
-        self.champion_tab_button = QPushButton("Champion \u25BE")
-        self.champion_tab_button.setStyleSheet(mode_tab_style_inactive)
-        self.champion_tab_button.clicked.connect(lambda _=False: self._on_champion_tab_clicked())
-        tab_bar_layout.addWidget(self.champion_tab_button)
-
-        # Treat Build/Counter/ARAM as "tabs" (exclusive selection).
         self.mode_button_group = QButtonGroup(self)
         self.mode_button_group.setExclusive(True)
         for idx, btn in enumerate([self.build_button, self.counter_button, self.aram_button]):
             btn.setCheckable(True)
             self.mode_button_group.addButton(btn, idx)
-
-        # Store active style for updating checked tab visuals
-        self._mode_tab_style_active = mode_tab_style_active
-        self._mode_tab_style_inactive = mode_tab_style_inactive
-
-        # Default Viewer-internal tab to 0 (Build).
+        self._mode_tab_style_active = mode_tab_checked
+        self._mode_tab_style_inactive = mode_tab_unchecked
         self._set_selected_mode_index(0)
 
-        layout.addWidget(tab_bar_widget)
+        cb_layout.addStretch()
 
-        # -- Control row (opponent input, lane selector, refresh) --
-        control_layout = QHBoxLayout()
-        control_layout.setSpacing(8)
-        control_layout.setContentsMargins(4, 4, 4, 4)
-
-        line_edit_style = """
-            QLineEdit {
-                padding: 8px;
-                font-size: 11pt;
-                background-color: #141b24;
+        # -- Champion selector pill: [icon Darius ▾] --
+        selector_pill_style = """
+            QPushButton {
+                padding: 3px 8px 3px 4px;
+                font-size: 9pt;
+                background-color: #1c2330;
                 color: #e2e8f0;
                 border: 1px solid #222a35;
-                border-radius: 6px;
+                border-radius: 4px;
+                text-align: left;
             }
-            QLineEdit:focus {
-                border: 1px solid #00d6a1;
+            QPushButton:hover {
+                background-color: #222a35;
+                border-color: #00d6a1;
             }
         """
 
-        # Champion name input (hidden, used for compatibility & autocomplete)
+        self._champion_selector_btn = QPushButton("Champion \u25BE")
+        self._champion_selector_btn.setStyleSheet(selector_pill_style)
+        self._champion_selector_btn.setIconSize(QSize(20, 20))
+        self._champion_selector_btn.clicked.connect(lambda: self._open_champion_selector("champion"))
+        cb_layout.addWidget(self._champion_selector_btn)
+
+        vs_label = QLabel("vs")
+        vs_label.setStyleSheet(
+            "QLabel { font-size: 9pt; color: #6d7a8a; background-color: transparent; margin: 0 4px; }"
+        )
+        vs_label.setFixedWidth(20)
+        vs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        cb_layout.addWidget(vs_label)
+
+        self._opponent_selector_btn = QPushButton("Opponent \u25BE")
+        self._opponent_selector_btn.setStyleSheet(selector_pill_style)
+        self._opponent_selector_btn.setIconSize(QSize(20, 20))
+        self._opponent_selector_btn.clicked.connect(lambda: self._open_champion_selector("opponent"))
+        cb_layout.addWidget(self._opponent_selector_btn)
+
+        # Close button (compact ×)
+        self.close_button = QPushButton(CLOSE_BUTTON_GLYPH)
+        self.close_button.setToolTip("Close this viewer")
+        self.close_button.setStyleSheet("""
+            QPushButton {
+                padding: 0px;
+                font-size: 12pt;
+                background-color: transparent;
+                color: #6d7a8a;
+                border: none;
+                min-width: 24px; max-width: 24px;
+                min-height: 24px; max-height: 24px;
+                margin-left: 4px;
+            }
+            QPushButton:hover { color: #e0342c; }
+        """)
+        self.close_button.clicked.connect(lambda: self.close_requested.emit(self))
+        cb_layout.addWidget(self.close_button)
+
+        # Hide button (kept for compatibility, not in wireframe)
+        self.hide_button = QPushButton("−")
+        self.hide_button.setToolTip("Hide this viewer")
+        self.hide_button.setStyleSheet("""
+            QPushButton {
+                padding: 0px; font-size: 10pt;
+                background-color: transparent; color: #6d7a8a;
+                border: none;
+                min-width: 0px; max-width: 0px;
+                min-height: 0px; max-height: 0px;
+            }
+        """)
+        self.hide_button.setVisible(False)
+        self.hide_button.clicked.connect(lambda: self.hide_requested.emit(self))
+
+        layout.addWidget(control_bar)
+
+        # ── Hidden inputs for compatibility ──
         self.champion_input = QLineEdit()
         self.champion_input.setPlaceholderText("Champion name (e.g., ashe, swain, アッシュ)")
-        self.champion_input.setStyleSheet(line_edit_style)
         self.champion_input.returnPressed.connect(self.open_selected_mode)
         self.champion_input.setVisible(False)
+        layout.addWidget(self.champion_input)
 
-        # Opponent champion input
         self.opponent_champion_input = QLineEdit()
         self.opponent_champion_input.setPlaceholderText(
             "Opponent champion (click to pick from Counter tab)"
         )
-        self.opponent_champion_input.setStyleSheet(line_edit_style)
         self.opponent_champion_input.returnPressed.connect(self.open_selected_mode)
-        control_layout.addWidget(self.opponent_champion_input, stretch=3)
+        self.opponent_champion_input.setVisible(False)
+        layout.addWidget(self.opponent_champion_input)
 
-        # Set up autocomplete if champion data is available
         if self.champion_data:
             setup_champion_input(self.champion_input, self.champion_data)
             setup_opponent_champion_input(
@@ -769,78 +771,29 @@ class ChampionViewerWidget(QWidget):
                 suggestion_provider=self._get_open_champion_suggestions,
             )
 
-        # Lane selector
+        # Lane selector (hidden, functional)
         self.lane_selector = QComboBox()
-        self.lane_selector.addItem("Lane", "")  # Default: no lane selected
+        self.lane_selector.addItem("Lane", "")
         self.lane_selector.addItem("Top", "top")
         self.lane_selector.addItem("JG", "jungle")
         self.lane_selector.addItem("Mid", "middle")
         self.lane_selector.addItem("Bot", "bottom")
         self.lane_selector.addItem("Sup", "support")
-        self.lane_selector.setStyleSheet("""
-            QComboBox {
-                padding: 8px;
-                font-size: 11pt;
-                background-color: #141b24;
-                color: #e2e8f0;
-                border: 1px solid #222a35;
-                border-radius: 6px;
-                min-width: 40px;
-            }
-            QComboBox:hover {
-                border: 1px solid #00d6a1;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 0px;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                width: 0px;
-                height: 0px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #141b24;
-                color: #e2e8f0;
-                selection-background-color: #00d6a1;
-                border: 1px solid #222a35;
-            }
-        """)
-        control_layout.addWidget(self.lane_selector, stretch=1)
+        self.lane_selector.setVisible(False)
+        layout.addWidget(self.lane_selector)
 
-        # Refresh button
+        # Refresh button (hidden, functional)
         self.refresh_button = QPushButton("⟳")
         self.refresh_button.setToolTip("Refresh page")
-        self.refresh_button.setStyleSheet("""
-            QPushButton {
-                padding: 8px;
-                font-size: 14pt;
-                background-color: #141b24;
-                color: #e2e8f0;
-                border: 1px solid #222a35;
-                border-radius: 6px;
-                min-width: 40px;
-                max-width: 40px;
-            }
-            QPushButton:hover {
-                background-color: #1c2330;
-                border: 1px solid #00d6a1;
-            }
-            QPushButton:pressed {
-                background-color: #090e14;
-            }
-        """)
         self.refresh_button.clicked.connect(self.refresh_page)
-        control_layout.addWidget(self.refresh_button)
+        self.refresh_button.setVisible(False)
+        layout.addWidget(self.refresh_button)
 
-        layout.addLayout(control_layout)
-
-        # -- Content area (stacked: web view / champion selector) --
+        # ── Content area (stacked: web view / champion selector) ──
         self.viewer_content_stack = QStackedWidget()
 
         # Page 0: WebView
         self.web_view = NullWebView() if _webengine_disabled() else QWebEngineView()
-        # Set dark background color for web view to match dark theme (no-op in NullWebView)
         self.web_view.page().setBackgroundColor(QColor("#0d1117"))
         self.viewer_content_stack.addWidget(self.web_view)
 
@@ -856,32 +809,47 @@ class ChampionViewerWidget(QWidget):
         if self.main_window and self.main_window.qr_overlay_enabled:
             self._qr_overlay = _install_qr_overlay(self, self.web_view)
 
-        # Image cache for champion display icon
-        self._champion_icon_cache = ChampionImageCache()
+        # Track which selector is being edited ("champion" or "opponent")
+        self._active_selector_target = "champion"
 
         # Set minimum and preferred width
         self.setMinimumWidth(300)
         self.resize(500, self.height())
 
     def _create_champion_selector_panel(self) -> QWidget:
-        """Create the champion selector panel with search field and scrollable champion list."""
+        """Create the champion selector panel: SELECT CHAMPION header + search + list."""
         panel = QWidget()
-        panel.setStyleSheet("QWidget { background-color: #0d1117; }")
+        panel.setStyleSheet("QWidget { background-color: #1c2330; }")
         panel_layout = QVBoxLayout(panel)
-        panel_layout.setContentsMargins(8, 8, 8, 8)
-        panel_layout.setSpacing(8)
+        panel_layout.setContentsMargins(12, 8, 12, 8)
+        panel_layout.setSpacing(6)
+
+        # "SELECT CHAMPION" header label
+        select_label = QLabel("SELECT CHAMPION")
+        select_label.setStyleSheet("""
+            QLabel {
+                font-size: 8pt;
+                font-weight: bold;
+                color: #6d7a8a;
+                background-color: transparent;
+                letter-spacing: 1px;
+                padding: 2px 0;
+            }
+        """)
+        select_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        panel_layout.addWidget(select_label)
 
         # Search field
         self._champion_search_input = QLineEdit()
-        self._champion_search_input.setPlaceholderText("Search champions...")
+        self._champion_search_input.setPlaceholderText("Search...")
         self._champion_search_input.setStyleSheet("""
             QLineEdit {
-                padding: 8px;
-                font-size: 11pt;
+                padding: 6px 8px;
+                font-size: 9pt;
                 background-color: #141b24;
                 color: #e2e8f0;
                 border: 1px solid #222a35;
-                border-radius: 6px;
+                border-radius: 4px;
             }
             QLineEdit:focus {
                 border: 1px solid #00d6a1;
@@ -895,34 +863,31 @@ class ChampionViewerWidget(QWidget):
         self._champion_list_widget.setStyleSheet("""
             QListWidget {
                 background-color: #141b24;
-                border: 1px solid #222a35;
-                border-radius: 6px;
+                border: none;
+                border-radius: 4px;
                 color: #e2e8f0;
-                padding: 4px;
+                outline: none;
             }
             QListWidget::item {
-                padding: 6px 8px;
-                border-radius: 6px;
+                padding: 5px 8px;
             }
             QListWidget::item:hover {
-                background-color: #171e28;
+                background-color: #1c2330;
             }
             QListWidget::item:selected {
                 background-color: #00d6a1;
                 color: #0d1117;
             }
         """)
-        self._champion_list_widget.setIconSize(QSize(24, 24))
+        self._champion_list_widget.setIconSize(QSize(28, 28))
         self._champion_list_widget.itemClicked.connect(self._on_champion_list_item_clicked)
         panel_layout.addWidget(self._champion_list_widget)
 
-        # Populate champion list
         self._populate_champion_list()
-
         return panel
 
     def _populate_champion_list(self):
-        """Populate the champion list widget with all champions."""
+        """Populate the champion list widget with all champions and icons."""
         self._champion_list_widget.clear()
         if not self.champion_data:
             return
@@ -930,6 +895,20 @@ class ChampionViewerWidget(QWidget):
             display_name = champ_info.get("english_name", champ_id)
             item = QListWidgetItem(display_name)
             item.setData(Qt.ItemDataRole.UserRole, champ_id)
+            # Load icon asynchronously
+            image_url = champ_info.get("image_url", "")
+            if image_url:
+                cached = self._champion_icon_cache.get_image(
+                    image_url,
+                    callback=lambda px, _it=item: _it.setIcon(
+                        QIcon(px.scaled(28, 28, Qt.AspectRatioMode.KeepAspectRatio,
+                                        Qt.TransformationMode.SmoothTransformation))
+                    ),
+                )
+                if cached:
+                    item.setIcon(QIcon(cached.scaled(
+                        28, 28, Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation)))
             self._champion_list_widget.addItem(item)
 
     def _filter_champion_list(self, text: str):
@@ -939,8 +918,7 @@ class ChampionViewerWidget(QWidget):
             item = self._champion_list_widget.item(i)
             champ_id = item.data(Qt.ItemDataRole.UserRole) or ""
             display_name = item.text().lower()
-            visible = not search or search in display_name.lower() or search in champ_id.lower()
-            # Also match Japanese names
+            visible = not search or search in display_name or search in champ_id.lower()
             if not visible and self.champion_data:
                 champ_info = self.champion_data.champions.get(champ_id, {})
                 jp_name = (champ_info.get("japanese_name") or "").lower()
@@ -948,61 +926,121 @@ class ChampionViewerWidget(QWidget):
                     visible = True
             item.setHidden(not visible)
 
-    def _on_champion_list_item_clicked(self, item: QListWidgetItem):
-        """Handle champion selection from the list."""
-        champ_id = item.data(Qt.ItemDataRole.UserRole)
-        if champ_id:
-            self.champion_input.setText(champ_id)
-            self._update_champion_display(champ_id)
-            # Switch back to web view and open the selected mode
-            self.viewer_content_stack.setCurrentIndex(0)
-            self.champion_tab_button.setStyleSheet(self._mode_tab_style_inactive)
-            self.open_selected_mode()
-
-    def _on_champion_tab_clicked(self):
-        """Toggle champion selector panel visibility."""
+    def _open_champion_selector(self, target: str):
+        """Open champion selector panel for the given target ('champion' or 'opponent')."""
+        self._active_selector_target = target
         if self.viewer_content_stack.currentIndex() == 1:
-            # Already showing selector, switch back to web view
-            self.viewer_content_stack.setCurrentIndex(0)
-            self.champion_tab_button.setStyleSheet(self._mode_tab_style_inactive)
-        else:
-            # Show champion selector
-            self.viewer_content_stack.setCurrentIndex(1)
-            self.champion_tab_button.setStyleSheet(self._mode_tab_style_active)
+            # If already open, just switch target & refocus
             self._champion_search_input.clear()
             self._champion_search_input.setFocus()
             self._filter_champion_list("")
+            return
+        self.viewer_content_stack.setCurrentIndex(1)
+        self._champion_search_input.clear()
+        self._champion_search_input.setFocus()
+        self._filter_champion_list("")
 
-    def _update_champion_display(self, champion_name: str):
-        """Update the champion display header with icon and name."""
-        if not champion_name:
-            self.champion_display_name.setText("")
-            self.champion_display_icon.clear()
+    def _on_champion_list_item_clicked(self, item: QListWidgetItem):
+        """Handle champion selection from the list."""
+        champ_id = item.data(Qt.ItemDataRole.UserRole)
+        if not champ_id:
             return
 
-        # Look up display name and icon
-        display_name = champion_name.capitalize()
-        champ_info = {}
+        if self._active_selector_target == "opponent":
+            self.opponent_champion_input.setText(champ_id)
+            self._update_opponent_selector_btn(champ_id)
+        else:
+            self.champion_input.setText(champ_id)
+            self._update_champion_selector_btn(champ_id)
+
+        self._update_header_display()
+        # Switch back to web view and navigate
+        self.viewer_content_stack.setCurrentIndex(0)
+        champion_name = self.champion_input.text().strip().lower()
+        if champion_name:
+            self.open_selected_mode()
+
+    def _update_header_display(self):
+        """Update the header 'Champion vs Opponent' display."""
+        champ_name = self.champion_input.text().strip().lower()
+        opp_name = self.opponent_champion_input.text().strip().lower()
+
+        champ_display = self._get_display_name(champ_name)
+        opp_display = self._get_display_name(opp_name)
+
+        if champ_display and opp_display:
+            self.champion_display_name.setText(f"{champ_display} vs {opp_display}")
+        elif champ_display:
+            self.champion_display_name.setText(champ_display)
+        else:
+            self.champion_display_name.setText("")
+
+        # Update header icon from champion
+        self._set_label_champion_icon(self.champion_display_icon, champ_name, 28)
+
+    def _update_champion_selector_btn(self, champ_id: str):
+        """Update the champion selector pill button text and icon."""
+        display = self._get_display_name(champ_id) or "Champion"
+        self._champion_selector_btn.setText(f"{display} \u25BE")
+        self._set_btn_champion_icon(self._champion_selector_btn, champ_id, 20)
+
+    def _update_opponent_selector_btn(self, champ_id: str):
+        """Update the opponent selector pill button text and icon."""
+        display = self._get_display_name(champ_id) or "Opponent"
+        self._opponent_selector_btn.setText(f"{display} \u25BE")
+        self._set_btn_champion_icon(self._opponent_selector_btn, champ_id, 20)
+
+    def _get_display_name(self, champ_id: str) -> str:
+        """Get the display name for a champion id."""
+        if not champ_id:
+            return ""
         if self.champion_data:
-            champ_info = self.champion_data.champions.get(champion_name, {})
-            if champ_info:
-                display_name = champ_info.get("english_name", display_name)
+            info = self.champion_data.champions.get(champ_id, {})
+            if info:
+                return info.get("english_name", champ_id.capitalize())
+        return champ_id.capitalize()
 
-        self.champion_display_name.setText(display_name)
+    def _set_label_champion_icon(self, label: QLabel, champ_id: str, size: int):
+        """Set a QLabel's pixmap to the champion's icon."""
+        if not champ_id or not self.champion_data:
+            label.clear()
+            return
+        info = self.champion_data.champions.get(champ_id, {})
+        url = info.get("image_url", "")
+        if not url:
+            label.clear()
+            return
+        cached = self._champion_icon_cache.get_image(
+            url,
+            callback=lambda px, _l=label, _s=size: _l.setPixmap(
+                px.scaled(_s, _s, Qt.AspectRatioMode.KeepAspectRatio,
+                          Qt.TransformationMode.SmoothTransformation)),
+        )
+        if cached:
+            label.setPixmap(cached.scaled(
+                size, size, Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation))
 
-        # Load icon
-        image_url = champ_info.get("image_url", "")
-        if image_url and hasattr(self, "_champion_icon_cache"):
-            cached = self._champion_icon_cache.get_image(
-                image_url,
-                callback=lambda pixmap: self.champion_display_icon.setPixmap(
-                    pixmap.scaled(32, 32, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                ),
-            )
-            if cached:
-                self.champion_display_icon.setPixmap(
-                    cached.scaled(32, 32, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                )
+    def _set_btn_champion_icon(self, btn: QPushButton, champ_id: str, size: int):
+        """Set a QPushButton's icon to the champion's icon."""
+        if not champ_id or not self.champion_data:
+            btn.setIcon(QIcon())
+            return
+        info = self.champion_data.champions.get(champ_id, {})
+        url = info.get("image_url", "")
+        if not url:
+            btn.setIcon(QIcon())
+            return
+        cached = self._champion_icon_cache.get_image(
+            url,
+            callback=lambda px, _b=btn, _s=size: _b.setIcon(
+                QIcon(px.scaled(_s, _s, Qt.AspectRatioMode.KeepAspectRatio,
+                                Qt.TransformationMode.SmoothTransformation))),
+        )
+        if cached:
+            btn.setIcon(QIcon(cached.scaled(
+                size, size, Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation)))
 
     def _set_selected_mode_index(self, index: int):
         """Update the selected mode tab (0=Build, 1=Counter, 2=ARAM) without forcing navigation."""
@@ -1024,7 +1062,6 @@ class ChampionViewerWidget(QWidget):
         # Switch back to web view from champion selector if needed
         if hasattr(self, "viewer_content_stack") and self.viewer_content_stack.currentIndex() != 0:
             self.viewer_content_stack.setCurrentIndex(0)
-            self.champion_tab_button.setStyleSheet(self._mode_tab_style_inactive)
         champion_name = self.champion_input.text().strip().lower()
         if not champion_name:
             return
@@ -1050,7 +1087,8 @@ class ChampionViewerWidget(QWidget):
 
         self.current_champion = champion_name
         self.current_page_type = "build"
-        self._update_champion_display(champion_name)
+        self._update_header_display()
+        self._update_champion_selector_btn(champion_name)
 
         # Get selected lane
         lane = self.lane_selector.currentData()
@@ -1084,7 +1122,8 @@ class ChampionViewerWidget(QWidget):
 
         self.current_champion = champion_name
         self.current_page_type = "counter"
-        self._update_champion_display(champion_name)
+        self._update_header_display()
+        self._update_champion_selector_btn(champion_name)
 
         # Get selected lane
         lane = self.lane_selector.currentData()
@@ -1107,7 +1146,8 @@ class ChampionViewerWidget(QWidget):
 
         self.current_champion = champion_name
         self.current_page_type = "aram"
-        self._update_champion_display(champion_name)
+        self._update_header_display()
+        self._update_champion_selector_btn(champion_name)
 
         url = self.get_aram_url(champion_name)
         logger.info(f"Opening ARAM page for {champion_name}: {url}")
@@ -2481,8 +2521,12 @@ class MainWindow(QMainWindow):
         if not viewer:
             return
         viewer.champion_input.setText(ally)
+        if hasattr(viewer, "_update_champion_selector_btn"):
+            viewer._update_champion_selector_btn(ally)
         if enemy and hasattr(viewer, "opponent_champion_input") and viewer.opponent_champion_input is not None:
             viewer.opponent_champion_input.setText(enemy)
+            if hasattr(viewer, "_update_opponent_selector_btn"):
+                viewer._update_opponent_selector_btn(enemy)
         # Set lane
         if lane:
             for i in range(viewer.lane_selector.count()):
