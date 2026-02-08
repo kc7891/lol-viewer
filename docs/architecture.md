@@ -157,23 +157,22 @@ MainWindow.__init__()
 ```
 Viewers タブ
 ├─ ヘッダー行: "WINDOWS" ラベル + "+" ボタン (ビューア追加)
-└─ QListWidget (ビューアリスト)
-    └─ ViewerListItemWidget (各アイテム 45px)
+└─ QListWidget (ビューアリスト, FocusPolicy=NoFocus, outline無効)
+    └─ ViewerListItemWidget (各アイテム 45px, VCenter揃え)
         ├─ チャンピオンアイコン (30×30, ChampionImageCache)
-        └─ テキスト (VBox)
+        └─ テキスト (QWidget + VBox, VCenter揃え)
             ├─ チャンピオン名 (12px, bold, #e2e8f0)
-            └─ ページタイプ (9px, #6d7a8a, "⊞ BUILD" 等)
+            └─ ページタイプ (9px, #6d7a8a, "BUILD" 等, アイコンなし)
 ```
 
-選択中アイテムは左ボーダー (`3px solid #00d6a1`) でハイライト。
+選択中アイテムは左ボーダー (`3px solid #00d6a1`) + 背景色変更でハイライト。フォーカス枠線は非表示。
 
 ### LCUステータスウィジェット
 
 ```
 LCUConnectionStatusWidget (48px)
 └─ 内部コンテナ (30px)
-    ├─ ドットインジケーター (●)
-    ├─ 信号アイコン (◠)
+    ├─ ドットインジケーター (●, 10×30px, 中央揃え)
     └─ ステータステキスト ("Riot API: Connected" 等)
 ```
 
