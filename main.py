@@ -2142,8 +2142,8 @@ class MainWindow(QMainWindow):
             row_layout.addWidget(vs_label, 0)
             row_layout.addWidget(enemy_name, 1)
             row_layout.addWidget(enemy_icon, 0)
-            row_layout.addWidget(open_btn, 0)
             row_layout.addWidget(arrow_container_r, 0)
+            row_layout.addWidget(open_btn, 0)
 
             layout.addWidget(row)
             self._matchup_rows.append((ally_icon, ally_name, enemy_name, enemy_icon))
