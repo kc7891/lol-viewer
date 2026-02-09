@@ -673,9 +673,7 @@ class ChampionViewerWidget(QWidget):
         self._mode_tab_style_inactive = mode_tab_unchecked
         self._set_selected_mode_index(0)
 
-        cb_layout.addStretch()
-
-        # -- Champion selector pill: [icon Darius ▾] --
+        # -- Lane selector pill (left-aligned, right of ARAM) --
         selector_pill_style = """
             QPushButton {
                 padding: 3px 8px 3px 4px;
@@ -691,6 +689,13 @@ class ChampionViewerWidget(QWidget):
                 border-color: #00d6a1;
             }
         """
+
+        self._lane_selector_btn = QPushButton("Lane \u25BE")
+        self._lane_selector_btn.setStyleSheet(selector_pill_style)
+        self._lane_selector_btn.clicked.connect(lambda: self._open_champion_selector("lane"))
+        cb_layout.addWidget(self._lane_selector_btn)
+
+        cb_layout.addStretch()
 
         self._champion_selector_btn = QPushButton("Champion \u25BE")
         self._champion_selector_btn.setStyleSheet(selector_pill_style)
@@ -800,6 +805,10 @@ class ChampionViewerWidget(QWidget):
         # Page 1: Champion selector panel
         self._champion_selector_panel = self._create_champion_selector_panel()
         self.viewer_content_stack.addWidget(self._champion_selector_panel)
+
+        # Page 2: Lane selector panel
+        self._lane_selector_panel = self._create_lane_selector_panel()
+        self.viewer_content_stack.addWidget(self._lane_selector_panel)
 
         self.viewer_content_stack.setCurrentIndex(0)
         layout.addWidget(self.viewer_content_stack)
@@ -926,11 +935,91 @@ class ChampionViewerWidget(QWidget):
                     visible = True
             item.setHidden(not visible)
 
+    def _create_lane_selector_panel(self) -> QWidget:
+        """Create the lane selector panel: SELECT LANE header + lane list."""
+        panel = QWidget()
+        panel.setStyleSheet("QWidget { background-color: #1c2330; }")
+        panel_layout = QVBoxLayout(panel)
+        panel_layout.setContentsMargins(12, 8, 12, 8)
+        panel_layout.setSpacing(6)
+
+        select_label = QLabel("SELECT LANE")
+        select_label.setStyleSheet("""
+            QLabel {
+                font-size: 8pt;
+                font-weight: bold;
+                color: #6d7a8a;
+                background-color: transparent;
+                letter-spacing: 1px;
+                padding: 2px 0;
+            }
+        """)
+        select_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        panel_layout.addWidget(select_label)
+
+        self._lane_list_widget = QListWidget()
+        self._lane_list_widget.setStyleSheet("""
+            QListWidget {
+                background-color: #141b24;
+                border: none;
+                border-radius: 4px;
+                color: #e2e8f0;
+                outline: none;
+            }
+            QListWidget::item {
+                padding: 8px 12px;
+                font-size: 10pt;
+            }
+            QListWidget::item:hover {
+                background-color: #1c2330;
+            }
+            QListWidget::item:selected {
+                background-color: #00d6a1;
+                color: #0d1117;
+            }
+        """)
+        lanes = [("None", ""), ("Top", "top"), ("Jungle", "jungle"),
+                 ("Mid", "middle"), ("Bot", "bottom"), ("Support", "support")]
+        for display, value in lanes:
+            item = QListWidgetItem(display)
+            item.setData(Qt.ItemDataRole.UserRole, value)
+            self._lane_list_widget.addItem(item)
+        self._lane_list_widget.itemClicked.connect(self._on_lane_list_item_clicked)
+        panel_layout.addWidget(self._lane_list_widget)
+        panel_layout.addStretch()
+        return panel
+
+    def _on_lane_list_item_clicked(self, item: QListWidgetItem):
+        """Handle lane selection from the list."""
+        lane_value = item.data(Qt.ItemDataRole.UserRole)
+        # Update the hidden QComboBox
+        for i in range(self.lane_selector.count()):
+            if self.lane_selector.itemData(i) == lane_value:
+                self.lane_selector.setCurrentIndex(i)
+                break
+        # Update pill button text
+        display = item.text() if lane_value else "Lane"
+        self._lane_selector_btn.setText(f"{display} \u25BE")
+        # Switch back to web view and re-navigate if champion is set
+        self.viewer_content_stack.setCurrentIndex(0)
+        champion_name = self.champion_input.text().strip().lower()
+        if champion_name:
+            self.open_selected_mode()
+
     def _open_champion_selector(self, target: str):
-        """Open champion selector panel for the given target ('champion' or 'opponent')."""
+        """Open champion/lane selector panel for the given target."""
+        if target == "lane":
+            # Toggle lane selector (page 2)
+            if self.viewer_content_stack.currentIndex() == 2:
+                self.viewer_content_stack.setCurrentIndex(0)
+            else:
+                self.viewer_content_stack.setCurrentIndex(2)
+            return
+
         self._active_selector_target = target
+        # Rebuild "None" visibility: show only for opponent target
+        self._refresh_none_item()
         if self.viewer_content_stack.currentIndex() == 1:
-            # If already open, just switch target & refocus
             self._champion_search_input.clear()
             self._champion_search_input.setFocus()
             self._filter_champion_list("")
@@ -940,15 +1029,36 @@ class ChampionViewerWidget(QWidget):
         self._champion_search_input.setFocus()
         self._filter_champion_list("")
 
+    def _refresh_none_item(self):
+        """Show/hide the 'None' item at the top of the champion list based on target."""
+        if self._champion_list_widget.count() == 0:
+            return
+        first = self._champion_list_widget.item(0)
+        is_none_item = first.data(Qt.ItemDataRole.UserRole) == ""
+        if self._active_selector_target == "opponent":
+            if not is_none_item:
+                # Insert "None" at top
+                none_item = QListWidgetItem("None")
+                none_item.setData(Qt.ItemDataRole.UserRole, "")
+                self._champion_list_widget.insertItem(0, none_item)
+        else:
+            if is_none_item:
+                self._champion_list_widget.takeItem(0)
+
     def _on_champion_list_item_clicked(self, item: QListWidgetItem):
         """Handle champion selection from the list."""
         champ_id = item.data(Qt.ItemDataRole.UserRole)
-        if not champ_id:
-            return
 
         if self._active_selector_target == "opponent":
-            self.opponent_champion_input.setText(champ_id)
-            self._update_opponent_selector_btn(champ_id)
+            if champ_id == "":
+                # "None" selected — clear opponent
+                self.opponent_champion_input.clear()
+                self.current_opponent_champion = ""
+                self._opponent_selector_btn.setText("Opponent \u25BE")
+                self._opponent_selector_btn.setIcon(QIcon())
+            else:
+                self.opponent_champion_input.setText(champ_id)
+                self._update_opponent_selector_btn(champ_id)
         else:
             self.champion_input.setText(champ_id)
             self._update_champion_selector_btn(champ_id)
