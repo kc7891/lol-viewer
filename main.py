@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QMessageBox,
     QScrollArea, QSplitter, QListWidget, QListWidgetItem, QLabel,
-    QTabWidget, QStackedWidget, QComboBox, QCheckBox, QButtonGroup
+    QTabWidget, QStackedWidget, QComboBox, QCheckBox, QButtonGroup, QFrame
 )
 
 # Application version
@@ -1838,13 +1838,56 @@ class MainWindow(QMainWindow):
     # Lane order used when opening viewer from matchup list (#68)
     MATCHUP_LANE_ORDER = ["top", "jungle", "middle", "bottom", "support"]
 
+    # Lane labels for matchup list rows (#73)
+    MATCHUP_LANE_LABELS = ["Top", "Jungle", "Mid", "Bot", "Support"]
+
     def _create_matchup_list_widget(self) -> QWidget:
-        """Create the 5-row matchup list widget showing ally vs enemy picks."""
+        """Create the 5-row matchup list widget showing ally vs enemy picks.
+
+        Design spec (#73):
+        - Section title height: 24px (compact)
+        - Individual item height: 33px
+        - Separator color: rgba(34, 39, 47, 0.5)
+        - Arrows: small vertically-stacked arrows
+        - No swap button next to VS
+        - Open button: open-blank style icon
+        """
         container = QWidget()
+        # Title (24) + 5 rows (33 each) + 5 separators (1 each) = 194px
+        container.setFixedHeight(194)
         container.setStyleSheet("QWidget { background-color: #090e14; }")
         layout = QVBoxLayout(container)
-        layout.setContentsMargins(8, 4, 8, 4)
-        layout.setSpacing(2)
+        layout.setContentsMargins(8, 0, 8, 0)
+        layout.setSpacing(0)
+
+        # Section title bar (#73): "CURRENT MATCHUP" left, "Ally vs Enemy" right
+        title_row = QWidget()
+        title_row.setFixedHeight(24)
+        title_layout = QHBoxLayout(title_row)
+        title_layout.setContentsMargins(4, 0, 4, 0)
+        title_layout.setSpacing(0)
+
+        title_left = QLabel("CURRENT MATCHUP")
+        title_left.setStyleSheet(
+            "QLabel { font-size: 8pt; font-weight: bold; color: #c1c9d4;"
+            " background-color: transparent; }"
+        )
+        title_left.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
+        title_right = QLabel(
+            '<span style="color: #0078f5;">Ally</span>'
+            ' <span style="color: #6d7a8a;">vs</span>'
+            ' <span style="color: #e0342c;">Enemy</span>'
+        )
+        title_right.setTextFormat(Qt.TextFormat.RichText)
+        title_right.setStyleSheet(
+            "QLabel { font-size: 8pt; background-color: transparent; }"
+        )
+        title_right.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+        title_layout.addWidget(title_left, 1)
+        title_layout.addWidget(title_right, 0)
+        layout.addWidget(title_row)
 
         self._matchup_image_cache = ChampionImageCache()
         # Each row: (ally_icon, ally_name, enemy_name, enemy_icon)
@@ -1853,74 +1896,128 @@ class MainWindow(QMainWindow):
         self._matchup_user_dirty = False  # True when user has manually reordered
 
         icon_size = 24
-        name_style_ally = "QLabel { font-size: 9pt; color: #0078f5; background-color: transparent; }"
-        name_style_enemy = "QLabel { font-size: 9pt; color: #e0342c; background-color: transparent; }"
+        lane_label_style = "QLabel { font-size: 8pt; color: #6d7a8a; background-color: transparent; }"
+        name_style = "QLabel { font-size: 9pt; font-weight: bold; color: #e2e8f0; background-color: transparent; }"
+        vs_style = "QLabel { font-size: 8pt; color: #6d7a8a; background-color: transparent; }"
         icon_style = "QLabel { background-color: transparent; }"
-        small_btn_style = """
+        separator_style = "QFrame { background-color: rgba(34, 39, 47, 128); }"
+        arrow_btn_style = """
             QPushButton {
-                font-size: 8pt; padding: 0px; min-width: 20px; max-width: 20px;
-                min-height: 20px; max-height: 20px; background-color: #1c2330;
-                color: #c1c9d4; border: none; border-radius: 3px;
+                font-size: 6pt; padding: 0px; min-width: 12px; max-width: 12px;
+                min-height: 10px; max-height: 10px; background-color: transparent;
+                color: #6d7a8a; border: none;
             }
-            QPushButton:hover { background-color: #222a35; }
-            QPushButton:pressed { background-color: #090e14; }
+            QPushButton:hover { color: #c1c9d4; }
+            QPushButton:pressed { color: #e2e8f0; }
+        """
+        open_btn_style = """
+            QPushButton {
+                font-size: 9pt; padding: 0px; min-width: 18px; max-width: 18px;
+                min-height: 18px; max-height: 18px; background-color: transparent;
+                color: #6d7a8a; border: none;
+            }
+            QPushButton:hover { color: #c1c9d4; }
+            QPushButton:pressed { color: #e2e8f0; }
         """
 
         for i in range(5):
+            # Separator line between rows (#73)
+            sep = QFrame()
+            sep.setFrameShape(QFrame.Shape.HLine)
+            sep.setFixedHeight(1)
+            sep.setStyleSheet(separator_style)
+            layout.addWidget(sep)
+
             row = QWidget()
-            row.setFixedHeight(50)
+            row.setFixedHeight(33)
             row_layout = QHBoxLayout(row)
-            row_layout.setContentsMargins(4, 1, 4, 1)
+            row_layout.setContentsMargins(4, 0, 4, 0)
             row_layout.setSpacing(4)
 
-            # Move up button (#67)
-            up_btn = QPushButton("▲")
+            # Lane label (#73)
+            lane_label = QLabel(self.MATCHUP_LANE_LABELS[i])
+            lane_label.setFixedWidth(44)
+            lane_label.setStyleSheet(lane_label_style)
+            lane_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
+            # Vertically-stacked arrow buttons (#73)
+            arrow_container = QWidget()
+            arrow_container.setFixedWidth(14)
+            arrow_container.setStyleSheet("QWidget { background-color: transparent; }")
+            arrow_layout = QVBoxLayout(arrow_container)
+            arrow_layout.setContentsMargins(0, 2, 0, 2)
+            arrow_layout.setSpacing(0)
+
+            up_btn = QPushButton("↑")
             up_btn.setToolTip("Move row up")
-            up_btn.setStyleSheet(small_btn_style)
+            up_btn.setStyleSheet(arrow_btn_style)
             up_btn.clicked.connect(lambda _, idx=i: self._matchup_move_row(idx, -1))
 
-            # Move down button (#67)
-            down_btn = QPushButton("▼")
+            down_btn = QPushButton("↓")
             down_btn.setToolTip("Move row down")
-            down_btn.setStyleSheet(small_btn_style)
+            down_btn.setStyleSheet(arrow_btn_style)
             down_btn.clicked.connect(lambda _, idx=i: self._matchup_move_row(idx, 1))
+
+            arrow_layout.addWidget(up_btn)
+            arrow_layout.addWidget(down_btn)
 
             ally_icon = QLabel()
             ally_icon.setFixedSize(icon_size, icon_size)
             ally_icon.setStyleSheet(icon_style)
 
             ally_name = QLabel("-")
-            ally_name.setStyleSheet(name_style_ally)
+            ally_name.setStyleSheet(name_style)
             ally_name.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-            # Swap opponents button (#67)
-            swap_btn = QPushButton("⇄")
-            swap_btn.setToolTip("Swap opponents between this row and the next")
-            swap_btn.setStyleSheet(small_btn_style)
-            swap_btn.clicked.connect(lambda _, idx=i: self._matchup_swap_enemies(idx))
+            # VS label (#73) — no swap button
+            vs_label = QLabel("VS")
+            vs_label.setStyleSheet(vs_style)
+            vs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
             enemy_name = QLabel("-")
-            enemy_name.setStyleSheet(name_style_enemy)
+            enemy_name.setStyleSheet(name_style)
             enemy_name.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
             enemy_icon = QLabel()
             enemy_icon.setFixedSize(icon_size, icon_size)
             enemy_icon.setStyleSheet(icon_style)
 
-            # Open viewer button (#68)
-            open_btn = QPushButton("↗")
+            # Open viewer button (#68) — open-blank style icon
+            open_btn = QPushButton("⧉")
             open_btn.setToolTip("Open matchup in viewer")
-            open_btn.setStyleSheet(small_btn_style)
+            open_btn.setStyleSheet(open_btn_style)
             open_btn.clicked.connect(lambda _, idx=i: self._open_matchup_viewer(idx))
 
-            row_layout.addWidget(up_btn, 0)
-            row_layout.addWidget(down_btn, 0)
+            # Right-side vertically-stacked arrows (#73)
+            arrow_container_r = QWidget()
+            arrow_container_r.setFixedWidth(14)
+            arrow_container_r.setStyleSheet("QWidget { background-color: transparent; }")
+            arrow_layout_r = QVBoxLayout(arrow_container_r)
+            arrow_layout_r.setContentsMargins(0, 2, 0, 2)
+            arrow_layout_r.setSpacing(0)
+
+            up_btn_r = QPushButton("↑")
+            up_btn_r.setToolTip("Move row up")
+            up_btn_r.setStyleSheet(arrow_btn_style)
+            up_btn_r.clicked.connect(lambda _, idx=i: self._matchup_move_row(idx, -1))
+
+            down_btn_r = QPushButton("↓")
+            down_btn_r.setToolTip("Move row down")
+            down_btn_r.setStyleSheet(arrow_btn_style)
+            down_btn_r.clicked.connect(lambda _, idx=i: self._matchup_move_row(idx, 1))
+
+            arrow_layout_r.addWidget(up_btn_r)
+            arrow_layout_r.addWidget(down_btn_r)
+
+            row_layout.addWidget(lane_label, 0)
+            row_layout.addWidget(arrow_container, 0)
             row_layout.addWidget(ally_icon, 0)
             row_layout.addWidget(ally_name, 1)
-            row_layout.addWidget(swap_btn, 0)
+            row_layout.addWidget(vs_label, 0)
             row_layout.addWidget(enemy_name, 1)
             row_layout.addWidget(enemy_icon, 0)
             row_layout.addWidget(open_btn, 0)
+            row_layout.addWidget(arrow_container_r, 0)
 
             layout.addWidget(row)
             self._matchup_rows.append((ally_icon, ally_name, enemy_name, enemy_icon))
