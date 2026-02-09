@@ -140,3 +140,10 @@ MainWindow.__init__()
 ## 機能ドキュメント
 
 個別機能の詳細は [features.md](./features.md) を参照。
+
+### デザインドキュメント
+
+| ファイル | 内容 |
+|----------|------|
+| [design/build-detect.md](../design/build-detect.md) | チャンピオン自動検知機能の設計 |
+| [docs/design/matchup-list.md](./design/matchup-list.md) | マッチアップリストのデザイン仕様 (#73) |
