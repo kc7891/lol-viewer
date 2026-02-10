@@ -1584,10 +1584,6 @@ class MainWindow(QMainWindow):
         self.matchup_list_widget.setVisible(self.feature_flags.get("matchup_list", False))
         viewers_layout.addWidget(self.matchup_list_widget)
 
-        # Top toolbar with add and close all buttons
-        self.create_toolbar()
-        viewers_layout.addWidget(self.toolbar)
-
         # Splitter for resizable viewers
         self.viewers_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.viewers_splitter.setStyleSheet("""
@@ -2197,7 +2193,7 @@ class MainWindow(QMainWindow):
         # Header row: "WINDOWS" label + "+" button
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 0)
-        windows_label = QLabel("WINDOWS")
+        windows_label = QLabel("TABS")
         windows_label.setStyleSheet("""
             QLabel {
                 color: #6d7a8a;
@@ -2209,6 +2205,27 @@ class MainWindow(QMainWindow):
         """)
         header_layout.addWidget(windows_label)
         header_layout.addStretch()
+
+        sidebar_close_all_button = QPushButton("🗑")
+        sidebar_close_all_button.setToolTip("Close All")
+        sidebar_close_all_button.setStyleSheet("""
+            QPushButton {
+                padding: 0px;
+                background-color: transparent;
+                color: #6d7a8a;
+                border: none;
+                font-size: 14px;
+                min-width: 20px;
+                max-width: 20px;
+                min-height: 20px;
+                max-height: 20px;
+            }
+            QPushButton:hover {
+                color: #e2e8f0;
+            }
+        """)
+        sidebar_close_all_button.clicked.connect(self.close_all_viewers)
+        header_layout.addWidget(sidebar_close_all_button)
 
         sidebar_add_button = QPushButton("+")
         sidebar_add_button.setToolTip("Add Viewer")
@@ -2929,67 +2946,6 @@ class MainWindow(QMainWindow):
         # This prevents QSplitter from defaulting to 50/50 split on first launch
         initial_window_width = 1600  # Default window width set in init_ui
         self.main_splitter.setSizes([saved_width, initial_window_width - saved_width])
-
-    def create_toolbar(self):
-        """Create the top toolbar with add and close all buttons"""
-        self.toolbar = QWidget()
-        self.toolbar.setStyleSheet("""
-            QWidget {
-                background-color: #090e14;
-                border-bottom: 1px solid #222a35;
-            }
-        """)
-        self.toolbar.setFixedHeight(60)
-
-        toolbar_layout = QHBoxLayout(self.toolbar)
-        toolbar_layout.setSpacing(10)
-        toolbar_layout.setContentsMargins(10, 10, 10, 10)
-
-        toolbar_layout.addStretch()
-
-        # Close all button
-        self.close_all_button = QPushButton("Close All")
-        self.close_all_button.setStyleSheet("""
-            QPushButton {
-                padding: 8px 16px;
-                font-size: 10pt;
-                background-color: #1c2330;
-                color: #c1c9d4;
-                border: 1px solid #222a35;
-                border-radius: 6px;
-            }
-            QPushButton:hover {
-                background-color: #222a35;
-                color: #e2e8f0;
-            }
-            QPushButton:pressed {
-                background-color: #141b24;
-            }
-        """)
-        self.close_all_button.clicked.connect(self.close_all_viewers)
-        toolbar_layout.addWidget(self.close_all_button)
-
-        # Add viewer button
-        self.add_button = QPushButton("＋ Add Viewer")
-        self.add_button.setStyleSheet("""
-            QPushButton {
-                padding: 8px 16px;
-                font-size: 10pt;
-                background-color: #1c2330;
-                color: #c1c9d4;
-                border: 1px solid #222a35;
-                border-radius: 6px;
-            }
-            QPushButton:hover {
-                background-color: #222a35;
-                color: #e2e8f0;
-            }
-            QPushButton:pressed {
-                background-color: #141b24;
-            }
-        """)
-        self.add_button.clicked.connect(self.add_viewer)
-        toolbar_layout.addWidget(self.add_button)
 
     def add_viewer(self, position: int = -1, is_picked: bool = False):
         """Add a new viewer widget
