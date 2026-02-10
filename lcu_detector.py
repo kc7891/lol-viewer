@@ -637,6 +637,15 @@ class ChampionDetectorService(QObject):
         log(f"[LCU] Timer started successfully, is active: {is_active}")
         logger.info(f"Timer started, is active: {is_active}")
 
+    def get_detected_enemy_champion_names(self) -> list:
+        """Return names of all detected enemy champions in current session."""
+        names = []
+        for cid in self.detector.detected_enemy_champions:
+            name = self.detector.champion_map.get(cid)
+            if name:
+                names.append(name)
+        return names
+
     def stop(self):
         """Stop champion detection"""
         logger.info("Stopping champion detection service")
