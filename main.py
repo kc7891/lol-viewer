@@ -2463,14 +2463,14 @@ class MainWindow(QMainWindow):
             arrow_layout.setSpacing(0)
 
             up_btn = QPushButton("↑")
-            up_btn.setToolTip("Move row up")
+            up_btn.setToolTip("Move ally up")
             up_btn.setStyleSheet(arrow_btn_style)
-            up_btn.clicked.connect(lambda _, idx=i: self._matchup_move_row(idx, -1))
+            up_btn.clicked.connect(lambda _, idx=i: self._matchup_move_ally(idx, -1))
 
             down_btn = QPushButton("↓")
-            down_btn.setToolTip("Move row down")
+            down_btn.setToolTip("Move ally down")
             down_btn.setStyleSheet(arrow_btn_style)
-            down_btn.clicked.connect(lambda _, idx=i: self._matchup_move_row(idx, 1))
+            down_btn.clicked.connect(lambda _, idx=i: self._matchup_move_ally(idx, 1))
 
             arrow_layout.addWidget(up_btn)
             arrow_layout.addWidget(down_btn)
@@ -2511,14 +2511,14 @@ class MainWindow(QMainWindow):
             arrow_layout_r.setSpacing(0)
 
             up_btn_r = QPushButton("↑")
-            up_btn_r.setToolTip("Move row up")
+            up_btn_r.setToolTip("Move enemy up")
             up_btn_r.setStyleSheet(arrow_btn_style)
-            up_btn_r.clicked.connect(lambda _, idx=i: self._matchup_move_row(idx, -1))
+            up_btn_r.clicked.connect(lambda _, idx=i: self._matchup_move_enemy(idx, -1))
 
             down_btn_r = QPushButton("↓")
-            down_btn_r.setToolTip("Move row down")
+            down_btn_r.setToolTip("Move enemy down")
             down_btn_r.setStyleSheet(arrow_btn_style)
-            down_btn_r.clicked.connect(lambda _, idx=i: self._matchup_move_row(idx, 1))
+            down_btn_r.clicked.connect(lambda _, idx=i: self._matchup_move_enemy(idx, 1))
 
             arrow_layout_r.addWidget(up_btn_r)
             arrow_layout_r.addWidget(down_btn_r)
@@ -2653,15 +2653,27 @@ class MainWindow(QMainWindow):
                     accounted.add(ally)
                     break
 
-    def _matchup_move_row(self, index: int, direction: int):
-        """Move a matchup row up (-1) or down (+1). (#67)"""
+    def _matchup_move_ally(self, index: int, direction: int):
+        """Swap only the ally champion between row *index* and an adjacent row."""
         target = index + direction
         if target < 0 or target >= 5:
             return
-        self._matchup_data[index], self._matchup_data[target] = (
-            self._matchup_data[target],
-            self._matchup_data[index],
-        )
+        ally_a, enemy_a = self._matchup_data[index]
+        ally_b, enemy_b = self._matchup_data[target]
+        self._matchup_data[index] = (ally_b, enemy_a)
+        self._matchup_data[target] = (ally_a, enemy_b)
+        self._matchup_user_dirty = True
+        self.update_matchup_list()
+
+    def _matchup_move_enemy(self, index: int, direction: int):
+        """Swap only the enemy champion between row *index* and an adjacent row."""
+        target = index + direction
+        if target < 0 or target >= 5:
+            return
+        ally_a, enemy_a = self._matchup_data[index]
+        ally_b, enemy_b = self._matchup_data[target]
+        self._matchup_data[index] = (ally_a, enemy_b)
+        self._matchup_data[target] = (ally_b, enemy_a)
         self._matchup_user_dirty = True
         self.update_matchup_list()
 
