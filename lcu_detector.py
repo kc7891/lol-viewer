@@ -272,6 +272,13 @@ class ChampionDetector:
             phase = self.phase_tracker.update_phase()
 
             if phase == 'ChampSelect':
+                # New champ select started – clear previous game's matchup lock/cache
+                # so the list is fresh for the new match.
+                if self._matchup_pairs_locked or self._cached_matchup_pairs:
+                    logger.info("New ChampSelect started – clearing matchup lock and cache")
+                    self._matchup_pairs_locked = False
+                    self._cached_matchup_pairs = []
+
                 # In champion select - get from LCU API
                 data = self.lcu_manager.make_request("/lol-champ-select/v1/session")
                 if not data:
@@ -307,7 +314,8 @@ class ChampionDetector:
                 return (own_result, [], matchup_pairs)
 
             elif phase == 'None' or phase == 'Lobby':
-                # Not in game - reset state
+                # Not in game - reset champion state but keep matchup data
+                # so the previous match's list remains visible until next ChampSelect.
                 if self.current_champion_name:
                     logger.info("Game ended, resetting champion state")
                 self.current_champion_id = None
@@ -315,9 +323,8 @@ class ChampionDetector:
                 self.current_lane = None
                 self.current_summoner_id = None
                 self.detected_enemy_champions.clear()
-                self._cached_matchup_pairs = []
-                self._matchup_pairs_locked = False
-                return (None, [], [])
+                # Return locked pairs if available, otherwise empty
+                return (None, [], list(self._cached_matchup_pairs) if self._matchup_pairs_locked else [])
 
             else:
                 # Other phases - keep current state
