@@ -794,24 +794,21 @@ class ChampionViewerWidget(QWidget):
         self.refresh_button.setVisible(False)
         layout.addWidget(self.refresh_button)
 
-        # ── Content area (stacked: web view / champion selector) ──
-        self.viewer_content_stack = QStackedWidget()
-
-        # Page 0: WebView
+        # ── Content area ──
         self.web_view = NullWebView() if _webengine_disabled() else QWebEngineView()
         self.web_view.page().setBackgroundColor(QColor("#0d1117"))
-        self.viewer_content_stack.addWidget(self.web_view)
+        layout.addWidget(self.web_view)
 
-        # Page 1: Champion selector panel
+        # Dropdown overlay panels (parented to self, float over web view)
         self._champion_selector_panel = self._create_champion_selector_panel()
-        self.viewer_content_stack.addWidget(self._champion_selector_panel)
+        self._champion_selector_panel.setParent(self)
+        self._champion_selector_panel.setMaximumHeight(400)
+        self._champion_selector_panel.hide()
 
-        # Page 2: Lane selector panel
         self._lane_selector_panel = self._create_lane_selector_panel()
-        self.viewer_content_stack.addWidget(self._lane_selector_panel)
-
-        self.viewer_content_stack.setCurrentIndex(0)
-        layout.addWidget(self.viewer_content_stack)
+        self._lane_selector_panel.setParent(self)
+        self._lane_selector_panel.setMaximumHeight(280)
+        self._lane_selector_panel.hide()
 
         # QR code overlay
         self._qr_overlay: Optional[QrCodeOverlay] = None
@@ -820,10 +817,46 @@ class ChampionViewerWidget(QWidget):
 
         # Track which selector is being edited ("champion" or "opponent")
         self._active_selector_target = "champion"
+        # Reference to control bar for positioning overlays
+        self._control_bar_widget = control_bar
 
         # Set minimum and preferred width
         self.setMinimumWidth(300)
         self.resize(500, self.height())
+
+    def resizeEvent(self, event):
+        """Reposition dropdown overlays when widget is resized."""
+        super().resizeEvent(event)
+        self._position_selector_overlay(self._champion_selector_panel)
+        self._position_selector_overlay(self._lane_selector_panel)
+
+    def _position_selector_overlay(self, panel: QWidget):
+        """Position an overlay panel below the control bar, spanning full width."""
+        if not panel.isVisible():
+            return
+        bar = self._control_bar_widget
+        top_y = bar.geometry().bottom() + 1
+        w = self.width()
+        h = min(panel.maximumHeight(), self.height() - top_y)
+        panel.setGeometry(0, top_y, w, h)
+        panel.raise_()
+
+    def _toggle_selector_overlay(self, panel: QWidget):
+        """Toggle visibility of a selector overlay, hiding the other."""
+        champ_panel = self._champion_selector_panel
+        lane_panel = self._lane_selector_panel
+        other = lane_panel if panel is champ_panel else champ_panel
+        if panel.isVisible():
+            panel.hide()
+        else:
+            other.hide()
+            panel.show()
+            self._position_selector_overlay(panel)
+
+    def _hide_selector_overlays(self):
+        """Hide all selector overlay panels."""
+        self._champion_selector_panel.hide()
+        self._lane_selector_panel.hide()
 
     def _create_champion_selector_panel(self) -> QWidget:
         """Create the champion selector panel: SELECT CHAMPION header + search + list."""
@@ -1004,31 +1037,28 @@ class ChampionViewerWidget(QWidget):
         # Update pill button text
         display = item.text() if lane_value else "Lane"
         self._lane_selector_btn.setText(f"{display} \u25BE")
-        # Switch back to web view and re-navigate if champion is set
-        self.viewer_content_stack.setCurrentIndex(0)
+        # Hide dropdown and re-navigate if champion is set
+        self._hide_selector_overlays()
         champion_name = self.champion_input.text().strip().lower()
         if champion_name:
             self.open_selected_mode()
 
     def _open_champion_selector(self, target: str):
-        """Open champion/lane selector panel for the given target."""
+        """Open champion/lane selector dropdown for the given target."""
         if target == "lane":
-            # Toggle lane selector (page 2)
-            if self.viewer_content_stack.currentIndex() == 2:
-                self.viewer_content_stack.setCurrentIndex(0)
-            else:
-                self.viewer_content_stack.setCurrentIndex(2)
+            self._toggle_selector_overlay(self._lane_selector_panel)
             return
 
         self._active_selector_target = target
         # Rebuild "None" visibility: show only for opponent target
         self._refresh_none_item()
-        if self.viewer_content_stack.currentIndex() == 1:
+        if self._champion_selector_panel.isVisible():
+            # Already open — just refresh search
             self._champion_search_input.clear()
             self._champion_search_input.setFocus()
             self._filter_champion_list("")
             return
-        self.viewer_content_stack.setCurrentIndex(1)
+        self._toggle_selector_overlay(self._champion_selector_panel)
         self._champion_search_input.clear()
         self._champion_search_input.setFocus()
         self._filter_champion_list("")
@@ -1068,8 +1098,8 @@ class ChampionViewerWidget(QWidget):
             self._update_champion_selector_btn(champ_id)
 
         self._update_header_display()
-        # Switch back to web view and navigate
-        self.viewer_content_stack.setCurrentIndex(0)
+        # Hide dropdown and navigate
+        self._hide_selector_overlays()
         champion_name = self.champion_input.text().strip().lower()
         if champion_name:
             self.open_selected_mode()
@@ -1178,9 +1208,9 @@ class ChampionViewerWidget(QWidget):
     def _on_mode_button_clicked(self, index: int):
         """Handle user selecting a mode 'tab'. If a champion is entered, navigate immediately."""
         self._set_selected_mode_index(index)
-        # Switch back to web view from champion selector if needed
-        if hasattr(self, "viewer_content_stack") and self.viewer_content_stack.currentIndex() != 0:
-            self.viewer_content_stack.setCurrentIndex(0)
+        # Hide selector dropdowns when switching mode
+        if hasattr(self, "_champion_selector_panel"):
+            self._hide_selector_overlays()
         champion_name = self.champion_input.text().strip().lower()
         if not champion_name:
             return

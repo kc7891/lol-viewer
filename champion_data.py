@@ -284,14 +284,9 @@ class ChampionCompleter(QCompleter):
         # delegate = ChampionItemDelegate(self.image_cache)
         # self.popup().setItemDelegate(delegate)
 
-        # Ensure popup is visible and has proper size
+        # Constrain popup to appear as a small dropdown below the trigger
         popup = self.popup()
-        popup.setMinimumHeight(200)
-        popup.setMinimumWidth(350)
-
-        # Ensure popup appears on top
-        popup.setWindowFlags(popup.windowFlags() | Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
-        popup.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, False)
+        popup.setMaximumHeight(300)
 
         # Style the popup
         popup.setStyleSheet("""
@@ -301,7 +296,7 @@ class ChampionCompleter(QCompleter):
                 border: 1px solid #0d7377;
                 border-radius: 4px;
                 outline: none;
-                min-height: 200px;
+                max-height: 300px;
             }
             QListView::item {
                 padding: 8px;
