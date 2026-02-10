@@ -318,15 +318,17 @@ class QrCodeOverlay(QWidget):
 
     def _reposition(self):
         """Pin to the bottom-right of the target widget."""
-        if self._target is None:
+        if self._target is None or self.parentWidget() is None:
             return
         self.adjustSize()
         margin = 10
-        # Map target's bottom-right corner to parent's coordinate system
-        target_rect = self._target.geometry()
-        x = target_rect.right() - self.width() - margin + 1
-        y = target_rect.bottom() - self.height() - margin + 1
-        self.move(max(x, target_rect.x()), max(y, target_rect.y()))
+        # Map target's bottom-right corner to the overlay's parent coordinate system
+        parent = self.parentWidget()
+        bottom_right = self._target.mapTo(parent, self._target.rect().bottomRight())
+        top_left = self._target.mapTo(parent, self._target.rect().topLeft())
+        x = bottom_right.x() - self.width() - margin + 1
+        y = bottom_right.y() - self.height() - margin + 1
+        self.move(max(x, top_left.x()), max(y, top_left.y()))
 
     def eventFilter(self, obj, event):
         """Reposition overlay when target widget is resized or moved."""
@@ -865,6 +867,7 @@ class ChampionViewerWidget(QWidget):
             }
         """)
         self._champion_search_input.textChanged.connect(self._filter_champion_list)
+        self._champion_search_input.installEventFilter(self)
         panel_layout.addWidget(self._champion_search_input)
 
         # Champion list
@@ -1185,6 +1188,44 @@ class ChampionViewerWidget(QWidget):
         if not champion_name:
             return
         self.open_selected_mode()
+
+    def _close_selector_if_open(self) -> bool:
+        """Close any open selector panel. Returns True if a selector was closed."""
+        if hasattr(self, "viewer_content_stack") and self.viewer_content_stack.currentIndex() != 0:
+            self.viewer_content_stack.setCurrentIndex(0)
+            return True
+        return False
+
+    def keyPressEvent(self, event):
+        """Close selector panels on Escape key."""
+        if event.key() == Qt.Key.Key_Escape:
+            if self._close_selector_if_open():
+                event.accept()
+                return
+        super().keyPressEvent(event)
+
+    def mousePressEvent(self, event):
+        """Close selector panels when clicking outside them."""
+        if hasattr(self, "viewer_content_stack") and self.viewer_content_stack.currentIndex() != 0:
+            # Check if click is outside the selector panel area
+            current_panel = self.viewer_content_stack.currentWidget()
+            if current_panel is not None:
+                panel_rect = current_panel.geometry()
+                stack_pos = self.viewer_content_stack.mapTo(self, self.viewer_content_stack.rect().topLeft())
+                global_panel_rect = panel_rect.translated(stack_pos)
+                if not global_panel_rect.contains(event.pos()):
+                    self._close_selector_if_open()
+                    event.accept()
+                    return
+        super().mousePressEvent(event)
+
+    def eventFilter(self, obj, event):
+        """Catch Escape key in child widgets (e.g. search input) to close selectors."""
+        from PyQt6.QtCore import QEvent
+        if event.type() == QEvent.Type.KeyPress and event.key() == Qt.Key.Key_Escape:
+            if self._close_selector_if_open():
+                return True
+        return super().eventFilter(obj, event)
 
     def open_selected_mode(self):
         """Open the page for the currently selected mode tab."""
@@ -2206,7 +2247,7 @@ class MainWindow(QMainWindow):
         header_layout.addWidget(windows_label)
         header_layout.addStretch()
 
-        sidebar_close_all_button = QPushButton("🗑")
+        sidebar_close_all_button = QPushButton(CLOSE_BUTTON_GLYPH)
         sidebar_close_all_button.setToolTip("Close All")
         sidebar_close_all_button.setStyleSheet("""
             QPushButton {
