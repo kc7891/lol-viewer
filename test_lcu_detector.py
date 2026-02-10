@@ -127,13 +127,25 @@ class TestGamePhaseTracker:
         assert phase == 'ChampSelect'
         assert tracker.current_phase == 'ChampSelect'
 
-    def test_update_phase_no_response(self):
-        """Test phase update with no response"""
+    def test_update_phase_no_response_during_game_keeps_phase(self):
+        """Test that transient API failure during InProgress keeps the phase"""
         manager = Mock()
         manager.make_request.return_value = None
 
         tracker = GamePhaseTracker(manager)
         tracker.current_phase = 'InProgress'
+        phase = tracker.update_phase()
+
+        assert phase == 'InProgress'
+        assert tracker.current_phase == 'InProgress'
+
+    def test_update_phase_no_response_outside_game_resets(self):
+        """Test that API failure outside of game resets phase to None"""
+        manager = Mock()
+        manager.make_request.return_value = None
+
+        tracker = GamePhaseTracker(manager)
+        tracker.current_phase = 'Lobby'
         phase = tracker.update_phase()
 
         assert phase == 'None'
@@ -379,6 +391,206 @@ class TestMatchupPairs:
         assert enemies == []
         assert len(pairs) == 5
         assert pairs[0] == ('Ashe', 'Caitlyn')
+
+
+    def test_matchup_pairs_locked_after_10_champions(self):
+        """Test that matchup pairs are locked once all 10 champions are confirmed"""
+        manager = Mock()
+        phase_tracker = Mock()
+        phase_tracker.last_session_data = {
+            'gameData': {
+                'teamOne': [
+                    {'summonerId': 100, 'championId': 22},
+                    {'summonerId': 101, 'championId': 51},
+                    {'summonerId': 102, 'championId': 86},
+                    {'summonerId': 103, 'championId': 99},
+                    {'summonerId': 104, 'championId': 40},
+                ],
+                'teamTwo': [
+                    {'summonerId': 200, 'championId': 238},
+                    {'summonerId': 201, 'championId': 157},
+                    {'summonerId': 202, 'championId': 67},
+                    {'summonerId': 203, 'championId': 63},
+                    {'summonerId': 204, 'championId': 37},
+                ],
+            }
+        }
+        detector = ChampionDetector(manager, phase_tracker)
+        detector.champion_map = {
+            22: 'Ashe', 51: 'Caitlyn', 86: 'Garen', 99: 'Lux', 40: 'Janna',
+            238: 'Zed', 157: 'Yasuo', 67: 'Vayne', 63: 'Brand', 37: 'Sona',
+        }
+        detector.current_summoner_id = 100
+
+        pairs = detector.get_matchup_pairs_from_gamedata()
+        assert len(pairs) == 5
+        assert all(ally and enemy for ally, enemy in pairs)
+        assert detector._matchup_pairs_locked is True
+
+    def test_locked_pairs_not_overwritten_by_incomplete_data(self):
+        """Test that once locked, incomplete API data does not overwrite the list"""
+        manager = Mock()
+        phase_tracker = Mock()
+        # First call: full data
+        phase_tracker.last_session_data = {
+            'gameData': {
+                'teamOne': [
+                    {'summonerId': 100, 'championId': 22},
+                    {'summonerId': 101, 'championId': 51},
+                    {'summonerId': 102, 'championId': 86},
+                    {'summonerId': 103, 'championId': 99},
+                    {'summonerId': 104, 'championId': 40},
+                ],
+                'teamTwo': [
+                    {'summonerId': 200, 'championId': 238},
+                    {'summonerId': 201, 'championId': 157},
+                    {'summonerId': 202, 'championId': 67},
+                    {'summonerId': 203, 'championId': 63},
+                    {'summonerId': 204, 'championId': 37},
+                ],
+            }
+        }
+        detector = ChampionDetector(manager, phase_tracker)
+        detector.champion_map = {
+            22: 'Ashe', 51: 'Caitlyn', 86: 'Garen', 99: 'Lux', 40: 'Janna',
+            238: 'Zed', 157: 'Yasuo', 67: 'Vayne', 63: 'Brand', 37: 'Sona',
+        }
+        detector.current_summoner_id = 100
+
+        original_pairs = detector.get_matchup_pairs_from_gamedata()
+        assert detector._matchup_pairs_locked is True
+
+        # Second call: API returns incomplete data (first player championId=0)
+        phase_tracker.last_session_data = {
+            'gameData': {
+                'teamOne': [
+                    {'summonerId': 100, 'championId': 0},  # Missing!
+                    {'summonerId': 101, 'championId': 51},
+                    {'summonerId': 102, 'championId': 86},
+                    {'summonerId': 103, 'championId': 99},
+                    {'summonerId': 104, 'championId': 40},
+                ],
+                'teamTwo': [
+                    {'summonerId': 200, 'championId': 0},  # Missing!
+                    {'summonerId': 201, 'championId': 157},
+                    {'summonerId': 202, 'championId': 67},
+                    {'summonerId': 203, 'championId': 63},
+                    {'summonerId': 204, 'championId': 37},
+                ],
+            }
+        }
+        locked_pairs = detector.get_matchup_pairs_from_gamedata()
+        # Locked pairs must be identical to the original full list
+        assert locked_pairs == original_pairs
+
+    def test_locked_pairs_not_overwritten_by_none_session(self):
+        """Test that locked pairs survive when session data becomes None"""
+        manager = Mock()
+        phase_tracker = Mock()
+        phase_tracker.last_session_data = {
+            'gameData': {
+                'teamOne': [
+                    {'summonerId': 100, 'championId': 22},
+                    {'summonerId': 101, 'championId': 51},
+                    {'summonerId': 102, 'championId': 86},
+                    {'summonerId': 103, 'championId': 99},
+                    {'summonerId': 104, 'championId': 40},
+                ],
+                'teamTwo': [
+                    {'summonerId': 200, 'championId': 238},
+                    {'summonerId': 201, 'championId': 157},
+                    {'summonerId': 202, 'championId': 67},
+                    {'summonerId': 203, 'championId': 63},
+                    {'summonerId': 204, 'championId': 37},
+                ],
+            }
+        }
+        detector = ChampionDetector(manager, phase_tracker)
+        detector.champion_map = {
+            22: 'Ashe', 51: 'Caitlyn', 86: 'Garen', 99: 'Lux', 40: 'Janna',
+            238: 'Zed', 157: 'Yasuo', 67: 'Vayne', 63: 'Brand', 37: 'Sona',
+        }
+        detector.current_summoner_id = 100
+
+        original_pairs = detector.get_matchup_pairs_from_gamedata()
+        assert detector._matchup_pairs_locked is True
+
+        # Session becomes None (transient failure)
+        phase_tracker.last_session_data = None
+        pairs_after = detector.get_matchup_pairs_from_gamedata()
+        assert pairs_after == original_pairs
+
+    def test_lock_cleared_on_game_end(self):
+        """Test that the lock is cleared when game ends (None/Lobby phase)"""
+        manager = Mock()
+        phase_tracker = Mock()
+
+        # Start in InProgress with full data
+        phase_tracker.update_phase.return_value = 'InProgress'
+        phase_tracker.last_session_data = {
+            'gameData': {
+                'teamOne': [
+                    {'summonerId': 100, 'championId': 22},
+                    {'summonerId': 101, 'championId': 51},
+                    {'summonerId': 102, 'championId': 86},
+                    {'summonerId': 103, 'championId': 99},
+                    {'summonerId': 104, 'championId': 40},
+                ],
+                'teamTwo': [
+                    {'summonerId': 200, 'championId': 238},
+                    {'summonerId': 201, 'championId': 157},
+                    {'summonerId': 202, 'championId': 67},
+                    {'summonerId': 203, 'championId': 63},
+                    {'summonerId': 204, 'championId': 37},
+                ],
+            }
+        }
+        detector = ChampionDetector(manager, phase_tracker)
+        detector.champion_map = {
+            22: 'Ashe', 51: 'Caitlyn', 86: 'Garen', 99: 'Lux', 40: 'Janna',
+            238: 'Zed', 157: 'Yasuo', 67: 'Vayne', 63: 'Brand', 37: 'Sona',
+        }
+        detector.current_summoner_id = 100
+        detector.current_champion_name = 'Ashe'
+        detector.current_lane = 'bottom'
+
+        detector.detect_champion_and_enemies()
+        assert detector._matchup_pairs_locked is True
+
+        # Game ends
+        phase_tracker.update_phase.return_value = 'Lobby'
+        detector.detect_champion_and_enemies()
+        assert detector._matchup_pairs_locked is False
+        assert detector._cached_matchup_pairs == []
+
+    def test_phase_tracker_keeps_phase_during_transient_failure(self):
+        """Test that phase tracker does not reset to None during InProgress API failure"""
+        manager = Mock()
+        tracker = GamePhaseTracker(manager)
+
+        # Simulate being in InProgress
+        manager.make_request.return_value = {'phase': 'InProgress'}
+        phase = tracker.update_phase()
+        assert phase == 'InProgress'
+
+        # Simulate API failure (returns None)
+        manager.make_request.return_value = None
+        phase = tracker.update_phase()
+        # Should keep InProgress, not reset to None
+        assert phase == 'InProgress'
+        # last_session_data should be preserved (not set to None)
+        assert tracker.last_session_data is not None
+
+    def test_phase_tracker_resets_when_not_in_game(self):
+        """Test that phase tracker resets to None when API fails outside of game"""
+        manager = Mock()
+        tracker = GamePhaseTracker(manager)
+
+        # Not in game
+        tracker.current_phase = "None"
+        manager.make_request.return_value = None
+        phase = tracker.update_phase()
+        assert phase == 'None'
 
 
 if __name__ == '__main__':
