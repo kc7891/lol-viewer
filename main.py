@@ -2653,18 +2653,6 @@ class MainWindow(QMainWindow):
                     accounted.add(ally)
                     break
 
-    def _matchup_move_row(self, index: int, direction: int):
-        """Move a matchup row up (-1) or down (+1). (#67)"""
-        target = index + direction
-        if target < 0 or target >= 5:
-            return
-        self._matchup_data[index], self._matchup_data[target] = (
-            self._matchup_data[target],
-            self._matchup_data[index],
-        )
-        self._matchup_user_dirty = True
-        self.update_matchup_list()
-
     def _matchup_move_ally(self, index: int, direction: int):
         """Swap only the ally champion between row *index* and an adjacent row."""
         target = index + direction

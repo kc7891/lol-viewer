@@ -106,8 +106,9 @@ def test_on_matchup_pairs_preserves_user_reorder():
     # Simulate initial data from detector
     window.on_matchup_pairs_updated([("Ahri", "Zed"), ("Lux", "Yasuo")])
 
-    # User moves row 1 up (swap rows 0 and 1)
-    window._matchup_move_row(1, -1)
+    # User moves row 1 up (swap both ally and enemy of rows 0 and 1)
+    window._matchup_move_ally(1, -1)
+    window._matchup_move_enemy(1, -1)
     assert window._matchup_data[0] == ("Lux", "Yasuo")
     assert window._matchup_data[1] == ("Ahri", "Zed")
     assert window._matchup_user_dirty is True
@@ -128,8 +129,10 @@ def test_on_matchup_pairs_merges_new_champion_into_empty_row():
     assert window._matchup_data[0] == ("Ashe", "")
 
     # User moves Ashe to row 2
-    window._matchup_move_row(0, 1)  # row 0 -> row 1
-    window._matchup_move_row(1, 1)  # row 1 -> row 2
+    window._matchup_move_ally(0, 1)  # row 0 -> row 1
+    window._matchup_move_enemy(0, 1)
+    window._matchup_move_ally(1, 1)  # row 1 -> row 2
+    window._matchup_move_enemy(1, 1)
     assert window._matchup_data[2] == ("Ashe", "")
     assert window._matchup_data[0] == ("", "")
 
@@ -145,7 +148,8 @@ def test_on_matchup_pairs_removes_departed_ally():
     """Allies that disappear from incoming data should be cleared. (#77)"""
     window = _make_window_with_matchup_data()
     window.on_matchup_pairs_updated([("Ahri", "Zed"), ("Lux", "Yasuo")])
-    window._matchup_move_row(1, -1)  # Lux at 0, Ahri at 1
+    window._matchup_move_ally(1, -1)  # Lux at 0, Ahri at 1
+    window._matchup_move_enemy(1, -1)
 
     # Ahri is no longer in incoming, Garen replaces her
     window.on_matchup_pairs_updated([("Garen", "Zed"), ("Lux", "Yasuo")])
@@ -190,7 +194,7 @@ def test_clear_matchup_list_resets_dirty_flag():
     """Clearing the matchup list should reset the dirty flag."""
     window = _make_window_with_matchup_data()
     window.on_matchup_pairs_updated([("Ahri", "Zed")])
-    window._matchup_move_row(0, 1)
+    window._matchup_move_ally(0, 1)
     assert window._matchup_user_dirty is True
 
     window.clear_matchup_list()
