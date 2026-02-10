@@ -927,20 +927,48 @@ class ChampionViewerWidget(QWidget):
                     _safe_set_icon(item, cached)
             self._champion_list_widget.addItem(item)
 
+    def _get_enemy_picked_champion_ids(self) -> set:
+        """Return set of champion IDs (lowercase) picked by the enemy team."""
+        if not self.main_window or not hasattr(self.main_window, "champion_detector"):
+            return set()
+        names = self.main_window.champion_detector.get_detected_enemy_champion_names()
+        return {n.lower() for n in names}
+
     def _filter_champion_list(self, text: str):
-        """Filter the champion list based on search text."""
+        """Filter the champion list based on search text.
+
+        When in opponent mode with no search text, only show enemy-picked champions.
+        When searching, show all champions matching the prefix.
+        """
         search = text.strip().lower()
+        is_opponent = self._active_selector_target == "opponent"
+        enemy_ids = self._get_enemy_picked_champion_ids() if is_opponent and not search else set()
+
         for i in range(self._champion_list_widget.count()):
             item = self._champion_list_widget.item(i)
             champ_id = item.data(Qt.ItemDataRole.UserRole) or ""
-            display_name = item.text().lower()
-            visible = not search or search in display_name or search in champ_id.lower()
-            if not visible and self.champion_data:
-                champ_info = self.champion_data.champions.get(champ_id, {})
-                jp_name = (champ_info.get("japanese_name") or "").lower()
-                if search in jp_name:
-                    visible = True
-            item.setHidden(not visible)
+
+            # "None" item is always visible
+            if champ_id == "":
+                item.setHidden(False)
+                continue
+
+            if is_opponent and not search:
+                # No search text in opponent mode: show only enemy-picked champions
+                item.setHidden(champ_id.lower() not in enemy_ids)
+            elif search:
+                # Search mode: prefix match on display name, champ id, or jp name
+                display_name = item.text().lower()
+                visible = display_name.startswith(search) or champ_id.lower().startswith(search)
+                if not visible and self.champion_data:
+                    champ_info = self.champion_data.champions.get(champ_id, {})
+                    jp_name = (champ_info.get("japanese_name") or "").lower()
+                    if jp_name.startswith(search):
+                        visible = True
+                item.setHidden(not visible)
+            else:
+                # Ally mode, no search: show all
+                item.setHidden(False)
 
     def _create_lane_selector_panel(self) -> QWidget:
         """Create the lane selector panel: SELECT LANE header + lane list."""
@@ -3208,6 +3236,18 @@ class MainWindow(QMainWindow):
 
                     if not lane_found:
                         logger.warning(f"Lane '{lane}' not found in lane selector options")
+
+                    # Update the visible lane selector button and list selection
+                    if lane_found and hasattr(target_viewer, "_lane_selector_btn"):
+                        lane_display_map = {"top": "Top", "jungle": "Jungle", "middle": "Mid", "bottom": "Bot", "support": "Support"}
+                        display = lane_display_map.get(lane, "Lane")
+                        target_viewer._lane_selector_btn.setText(f"{display} \u25be")
+                    if lane_found and hasattr(target_viewer, "_lane_list_widget"):
+                        for i in range(target_viewer._lane_list_widget.count()):
+                            item = target_viewer._lane_list_widget.item(i)
+                            if item.data(Qt.ItemDataRole.UserRole) == lane:
+                                target_viewer._lane_list_widget.setCurrentItem(item)
+                                break
 
                 target_viewer.open_build()
 
