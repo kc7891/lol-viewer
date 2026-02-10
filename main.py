@@ -900,24 +900,28 @@ class ChampionViewerWidget(QWidget):
         self._champion_list_widget.clear()
         if not self.champion_data:
             return
+
+        def _safe_set_icon(it, px):
+            """Set icon on item, ignoring if the C++ object was already deleted."""
+            try:
+                it.setIcon(QIcon(px.scaled(
+                    28, 28, Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation)))
+            except RuntimeError:
+                pass
+
         for champ_id, champ_info in sorted(self.champion_data.champions.items()):
             display_name = champ_info.get("english_name", champ_id)
             item = QListWidgetItem(display_name)
             item.setData(Qt.ItemDataRole.UserRole, champ_id)
-            # Load icon asynchronously
             image_url = champ_info.get("image_url", "")
             if image_url:
                 cached = self._champion_icon_cache.get_image(
                     image_url,
-                    callback=lambda px, _it=item: _it.setIcon(
-                        QIcon(px.scaled(28, 28, Qt.AspectRatioMode.KeepAspectRatio,
-                                        Qt.TransformationMode.SmoothTransformation))
-                    ),
+                    callback=lambda px, _it=item: _safe_set_icon(_it, px),
                 )
                 if cached:
-                    item.setIcon(QIcon(cached.scaled(
-                        28, 28, Qt.AspectRatioMode.KeepAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation)))
+                    _safe_set_icon(item, cached)
             self._champion_list_widget.addItem(item)
 
     def _filter_champion_list(self, text: str):
@@ -1110,6 +1114,19 @@ class ChampionViewerWidget(QWidget):
                 return info.get("english_name", champ_id.capitalize())
         return champ_id.capitalize()
 
+    @staticmethod
+    def _safe_set_pixmap(widget, pixmap, size: int):
+        """Set pixmap/icon on a widget, ignoring if the C++ object was deleted."""
+        try:
+            scaled = pixmap.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio,
+                                   Qt.TransformationMode.SmoothTransformation)
+            if isinstance(widget, QPushButton):
+                widget.setIcon(QIcon(scaled))
+            else:
+                widget.setPixmap(scaled)
+        except RuntimeError:
+            pass
+
     def _set_label_champion_icon(self, label: QLabel, champ_id: str, size: int):
         """Set a QLabel's pixmap to the champion's icon."""
         if not champ_id or not self.champion_data:
@@ -1122,14 +1139,10 @@ class ChampionViewerWidget(QWidget):
             return
         cached = self._champion_icon_cache.get_image(
             url,
-            callback=lambda px, _l=label, _s=size: _l.setPixmap(
-                px.scaled(_s, _s, Qt.AspectRatioMode.KeepAspectRatio,
-                          Qt.TransformationMode.SmoothTransformation)),
+            callback=lambda px, _l=label, _s=size: self._safe_set_pixmap(_l, px, _s),
         )
         if cached:
-            label.setPixmap(cached.scaled(
-                size, size, Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation))
+            self._safe_set_pixmap(label, cached, size)
 
     def _set_btn_champion_icon(self, btn: QPushButton, champ_id: str, size: int):
         """Set a QPushButton's icon to the champion's icon."""
@@ -1143,14 +1156,10 @@ class ChampionViewerWidget(QWidget):
             return
         cached = self._champion_icon_cache.get_image(
             url,
-            callback=lambda px, _b=btn, _s=size: _b.setIcon(
-                QIcon(px.scaled(_s, _s, Qt.AspectRatioMode.KeepAspectRatio,
-                                Qt.TransformationMode.SmoothTransformation))),
+            callback=lambda px, _b=btn, _s=size: self._safe_set_pixmap(_b, px, _s),
         )
         if cached:
-            btn.setIcon(QIcon(cached.scaled(
-                size, size, Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation)))
+            self._safe_set_pixmap(btn, cached, size)
 
     def _set_selected_mode_index(self, index: int):
         """Update the selected mode tab (0=Build, 1=Counter, 2=ARAM) without forcing navigation."""
