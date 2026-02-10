@@ -197,3 +197,54 @@ def test_clear_matchup_list_resets_dirty_flag():
 
     assert window._matchup_user_dirty is False
     assert all(pair == ("", "") for pair in window._matchup_data)
+
+
+# ---------------------------------------------------------------------------
+# Individual ally/enemy move tests (#73 arrow fix)
+# ---------------------------------------------------------------------------
+
+
+def test_move_ally_swaps_only_allies():
+    """Left arrows should swap only ally champions between rows."""
+    window = _make_window_with_matchup_data()
+    window.on_matchup_pairs_updated([("Ahri", "Zed"), ("Lux", "Yasuo")])
+
+    # Move ally at row 1 up -> swap allies of row 0 and row 1
+    window._matchup_move_ally(1, -1)
+
+    assert window._matchup_data[0] == ("Lux", "Zed")
+    assert window._matchup_data[1] == ("Ahri", "Yasuo")
+    assert window._matchup_user_dirty is True
+
+
+def test_move_enemy_swaps_only_enemies():
+    """Right arrows should swap only enemy champions between rows."""
+    window = _make_window_with_matchup_data()
+    window.on_matchup_pairs_updated([("Ahri", "Zed"), ("Lux", "Yasuo")])
+
+    # Move enemy at row 0 down -> swap enemies of row 0 and row 1
+    window._matchup_move_enemy(0, 1)
+
+    assert window._matchup_data[0] == ("Ahri", "Yasuo")
+    assert window._matchup_data[1] == ("Lux", "Zed")
+    assert window._matchup_user_dirty is True
+
+
+def test_move_ally_boundary_does_nothing():
+    """Moving ally past boundaries should be a no-op."""
+    window = _make_window_with_matchup_data()
+    window.on_matchup_pairs_updated([("Ahri", "Zed")])
+
+    window._matchup_move_ally(0, -1)  # already at top
+    assert window._matchup_data[0] == ("Ahri", "Zed")
+    assert window._matchup_user_dirty is False
+
+
+def test_move_enemy_boundary_does_nothing():
+    """Moving enemy past boundaries should be a no-op."""
+    window = _make_window_with_matchup_data()
+    window.on_matchup_pairs_updated([("", ""), ("", ""), ("", ""), ("", ""), ("Ahri", "Zed")])
+
+    window._matchup_move_enemy(4, 1)  # already at bottom
+    assert window._matchup_data[4] == ("Ahri", "Zed")
+    assert window._matchup_user_dirty is False
