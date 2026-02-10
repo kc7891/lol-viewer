@@ -57,7 +57,7 @@ Viewersページ上部に表示される5行のマッチアップリスト。ラ
 ### 概要
 
 - Feature Flag (`matchup_list`) で ON/OFF を切り替え可能（デフォルト: OFF）
-- `ChampionDetectorService` の `matchup_pairs_updated` シグナルでデータを受信
+- `ChampionDetectorService` の `matchup_data_updated` シグナルでデータを受信（味方レーン情報・敵ピック順を含むdict）
 - 行の位置がレーンに対応 (0=top, 1=jungle, 2=middle, 3=bottom, 4=support)
 
 ### 技術詳細
