@@ -146,6 +146,9 @@ class GamePhaseTracker:
         self.last_session_data: Optional[dict] = None
         logger.info("GamePhaseTracker initialized")
 
+    # Phases where a transient API failure should NOT reset to "None".
+    _ACTIVE_GAME_PHASES = {"ChampSelect", "InProgress", "GameStart", "Reconnect", "WaitingForStats"}
+
     def update_phase(self) -> str:
         """Update and return current game phase"""
         try:
@@ -158,7 +161,16 @@ class GamePhaseTracker:
                     self.current_phase = new_phase
                 return self.current_phase
             else:
-                # If we can't get the session, assume None
+                # If we can't get the session and we are in an active game phase,
+                # keep the current phase and cached session to avoid wiping state
+                # on a transient API failure.
+                if self.current_phase in self._ACTIVE_GAME_PHASES:
+                    logger.debug(
+                        "Could not get gameflow session during %s; keeping current phase",
+                        self.current_phase,
+                    )
+                    return self.current_phase
+                # Outside of an active game, assume None.
                 self.last_session_data = None
                 if self.current_phase != "None":
                     logger.debug("Could not get gameflow session, assuming None")
@@ -224,6 +236,7 @@ class ChampionDetector:
         self.current_summoner_id: Optional[int] = None  # cached for team identification in InProgress
         self.detected_enemy_champions: set = set()  # Track detected enemy champions by ID
         self._cached_matchup_pairs: list = []  # Cache pairs to merge incomplete data
+        self._matchup_pairs_locked: bool = False  # Lock after all 10 champions confirmed
         self.champion_map: Dict[int, str] = {}
         logger.info("ChampionDetector initialized")
         self._load_champion_map()
@@ -303,6 +316,7 @@ class ChampionDetector:
                 self.current_summoner_id = None
                 self.detected_enemy_champions.clear()
                 self._cached_matchup_pairs = []
+                self._matchup_pairs_locked = False
                 return (None, [], [])
 
             else:
@@ -466,11 +480,16 @@ class ChampionDetector:
 
         Uses cached summonerId to determine which team is ally/enemy.
         Merges with previously cached pairs to handle incomplete data (e.g., late-loading champions).
+        Once all 10 champions are confirmed, the list is locked and returned as-is until the game ends.
 
         Returns:
             list of (ally_champion_name, enemy_champion_name) tuples (up to 5).
         """
         try:
+            # Once all 10 champions are confirmed, return cached data without re-reading API
+            if self._matchup_pairs_locked and self._cached_matchup_pairs:
+                return list(self._cached_matchup_pairs)
+
             session = self.phase_tracker.last_session_data
             if not session:
                 return self._cached_matchup_pairs
@@ -514,6 +533,13 @@ class ChampionDetector:
                 merged.append((new_ally or cached_ally, new_enemy or cached_enemy))
 
             self._cached_matchup_pairs = merged
+
+            # Lock once all 10 champions are confirmed (5 pairs, each with ally AND enemy)
+            if len(merged) >= 5 and all(ally and enemy for ally, enemy in merged[:5]):
+                if not self._matchup_pairs_locked:
+                    logger.info("All 10 champions confirmed – locking matchup pairs until game ends")
+                    self._matchup_pairs_locked = True
+
             return merged
         except Exception as e:
             logger.error(f"Error extracting matchup pairs from gameData: {e}")
@@ -586,6 +612,7 @@ class ChampionDetectorService(QObject):
         self.detector.current_summoner_id = None
         self.detector.detected_enemy_champions.clear()
         self.detector._cached_matchup_pairs = []
+        self.detector._matchup_pairs_locked = False
         self.matchup_pairs_updated.emit([])
 
     def start(self, interval_ms: int = 2000, max_interval_ms: int = 60000):
