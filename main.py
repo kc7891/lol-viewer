@@ -2722,6 +2722,17 @@ class MainWindow(QMainWindow):
                 if viewer.lane_selector.itemData(i) == lane:
                     viewer.lane_selector.setCurrentIndex(i)
                     break
+            # Update the visible lane selector button and list selection
+            if hasattr(viewer, "_lane_selector_btn"):
+                lane_display_map = {"top": "Top", "jungle": "Jungle", "middle": "Mid", "bottom": "Bot", "support": "Support"}
+                display = lane_display_map.get(lane, "Lane")
+                viewer._lane_selector_btn.setText(f"{display} \u25be")
+            if hasattr(viewer, "_lane_list_widget"):
+                for i in range(viewer._lane_list_widget.count()):
+                    item = viewer._lane_list_widget.item(i)
+                    if item.data(Qt.ItemDataRole.UserRole) == lane:
+                        viewer._lane_list_widget.setCurrentItem(item)
+                        break
         viewer.open_build()
 
     def on_sidebar_tab_changed(self, index):
