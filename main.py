@@ -2622,6 +2622,8 @@ class MainWindow(QMainWindow):
 
     # Lane name → row index mapping for placing allies by assigned lane
     LANE_TO_INDEX = {"top": 0, "jungle": 1, "middle": 2, "bottom": 3, "support": 4}
+    # Row index → champions.json lane key mapping for enemy placement by aptitude
+    INDEX_TO_LANE_JSON = ["top", "jg", "mid", "bot", "sup"]
 
     def clear_matchup_list(self):
         """Clear all matchup entries."""
@@ -2698,10 +2700,12 @@ class MainWindow(QMainWindow):
                     break
 
     def _apply_new_enemies(self, enemies: list):
-        """Place new enemy champions into matchup rows in pick order.
+        """Place new enemy champions into matchup rows based on lane aptitude.
 
         - If a champion is already present in any enemy slot, skip it.
-        - Place in the first empty enemy slot.
+        - Place in the empty row with the highest lane aptitude from champions.json.
+        - If aptitude data is unavailable, fall back to the first empty slot.
+        - Ties are broken by row order (top → jungle → middle → bottom → support).
         """
         for name in enemies:
             if not name:
@@ -2709,12 +2713,33 @@ class MainWindow(QMainWindow):
             # Already placed?
             if any(self._matchup_data[i][1] == name for i in range(5)):
                 continue
-            # First empty enemy slot
-            for i in range(5):
-                if not self._matchup_data[i][1]:
-                    ally, _ = self._matchup_data[i]
-                    self._matchup_data[i] = (ally, name)
-                    break
+
+            # Collect empty row indices
+            empty_indices = [i for i in range(5) if not self._matchup_data[i][1]]
+            if not empty_indices:
+                break
+
+            # Get champion lane aptitude
+            best_idx = empty_indices[0]  # Fallback: first empty row
+            champ_info = None
+            try:
+                if self.champion_data:
+                    champ_info = self.champion_data.get_champion(name)
+            except (AttributeError, RuntimeError):
+                # champion_data not available or object not properly initialized
+                pass
+            if champ_info:
+                lanes = champ_info.get("lanes", {})
+                # Find empty row with highest aptitude (ties broken by row order)
+                best_score = -1
+                for i in empty_indices:
+                    score = lanes.get(self.INDEX_TO_LANE_JSON[i], 0)
+                    if score > best_score:
+                        best_score = score
+                        best_idx = i
+
+            ally, _ = self._matchup_data[best_idx]
+            self._matchup_data[best_idx] = (ally, name)
 
     def _matchup_move_ally(self, index: int, direction: int):
         """Swap only the ally champion between row *index* and an adjacent row."""
