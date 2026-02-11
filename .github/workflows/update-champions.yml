@@ -1,0 +1,116 @@
+name: Update Champion Data
+
+on:
+  schedule:
+    # 毎週月曜日 9:00 UTC (日本時間 18:00) に実行
+    - cron: '0 9 * * 1'
+  workflow_dispatch:  # 手動実行も可能
+
+jobs:
+  update-champions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests
+
+      - name: Fetch latest champion data
+        run: |
+          python -c "
+          import json
+          import requests
+
+          # Get latest version
+          version_url = 'https://ddragon.leagueoflegends.com/api/versions.json'
+          versions = requests.get(version_url, timeout=10).json()
+          latest_version = versions[0]
+          print(f'Latest version: {latest_version}')
+
+          # Get English champion data
+          en_url = f'https://ddragon.leagueoflegends.com/cdn/{latest_version}/data/en_US/champion.json'
+          en_response = requests.get(en_url, timeout=30)
+          en_data = en_response.json()
+
+          # Get Japanese champion data
+          ja_url = f'https://ddragon.leagueoflegends.com/cdn/{latest_version}/data/ja_JP/champion.json'
+          ja_response = requests.get(ja_url, timeout=30)
+          ja_data = ja_response.json()
+
+          champion_dict = {}
+
+          for champ_id, champ_data in en_data['data'].items():
+              en_name = champ_data['name']
+              ja_name = ja_data['data'].get(champ_id, {}).get('name', en_name)
+              image_url = f'https://ddragon.leagueoflegends.com/cdn/{latest_version}/img/champion/{champ_id}.png'
+              key = champ_id.lower()
+              champion_dict[key] = {
+                  'english_name': en_name,
+                  'japanese_name': ja_name,
+                  'image_url': image_url,
+                  'id': champ_id
+              }
+
+          print(f'Found {len(champion_dict)} champions')
+
+          # Save to file
+          with open('champions.json', 'w', encoding='utf-8') as f:
+              json.dump(champion_dict, f, ensure_ascii=False, indent=2)
+
+          print('champions.json updated successfully!')
+
+          # Save version info for PR
+          with open('version.txt', 'w') as f:
+              f.write(f'{latest_version}\n{len(champion_dict)}')
+          "
+
+      - name: Read version info
+        id: version
+        run: |
+          VERSION=$(head -n 1 version.txt)
+          COUNT=$(tail -n 1 version.txt)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          rm version.txt
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: |
+            Update champions.json to Data Dragon v${{ steps.version.outputs.version }}
+
+            - Automated weekly update
+            - Total: ${{ steps.version.outputs.count }} champions
+            - Data Dragon version: ${{ steps.version.outputs.version }}
+          branch: automated/update-champions
+          delete-branch: true
+          title: 'Update Champion Data to v${{ steps.version.outputs.version }}'
+          body: |
+            ## 🤖 Automated Champion Data Update
+
+            This PR updates `champions.json` with the latest champion data from Riot's Data Dragon API.
+
+            ### Changes
+            - **Data Dragon Version**: `${{ steps.version.outputs.version }}`
+            - **Total Champions**: ${{ steps.version.outputs.count }}
+
+            ### Details
+            - Automatically fetched from Data Dragon API
+            - Includes both English and Japanese names
+            - Updates champion images URLs
+
+            This is an automated weekly update. Please review and merge if everything looks correct.
+          labels: |
+            automated
+            data-update
