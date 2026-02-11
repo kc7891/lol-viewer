@@ -89,6 +89,15 @@ def _make_window():
     return window
 
 
+def _make_window_with_champion_data():
+    """Create a MainWindow stub with champion data for lane aptitude testing."""
+    from champion_data import ChampionData
+
+    window = _make_window()
+    window.champion_data = ChampionData()
+    return window
+
+
 def _emit(window, allies=None, enemies=None, phase="ChampSelect", is_new_session=False):
     """Simulate a matchup_data_updated signal."""
     data = {
@@ -165,13 +174,38 @@ def test_ally_lane_occupied_falls_back_to_first_empty():
 # ---------------------------------------------------------------------------
 
 
-def test_enemy_placed_in_pick_order():
-    """Enemies should be placed in first empty enemy slot (pick order)."""
-    window = _make_window()
+def test_enemy_placed_by_lane_aptitude():
+    """Enemies should be placed by lane aptitude from champions.json."""
+    window = _make_window_with_champion_data()
+    # Aatrox (top:5), Thresh (sup:5), Yasuo (mid:5)
+    _emit(window, enemies=["Yasuo", "Thresh", "Aatrox"])
+
+    assert window._matchup_data[0] == ("", "Aatrox")  # top
+    assert window._matchup_data[2] == ("", "Yasuo")   # mid
+    assert window._matchup_data[4] == ("", "Thresh")  # sup
+
+
+def test_enemy_fallback_without_champion_data():
+    """Enemies should use first empty slot when champion_data unavailable."""
+    window = _make_window()  # No champion_data
     _emit(window, enemies=["Zed", "Yasuo"])
 
     assert window._matchup_data[0] == ("", "Zed")
     assert window._matchup_data[1] == ("", "Yasuo")
+
+
+def test_enemy_lane_occupied_uses_next_empty():
+    """When best lane is occupied, enemy goes to next available empty slot."""
+    window = _make_window_with_champion_data()
+    # Pre-occupy support row
+    window._matchup_data[4] = ("", "Leona")
+
+    # Thresh has sup:5 but row 4 is occupied
+    _emit(window, enemies=["Thresh"])
+
+    # Thresh should go to first empty slot (row 0)
+    assert window._matchup_data[0] == ("", "Thresh")
+    assert window._matchup_data[4] == ("", "Leona")  # Leona stays
 
 
 def test_enemy_not_duplicated_on_repeated_emit():
