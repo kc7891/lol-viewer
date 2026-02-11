@@ -59,67 +59,21 @@
 
 ## 2. CSV 名 → JSON キーの名前マッピング
 
-CSV の `name` 列と JSON のキーは命名規則が異なるため、変換が必要である。
-
-### 2-1. 基本的な正規化ルール
-
-CSV 名に対して以下の処理を順に適用すると、大半の名前は JSON キーと一致する:
-
-1. 小文字化（すでに小文字だが念のため）
-2. アポストロフィ `'` を除去
-3. ピリオド `.` を除去
-4. スペースを除去
+基本的に同じ名前になるようにしてある。
 
 ### 2-2. 特殊マッピング（正規化だけでは解決しないもの）
 
 | CSV の name | JSON のキー | 備考 |
 |---|---|---|
 | `wukong` | `monkeyking` | Riot API 内部名が MonkeyKing |
-| `nunu & willump` | `nunu` | JSON 側は `nunu` のみ |
-| `renata glasc` | `renata` | JSON 側は `renata` のみ |
 
-### 2-3. 正規化で解決するマッピング（19件）
-
-参考として、基本ルール適用で自動解決されるものの一覧:
-
-| CSV の name | JSON のキー |
-|---|---|
-| `aurelion sol` | `aurelionsol` |
-| `bel'veth` | `belveth` |
-| `cho'gath` | `chogath` |
-| `dr. mundo` | `drmundo` |
-| `jarvan iv` | `jarvaniv` |
-| `kai'sa` | `kaisa` |
-| `kha'zix` | `khazix` |
-| `kog'maw` | `kogmaw` |
-| `k'sante` | `ksante` |
-| `lee sin` | `leesin` |
-| `master yi` | `masteryi` |
-| `miss fortune` | `missfortune` |
-| `rek'sai` | `reksai` |
-| `tahm kench` | `tahmkench` |
-| `twisted fate` | `twistedfate` |
-| `vel'koz` | `velkoz` |
-| `xin zhao` | `xinzhao` |
-
-### 2-4. CSV 側の問題データ
-
-以下は CSV のデータ品質に関する問題であり、CSV 自体の修正も検討すべきである。
-
-| 問題 | 内容 |
-|---|---|
-| `zaahen` | JSON に該当チャンピオンなし。無効データとして無視するか CSV から削除する |
-| `hecarim` が重複 | CSV に2行存在する。重複を除去すべき |
-| `heimerdinger` が重複 | CSV に2行存在する。重複を除去すべき |
-| `nidalee` が欠落 | JSON には存在するが CSV にない。CSV にデータを追加すべき |
-| `ambessa` が欠落 | JSON には存在するが CSV にない。CSV にデータを追加すべき |
-| `zyra` が欠落 | JSON には存在するが CSV にない。CSV にデータを追加すべき |
+JSON内でも特別対応としてwukongとして扱う必要がある
 
 ---
 
 ## 3. 推奨する実装の流れ
 
-1. まず `champion_lane.csv` のデータ品質問題（重複・欠落・無効エントリ）を修正する
+1. champions.jsonの生成でmonkeykingをwukongに変換するような処理を追加する
 2. `fetch_champions.py` に CSV 読み込み・正規化・マージ処理を追加する
 3. `python fetch_champions.py` を実行して `champions.json` を再生成する
 4. 生成された JSON にレーン情報が正しく含まれていることを確認する
