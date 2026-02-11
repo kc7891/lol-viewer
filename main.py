@@ -2722,8 +2722,12 @@ class MainWindow(QMainWindow):
             # Get champion lane aptitude
             best_idx = empty_indices[0]  # Fallback: first empty row
             champ_info = None
-            if hasattr(self, 'champion_data') and self.champion_data:
-                champ_info = self.champion_data.get_champion(name)
+            try:
+                if self.champion_data:
+                    champ_info = self.champion_data.get_champion(name)
+            except (AttributeError, RuntimeError):
+                # champion_data not available or object not properly initialized
+                pass
             if champ_info:
                 lanes = champ_info.get("lanes", {})
                 # Find empty row with highest aptitude (ties broken by row order)
