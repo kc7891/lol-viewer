@@ -364,13 +364,13 @@ class TestMatchupPairs:
         detector = ChampionDetector(manager, phase_tracker)
         detector.current_champion_name = 'Ashe'
         detector.current_summoner_id = 100
-        # No locked pairs → returns empty matchup list
+        # No locked pairs → returns None for matchup_info (UI should not be updated)
         result = detector.detect_champion_and_enemies()
-        assert result == (None, [], [])
+        assert result == (None, [], None)
         assert detector.current_summoner_id is None
 
     def test_detect_champion_and_enemies_in_progress_uses_gamedata(self):
-        """Test that InProgress phase uses gameData for matchup pairs"""
+        """Test that InProgress phase uses gameData for matchup info"""
         manager = Mock()
         phase_tracker = Mock()
         phase_tracker.update_phase.return_value = 'InProgress'
@@ -386,11 +386,12 @@ class TestMatchupPairs:
         detector.current_lane = 'bottom'
         detector.current_summoner_id = 100
 
-        own, enemies, pairs = detector.detect_champion_and_enemies()
+        own, enemies, matchup_info = detector.detect_champion_and_enemies()
         assert own == ('Ashe', 'bottom')
         assert enemies == []
-        assert len(pairs) == 5
-        assert pairs[0] == ('Ashe', 'Caitlyn')
+        assert matchup_info["phase"] == "InProgress"
+        assert ("Ashe", "") in matchup_info["allies"]
+        assert "Caitlyn" in matchup_info["enemies"]
 
 
     def test_matchup_pairs_locked_after_10_champions(self):
@@ -521,7 +522,12 @@ class TestMatchupPairs:
         assert pairs_after == original_pairs
 
     def test_locked_pairs_persist_through_lobby(self):
-        """Test that locked matchup pairs remain visible in Lobby after game ends"""
+        """Test that locked matchup pairs remain cached in Lobby after game ends.
+
+        In the redesigned flow, detect_champion_and_enemies returns None for
+        matchup_info in Lobby (UI preserves its own state). The lock/cache from
+        get_matchup_pairs_from_gamedata is tested here directly.
+        """
         manager = Mock()
         phase_tracker = Mock()
         champion_map = {
@@ -529,8 +535,6 @@ class TestMatchupPairs:
             238: 'Zed', 157: 'Yasuo', 67: 'Vayne', 63: 'Brand', 37: 'Sona',
         }
 
-        # Start in InProgress with full data
-        phase_tracker.update_phase.return_value = 'InProgress'
         phase_tracker.last_session_data = {
             'gameData': {
                 'teamOne': [
@@ -552,20 +556,20 @@ class TestMatchupPairs:
         detector = ChampionDetector(manager, phase_tracker)
         detector.champion_map = champion_map
         detector.current_summoner_id = 100
-        detector.current_champion_name = 'Ashe'
-        detector.current_lane = 'bottom'
 
-        own, _, pairs_in_game = detector.detect_champion_and_enemies()
+        # Lock via get_matchup_pairs_from_gamedata (legacy path still used for locking)
+        pairs_in_game = detector.get_matchup_pairs_from_gamedata()
         assert detector._matchup_pairs_locked is True
         assert all(ally and enemy for ally, enemy in pairs_in_game[:5])
 
-        # Game ends → Lobby: lock & cache stay, pairs returned
+        # Lobby phase: detect returns None for matchup_info (no UI clearing)
         phase_tracker.update_phase.return_value = 'Lobby'
-        own, _, pairs_lobby = detector.detect_champion_and_enemies()
+        detector.current_champion_name = 'Ashe'
+        own, _, matchup_info = detector.detect_champion_and_enemies()
         assert own is None  # champion state cleared
+        assert matchup_info is None  # UI should not be updated
         assert detector._matchup_pairs_locked is True  # lock preserved
         assert detector._cached_matchup_pairs != []  # cache preserved
-        assert pairs_lobby == pairs_in_game  # same pairs still returned
 
     def test_lock_cleared_on_next_champ_select(self):
         """Test that matchup lock/cache is cleared when a new ChampSelect starts"""
@@ -576,8 +580,7 @@ class TestMatchupPairs:
             238: 'Zed', 157: 'Yasuo', 67: 'Vayne', 63: 'Brand', 37: 'Sona',
         }
 
-        # 1) InProgress with full 10 champions → locked
-        phase_tracker.update_phase.return_value = 'InProgress'
+        # 1) Lock via get_matchup_pairs_from_gamedata (simulates InProgress)
         phase_tracker.last_session_data = {
             'gameData': {
                 'teamOne': [
@@ -602,7 +605,7 @@ class TestMatchupPairs:
         detector.current_champion_name = 'Ashe'
         detector.current_lane = 'bottom'
 
-        detector.detect_champion_and_enemies()
+        detector.get_matchup_pairs_from_gamedata()
         assert detector._matchup_pairs_locked is True
 
         # 2) Transition to Lobby → lock remains
@@ -610,11 +613,12 @@ class TestMatchupPairs:
         detector.detect_champion_and_enemies()
         assert detector._matchup_pairs_locked is True
 
-        # 3) New ChampSelect → lock and cache cleared
+        # 3) New ChampSelect → lock and cache cleared (new session detected)
         phase_tracker.update_phase.return_value = 'ChampSelect'
         manager.make_request.return_value = {
             'localPlayerCellId': 0,
-            'myTeam': [{'cellId': 0, 'championId': 0, 'summonerId': 100}],
+            'timer': {'internalNowInEpochMs': 1000},
+            'myTeam': [{'cellId': 0, 'championId': 0, 'summonerId': 100, 'assignedPosition': ''}],
             'theirTeam': [],
         }
         detector.detect_champion_and_enemies()

@@ -1465,7 +1465,7 @@ class MainWindow(QMainWindow):
         self.champion_detector = ChampionDetectorService()
         self.champion_detector.champion_detected.connect(self.on_champion_detected)
         self.champion_detector.enemy_champion_detected.connect(self.on_enemy_champion_detected)
-        self.champion_detector.matchup_pairs_updated.connect(self.on_matchup_pairs_updated)
+        self.champion_detector.matchup_data_updated.connect(self.on_matchup_data_updated)
         logger.info("ChampionDetectorService initialized and connected")
 
         # Create connection status widget
@@ -2427,7 +2427,20 @@ class MainWindow(QMainWindow):
         )
         title_right.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
+        refresh_btn = QPushButton("Refresh")
+        refresh_btn.setStyleSheet(
+            "QPushButton { font-size: 7pt; padding: 1px 6px; background-color: transparent;"
+            " color: #6d7a8a; border: 1px solid #6d7a8a; border-radius: 3px; }"
+            "QPushButton:hover { color: #c1c9d4; border-color: #c1c9d4; }"
+            "QPushButton:pressed { color: #e2e8f0; border-color: #e2e8f0; }"
+        )
+        refresh_btn.setFixedHeight(18)
+        refresh_btn.setToolTip("Clear all matchup data and re-fetch")
+        refresh_btn.clicked.connect(self._refresh_matchup_list)
+
         title_layout.addWidget(title_left, 1)
+        title_layout.addWidget(refresh_btn, 0)
+        title_layout.addSpacing(6)
         title_layout.addWidget(title_right, 0)
         layout.addWidget(title_row)
 
@@ -2435,7 +2448,6 @@ class MainWindow(QMainWindow):
         # Each row: (ally_icon, ally_name, enemy_name, enemy_icon)
         self._matchup_rows: list[tuple[QLabel, QLabel, QLabel, QLabel]] = []
         self._matchup_data: list[tuple[str, str]] = [("", "")] * 5  # (ally, enemy)
-        self._matchup_user_dirty = False  # True when user has manually reordered
 
         icon_size = 24
         lane_label_style = "QLabel { font-size: 8pt; color: #6d7a8a; background-color: transparent; }"
@@ -2608,77 +2620,100 @@ class MainWindow(QMainWindow):
             self._matchup_data[index] = (ally, enemy)
             self.update_matchup_list()
 
+    # Lane name → row index mapping for placing allies by assigned lane
+    LANE_TO_INDEX = {"top": 0, "jungle": 1, "middle": 2, "bottom": 3, "support": 4}
+
     def clear_matchup_list(self):
         """Clear all matchup entries."""
         self._matchup_data = [("", "")] * 5
-        self._matchup_user_dirty = False
         self.update_matchup_list()
 
-    def on_matchup_pairs_updated(self, pairs: list):
-        """Handle matchup pairs update from champion detector.
+    def _refresh_matchup_list(self):
+        """Refresh button handler: clear all matchup data and trigger re-fetch."""
+        self._matchup_data = [("", "")] * 5
+        self.update_matchup_list()
+        # Trigger immediate re-check from detector
+        if hasattr(self, 'champion_detector') and self.champion_detector:
+            self.champion_detector._check_champion(force=True)
 
-        When the user has manually reordered the list (_matchup_user_dirty),
-        incoming data is *merged* instead of overwriting:
-        - Allies already placed by the user stay in their positions.
-        - Empty enemies are filled from incoming data.
-        - New allies are placed in empty rows.
-        - Allies no longer present in incoming data are removed.
+    def on_matchup_data_updated(self, data: dict):
+        """Handle structured matchup data from champion detector.
 
-        Fixes #77.
+        Core principles:
+        - Once a champion name is placed in a row, it is never automatically removed.
+        - New champions are only placed in empty slots.
+        - On new ChampSelect session, all rows are auto-cleared first.
+        - Allies are placed by lane (if available) or in first empty slot.
+        - Enemies are placed in first empty slot (pick order).
         """
         if not self.feature_flags.get("matchup_list", False):
             return
-        # Pad to 5 entries
-        padded = list(pairs[:5])
-        while len(padded) < 5:
-            padded.append(("", ""))
 
-        if self._matchup_user_dirty:
-            self._merge_matchup_data(padded)
-        else:
-            self._matchup_data = padded
+        # New ChampSelect session → auto-clear before applying new data
+        if data.get("is_new_session"):
+            self._matchup_data = [("", "")] * 5
+
+        allies = data.get("allies", [])
+        enemies = data.get("enemies", [])
+
+        self._apply_new_allies(allies)
+        self._apply_new_enemies(enemies)
         self.update_matchup_list()
 
-    def _merge_matchup_data(self, incoming: list[tuple[str, str]]):
-        """Merge incoming matchup pairs while preserving user-arranged positions.
+    def _apply_new_allies(self, allies: list):
+        """Place new ally champions into matchup rows.
 
-        - Allies already in the list keep their current row and enemy assignment.
-        - If a kept ally has no enemy yet, fill it from incoming data.
-        - Allies no longer in incoming are removed (row cleared).
-        - New allies are placed in the first available empty row.
+        - If a champion is already present in any ally slot, skip it.
+        - Lane-assigned allies are placed first (in their lane row).
+        - Then no-lane allies fill the first empty ally slot.
         """
-        # Build lookup: ally -> enemy from incoming data
-        incoming_map: dict[str, str] = {}
-        incoming_order: list[tuple[str, str]] = []
-        for ally, enemy in incoming:
-            if ally:
-                incoming_map[ally] = enemy
-                incoming_order.append((ally, enemy))
+        # Partition: lane-assigned first, then no-lane
+        with_lane = [(n, l) for n, l in allies if n and l and l in self.LANE_TO_INDEX]
+        without_lane = [(n, l) for n, l in allies if n and (not l or l not in self.LANE_TO_INDEX)]
 
-        accounted: set[str] = set()
-
-        # Pass 1: keep or clear existing rows
-        for i in range(5):
-            ally, enemy = self._matchup_data[i]
-            if not ally:
+        # Pass 1: place lane-assigned allies
+        for name, lane in with_lane:
+            if any(self._matchup_data[i][0] == name for i in range(5)):
                 continue
-            if ally in incoming_map:
-                # Ally still valid – keep position; fill enemy if empty
-                if not enemy and incoming_map[ally]:
-                    self._matchup_data[i] = (ally, incoming_map[ally])
-                accounted.add(ally)
+            lane_idx = self.LANE_TO_INDEX[lane]
+            if not self._matchup_data[lane_idx][0]:
+                _, enemy = self._matchup_data[lane_idx]
+                self._matchup_data[lane_idx] = (name, enemy)
             else:
-                # Ally no longer in incoming – clear row
-                self._matchup_data[i] = ("", "")
+                # Lane row occupied → first empty ally slot
+                for i in range(5):
+                    if not self._matchup_data[i][0]:
+                        _, enemy = self._matchup_data[i]
+                        self._matchup_data[i] = (name, enemy)
+                        break
 
-        # Pass 2: place new allies in empty rows
-        for ally, enemy in incoming_order:
-            if ally in accounted:
+        # Pass 2: place no-lane allies in first empty slot
+        for name, _ in without_lane:
+            if any(self._matchup_data[i][0] == name for i in range(5)):
                 continue
             for i in range(5):
                 if not self._matchup_data[i][0]:
-                    self._matchup_data[i] = (ally, enemy)
-                    accounted.add(ally)
+                    _, enemy = self._matchup_data[i]
+                    self._matchup_data[i] = (name, enemy)
+                    break
+
+    def _apply_new_enemies(self, enemies: list):
+        """Place new enemy champions into matchup rows in pick order.
+
+        - If a champion is already present in any enemy slot, skip it.
+        - Place in the first empty enemy slot.
+        """
+        for name in enemies:
+            if not name:
+                continue
+            # Already placed?
+            if any(self._matchup_data[i][1] == name for i in range(5)):
+                continue
+            # First empty enemy slot
+            for i in range(5):
+                if not self._matchup_data[i][1]:
+                    ally, _ = self._matchup_data[i]
+                    self._matchup_data[i] = (ally, name)
                     break
 
     def _matchup_move_ally(self, index: int, direction: int):
@@ -2690,7 +2725,6 @@ class MainWindow(QMainWindow):
         ally_b, enemy_b = self._matchup_data[target]
         self._matchup_data[index] = (ally_b, enemy_a)
         self._matchup_data[target] = (ally_a, enemy_b)
-        self._matchup_user_dirty = True
         self.update_matchup_list()
 
     def _matchup_move_enemy(self, index: int, direction: int):
@@ -2702,11 +2736,10 @@ class MainWindow(QMainWindow):
         ally_b, enemy_b = self._matchup_data[target]
         self._matchup_data[index] = (ally_a, enemy_b)
         self._matchup_data[target] = (ally_b, enemy_a)
-        self._matchup_user_dirty = True
         self.update_matchup_list()
 
     def _matchup_swap_enemies(self, index: int):
-        """Swap the enemy champion between row *index* and the next row. (#67)
+        """Swap the enemy champion between row *index* and the next row.
 
         Allies stay fixed; only enemies are swapped.
         """
@@ -2717,7 +2750,6 @@ class MainWindow(QMainWindow):
         ally_b, enemy_b = self._matchup_data[target]
         self._matchup_data[index] = (ally_a, enemy_b)
         self._matchup_data[target] = (ally_b, enemy_a)
-        self._matchup_user_dirty = True
         self.update_matchup_list()
 
     def _open_matchup_viewer(self, index: int):
