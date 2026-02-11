@@ -3,1032 +3,2236 @@
     "english_name": "Aatrox",
     "japanese_name": "エイトロックス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Aatrox.png",
-    "id": "Aatrox"
+    "id": "Aatrox",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "ahri": {
     "english_name": "Ahri",
     "japanese_name": "アーリ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Ahri.png",
-    "id": "Ahri"
+    "id": "Ahri",
+    "lanes": {
+      "top": 4,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "akali": {
     "english_name": "Akali",
     "japanese_name": "アカリ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Akali.png",
-    "id": "Akali"
+    "id": "Akali",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 4,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "akshan": {
     "english_name": "Akshan",
     "japanese_name": "アクシャン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Akshan.png",
-    "id": "Akshan"
+    "id": "Akshan",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "alistar": {
     "english_name": "Alistar",
     "japanese_name": "アリスター",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Alistar.png",
-    "id": "Alistar"
+    "id": "Alistar",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "ambessa": {
     "english_name": "Ambessa",
     "japanese_name": "アンベッサ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Ambessa.png",
-    "id": "Ambessa"
+    "id": "Ambessa",
+    "lanes": {
+      "top": 5,
+      "jg": 4,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "amumu": {
     "english_name": "Amumu",
     "japanese_name": "アムム",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Amumu.png",
-    "id": "Amumu"
+    "id": "Amumu",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 4
+    }
   },
   "anivia": {
     "english_name": "Anivia",
     "japanese_name": "アニビア",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Anivia.png",
-    "id": "Anivia"
+    "id": "Anivia",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "annie": {
     "english_name": "Annie",
     "japanese_name": "アニー",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Annie.png",
-    "id": "Annie"
+    "id": "Annie",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "aphelios": {
     "english_name": "Aphelios",
     "japanese_name": "アフェリオス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Aphelios.png",
-    "id": "Aphelios"
+    "id": "Aphelios",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "ashe": {
     "english_name": "Ashe",
     "japanese_name": "アッシュ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Ashe.png",
-    "id": "Ashe"
+    "id": "Ashe",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "aurelionsol": {
     "english_name": "Aurelion Sol",
     "japanese_name": "オレリオン・ソル",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/AurelionSol.png",
-    "id": "AurelionSol"
+    "id": "AurelionSol",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "aurora": {
     "english_name": "Aurora",
     "japanese_name": "オーロラ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Aurora.png",
-    "id": "Aurora"
+    "id": "Aurora",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "azir": {
     "english_name": "Azir",
     "japanese_name": "アジール",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Azir.png",
-    "id": "Azir"
+    "id": "Azir",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "bard": {
     "english_name": "Bard",
     "japanese_name": "バード",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Bard.png",
-    "id": "Bard"
+    "id": "Bard",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "belveth": {
     "english_name": "Bel'Veth",
     "japanese_name": "ベル＝ヴェス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Belveth.png",
-    "id": "Belveth"
+    "id": "Belveth",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "blitzcrank": {
     "english_name": "Blitzcrank",
     "japanese_name": "ブリッツクランク",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Blitzcrank.png",
-    "id": "Blitzcrank"
+    "id": "Blitzcrank",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "brand": {
     "english_name": "Brand",
     "japanese_name": "ブランド",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Brand.png",
-    "id": "Brand"
+    "id": "Brand",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "braum": {
     "english_name": "Braum",
     "japanese_name": "ブラウム",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Braum.png",
-    "id": "Braum"
+    "id": "Braum",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "briar": {
     "english_name": "Briar",
     "japanese_name": "ブライアー",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Briar.png",
-    "id": "Briar"
+    "id": "Briar",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "caitlyn": {
     "english_name": "Caitlyn",
     "japanese_name": "ケイトリン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Caitlyn.png",
-    "id": "Caitlyn"
+    "id": "Caitlyn",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "camille": {
     "english_name": "Camille",
     "japanese_name": "カミール",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Camille.png",
-    "id": "Camille"
+    "id": "Camille",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "cassiopeia": {
     "english_name": "Cassiopeia",
     "japanese_name": "カシオペア",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Cassiopeia.png",
-    "id": "Cassiopeia"
+    "id": "Cassiopeia",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "chogath": {
     "english_name": "Cho'Gath",
     "japanese_name": "チョ＝ガス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Chogath.png",
-    "id": "Chogath"
+    "id": "Chogath",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "corki": {
     "english_name": "Corki",
     "japanese_name": "コーキ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Corki.png",
-    "id": "Corki"
+    "id": "Corki",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "darius": {
     "english_name": "Darius",
     "japanese_name": "ダリウス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Darius.png",
-    "id": "Darius"
+    "id": "Darius",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "diana": {
     "english_name": "Diana",
     "japanese_name": "ダイアナ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Diana.png",
-    "id": "Diana"
+    "id": "Diana",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 4,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "draven": {
     "english_name": "Draven",
     "japanese_name": "ドレイヴン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Draven.png",
-    "id": "Draven"
+    "id": "Draven",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "drmundo": {
     "english_name": "Dr. Mundo",
     "japanese_name": "ドクター・ムンド",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/DrMundo.png",
-    "id": "DrMundo"
+    "id": "DrMundo",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "ekko": {
     "english_name": "Ekko",
     "japanese_name": "エコー",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Ekko.png",
-    "id": "Ekko"
+    "id": "Ekko",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "elise": {
     "english_name": "Elise",
     "japanese_name": "エリス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Elise.png",
-    "id": "Elise"
+    "id": "Elise",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "evelynn": {
     "english_name": "Evelynn",
     "japanese_name": "イブリン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Evelynn.png",
-    "id": "Evelynn"
+    "id": "Evelynn",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "ezreal": {
     "english_name": "Ezreal",
     "japanese_name": "エズリアル",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Ezreal.png",
-    "id": "Ezreal"
+    "id": "Ezreal",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "fiddlesticks": {
     "english_name": "Fiddlesticks",
     "japanese_name": "フィドルスティックス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Fiddlesticks.png",
-    "id": "Fiddlesticks"
+    "id": "Fiddlesticks",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "fiora": {
     "english_name": "Fiora",
     "japanese_name": "フィオラ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Fiora.png",
-    "id": "Fiora"
+    "id": "Fiora",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "fizz": {
     "english_name": "Fizz",
     "japanese_name": "フィズ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Fizz.png",
-    "id": "Fizz"
+    "id": "Fizz",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "galio": {
     "english_name": "Galio",
     "japanese_name": "ガリオ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Galio.png",
-    "id": "Galio"
+    "id": "Galio",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "gangplank": {
     "english_name": "Gangplank",
     "japanese_name": "ガングプランク",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Gangplank.png",
-    "id": "Gangplank"
+    "id": "Gangplank",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "garen": {
     "english_name": "Garen",
     "japanese_name": "ガレン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Garen.png",
-    "id": "Garen"
+    "id": "Garen",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "gnar": {
     "english_name": "Gnar",
     "japanese_name": "ナー",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Gnar.png",
-    "id": "Gnar"
+    "id": "Gnar",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "gragas": {
     "english_name": "Gragas",
     "japanese_name": "グラガス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Gragas.png",
-    "id": "Gragas"
+    "id": "Gragas",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 4,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "graves": {
     "english_name": "Graves",
     "japanese_name": "グレイブス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Graves.png",
-    "id": "Graves"
+    "id": "Graves",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "gwen": {
     "english_name": "Gwen",
     "japanese_name": "グウェン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Gwen.png",
-    "id": "Gwen"
+    "id": "Gwen",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "hecarim": {
     "english_name": "Hecarim",
     "japanese_name": "ヘカリム",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Hecarim.png",
-    "id": "Hecarim"
+    "id": "Hecarim",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "heimerdinger": {
     "english_name": "Heimerdinger",
     "japanese_name": "ハイマーディンガー",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Heimerdinger.png",
-    "id": "Heimerdinger"
+    "id": "Heimerdinger",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 4
+    }
   },
   "hwei": {
     "english_name": "Hwei",
     "japanese_name": "フェイ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Hwei.png",
-    "id": "Hwei"
+    "id": "Hwei",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "illaoi": {
     "english_name": "Illaoi",
     "japanese_name": "イラオイ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Illaoi.png",
-    "id": "Illaoi"
+    "id": "Illaoi",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "irelia": {
     "english_name": "Irelia",
     "japanese_name": "イレリア",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Irelia.png",
-    "id": "Irelia"
+    "id": "Irelia",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 4,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "ivern": {
     "english_name": "Ivern",
     "japanese_name": "アイバーン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Ivern.png",
-    "id": "Ivern"
+    "id": "Ivern",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "janna": {
     "english_name": "Janna",
     "japanese_name": "ジャンナ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Janna.png",
-    "id": "Janna"
+    "id": "Janna",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "jarvaniv": {
     "english_name": "Jarvan IV",
     "japanese_name": "ジャーヴァンⅣ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/JarvanIV.png",
-    "id": "JarvanIV"
+    "id": "JarvanIV",
+    "lanes": {
+      "top": 3,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 4
+    }
   },
   "jax": {
     "english_name": "Jax",
     "japanese_name": "ジャックス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Jax.png",
-    "id": "Jax"
+    "id": "Jax",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "jayce": {
     "english_name": "Jayce",
     "japanese_name": "ジェイス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Jayce.png",
-    "id": "Jayce"
+    "id": "Jayce",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 4,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "jhin": {
     "english_name": "Jhin",
     "japanese_name": "ジン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Jhin.png",
-    "id": "Jhin"
+    "id": "Jhin",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "jinx": {
     "english_name": "Jinx",
     "japanese_name": "ジンクス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Jinx.png",
-    "id": "Jinx"
+    "id": "Jinx",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "kaisa": {
     "english_name": "Kai'Sa",
     "japanese_name": "カイ＝サ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Kaisa.png",
-    "id": "Kaisa"
+    "id": "Kaisa",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "kalista": {
     "english_name": "Kalista",
     "japanese_name": "カリスタ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Kalista.png",
-    "id": "Kalista"
+    "id": "Kalista",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "karma": {
     "english_name": "Karma",
     "japanese_name": "カルマ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Karma.png",
-    "id": "Karma"
+    "id": "Karma",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "karthus": {
     "english_name": "Karthus",
     "japanese_name": "カーサス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Karthus.png",
-    "id": "Karthus"
+    "id": "Karthus",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "kassadin": {
     "english_name": "Kassadin",
     "japanese_name": "カサディン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Kassadin.png",
-    "id": "Kassadin"
+    "id": "Kassadin",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "katarina": {
     "english_name": "Katarina",
     "japanese_name": "カタリナ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Katarina.png",
-    "id": "Katarina"
+    "id": "Katarina",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "kayle": {
     "english_name": "Kayle",
     "japanese_name": "ケイル",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Kayle.png",
-    "id": "Kayle"
+    "id": "Kayle",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 4,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "kayn": {
     "english_name": "Kayn",
     "japanese_name": "ケイン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Kayn.png",
-    "id": "Kayn"
+    "id": "Kayn",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "kennen": {
     "english_name": "Kennen",
     "japanese_name": "ケネン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Kennen.png",
-    "id": "Kennen"
+    "id": "Kennen",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "khazix": {
     "english_name": "Kha'Zix",
     "japanese_name": "カ＝ジックス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Khazix.png",
-    "id": "Khazix"
+    "id": "Khazix",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "kindred": {
     "english_name": "Kindred",
     "japanese_name": "キンドレッド",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Kindred.png",
-    "id": "Kindred"
+    "id": "Kindred",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "kled": {
     "english_name": "Kled",
     "japanese_name": "クレッド",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Kled.png",
-    "id": "Kled"
+    "id": "Kled",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "kogmaw": {
     "english_name": "Kog'Maw",
     "japanese_name": "コグ＝マウ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/KogMaw.png",
-    "id": "KogMaw"
+    "id": "KogMaw",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "ksante": {
     "english_name": "K'Sante",
     "japanese_name": "カ・サンテ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/KSante.png",
-    "id": "KSante"
+    "id": "KSante",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "leblanc": {
     "english_name": "LeBlanc",
     "japanese_name": "ルブラン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Leblanc.png",
-    "id": "Leblanc"
+    "id": "Leblanc",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "leesin": {
     "english_name": "Lee Sin",
     "japanese_name": "リー・シン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/LeeSin.png",
-    "id": "LeeSin"
+    "id": "LeeSin",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "leona": {
     "english_name": "Leona",
     "japanese_name": "レオナ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Leona.png",
-    "id": "Leona"
+    "id": "Leona",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "lillia": {
     "english_name": "Lillia",
     "japanese_name": "リリア",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Lillia.png",
-    "id": "Lillia"
+    "id": "Lillia",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "lissandra": {
     "english_name": "Lissandra",
     "japanese_name": "リサンドラ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Lissandra.png",
-    "id": "Lissandra"
+    "id": "Lissandra",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "lucian": {
     "english_name": "Lucian",
     "japanese_name": "ルシアン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Lucian.png",
-    "id": "Lucian"
+    "id": "Lucian",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "lulu": {
     "english_name": "Lulu",
     "japanese_name": "ルル",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Lulu.png",
-    "id": "Lulu"
+    "id": "Lulu",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "lux": {
     "english_name": "Lux",
     "japanese_name": "ラックス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Lux.png",
-    "id": "Lux"
+    "id": "Lux",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "malphite": {
     "english_name": "Malphite",
     "japanese_name": "マルファイト",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Malphite.png",
-    "id": "Malphite"
+    "id": "Malphite",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "malzahar": {
     "english_name": "Malzahar",
     "japanese_name": "マルザハール",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Malzahar.png",
-    "id": "Malzahar"
+    "id": "Malzahar",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "maokai": {
     "english_name": "Maokai",
     "japanese_name": "マオカイ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Maokai.png",
-    "id": "Maokai"
+    "id": "Maokai",
+    "lanes": {
+      "top": 4,
+      "jg": 3,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "masteryi": {
     "english_name": "Master Yi",
     "japanese_name": "マスター・イー",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/MasterYi.png",
-    "id": "MasterYi"
+    "id": "MasterYi",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "mel": {
     "english_name": "Mel",
     "japanese_name": "メル",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Mel.png",
-    "id": "Mel"
+    "id": "Mel",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "milio": {
     "english_name": "Milio",
     "japanese_name": "ミリオ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Milio.png",
-    "id": "Milio"
+    "id": "Milio",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "missfortune": {
     "english_name": "Miss Fortune",
     "japanese_name": "ミス・フォーチュン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/MissFortune.png",
-    "id": "MissFortune"
+    "id": "MissFortune",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 3,
+      "bot": 4,
+      "sup": 0
+    }
   },
-  "monkeyking": {
+  "wukong": {
     "english_name": "Wukong",
     "japanese_name": "ウーコン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/MonkeyKing.png",
-    "id": "MonkeyKing"
+    "id": "MonkeyKing",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "mordekaiser": {
     "english_name": "Mordekaiser",
     "japanese_name": "モルデカイザー",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Mordekaiser.png",
-    "id": "Mordekaiser"
+    "id": "Mordekaiser",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "morgana": {
     "english_name": "Morgana",
     "japanese_name": "モルガナ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Morgana.png",
-    "id": "Morgana"
+    "id": "Morgana",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "naafiri": {
     "english_name": "Naafiri",
     "japanese_name": "ナフィーリ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Naafiri.png",
-    "id": "Naafiri"
+    "id": "Naafiri",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "nami": {
     "english_name": "Nami",
     "japanese_name": "ナミ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Nami.png",
-    "id": "Nami"
+    "id": "Nami",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "nasus": {
     "english_name": "Nasus",
     "japanese_name": "ナサス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Nasus.png",
-    "id": "Nasus"
+    "id": "Nasus",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "nautilus": {
     "english_name": "Nautilus",
     "japanese_name": "ノーチラス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Nautilus.png",
-    "id": "Nautilus"
+    "id": "Nautilus",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "neeko": {
     "english_name": "Neeko",
     "japanese_name": "ニーコ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Neeko.png",
-    "id": "Neeko"
+    "id": "Neeko",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 4
+    }
   },
   "nidalee": {
     "english_name": "Nidalee",
     "japanese_name": "ニダリー",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Nidalee.png",
-    "id": "Nidalee"
+    "id": "Nidalee",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "nilah": {
     "english_name": "Nilah",
     "japanese_name": "ニーラ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Nilah.png",
-    "id": "Nilah"
+    "id": "Nilah",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "nocturne": {
     "english_name": "Nocturne",
     "japanese_name": "ノクターン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Nocturne.png",
-    "id": "Nocturne"
+    "id": "Nocturne",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "nunu": {
     "english_name": "Nunu & Willump",
     "japanese_name": "ヌヌ＆ウィルンプ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Nunu.png",
-    "id": "Nunu"
+    "id": "Nunu",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "olaf": {
     "english_name": "Olaf",
     "japanese_name": "オラフ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Olaf.png",
-    "id": "Olaf"
+    "id": "Olaf",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "orianna": {
     "english_name": "Orianna",
     "japanese_name": "オリアナ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Orianna.png",
-    "id": "Orianna"
+    "id": "Orianna",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "ornn": {
     "english_name": "Ornn",
     "japanese_name": "オーン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Ornn.png",
-    "id": "Ornn"
+    "id": "Ornn",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "pantheon": {
     "english_name": "Pantheon",
     "japanese_name": "パンテオン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Pantheon.png",
-    "id": "Pantheon"
+    "id": "Pantheon",
+    "lanes": {
+      "top": 4,
+      "jg": 3,
+      "mid": 2,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "poppy": {
     "english_name": "Poppy",
     "japanese_name": "ポッピー",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Poppy.png",
-    "id": "Poppy"
+    "id": "Poppy",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "pyke": {
     "english_name": "Pyke",
     "japanese_name": "パイク",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Pyke.png",
-    "id": "Pyke"
+    "id": "Pyke",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "qiyana": {
     "english_name": "Qiyana",
     "japanese_name": "キヤナ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Qiyana.png",
-    "id": "Qiyana"
+    "id": "Qiyana",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "quinn": {
     "english_name": "Quinn",
     "japanese_name": "クイン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Quinn.png",
-    "id": "Quinn"
+    "id": "Quinn",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "rakan": {
     "english_name": "Rakan",
     "japanese_name": "ラカン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Rakan.png",
-    "id": "Rakan"
+    "id": "Rakan",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "rammus": {
     "english_name": "Rammus",
     "japanese_name": "ラムス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Rammus.png",
-    "id": "Rammus"
+    "id": "Rammus",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "reksai": {
     "english_name": "Rek'Sai",
     "japanese_name": "レク＝サイ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/RekSai.png",
-    "id": "RekSai"
+    "id": "RekSai",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "rell": {
     "english_name": "Rell",
     "japanese_name": "レル",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Rell.png",
-    "id": "Rell"
+    "id": "Rell",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "renata": {
     "english_name": "Renata Glasc",
     "japanese_name": "レナータ・グラスク",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Renata.png",
-    "id": "Renata"
+    "id": "Renata",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "renekton": {
     "english_name": "Renekton",
     "japanese_name": "レネクトン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Renekton.png",
-    "id": "Renekton"
+    "id": "Renekton",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "rengar": {
     "english_name": "Rengar",
     "japanese_name": "レンガー",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Rengar.png",
-    "id": "Rengar"
+    "id": "Rengar",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "riven": {
     "english_name": "Riven",
     "japanese_name": "リヴェン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Riven.png",
-    "id": "Riven"
+    "id": "Riven",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "rumble": {
     "english_name": "Rumble",
     "japanese_name": "ランブル",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Rumble.png",
-    "id": "Rumble"
+    "id": "Rumble",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "ryze": {
     "english_name": "Ryze",
     "japanese_name": "ライズ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Ryze.png",
-    "id": "Ryze"
+    "id": "Ryze",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "samira": {
     "english_name": "Samira",
     "japanese_name": "サミーラ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Samira.png",
-    "id": "Samira"
+    "id": "Samira",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "sejuani": {
     "english_name": "Sejuani",
     "japanese_name": "セジュアニ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Sejuani.png",
-    "id": "Sejuani"
+    "id": "Sejuani",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "senna": {
     "english_name": "Senna",
     "japanese_name": "セナ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Senna.png",
-    "id": "Senna"
+    "id": "Senna",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "seraphine": {
     "english_name": "Seraphine",
     "japanese_name": "セラフィーン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Seraphine.png",
-    "id": "Seraphine"
+    "id": "Seraphine",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "sett": {
     "english_name": "Sett",
     "japanese_name": "セト",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Sett.png",
-    "id": "Sett"
+    "id": "Sett",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "shaco": {
     "english_name": "Shaco",
     "japanese_name": "シャコ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Shaco.png",
-    "id": "Shaco"
+    "id": "Shaco",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "shen": {
     "english_name": "Shen",
     "japanese_name": "シェン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Shen.png",
-    "id": "Shen"
+    "id": "Shen",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "shyvana": {
     "english_name": "Shyvana",
     "japanese_name": "シヴァーナ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Shyvana.png",
-    "id": "Shyvana"
+    "id": "Shyvana",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "singed": {
     "english_name": "Singed",
     "japanese_name": "シンジド",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Singed.png",
-    "id": "Singed"
+    "id": "Singed",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "sion": {
     "english_name": "Sion",
     "japanese_name": "サイオン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Sion.png",
-    "id": "Sion"
+    "id": "Sion",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "sivir": {
     "english_name": "Sivir",
     "japanese_name": "シヴィア",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Sivir.png",
-    "id": "Sivir"
+    "id": "Sivir",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "skarner": {
     "english_name": "Skarner",
     "japanese_name": "スカーナー",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Skarner.png",
-    "id": "Skarner"
+    "id": "Skarner",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "smolder": {
     "english_name": "Smolder",
     "japanese_name": "スモルダー",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Smolder.png",
-    "id": "Smolder"
+    "id": "Smolder",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "sona": {
     "english_name": "Sona",
     "japanese_name": "ソナ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Sona.png",
-    "id": "Sona"
+    "id": "Sona",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "soraka": {
     "english_name": "Soraka",
     "japanese_name": "ソラカ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Soraka.png",
-    "id": "Soraka"
+    "id": "Soraka",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "swain": {
     "english_name": "Swain",
     "japanese_name": "スウェイン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Swain.png",
-    "id": "Swain"
+    "id": "Swain",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 4,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "sylas": {
     "english_name": "Sylas",
     "japanese_name": "サイラス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Sylas.png",
-    "id": "Sylas"
+    "id": "Sylas",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "syndra": {
     "english_name": "Syndra",
     "japanese_name": "シンドラ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Syndra.png",
-    "id": "Syndra"
+    "id": "Syndra",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "tahmkench": {
     "english_name": "Tahm Kench",
     "japanese_name": "タム・ケンチ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/TahmKench.png",
-    "id": "TahmKench"
+    "id": "TahmKench",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "taliyah": {
     "english_name": "Taliyah",
     "japanese_name": "タリヤ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Taliyah.png",
-    "id": "Taliyah"
+    "id": "Taliyah",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "talon": {
     "english_name": "Talon",
     "japanese_name": "タロン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Talon.png",
-    "id": "Talon"
+    "id": "Talon",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "taric": {
     "english_name": "Taric",
     "japanese_name": "タリック",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Taric.png",
-    "id": "Taric"
+    "id": "Taric",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "teemo": {
     "english_name": "Teemo",
     "japanese_name": "ティーモ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Teemo.png",
-    "id": "Teemo"
+    "id": "Teemo",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "thresh": {
     "english_name": "Thresh",
     "japanese_name": "スレッシュ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Thresh.png",
-    "id": "Thresh"
+    "id": "Thresh",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "tristana": {
     "english_name": "Tristana",
     "japanese_name": "トリスターナ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Tristana.png",
-    "id": "Tristana"
+    "id": "Tristana",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "trundle": {
     "english_name": "Trundle",
     "japanese_name": "トランドル",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Trundle.png",
-    "id": "Trundle"
+    "id": "Trundle",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "tryndamere": {
     "english_name": "Tryndamere",
     "japanese_name": "トリンダメア",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Tryndamere.png",
-    "id": "Tryndamere"
+    "id": "Tryndamere",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "twistedfate": {
     "english_name": "Twisted Fate",
     "japanese_name": "ツイステッド・フェイト",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/TwistedFate.png",
-    "id": "TwistedFate"
+    "id": "TwistedFate",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "twitch": {
     "english_name": "Twitch",
     "japanese_name": "トゥイッチ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Twitch.png",
-    "id": "Twitch"
+    "id": "Twitch",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "udyr": {
     "english_name": "Udyr",
     "japanese_name": "ウディア",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Udyr.png",
-    "id": "Udyr"
+    "id": "Udyr",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "urgot": {
     "english_name": "Urgot",
     "japanese_name": "アーゴット",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Urgot.png",
-    "id": "Urgot"
+    "id": "Urgot",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "varus": {
     "english_name": "Varus",
     "japanese_name": "ヴァルス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Varus.png",
-    "id": "Varus"
+    "id": "Varus",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "vayne": {
     "english_name": "Vayne",
     "japanese_name": "ヴェイン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Vayne.png",
-    "id": "Vayne"
+    "id": "Vayne",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "veigar": {
     "english_name": "Veigar",
     "japanese_name": "ベイガー",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Veigar.png",
-    "id": "Veigar"
+    "id": "Veigar",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "velkoz": {
     "english_name": "Vel'Koz",
     "japanese_name": "ヴェル＝コズ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Velkoz.png",
-    "id": "Velkoz"
+    "id": "Velkoz",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "vex": {
     "english_name": "Vex",
     "japanese_name": "ヴェックス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Vex.png",
-    "id": "Vex"
+    "id": "Vex",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "vi": {
     "english_name": "Vi",
     "japanese_name": "ヴァイ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Vi.png",
-    "id": "Vi"
+    "id": "Vi",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "viego": {
     "english_name": "Viego",
     "japanese_name": "ヴィエゴ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Viego.png",
-    "id": "Viego"
+    "id": "Viego",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "viktor": {
     "english_name": "Viktor",
     "japanese_name": "ビクター",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Viktor.png",
-    "id": "Viktor"
+    "id": "Viktor",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "vladimir": {
     "english_name": "Vladimir",
     "japanese_name": "ブラッドミア",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Vladimir.png",
-    "id": "Vladimir"
+    "id": "Vladimir",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "volibear": {
     "english_name": "Volibear",
     "japanese_name": "ボリベア",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Volibear.png",
-    "id": "Volibear"
+    "id": "Volibear",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "warwick": {
     "english_name": "Warwick",
     "japanese_name": "ワーウィック",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Warwick.png",
-    "id": "Warwick"
+    "id": "Warwick",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "xayah": {
     "english_name": "Xayah",
     "japanese_name": "ザヤ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Xayah.png",
-    "id": "Xayah"
+    "id": "Xayah",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "xerath": {
     "english_name": "Xerath",
     "japanese_name": "ゼラス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Xerath.png",
-    "id": "Xerath"
+    "id": "Xerath",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "xinzhao": {
     "english_name": "Xin Zhao",
     "japanese_name": "シン・ジャオ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/XinZhao.png",
-    "id": "XinZhao"
+    "id": "XinZhao",
+    "lanes": {
+      "top": 0,
+      "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "yasuo": {
     "english_name": "Yasuo",
     "japanese_name": "ヤスオ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Yasuo.png",
-    "id": "Yasuo"
+    "id": "Yasuo",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "yone": {
     "english_name": "Yone",
     "japanese_name": "ヨネ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Yone.png",
-    "id": "Yone"
+    "id": "Yone",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "yorick": {
     "english_name": "Yorick",
     "japanese_name": "ヨリック",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Yorick.png",
-    "id": "Yorick"
+    "id": "Yorick",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "yunara": {
     "english_name": "Yunara",
     "japanese_name": "ユナラ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Yunara.png",
-    "id": "Yunara"
+    "id": "Yunara",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "yuumi": {
     "english_name": "Yuumi",
     "japanese_name": "ユーミ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Yuumi.png",
-    "id": "Yuumi"
+    "id": "Yuumi",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "zaahen": {
     "english_name": "Zaahen",
     "japanese_name": "ザーヘン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Zaahen.png",
-    "id": "Zaahen"
+    "id": "Zaahen",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "zac": {
     "english_name": "Zac",
     "japanese_name": "ザック",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Zac.png",
-    "id": "Zac"
+    "id": "Zac",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "zed": {
     "english_name": "Zed",
     "japanese_name": "ゼド",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Zed.png",
-    "id": "Zed"
+    "id": "Zed",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "zeri": {
     "english_name": "Zeri",
     "japanese_name": "ゼリ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Zeri.png",
-    "id": "Zeri"
+    "id": "Zeri",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 5,
+      "sup": 0
+    }
   },
   "ziggs": {
     "english_name": "Ziggs",
     "japanese_name": "ジグス",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Ziggs.png",
-    "id": "Ziggs"
+    "id": "Ziggs",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "zilean": {
     "english_name": "Zilean",
     "japanese_name": "ジリアン",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Zilean.png",
-    "id": "Zilean"
+    "id": "Zilean",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   },
   "zoe": {
     "english_name": "Zoe",
     "japanese_name": "ゾーイ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Zoe.png",
-    "id": "Zoe"
+    "id": "Zoe",
+    "lanes": {
+      "top": 0,
+      "jg": 0,
+      "mid": 5,
+      "bot": 0,
+      "sup": 0
+    }
   },
   "zyra": {
     "english_name": "Zyra",
     "japanese_name": "ザイラ",
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/Zyra.png",
-    "id": "Zyra"
+    "id": "Zyra",
+    "lanes": {
+      "top": 0,
+      "jg": 4,
+      "mid": 0,
+      "bot": 0,
+      "sup": 5
+    }
   }
 }

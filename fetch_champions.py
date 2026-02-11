@@ -3,6 +3,7 @@
 Script to fetch champion data from League of Legends official website
 and create a champion dictionary with English names, Japanese names, and image URLs.
 """
+import csv
 import json
 import re
 import requests
@@ -123,9 +124,14 @@ def build_champion_dictionary():
     en_url = "https://www.leagueoflegends.com/en-us/champions/"
     ja_url = "https://www.leagueoflegends.com/ja-jp/champions/"
 
-    # Fetch data from both languages
-    en_data = fetch_champions_from_url(en_url)
-    ja_data = fetch_champions_from_url(ja_url)
+    # Try to fetch data from both languages, fallback on error
+    try:
+        en_data = fetch_champions_from_url(en_url)
+        ja_data = fetch_champions_from_url(ja_url)
+    except Exception as e:
+        print(f"Error fetching from website: {e}")
+        print("Using fallback champion data...")
+        return get_fallback_champion_data()
 
     # Extract champion lists
     en_champions = extract_champion_list(en_data, 'en')
@@ -153,6 +159,43 @@ def build_champion_dictionary():
             }
 
     return champion_dict
+
+
+def load_lane_data(csv_path: str = "champion_lane.csv") -> dict:
+    """
+    Load lane data from CSV file.
+
+    Args:
+        csv_path: Path to the champion_lane.csv file
+
+    Returns:
+        Dictionary mapping champion names (lowercase) to lane data
+    """
+    lane_data = {}
+
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                # CSV names are already normalized (lowercase, no spaces/special chars)
+                champ_name = row['name'].strip().lower()
+
+                # Store lane ratings as integers
+                lane_data[champ_name] = {
+                    'top': int(row['top']),
+                    'jg': int(row['jg']),
+                    'mid': int(row['mid']),
+                    'bot': int(row['bot']),
+                    'sup': int(row['sup'])
+                }
+
+        print(f"Loaded lane data for {len(lane_data)} champions from {csv_path}")
+    except FileNotFoundError:
+        print(f"Warning: {csv_path} not found, lane data will not be available")
+    except Exception as e:
+        print(f"Error loading lane data: {e}")
+
+    return lane_data
 
 
 def get_fallback_champion_data():
@@ -194,12 +237,37 @@ def get_fallback_champion_data():
         # Use the champion's ID as the key (lowercase)
         key = champ_id.lower()
 
+        # Special case: Convert "monkeyking" to "wukong" for consistency with CSV
+        if key == "monkeyking":
+            key = "wukong"
+
         champion_dict[key] = {
             'english_name': en_name,
             'japanese_name': ja_name,
             'image_url': image_url,
             'id': champ_id
         }
+
+    # Load and merge lane data
+    lane_data = load_lane_data()
+
+    # Default lane values for champions not in CSV
+    default_lanes = {
+        'top': 0,
+        'jg': 0,
+        'mid': 0,
+        'bot': 0,
+        'sup': 0
+    }
+
+    # Merge lane data into champion dictionary
+    for key, champ_info in champion_dict.items():
+        if key in lane_data:
+            champ_info['lanes'] = lane_data[key]
+        else:
+            # Champion not in CSV, use default values
+            champ_info['lanes'] = default_lanes.copy()
+            print(f"  Note: Champion '{key}' not found in CSV, using default lane values")
 
     return champion_dict
 
