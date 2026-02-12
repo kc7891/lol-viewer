@@ -3219,7 +3219,33 @@ class MainWindow(QMainWindow):
             self.viewers_list.setItemWidget(item, item_widget)
 
     def get_open_champion_suggestions(self, exclude_viewer: Optional[ChampionViewerWidget] = None) -> List[str]:
-        """Return unique champion names currently shown across all viewers."""
+        """Return opponent champion suggestions.
+
+        If the Current Matchup section has enemy picks, return those.
+        Otherwise fall back to champion names shown across all viewers.
+        """
+        # Prefer enemy picks from Current Matchup data
+        try:
+            matchup_enabled = self.feature_flags.get("matchup_list", False)
+            matchup_data = self._matchup_data
+        except RuntimeError:
+            matchup_enabled = False
+            matchup_data = []
+        if matchup_enabled and matchup_data:
+            enemies: List[str] = []
+            seen: set = set()
+            for _ally, enemy in matchup_data:
+                if not enemy:
+                    continue
+                normalized = enemy.lower()
+                if normalized in seen:
+                    continue
+                seen.add(normalized)
+                enemies.append(enemy)
+            if enemies:
+                return enemies
+
+        # Fallback: collect from open viewers
         suggestions: List[str] = []
         seen = set()
 
