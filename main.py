@@ -3225,7 +3225,7 @@ class MainWindow(QMainWindow):
         Otherwise fall back to champion names shown across all viewers.
         """
         # Prefer enemy picks from Current Matchup data
-        if self.feature_flags.get("matchup_list", False) and hasattr(self, "_matchup_data"):
+        if getattr(self, "feature_flags", {}).get("matchup_list", False) and hasattr(self, "_matchup_data"):
             enemies: List[str] = []
             seen: set = set()
             for _ally, enemy in self._matchup_data:
