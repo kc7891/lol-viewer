@@ -118,7 +118,7 @@ class LCUConnectionManager:
         try:
             url = f"https://127.0.0.1:{self.port}{endpoint}"
             headers = {'Authorization': self.get_auth_header()}
-            response = requests.get(url, headers=headers, verify=False, timeout=5)
+            response = requests.get(url, headers=headers, verify=False, timeout=2)
 
             if response.status_code == 200:
                 return response.json()
@@ -240,6 +240,7 @@ class ChampionDetector:
         self._last_champ_select_timer: float = 0  # Track ChampSelect session changes
         self._cached_allies: list = []  # Cache allies for InProgress merge
         self._cached_enemies: list = []  # Cache enemies for InProgress merge
+        self._summoner_id_fetch_failures: int = 0  # Retry limit for summoner ID fetch
         self.champion_map: Dict[int, str] = {}
         logger.info("ChampionDetector initialized")
         self._load_champion_map()
@@ -367,7 +368,7 @@ class ChampionDetector:
 
         except Exception as e:
             logger.error(f"Error detecting champions: {e}")
-            return (None, [], [])
+            return (None, [], None)
 
     def detect_champion(self) -> Optional[str]:
         """Detect own champion only (backwards-compatible helper).
@@ -711,15 +712,25 @@ class ChampionDetector:
             return self._cached_matchup_pairs
 
     def _fetch_current_summoner_id(self):
-        """Fetch and cache current summoner ID from LCU API."""
+        """Fetch and cache current summoner ID from LCU API.
+
+        Gives up after 3 consecutive failures to avoid blocking the main
+        thread with a retry on every polling cycle.
+        """
+        if self._summoner_id_fetch_failures >= 3:
+            return
         try:
             data = self.lcu_manager.make_request("/lol-summoner/v1/current-summoner")
             if data and isinstance(data, dict):
                 sid = data.get('summonerId')
                 if sid:
                     self.current_summoner_id = sid
+                    self._summoner_id_fetch_failures = 0
                     logger.info(f"Fetched current summoner ID: {sid}")
+                    return
+            self._summoner_id_fetch_failures += 1
         except Exception as e:
+            self._summoner_id_fetch_failures += 1
             logger.error(f"Error fetching current summoner ID: {e}")
 
 
@@ -779,6 +790,7 @@ class ChampionDetectorService(QObject):
         self.detector.detected_enemy_champions.clear()
         self.detector._cached_matchup_pairs = []
         self.detector._matchup_pairs_locked = False
+        self.detector._summoner_id_fetch_failures = 0
         self.detector._cached_allies = []
         self.detector._cached_enemies = []
         # Do NOT emit matchup signal on disconnect – UI preserves existing data
@@ -916,7 +928,7 @@ class ChampionDetectorService(QObject):
                 return
 
             # Only emit matchup data when there is meaningful info (never emit None/empty to clear UI)
-            if matchup_info is not None:
+            if isinstance(matchup_info, dict):
                 self.matchup_data_updated.emit(matchup_info)
 
             # Handle own champion detection

@@ -2578,41 +2578,62 @@ class MainWindow(QMainWindow):
 
         return container
 
+    @staticmethod
+    def _safe_set_matchup_pixmap(label: QLabel, pixmap, size: int):
+        """Set pixmap on a matchup label, ignoring if the C++ object was deleted."""
+        try:
+            label.setPixmap(
+                pixmap.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            )
+        except RuntimeError:
+            pass
+
     def _set_matchup_icon(self, icon_label: QLabel, champion_name: str):
         """Set a matchup row icon from champion image URL."""
         size = icon_label.width() or 24
         if not champion_name:
-            icon_label.clear()
+            try:
+                icon_label.clear()
+            except RuntimeError:
+                pass
             return
         champ = self.champion_data.get_champion(champion_name)
         if not champ:
-            icon_label.clear()
+            try:
+                icon_label.clear()
+            except RuntimeError:
+                pass
             return
         url = champ.get("image_url", "")
         if not url:
-            icon_label.clear()
+            try:
+                icon_label.clear()
+            except RuntimeError:
+                pass
             return
         pixmap = self._matchup_image_cache.get_image(
             url,
-            callback=lambda pm, lbl=icon_label, s=size: lbl.setPixmap(
-                pm.scaled(s, s, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            ),
+            callback=lambda pm, lbl=icon_label, s=size: MainWindow._safe_set_matchup_pixmap(lbl, pm, s),
         )
         if pixmap:
-            icon_label.setPixmap(
-                pixmap.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            )
+            MainWindow._safe_set_matchup_pixmap(icon_label, pixmap, size)
 
     def update_matchup_list(self):
         """Refresh the matchup list widget from current matchup data."""
         if not self.feature_flags.get("matchup_list", False):
             return
-        for i, (ally_icon, ally_name, enemy_name, enemy_icon) in enumerate(self._matchup_rows):
-            ally, enemy = self._matchup_data[i] if i < len(self._matchup_data) else ("", "")
-            ally_name.setText(ally if ally else "-")
-            enemy_name.setText(enemy if enemy else "-")
-            self._set_matchup_icon(ally_icon, ally)
-            self._set_matchup_icon(enemy_icon, enemy)
+        try:
+            for i, (ally_icon, ally_name, enemy_name, enemy_icon) in enumerate(self._matchup_rows):
+                ally, enemy = self._matchup_data[i] if i < len(self._matchup_data) else ("", "")
+                try:
+                    ally_name.setText(ally if ally else "-")
+                    enemy_name.setText(enemy if enemy else "-")
+                except RuntimeError:
+                    continue
+                self._set_matchup_icon(ally_icon, ally)
+                self._set_matchup_icon(enemy_icon, enemy)
+        except Exception as e:
+            logger.error(f"Error updating matchup list: {e}")
 
     def set_matchup_entry(self, index: int, ally: str = "", enemy: str = ""):
         """Set a single matchup row (0-4)."""
@@ -2648,19 +2669,24 @@ class MainWindow(QMainWindow):
         - Allies are placed by lane (if available) or in first empty slot.
         - Enemies are placed in first empty slot (pick order).
         """
+        if not isinstance(data, dict):
+            return
         if not self.feature_flags.get("matchup_list", False):
             return
 
-        # New ChampSelect session → auto-clear before applying new data
-        if data.get("is_new_session"):
-            self._matchup_data = [("", "")] * 5
+        try:
+            # New ChampSelect session → auto-clear before applying new data
+            if data.get("is_new_session"):
+                self._matchup_data = [("", "")] * 5
 
-        allies = data.get("allies", [])
-        enemies = data.get("enemies", [])
+            allies = data.get("allies", [])
+            enemies = data.get("enemies", [])
 
-        self._apply_new_allies(allies)
-        self._apply_new_enemies(enemies)
-        self.update_matchup_list()
+            self._apply_new_allies(allies)
+            self._apply_new_enemies(enemies)
+            self.update_matchup_list()
+        except Exception as e:
+            logger.error(f"Error processing matchup data: {e}")
 
     def _apply_new_allies(self, allies: list):
         """Place new ally champions into matchup rows.
@@ -2783,42 +2809,45 @@ class MainWindow(QMainWindow):
         Lane is determined by row position (0=top … 4=support).
         Reuses the same logic as the Build button.
         """
-        if index < 0 or index >= len(self._matchup_data):
-            return
-        ally, enemy = self._matchup_data[index]
-        if not ally:
-            return
-        lane = self.MATCHUP_LANE_ORDER[index] if index < len(self.MATCHUP_LANE_ORDER) else ""
+        try:
+            if index < 0 or index >= len(self._matchup_data):
+                return
+            ally, enemy = self._matchup_data[index]
+            if not ally:
+                return
+            lane = self.MATCHUP_LANE_ORDER[index] if index < len(self.MATCHUP_LANE_ORDER) else ""
 
-        # Create (or reuse) a viewer and trigger the build flow
-        viewer = self.add_viewer()
-        if not viewer:
-            return
-        viewer.champion_input.setText(ally)
-        if hasattr(viewer, "_update_champion_selector_btn"):
-            viewer._update_champion_selector_btn(ally)
-        if enemy and hasattr(viewer, "opponent_champion_input") and viewer.opponent_champion_input is not None:
-            viewer.opponent_champion_input.setText(enemy)
-            if hasattr(viewer, "_update_opponent_selector_btn"):
-                viewer._update_opponent_selector_btn(enemy)
-        # Set lane
-        if lane:
-            for i in range(viewer.lane_selector.count()):
-                if viewer.lane_selector.itemData(i) == lane:
-                    viewer.lane_selector.setCurrentIndex(i)
-                    break
-            # Update the visible lane selector button and list selection
-            if hasattr(viewer, "_lane_selector_btn"):
-                lane_display_map = {"top": "Top", "jungle": "Jungle", "middle": "Mid", "bottom": "Bot", "support": "Support"}
-                display = lane_display_map.get(lane, "Lane")
-                viewer._lane_selector_btn.setText(f"{display} \u25be")
-            if hasattr(viewer, "_lane_list_widget"):
-                for i in range(viewer._lane_list_widget.count()):
-                    item = viewer._lane_list_widget.item(i)
-                    if item.data(Qt.ItemDataRole.UserRole) == lane:
-                        viewer._lane_list_widget.setCurrentItem(item)
+            # Create (or reuse) a viewer and trigger the build flow
+            viewer = self.add_viewer()
+            if not viewer:
+                return
+            viewer.champion_input.setText(ally)
+            if hasattr(viewer, "_update_champion_selector_btn"):
+                viewer._update_champion_selector_btn(ally)
+            if enemy and hasattr(viewer, "opponent_champion_input") and viewer.opponent_champion_input is not None:
+                viewer.opponent_champion_input.setText(enemy)
+                if hasattr(viewer, "_update_opponent_selector_btn"):
+                    viewer._update_opponent_selector_btn(enemy)
+            # Set lane
+            if lane:
+                for i in range(viewer.lane_selector.count()):
+                    if viewer.lane_selector.itemData(i) == lane:
+                        viewer.lane_selector.setCurrentIndex(i)
                         break
-        viewer.open_build()
+                # Update the visible lane selector button and list selection
+                if hasattr(viewer, "_lane_selector_btn"):
+                    lane_display_map = {"top": "Top", "jungle": "Jungle", "middle": "Mid", "bottom": "Bot", "support": "Support"}
+                    display = lane_display_map.get(lane, "Lane")
+                    viewer._lane_selector_btn.setText(f"{display} \u25be")
+                if hasattr(viewer, "_lane_list_widget"):
+                    for i in range(viewer._lane_list_widget.count()):
+                        item = viewer._lane_list_widget.item(i)
+                        if item.data(Qt.ItemDataRole.UserRole) == lane:
+                            viewer._lane_list_widget.setCurrentItem(item)
+                            break
+            viewer.open_build()
+        except Exception as e:
+            logger.error(f"Error opening matchup viewer: {e}")
 
     def on_sidebar_tab_changed(self, index):
         """Handle sidebar tab change and update main content"""
@@ -3149,6 +3178,14 @@ class MainWindow(QMainWindow):
         """Close a viewer widget"""
         if viewer in self.viewers:
             self.viewers.remove(viewer)
+            # Disconnect signals before scheduling deletion to prevent
+            # callbacks firing on a partially-destroyed widget.
+            try:
+                viewer.close_requested.disconnect()
+                viewer.hide_requested.disconnect()
+                viewer.champion_updated.disconnect()
+            except (TypeError, RuntimeError):
+                pass
             viewer.setParent(None)
             viewer.deleteLater()
 
@@ -3283,56 +3320,59 @@ class MainWindow(QMainWindow):
             champion_name: Name of the detected champion
             lane: Detected lane (top, jungle, middle, bottom, support)
         """
-        logger.info(f"Champion detected: {champion_name} (lane: {lane})")
+        try:
+            logger.info(f"Champion detected: {champion_name} (lane: {lane})")
 
-        # Always create a new viewer at the leftmost position (index 0)
-        if len(self.viewers) >= self.MAX_VIEWERS:
-            logger.warning("Cannot auto-open champion build: maximum viewers reached")
-            return
+            # Always create a new viewer at the leftmost position (index 0)
+            if len(self.viewers) >= self.MAX_VIEWERS:
+                logger.warning("Cannot auto-open champion build: maximum viewers reached")
+                return
 
-        # Create new viewer at position 0 (leftmost) with is_picked=True
-        target_viewer = self.add_viewer(position=0, is_picked=True)
+            # Create new viewer at position 0 (leftmost) with is_picked=True
+            target_viewer = self.add_viewer(position=0, is_picked=True)
 
-        # Open the appropriate page in the new viewer.
-        if target_viewer:
-            open_aram = self._is_aram_like_mode()
+            # Open the appropriate page in the new viewer.
+            if target_viewer:
+                open_aram = self._is_aram_like_mode()
 
-            logger.info(
-                f"Auto-opening {'ARAM' if open_aram else 'build'} page for {champion_name} (lane: {lane}) "
-                f"in new viewer {target_viewer.viewer_id} at leftmost position"
-            )
-            target_viewer.champion_input.setText(champion_name)
+                logger.info(
+                    f"Auto-opening {'ARAM' if open_aram else 'build'} page for {champion_name} (lane: {lane}) "
+                    f"in new viewer {target_viewer.viewer_id} at leftmost position"
+                )
+                target_viewer.champion_input.setText(champion_name)
 
-            if open_aram:
-                target_viewer.open_aram()
-            else:
-                # Set lane selector if lane was detected
-                if lane:
-                    # Find the index of the lane in the combo box
-                    lane_found = False
-                    for i in range(target_viewer.lane_selector.count()):
-                        if target_viewer.lane_selector.itemData(i) == lane:
-                            target_viewer.lane_selector.setCurrentIndex(i)
-                            logger.debug(f"Set lane selector to: {lane}")
-                            lane_found = True
-                            break
-
-                    if not lane_found:
-                        logger.warning(f"Lane '{lane}' not found in lane selector options")
-
-                    # Update the visible lane selector button and list selection
-                    if lane_found and hasattr(target_viewer, "_lane_selector_btn"):
-                        lane_display_map = {"top": "Top", "jungle": "Jungle", "middle": "Mid", "bottom": "Bot", "support": "Support"}
-                        display = lane_display_map.get(lane, "Lane")
-                        target_viewer._lane_selector_btn.setText(f"{display} \u25be")
-                    if lane_found and hasattr(target_viewer, "_lane_list_widget"):
-                        for i in range(target_viewer._lane_list_widget.count()):
-                            item = target_viewer._lane_list_widget.item(i)
-                            if item.data(Qt.ItemDataRole.UserRole) == lane:
-                                target_viewer._lane_list_widget.setCurrentItem(item)
+                if open_aram:
+                    target_viewer.open_aram()
+                else:
+                    # Set lane selector if lane was detected
+                    if lane:
+                        # Find the index of the lane in the combo box
+                        lane_found = False
+                        for i in range(target_viewer.lane_selector.count()):
+                            if target_viewer.lane_selector.itemData(i) == lane:
+                                target_viewer.lane_selector.setCurrentIndex(i)
+                                logger.debug(f"Set lane selector to: {lane}")
+                                lane_found = True
                                 break
 
-                target_viewer.open_build()
+                        if not lane_found:
+                            logger.warning(f"Lane '{lane}' not found in lane selector options")
+
+                        # Update the visible lane selector button and list selection
+                        if lane_found and hasattr(target_viewer, "_lane_selector_btn"):
+                            lane_display_map = {"top": "Top", "jungle": "Jungle", "middle": "Mid", "bottom": "Bot", "support": "Support"}
+                            display = lane_display_map.get(lane, "Lane")
+                            target_viewer._lane_selector_btn.setText(f"{display} \u25be")
+                        if lane_found and hasattr(target_viewer, "_lane_list_widget"):
+                            for i in range(target_viewer._lane_list_widget.count()):
+                                item = target_viewer._lane_list_widget.item(i)
+                                if item.data(Qt.ItemDataRole.UserRole) == lane:
+                                    target_viewer._lane_list_widget.setCurrentItem(item)
+                                    break
+
+                    target_viewer.open_build()
+        except Exception as e:
+            logger.error(f"Error in on_champion_detected: {e}")
 
     def on_enemy_champion_detected(self, champion_name: str):
         """Handle enemy champion detection - automatically open counter page
@@ -3340,28 +3380,31 @@ class MainWindow(QMainWindow):
         Args:
             champion_name: Name of the detected enemy champion
         """
-        logger.info(f"Enemy champion detected: {champion_name}")
+        try:
+            logger.info(f"Enemy champion detected: {champion_name}")
 
-        if len(self.viewers) >= self.MAX_VIEWERS:
-            logger.warning("Cannot auto-open enemy champion counter: maximum viewers reached")
-            return
+            if len(self.viewers) >= self.MAX_VIEWERS:
+                logger.warning("Cannot auto-open enemy champion counter: maximum viewers reached")
+                return
 
-        # Determine position: if own pick exists (is_picked=True), insert at position 1, else position 0
-        has_own_pick = any(viewer.is_picked for viewer in self.viewers)
-        position = 1 if has_own_pick else 0
+            # Determine position: if own pick exists (is_picked=True), insert at position 1, else position 0
+            has_own_pick = any(viewer.is_picked for viewer in self.viewers)
+            position = 1 if has_own_pick else 0
 
-        # Create new viewer at the determined position with is_picked=False
-        target_viewer = self.add_viewer(position=position, is_picked=False)
+            # Create new viewer at the determined position with is_picked=False
+            target_viewer = self.add_viewer(position=position, is_picked=False)
 
-        # Open the counter page in the new viewer (no lane specified)
-        if target_viewer:
-            logger.info(f"Auto-opening counter page for enemy {champion_name} in new viewer {target_viewer.viewer_id} at position {position}")
-            target_viewer.champion_input.setText(champion_name)
-            target_viewer.open_counter()
+            # Open the counter page in the new viewer (no lane specified)
+            if target_viewer:
+                logger.info(f"Auto-opening counter page for enemy {champion_name} in new viewer {target_viewer.viewer_id} at position {position}")
+                target_viewer.champion_input.setText(champion_name)
+                target_viewer.open_counter()
 
-            # Hide opponent pick window by default
-            self.hide_viewer(target_viewer)
-            logger.info(f"Opponent pick window for {champion_name} hidden by default")
+                # Hide opponent pick window by default
+                self.hide_viewer(target_viewer)
+                logger.info(f"Opponent pick window for {champion_name} hidden by default")
+        except Exception as e:
+            logger.error(f"Error in on_enemy_champion_detected: {e}")
 
     def check_latest_version(self):
         """Check latest version without prompting update"""
