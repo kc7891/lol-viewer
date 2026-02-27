@@ -934,15 +934,41 @@ class ChampionViewerWidget(QWidget):
         names = self.main_window.champion_detector.get_detected_enemy_champion_names()
         return {n.lower() for n in names}
 
+    def _get_opponent_suggestion_ids(self) -> set:
+        """Return champion IDs (lowercase) to suggest in the opponent selector.
+
+        Sources (in priority order):
+        1. Enemy-picked champions from the detector.
+        2. Enemies from the matchup-list data (when the feature flag is on).
+        3. Fallback: champion names currently shown in other viewer tabs.
+        """
+        ids = self._get_enemy_picked_champion_ids()
+
+        # Also include enemies from matchup data when the feature is enabled
+        if self.main_window and hasattr(self.main_window, "feature_flags"):
+            if self.main_window.feature_flags.get("matchup_list", False):
+                if hasattr(self.main_window, "_matchup_data"):
+                    for _ally, enemy in self.main_window._matchup_data:
+                        if enemy:
+                            ids.add(enemy.lower())
+
+        if ids:
+            return ids
+
+        # Fallback: champion names from other viewer tabs
+        suggestions = self._get_open_champion_suggestions()
+        return {s.lower() for s in suggestions if s}
+
     def _filter_champion_list(self, text: str):
         """Filter the champion list based on search text.
 
-        When in opponent mode with no search text, only show enemy-picked champions.
+        When in opponent mode with no search text, show enemy-picked champions
+        (or champions from other tabs as a fallback).
         When searching, show all champions matching the prefix.
         """
         search = text.strip().lower()
         is_opponent = self._active_selector_target == "opponent"
-        enemy_ids = self._get_enemy_picked_champion_ids() if is_opponent and not search else set()
+        enemy_ids = self._get_opponent_suggestion_ids() if is_opponent and not search else set()
 
         for i in range(self._champion_list_widget.count()):
             item = self._champion_list_widget.item(i)
@@ -3399,17 +3425,25 @@ class MainWindow(QMainWindow):
             # Open the counter page in the new viewer (no lane specified)
             if target_viewer:
                 logger.info(f"Auto-opening counter page for enemy {champion_name} in new viewer {target_viewer.viewer_id} at position {position}")
-                target_viewer.champion_input.blockSignals(True)
-                target_viewer.champion_input.setText(champion_name)
-                target_viewer.champion_input.blockSignals(False)
-                target_viewer.open_counter()
 
-                # Hide opponent pick window by default – deferred to allow
-                # the QWebEngineView to finish initialising before the widget
-                # is hidden; hiding it synchronously in the same call stack
-                # causes a C++ crash in the Chromium rendering layer.
-                QTimer.singleShot(0, lambda v=target_viewer: self.hide_viewer(v))
-                logger.info(f"Opponent pick window for {champion_name} hidden by default")
+                # Defer setText / open_counter / hide to the next event-loop
+                # iteration so the QWebEngineView's Chromium layer can finish
+                # initialising after the widget is inserted into the splitter.
+                # Calling setUrl() synchronously in the same call stack
+                # (especially when the matchup-list widget is visible and
+                # triggers an additional layout reflow) crashes the Chromium
+                # rendering layer.
+                def _deferred_open(v=target_viewer, name=champion_name):
+                    try:
+                        v.champion_input.blockSignals(True)
+                        v.champion_input.setText(name)
+                        v.champion_input.blockSignals(False)
+                        v.open_counter()
+                        self.hide_viewer(v)
+                        logger.info(f"Opponent pick window for {name} hidden by default")
+                    except Exception as e:
+                        logger.error(f"Error in deferred enemy viewer open: {e}")
+                QTimer.singleShot(0, _deferred_open)
         except Exception as e:
             logger.error(f"Error in on_enemy_champion_detected: {e}")
 
