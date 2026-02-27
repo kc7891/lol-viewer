@@ -3339,7 +3339,9 @@ class MainWindow(QMainWindow):
                     f"Auto-opening {'ARAM' if open_aram else 'build'} page for {champion_name} (lane: {lane}) "
                     f"in new viewer {target_viewer.viewer_id} at leftmost position"
                 )
+                target_viewer.champion_input.blockSignals(True)
                 target_viewer.champion_input.setText(champion_name)
+                target_viewer.champion_input.blockSignals(False)
 
                 if open_aram:
                     target_viewer.open_aram()
@@ -3397,11 +3399,16 @@ class MainWindow(QMainWindow):
             # Open the counter page in the new viewer (no lane specified)
             if target_viewer:
                 logger.info(f"Auto-opening counter page for enemy {champion_name} in new viewer {target_viewer.viewer_id} at position {position}")
+                target_viewer.champion_input.blockSignals(True)
                 target_viewer.champion_input.setText(champion_name)
+                target_viewer.champion_input.blockSignals(False)
                 target_viewer.open_counter()
 
-                # Hide opponent pick window by default
-                self.hide_viewer(target_viewer)
+                # Hide opponent pick window by default – deferred to allow
+                # the QWebEngineView to finish initialising before the widget
+                # is hidden; hiding it synchronously in the same call stack
+                # causes a C++ crash in the Chromium rendering layer.
+                QTimer.singleShot(0, lambda v=target_viewer: self.hide_viewer(v))
                 logger.info(f"Opponent pick window for {champion_name} hidden by default")
         except Exception as e:
             logger.error(f"Error in on_enemy_champion_detected: {e}")
