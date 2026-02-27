@@ -765,6 +765,7 @@ class ChampionDetectorService(QObject):
         self.max_interval_ms = 60000
         self.current_interval_ms = self.base_interval_ms
         self.is_checking = False
+        self._polling_paused = False
         log("[LCU] ChampionDetectorService initialized")
         logger.info("ChampionDetectorService initialized")
 
@@ -793,6 +794,7 @@ class ChampionDetectorService(QObject):
         self.detector._summoner_id_fetch_failures = 0
         self.detector._cached_allies = []
         self.detector._cached_enemies = []
+        self._polling_paused = False
         # Do NOT emit matchup signal on disconnect – UI preserves existing data
 
     def start(self, interval_ms: int = 2000, max_interval_ms: int = 60000):
@@ -802,6 +804,7 @@ class ChampionDetectorService(QObject):
         logger.info(f"Starting champion detection service (interval: {interval_ms}ms)")
         self.running = True
         self.check_count = 0
+        self._polling_paused = False
         self.base_interval_ms = interval_ms
         self.max_interval_ms = max(interval_ms, max_interval_ms)
         self.current_interval_ms = self.base_interval_ms
@@ -868,6 +871,14 @@ class ChampionDetectorService(QObject):
         if self.current_interval_ms != self.base_interval_ms:
             log(f"[LCU] Resetting polling interval to base {self.base_interval_ms}ms")
             logger.info("Polling interval reset to base")
+            self._set_timer_interval(self.base_interval_ms)
+
+    def resume_polling(self):
+        """Resume polling after it was paused (e.g., all 10 champions detected)."""
+        if self._polling_paused:
+            log("[LCU] Resuming champion detection polling")
+            logger.info("Resuming champion detection polling")
+            self._polling_paused = False
             self._set_timer_interval(self.base_interval_ms)
 
     def _check_champion(self, force: bool = False):
@@ -956,6 +967,17 @@ class ChampionDetectorService(QObject):
                 log(f"[LCU] Enemy champion detected: {enemy_champion}")
                 logger.info(f"Enemy champion detected: {enemy_champion}")
                 self.enemy_champion_detected.emit(enemy_champion)
+
+            # Pause polling when all 10 champions detected during ChampSelect
+            if isinstance(matchup_info, dict) and matchup_info.get("phase") == "ChampSelect":
+                allies = matchup_info.get("allies", [])
+                enemies = matchup_info.get("enemies", [])
+                if len(allies) >= 5 and len(enemies) >= 5:
+                    if not self._polling_paused:
+                        logger.info("All 10 champions detected in ChampSelect – pausing polling")
+                        log("[LCU] All 10 champions detected – pausing polling until Refresh")
+                        self._polling_paused = True
+                        self.timer.stop()
 
             # Connection might have been lost during API calls
             if not self.lcu_manager.connected:

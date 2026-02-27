@@ -2683,6 +2683,7 @@ class MainWindow(QMainWindow):
         self.update_matchup_list()
         # Trigger immediate re-check from detector
         if hasattr(self, 'champion_detector') and self.champion_detector:
+            self.champion_detector.resume_polling()
             self.champion_detector._check_champion(force=True)
 
     def on_matchup_data_updated(self, data: dict):
