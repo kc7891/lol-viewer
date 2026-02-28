@@ -464,6 +464,29 @@ class ViewerListItemWidget(QWidget):
 
         layout.addWidget(text_widget, 1)
 
+        # Toggle visibility button (visible on hover only)
+        toggle_glyph = "\u2212" if self.viewer.isVisible() else "+"  # − or +
+        toggle_tip = "Hide viewer" if self.viewer.isVisible() else "Show viewer"
+        self.toggle_button = QPushButton(toggle_glyph)
+        self.toggle_button.setToolTip(toggle_tip)
+        self.toggle_button.setFixedSize(20, 20)
+        self.toggle_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.toggle_button.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                color: #6d7a8a;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                color: #00d6a1;
+            }
+        """)
+        self.toggle_button.clicked.connect(self._toggle_visibility)
+        self.toggle_button.setVisible(False)
+        layout.addWidget(self.toggle_button)
+
         # Close button (visible on hover only)
         self.close_button = QPushButton(self.CLOSE_GLYPH)
         self.close_button.setToolTip("Close viewer")
@@ -494,14 +517,26 @@ class ViewerListItemWidget(QWidget):
         return hint
 
     def enterEvent(self, event):
-        """Show close button on hover"""
+        """Show toggle and close buttons on hover"""
+        self.toggle_button.setVisible(True)
         self.close_button.setVisible(True)
         super().enterEvent(event)
 
     def leaveEvent(self, event):
-        """Hide close button when not hovering"""
+        """Hide toggle and close buttons when not hovering"""
+        self.toggle_button.setVisible(False)
         self.close_button.setVisible(False)
         super().leaveEvent(event)
+
+    def _toggle_visibility(self):
+        """Toggle the viewer's visibility"""
+        if self.viewer.isVisible():
+            self.parent_window.hide_viewer(self.viewer)
+        else:
+            self.viewer.show()
+            if self.viewer in self.parent_window.hidden_viewers:
+                self.parent_window.hidden_viewers.remove(self.viewer)
+            self.parent_window.update_viewers_list()
 
     def _close_viewer(self):
         """Close the viewer"""
