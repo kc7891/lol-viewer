@@ -1402,6 +1402,14 @@ class ChampionViewerWidget(QWidget):
             parts.append(self.current_page_type)
         if self.is_picked:
             parts.append("picked")
+        # If an opponent/counter champion is associated with this viewer,
+        # append a "vs <name>" suffix for clearer sidebar labels.
+        opponent_raw = (self.current_opponent_champion or "").strip()
+        if opponent_raw:
+            opponent_id = opponent_raw.lower()
+            opponent_display = self._get_display_name(opponent_id)
+            if opponent_display:
+                parts.append(f"vs {opponent_display}")
         return " | ".join(parts)
 
     def get_build_url(self, champion_name: str, lane: str = "") -> str:
