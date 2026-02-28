@@ -248,21 +248,6 @@ def test_ally_and_enemy_placed_together():
     assert window._matchup_data[1][1] == "Yasuo"
 
 
-def test_existing_data_not_overwritten():
-    """Once placed, champion data should not be overwritten by new emissions."""
-    window = _make_window()
-    _emit(window, allies=[("Ahri", "middle")], enemies=["Zed"])
-
-    # Manually move enemy to different position
-    window._matchup_move_enemy(0, 1)  # Zed: row 0 → row 1
-
-    # Emit again with same data
-    _emit(window, allies=[("Ahri", "middle")], enemies=["Zed"])
-
-    # Ahri stays at row 2, Zed stays at row 1 (moved position)
-    assert window._matchup_data[2][0] == "Ahri"
-    assert window._matchup_data[1][1] == "Zed"
-
 
 # ---------------------------------------------------------------------------
 # New session (auto-clear) tests
@@ -343,65 +328,6 @@ def test_refresh_clears_all():
 
     assert all(pair == ("", "") for pair in window._matchup_data)
 
-
-# ---------------------------------------------------------------------------
-# Manual reorder tests
-# ---------------------------------------------------------------------------
-
-
-def test_move_ally_swaps_only_allies():
-    """Left arrows should swap only ally champions between rows."""
-    window = _make_window()
-    _emit(window, allies=[("Ahri", ""), ("Lux", "")], enemies=["Zed", "Yasuo"])
-
-    window._matchup_move_ally(1, -1)
-
-    assert window._matchup_data[0] == ("Lux", "Zed")
-    assert window._matchup_data[1] == ("Ahri", "Yasuo")
-
-
-def test_move_enemy_swaps_only_enemies():
-    """Right arrows should swap only enemy champions between rows."""
-    window = _make_window()
-    _emit(window, allies=[("Ahri", ""), ("Lux", "")], enemies=["Zed", "Yasuo"])
-
-    window._matchup_move_enemy(0, 1)
-
-    assert window._matchup_data[0] == ("Ahri", "Yasuo")
-    assert window._matchup_data[1] == ("Lux", "Zed")
-
-
-def test_move_ally_boundary_does_nothing():
-    """Moving ally past boundaries should be a no-op."""
-    window = _make_window()
-    _emit(window, allies=[("Ahri", "")])
-
-    window._matchup_move_ally(0, -1)  # already at top
-    assert window._matchup_data[0] == ("Ahri", "")
-
-
-def test_move_enemy_boundary_does_nothing():
-    """Moving enemy past boundaries should be a no-op."""
-    window = _make_window()
-    window._matchup_data[4] = ("", "Zed")
-
-    window._matchup_move_enemy(4, 1)  # already at bottom
-    assert window._matchup_data[4] == ("", "Zed")
-
-
-def test_move_then_new_data_fills_empty():
-    """After user moves a champion, new data should fill the vacated empty slot."""
-    window = _make_window()
-    _emit(window, allies=[("Ahri", ""), ("Lux", "")])
-
-    # Move Ahri down (row 0→1, Lux goes up to row 0)
-    window._matchup_move_ally(0, 1)
-    assert window._matchup_data[0] == ("Lux", "")
-    assert window._matchup_data[1] == ("Ahri", "")
-
-    # New enemy arrives — should fill first empty enemy slot
-    _emit(window, enemies=["Zed"])
-    assert window._matchup_data[0] == ("Lux", "Zed")
 
 
 # ---------------------------------------------------------------------------
@@ -528,33 +454,6 @@ def test_dnd_drop_out_of_bounds_noop():
     window._matchup_dnd_drop(source_index=0, target_index=5, side="ally")
     assert window._matchup_data == original
 
-
-def test_dnd_swap_matches_arrow_buttons_ally():
-    """DnD between adjacent rows should produce the same result as arrow buttons."""
-    window_arrows = _make_window()
-    window_dnd = _make_window()
-
-    for w in (window_arrows, window_dnd):
-        _emit(w, allies=[("Ahri", ""), ("Lux", "")], enemies=["Zed", "Yasuo"])
-
-    window_arrows._matchup_move_ally(0, 1)
-    window_dnd._matchup_dnd_drop(0, 1, "ally")
-
-    assert window_dnd._matchup_data == window_arrows._matchup_data
-
-
-def test_dnd_swap_matches_arrow_buttons_enemy():
-    """DnD between adjacent rows should produce the same result as arrow buttons."""
-    window_arrows = _make_window()
-    window_dnd = _make_window()
-
-    for w in (window_arrows, window_dnd):
-        _emit(w, allies=[("Ahri", ""), ("Lux", "")], enemies=["Zed", "Yasuo"])
-
-    window_arrows._matchup_move_enemy(0, 1)
-    window_dnd._matchup_dnd_drop(0, 1, "enemy")
-
-    assert window_dnd._matchup_data == window_arrows._matchup_data
 
 
 def test_dnd_nonadjacent_swap():
