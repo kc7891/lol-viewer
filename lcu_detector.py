@@ -260,6 +260,13 @@ class ChampionDetector:
 
             # Create ID to name mapping
             self.champion_map = {int(v['key']): k for k, v in data['data'].items()}
+            # Normalize champion names: Riot API uses "MonkeyKing" internally,
+            # but the app (champions.json, lolalytics, etc.) expects "Wukong"
+            CHAMPION_NAME_ALIASES = {"MonkeyKing": "Wukong"}
+            self.champion_map = {
+                k: CHAMPION_NAME_ALIASES.get(v, v)
+                for k, v in self.champion_map.items()
+            }
             logger.info(f"Loaded {len(self.champion_map)} champions from Data Dragon")
 
         except Exception as e:
