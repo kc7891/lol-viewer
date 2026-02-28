@@ -2700,15 +2700,6 @@ class MainWindow(QMainWindow):
         vs_style = "QLabel { font-size: 8pt; color: #6d7a8a; background-color: transparent; }"
         icon_style = "QLabel { background-color: transparent; }"
         separator_style = "QFrame { background-color: rgba(34, 39, 47, 128); }"
-        arrow_btn_style = """
-            QPushButton {
-                font-size: 6pt; padding: 0px; min-width: 12px; max-width: 12px;
-                min-height: 10px; max-height: 10px; background-color: transparent;
-                color: #6d7a8a; border: none;
-            }
-            QPushButton:hover { color: #c1c9d4; }
-            QPushButton:pressed { color: #e2e8f0; }
-        """
         open_btn_style = """
             QPushButton {
                 font-size: 9pt; padding: 0px; min-width: 18px; max-width: 18px;
@@ -2739,27 +2730,6 @@ class MainWindow(QMainWindow):
             lane_label.setStyleSheet(lane_label_style)
             lane_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-            # Vertically-stacked arrow buttons (#73)
-            arrow_container = QWidget()
-            arrow_container.setFixedWidth(14)
-            arrow_container.setStyleSheet("QWidget { background-color: transparent; }")
-            arrow_layout = QVBoxLayout(arrow_container)
-            arrow_layout.setContentsMargins(0, 2, 0, 2)
-            arrow_layout.setSpacing(0)
-
-            up_btn = QPushButton("↑")
-            up_btn.setToolTip("Move ally up")
-            up_btn.setStyleSheet(arrow_btn_style)
-            up_btn.clicked.connect(lambda _, idx=i: self._matchup_move_ally(idx, -1))
-
-            down_btn = QPushButton("↓")
-            down_btn.setToolTip("Move ally down")
-            down_btn.setStyleSheet(arrow_btn_style)
-            down_btn.clicked.connect(lambda _, idx=i: self._matchup_move_ally(idx, 1))
-
-            arrow_layout.addWidget(up_btn)
-            arrow_layout.addWidget(down_btn)
-
             ally_icon = QLabel()
             ally_icon.setFixedSize(icon_size, icon_size)
             ally_icon.setStyleSheet(icon_style)
@@ -2787,35 +2757,12 @@ class MainWindow(QMainWindow):
             open_btn.setStyleSheet(open_btn_style)
             open_btn.clicked.connect(lambda _, idx=i: self._open_matchup_viewer(idx))
 
-            # Right-side vertically-stacked arrows (#73)
-            arrow_container_r = QWidget()
-            arrow_container_r.setFixedWidth(14)
-            arrow_container_r.setStyleSheet("QWidget { background-color: transparent; }")
-            arrow_layout_r = QVBoxLayout(arrow_container_r)
-            arrow_layout_r.setContentsMargins(0, 2, 0, 2)
-            arrow_layout_r.setSpacing(0)
-
-            up_btn_r = QPushButton("↑")
-            up_btn_r.setToolTip("Move enemy up")
-            up_btn_r.setStyleSheet(arrow_btn_style)
-            up_btn_r.clicked.connect(lambda _, idx=i: self._matchup_move_enemy(idx, -1))
-
-            down_btn_r = QPushButton("↓")
-            down_btn_r.setToolTip("Move enemy down")
-            down_btn_r.setStyleSheet(arrow_btn_style)
-            down_btn_r.clicked.connect(lambda _, idx=i: self._matchup_move_enemy(idx, 1))
-
-            arrow_layout_r.addWidget(up_btn_r)
-            arrow_layout_r.addWidget(down_btn_r)
-
             row_layout.addWidget(lane_label, 0)
-            row_layout.addWidget(arrow_container, 0)
             row_layout.addWidget(ally_icon, 0)
             row_layout.addWidget(ally_name, 1)
             row_layout.addWidget(vs_label, 0)
             row_layout.addWidget(enemy_name, 1)
             row_layout.addWidget(enemy_icon, 0)
-            row_layout.addWidget(arrow_container_r, 0)
             row_layout.addWidget(open_btn, 0)
 
             layout.addWidget(row)
@@ -3014,28 +2961,6 @@ class MainWindow(QMainWindow):
 
             ally, _ = self._matchup_data[best_idx]
             self._matchup_data[best_idx] = (ally, name)
-
-    def _matchup_move_ally(self, index: int, direction: int):
-        """Swap only the ally champion between row *index* and an adjacent row."""
-        target = index + direction
-        if target < 0 or target >= 5:
-            return
-        ally_a, enemy_a = self._matchup_data[index]
-        ally_b, enemy_b = self._matchup_data[target]
-        self._matchup_data[index] = (ally_b, enemy_a)
-        self._matchup_data[target] = (ally_a, enemy_b)
-        self.update_matchup_list()
-
-    def _matchup_move_enemy(self, index: int, direction: int):
-        """Swap only the enemy champion between row *index* and an adjacent row."""
-        target = index + direction
-        if target < 0 or target >= 5:
-            return
-        ally_a, enemy_a = self._matchup_data[index]
-        ally_b, enemy_b = self._matchup_data[target]
-        self._matchup_data[index] = (ally_a, enemy_b)
-        self._matchup_data[target] = (ally_b, enemy_a)
-        self.update_matchup_list()
 
     def _matchup_swap_enemies(self, index: int):
         """Swap the enemy champion between row *index* and the next row.
