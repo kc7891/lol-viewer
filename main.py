@@ -8,8 +8,8 @@ import os
 import io
 from datetime import datetime
 from typing import List, Optional
-from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer, QSettings, QByteArray, QSize
-from PyQt6.QtGui import QColor, QIcon, QPixmap
+from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer, QSettings, QByteArray, QSize, QMimeData, QPoint
+from PyQt6.QtGui import QColor, QIcon, QPixmap, QDrag
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QMessageBox,
@@ -42,6 +42,11 @@ FEATURE_FLAG_DEFINITIONS: dict = {
     "matchup_list": {
         "label": "Matchup List",
         "description": "Show a 5-row matchup list above the viewer toolbar displaying ally vs enemy champion picks.",
+        "default": False,
+    },
+    "matchup_dnd": {
+        "label": "Matchup Drag & Drop",
+        "description": "Allow drag-and-drop reordering of champions in the matchup list. Requires Matchup List to be enabled.",
         "default": False,
     },
 }
@@ -1459,6 +1464,110 @@ class ChampionViewerWidget(QWidget):
             return self.main_window.aram_url.replace("{name}", formatted_name)
 
 
+class DraggableMatchupLabel(QLabel):
+    """QLabel subclass that supports drag-and-drop for matchup list reordering.
+
+    When drag_enabled is False, behaves identically to a plain QLabel.
+    """
+
+    MIME_TYPE = "application/x-lol-matchup-dnd"
+
+    def __init__(self, text: str = "", row_index: int = 0, side: str = "ally", parent=None):
+        super().__init__(text, parent)
+        self.row_index = row_index
+        self.side = side
+        self.drag_enabled = False
+        self._drag_start_pos: QPoint | None = None
+
+    def set_drag_enabled(self, enabled: bool):
+        self.drag_enabled = enabled
+        if enabled:
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
+        else:
+            self.unsetCursor()
+
+    def mousePressEvent(self, event):
+        if self.drag_enabled and event.button() == Qt.MouseButton.LeftButton:
+            self._drag_start_pos = event.pos()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if (
+            self.drag_enabled
+            and self._drag_start_pos is not None
+            and event.buttons() & Qt.MouseButton.LeftButton
+        ):
+            distance = (event.pos() - self._drag_start_pos).manhattanLength()
+            if distance >= QApplication.startDragDistance():
+                self._start_drag()
+                return
+        super().mouseMoveEvent(event)
+
+    def _start_drag(self):
+        drag = QDrag(self)
+        mime_data = QMimeData()
+        mime_data.setData(self.MIME_TYPE, f"{self.row_index}:{self.side}".encode("utf-8"))
+        drag.setMimeData(mime_data)
+        pixmap = self.grab()
+        drag.setPixmap(pixmap)
+        drag.setHotSpot(QPoint(pixmap.width() // 2, pixmap.height() // 2))
+        drag.exec(Qt.DropAction.MoveAction)
+        self._drag_start_pos = None
+
+
+class MatchupRowWidget(QWidget):
+    """QWidget subclass for matchup list rows that accepts champion drops."""
+
+    _HIGHLIGHT_STYLE = (
+        "QWidget { background-color: rgba(0, 214, 161, 0.12); "
+        "border: 1px solid rgba(0, 214, 161, 0.35); border-radius: 2px; }"
+    )
+
+    def __init__(self, row_index: int = 0, main_window=None, parent=None):
+        super().__init__(parent)
+        self.row_index = row_index
+        self._main_window = main_window
+        self._original_stylesheet = ""
+
+    def dragEnterEvent(self, event):
+        mime = event.mimeData()
+        if mime.hasFormat(DraggableMatchupLabel.MIME_TYPE):
+            data = bytes(mime.data(DraggableMatchupLabel.MIME_TYPE)).decode("utf-8")
+            source_index, _side = data.split(":")
+            if int(source_index) != self.row_index:
+                event.acceptProposedAction()
+                self._original_stylesheet = self.styleSheet()
+                self.setStyleSheet(self._HIGHLIGHT_STYLE)
+                return
+        event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasFormat(DraggableMatchupLabel.MIME_TYPE):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dragLeaveEvent(self, event):
+        self.setStyleSheet(self._original_stylesheet)
+        super().dragLeaveEvent(event)
+
+    def dropEvent(self, event):
+        self.setStyleSheet(self._original_stylesheet)
+        mime = event.mimeData()
+        if not mime.hasFormat(DraggableMatchupLabel.MIME_TYPE):
+            event.ignore()
+            return
+        data = bytes(mime.data(DraggableMatchupLabel.MIME_TYPE)).decode("utf-8")
+        source_index_str, side = data.split(":")
+        source_index = int(source_index_str)
+        if source_index == self.row_index:
+            event.ignore()
+            return
+        if self._main_window is not None:
+            self._main_window._matchup_dnd_drop(source_index, self.row_index, side)
+        event.acceptProposedAction()
+
+
 class MainWindow(QMainWindow):
     MAX_VIEWERS = 20  # Maximum number of viewers allowed
 
@@ -2216,6 +2325,115 @@ class MainWindow(QMainWindow):
             flags_layout.addWidget(self.flags_status_label)
 
             settings_layout.addWidget(flags_group)
+
+        # Debug section — manually add champions to the matchup list for testing
+        debug_group = QWidget()
+        debug_layout = QVBoxLayout(debug_group)
+        debug_layout.setSpacing(10)
+
+        debug_title = QLabel("Debug")
+        debug_title.setStyleSheet("""
+            QLabel {
+                font-size: 12pt;
+                font-weight: bold;
+                color: #e2e8f0;
+                background-color: transparent;
+            }
+        """)
+        debug_layout.addWidget(debug_title)
+
+        debug_description = QLabel(
+            "Manually add champions to the Matchup List for testing."
+        )
+        debug_description.setStyleSheet("""
+            QLabel {
+                font-size: 9pt;
+                color: #6d7a8a;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+        debug_description.setWordWrap(True)
+        debug_layout.addWidget(debug_description)
+
+        # Champion input row with Add Ally / Add Enemy buttons
+        debug_input_row = QHBoxLayout()
+
+        self._debug_champion_input = QLineEdit()
+        self._debug_champion_input.setPlaceholderText("Champion name (e.g., ahri, lux)")
+        self._debug_champion_input.setStyleSheet("""
+            QLineEdit {
+                padding: 8px;
+                font-size: 10pt;
+                background-color: #141b24;
+                color: #e2e8f0;
+                border: 1px solid #222a35;
+                border-radius: 6px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #00d6a1;
+            }
+        """)
+        debug_input_row.addWidget(self._debug_champion_input, 1)
+
+        # Set up champion autocomplete if champion_data is available
+        if self.champion_data:
+            setup_champion_input(self._debug_champion_input, self.champion_data)
+
+        add_ally_btn = QPushButton("Add Ally")
+        add_ally_btn.setStyleSheet("""
+            QPushButton {
+                padding: 8px 16px;
+                font-size: 10pt;
+                background-color: #0078f5;
+                color: #ffffff;
+                border: none;
+                border-radius: 6px;
+            }
+            QPushButton:hover {
+                background-color: #1a8aff;
+            }
+            QPushButton:pressed {
+                background-color: #0060c0;
+            }
+        """)
+        add_ally_btn.clicked.connect(lambda: self._debug_add_to_matchup("ally"))
+        debug_input_row.addWidget(add_ally_btn)
+
+        add_enemy_btn = QPushButton("Add Enemy")
+        add_enemy_btn.setStyleSheet("""
+            QPushButton {
+                padding: 8px 16px;
+                font-size: 10pt;
+                background-color: #e0342c;
+                color: #ffffff;
+                border: none;
+                border-radius: 6px;
+            }
+            QPushButton:hover {
+                background-color: #f04038;
+            }
+            QPushButton:pressed {
+                background-color: #c02820;
+            }
+        """)
+        add_enemy_btn.clicked.connect(lambda: self._debug_add_to_matchup("enemy"))
+        debug_input_row.addWidget(add_enemy_btn)
+
+        debug_layout.addLayout(debug_input_row)
+
+        self._debug_status_label = QLabel("")
+        self._debug_status_label.setStyleSheet("""
+            QLabel {
+                font-size: 9pt;
+                color: #6d7a8a;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+        debug_layout.addWidget(self._debug_status_label)
+
+        settings_layout.addWidget(debug_group)
         settings_layout.addStretch()
 
         settings_scroll.setWidget(settings_content)
@@ -2474,6 +2692,7 @@ class MainWindow(QMainWindow):
         # Each row: (ally_icon, ally_name, enemy_name, enemy_icon)
         self._matchup_rows: list[tuple[QLabel, QLabel, QLabel, QLabel]] = []
         self._matchup_data: list[tuple[str, str]] = [("", "")] * 5  # (ally, enemy)
+        self._matchup_row_widgets: list[MatchupRowWidget] = []
 
         icon_size = 24
         lane_label_style = "QLabel { font-size: 8pt; color: #6d7a8a; background-color: transparent; }"
@@ -2508,7 +2727,7 @@ class MainWindow(QMainWindow):
             sep.setStyleSheet(separator_style)
             layout.addWidget(sep)
 
-            row = QWidget()
+            row = MatchupRowWidget(row_index=i, main_window=self)
             row.setFixedHeight(33)
             row_layout = QHBoxLayout(row)
             row_layout.setContentsMargins(4, 0, 4, 0)
@@ -2545,7 +2764,7 @@ class MainWindow(QMainWindow):
             ally_icon.setFixedSize(icon_size, icon_size)
             ally_icon.setStyleSheet(icon_style)
 
-            ally_name = QLabel("-")
+            ally_name = DraggableMatchupLabel("-", row_index=i, side="ally")
             ally_name.setStyleSheet(name_style)
             ally_name.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
@@ -2554,7 +2773,7 @@ class MainWindow(QMainWindow):
             vs_label.setStyleSheet(vs_style)
             vs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            enemy_name = QLabel("-")
+            enemy_name = DraggableMatchupLabel("-", row_index=i, side="enemy")
             enemy_name.setStyleSheet(name_style)
             enemy_name.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
@@ -2601,7 +2820,9 @@ class MainWindow(QMainWindow):
 
             layout.addWidget(row)
             self._matchup_rows.append((ally_icon, ally_name, enemy_name, enemy_icon))
+            self._matchup_row_widgets.append(row)
 
+        self._apply_matchup_dnd_state()
         return container
 
     @staticmethod
@@ -2830,6 +3051,63 @@ class MainWindow(QMainWindow):
         self._matchup_data[target] = (ally_b, enemy_a)
         self.update_matchup_list()
 
+    def _matchup_dnd_drop(self, source_index: int, target_index: int, side: str):
+        """Handle a drag-and-drop swap between two matchup rows."""
+        if source_index == target_index:
+            return
+        if source_index < 0 or source_index >= 5 or target_index < 0 or target_index >= 5:
+            return
+        ally_a, enemy_a = self._matchup_data[source_index]
+        ally_b, enemy_b = self._matchup_data[target_index]
+        if side == "ally":
+            self._matchup_data[source_index] = (ally_b, enemy_a)
+            self._matchup_data[target_index] = (ally_a, enemy_b)
+        elif side == "enemy":
+            self._matchup_data[source_index] = (ally_a, enemy_b)
+            self._matchup_data[target_index] = (ally_b, enemy_a)
+        else:
+            return
+        self.update_matchup_list()
+
+    def _apply_matchup_dnd_state(self):
+        """Enable or disable matchup drag-and-drop based on the feature flag."""
+        enabled = self.feature_flags.get("matchup_dnd", False)
+        for _ally_icon, ally_name, enemy_name, _enemy_icon in self._matchup_rows:
+            if isinstance(ally_name, DraggableMatchupLabel):
+                ally_name.set_drag_enabled(enabled)
+            if isinstance(enemy_name, DraggableMatchupLabel):
+                enemy_name.set_drag_enabled(enabled)
+        if hasattr(self, "_matchup_row_widgets"):
+            for row_widget in self._matchup_row_widgets:
+                row_widget.setAcceptDrops(enabled)
+
+    def _debug_add_to_matchup(self, side: str):
+        """Add a champion to the matchup list from the debug input field."""
+        if not hasattr(self, "_debug_champion_input"):
+            return
+        name = self._debug_champion_input.text().strip()
+        if not name:
+            return
+        if not self.feature_flags.get("matchup_list", False):
+            self._debug_status_label.setText("Enable 'Matchup List' feature flag first")
+            return
+        for i in range(5):
+            if side == "ally" and not self._matchup_data[i][0]:
+                _, enemy = self._matchup_data[i]
+                self._matchup_data[i] = (name, enemy)
+                self._debug_status_label.setText(f"Added {name} as ally to row {i}")
+                break
+            elif side == "enemy" and not self._matchup_data[i][1]:
+                ally, _ = self._matchup_data[i]
+                self._matchup_data[i] = (ally, name)
+                self._debug_status_label.setText(f"Added {name} as enemy to row {i}")
+                break
+        else:
+            self._debug_status_label.setText(f"No empty {side} slot available")
+            return
+        self._debug_champion_input.clear()
+        self.update_matchup_list()
+
     def _open_matchup_viewer(self, index: int):
         """Open a viewer with the matchup from row *index*. (#68)
 
@@ -2960,6 +3238,8 @@ class MainWindow(QMainWindow):
             self.matchup_list_widget.setVisible(bool(enabled))
             if enabled:
                 self.update_matchup_list()
+        if key == "matchup_dnd" and hasattr(self, "_matchup_rows"):
+            self._apply_matchup_dnd_state()
         if hasattr(self, "flags_status_label"):
             self.flags_status_label.setText(f"✓ Flag '{key}' set to {'ON' if enabled else 'OFF'} (restart may be required)")
             self.flags_status_label.setStyleSheet("""
