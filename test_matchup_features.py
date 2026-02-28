@@ -472,3 +472,174 @@ def test_clear_matchup_list():
     window.clear_matchup_list()
 
     assert all(pair == ("", "") for pair in window._matchup_data)
+
+
+# ---------------------------------------------------------------------------
+# Drag-and-drop swap tests
+# ---------------------------------------------------------------------------
+
+
+def test_dnd_drop_ally_swaps_only_allies():
+    """DnD drop should swap only ally champions between rows."""
+    window = _make_window()
+    _emit(window, allies=[("Ahri", ""), ("Lux", ""), ("Garen", "")], enemies=["Zed", "Yasuo", "Fizz"])
+
+    window._matchup_dnd_drop(source_index=0, target_index=2, side="ally")
+
+    assert window._matchup_data[0] == ("Garen", "Zed")
+    assert window._matchup_data[2] == ("Ahri", "Fizz")
+    # Row 1 untouched
+    assert window._matchup_data[1] == ("Lux", "Yasuo")
+
+
+def test_dnd_drop_enemy_swaps_only_enemies():
+    """DnD drop should swap only enemy champions between rows."""
+    window = _make_window()
+    _emit(window, allies=[("Ahri", ""), ("Lux", ""), ("Garen", "")], enemies=["Zed", "Yasuo", "Fizz"])
+
+    window._matchup_dnd_drop(source_index=0, target_index=2, side="enemy")
+
+    assert window._matchup_data[0] == ("Ahri", "Fizz")
+    assert window._matchup_data[2] == ("Garen", "Zed")
+    # Row 1 untouched
+    assert window._matchup_data[1] == ("Lux", "Yasuo")
+
+
+def test_dnd_drop_same_row_noop():
+    """Dropping on the same row should be a no-op."""
+    window = _make_window()
+    _emit(window, allies=[("Ahri", "")], enemies=["Zed"])
+
+    original = list(window._matchup_data)
+    window._matchup_dnd_drop(source_index=0, target_index=0, side="ally")
+
+    assert window._matchup_data == original
+
+
+def test_dnd_drop_out_of_bounds_noop():
+    """Dropping with out-of-bounds indices should be a no-op."""
+    window = _make_window()
+    _emit(window, allies=[("Ahri", "")], enemies=["Zed"])
+
+    original = list(window._matchup_data)
+    window._matchup_dnd_drop(source_index=-1, target_index=0, side="ally")
+    assert window._matchup_data == original
+
+    window._matchup_dnd_drop(source_index=0, target_index=5, side="ally")
+    assert window._matchup_data == original
+
+
+def test_dnd_swap_matches_arrow_buttons_ally():
+    """DnD between adjacent rows should produce the same result as arrow buttons."""
+    window_arrows = _make_window()
+    window_dnd = _make_window()
+
+    for w in (window_arrows, window_dnd):
+        _emit(w, allies=[("Ahri", ""), ("Lux", "")], enemies=["Zed", "Yasuo"])
+
+    window_arrows._matchup_move_ally(0, 1)
+    window_dnd._matchup_dnd_drop(0, 1, "ally")
+
+    assert window_dnd._matchup_data == window_arrows._matchup_data
+
+
+def test_dnd_swap_matches_arrow_buttons_enemy():
+    """DnD between adjacent rows should produce the same result as arrow buttons."""
+    window_arrows = _make_window()
+    window_dnd = _make_window()
+
+    for w in (window_arrows, window_dnd):
+        _emit(w, allies=[("Ahri", ""), ("Lux", "")], enemies=["Zed", "Yasuo"])
+
+    window_arrows._matchup_move_enemy(0, 1)
+    window_dnd._matchup_dnd_drop(0, 1, "enemy")
+
+    assert window_dnd._matchup_data == window_arrows._matchup_data
+
+
+def test_dnd_nonadjacent_swap():
+    """DnD should support non-adjacent row swaps."""
+    window = _make_window()
+    _emit(
+        window,
+        allies=[("Ahri", ""), ("Lux", ""), ("Garen", ""), ("Jinx", ""), ("Thresh", "")],
+        enemies=["Zed", "Yasuo", "Fizz", "Caitlyn", "Leona"],
+    )
+
+    window._matchup_dnd_drop(0, 4, "ally")
+
+    assert window._matchup_data[0][0] == "Thresh"
+    assert window._matchup_data[4][0] == "Ahri"
+    assert window._matchup_data[0][1] == "Zed"
+    assert window._matchup_data[4][1] == "Leona"
+
+
+def test_dnd_unknown_side_noop():
+    """An unknown side value should be a no-op."""
+    window = _make_window()
+    _emit(window, allies=[("Ahri", ""), ("Lux", "")], enemies=["Zed", "Yasuo"])
+
+    original = list(window._matchup_data)
+    window._matchup_dnd_drop(0, 1, "unknown")
+
+    assert window._matchup_data == original
+
+
+# ---------------------------------------------------------------------------
+# Debug add-to-matchup tests
+# ---------------------------------------------------------------------------
+
+
+def test_debug_add_ally():
+    """Debug add should place ally in first empty slot."""
+    window = _make_window()
+    window._debug_champion_input = type("FakeInput", (), {"text": lambda self: "Ahri", "clear": lambda self: None, "strip": lambda self: "Ahri"})()
+    window._debug_status_label = type("FakeLabel", (), {"setText": lambda self, t: None})()
+
+    window._debug_add_to_matchup("ally")
+
+    assert window._matchup_data[0] == ("Ahri", "")
+
+
+def test_debug_add_enemy():
+    """Debug add should place enemy in first empty slot."""
+    window = _make_window()
+    window._debug_champion_input = type("FakeInput", (), {"text": lambda self: "Zed", "clear": lambda self: None})()
+    window._debug_status_label = type("FakeLabel", (), {"setText": lambda self, t: None})()
+
+    window._debug_add_to_matchup("enemy")
+
+    assert window._matchup_data[0] == ("", "Zed")
+
+
+def test_debug_add_no_empty_slot():
+    """Debug add should be a no-op when no empty slot is available."""
+    window = _make_window()
+    _emit(
+        window,
+        allies=[("Ahri", ""), ("Lux", ""), ("Garen", ""), ("Jinx", ""), ("Thresh", "")],
+    )
+    window._debug_champion_input = type("FakeInput", (), {"text": lambda self: "Ashe", "clear": lambda self: None})()
+    window._debug_status_label = type("FakeLabel", (), {"setText": lambda self, t: None})()
+
+    window._debug_add_to_matchup("ally")
+
+    # All ally slots should remain unchanged
+    allies = [window._matchup_data[i][0] for i in range(5)]
+    assert "Ashe" not in allies
+
+
+def test_debug_add_then_refresh_clears():
+    """Debug-added champions should be cleared by the refresh button."""
+    window = _make_window()
+    window._debug_champion_input = type("FakeInput", (), {"text": lambda self: "Ahri", "clear": lambda self: None})()
+    window._debug_status_label = type("FakeLabel", (), {"setText": lambda self, t: None})()
+
+    window._debug_add_to_matchup("ally")
+    assert window._matchup_data[0] == ("Ahri", "")
+
+    # Simulate refresh (same as _refresh_matchup_list without the detector part)
+    window._matchup_data = [("", "")] * 5
+    window.update_matchup_list()
+
+    assert all(pair == ("", "") for pair in window._matchup_data)
