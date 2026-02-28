@@ -3223,6 +3223,27 @@ class MainWindow(QMainWindow):
         # Update sidebar list
         self.update_viewers_list()
 
+    def _schedule_auto_viewer_creation(self, champion_name: str, creator_fn):
+        """Schedule viewer creation to the next event-loop tick.
+
+        CRITICAL SAFETY PATTERN — all signal-triggered viewer creation MUST
+        go through this method.  The LCU detector emits matchup_data_updated
+        (layout work) synchronously before champion detection signals.
+        Creating a QWebEngineView in the same call stack crashes the Chromium
+        rendering layer.  See PR #103, #104, #105 and docs/architecture.md.
+        """
+        QTimer.singleShot(0, creator_fn)
+
+    def _open_url_and_hide(self, viewer, open_fn):
+        """Open a URL and schedule hide in the next tick.
+
+        CRITICAL SAFETY PATTERN — setUrl() and hide() must NEVER run in the
+        same event-loop tick. This method guarantees that constraint by
+        bundling them together. See PR #103, #105 and docs/architecture.md.
+        """
+        open_fn()  # e.g. viewer.open_counter() — calls setUrl() internally
+        QTimer.singleShot(0, lambda v=viewer: self.hide_viewer(v))
+
     def hide_viewer(self, viewer: ChampionViewerWidget):
         """Hide a viewer widget"""
         if viewer in self.viewers and viewer not in self.hidden_viewers:
@@ -3341,12 +3362,14 @@ class MainWindow(QMainWindow):
             self.close_viewer(viewer)
 
     def on_champion_detected(self, champion_name: str, lane: str):
-        """Handle champion detection - automatically open build page
+        """Handle own champion detection — schedule build page opening."""
+        self._schedule_auto_viewer_creation(
+            champion_name,
+            lambda name=champion_name, ln=lane: self._create_ally_viewer(name, ln),
+        )
 
-        Args:
-            champion_name: Name of the detected champion
-            lane: Detected lane (top, jungle, middle, bottom, support)
-        """
+    def _create_ally_viewer(self, champion_name: str, lane: str):
+        """Deferred handler for own champion viewer creation (Phase 1)."""
         try:
             logger.info(f"Champion detected: {champion_name} (lane: {lane})")
 
@@ -3401,18 +3424,14 @@ class MainWindow(QMainWindow):
 
                     target_viewer.open_build()
         except Exception as e:
-            logger.error(f"Error in on_champion_detected: {e}")
+            logger.error(f"Error in _create_ally_viewer: {e}")
 
     def on_enemy_champion_detected(self, champion_name: str):
-        """Handle enemy champion detection - automatically open counter page.
-
-        Defers the entire operation to the next event-loop iteration.
-        The detector emits matchup_data_updated (which triggers layout
-        work in the matchup-list widget) synchronously before this signal.
-        Creating a QWebEngineView in the same call stack as those pending
-        layout events crashes the Chromium rendering layer.
-        """
-        QTimer.singleShot(0, lambda name=champion_name: self._create_enemy_viewer(name))
+        """Handle enemy champion detection — schedule counter page opening."""
+        self._schedule_auto_viewer_creation(
+            champion_name,
+            lambda name=champion_name: self._create_enemy_viewer(name),
+        )
 
     def _create_enemy_viewer(self, champion_name: str):
         """Deferred handler for enemy champion viewer creation.
@@ -3441,12 +3460,7 @@ class MainWindow(QMainWindow):
                 target_viewer.champion_input.blockSignals(True)
                 target_viewer.champion_input.setText(champion_name)
                 target_viewer.champion_input.blockSignals(False)
-                target_viewer.open_counter()
-
-                # Hide in a SEPARATE event-loop iteration -- hiding a
-                # QWebEngineView in the same tick as setUrl() crashes the
-                # Chromium rendering layer (PR #103).
-                QTimer.singleShot(0, lambda v=target_viewer: self.hide_viewer(v))
+                self._open_url_and_hide(target_viewer, target_viewer.open_counter)
                 logger.info(f"Opponent pick window for {champion_name} hidden by default")
         except Exception as e:
             logger.error(f"Error in on_enemy_champion_detected: {e}")

@@ -85,6 +85,45 @@ PyQt6のシグナル/スロットパターンを使用。
 | `champion_updated` | `ChampionViewerWidget` | チャンピオン更新 |
 | `connection_status_changed` | `ChampionDetectorService` | LCU接続状態変更 |
 
+## QWebEngineView タイミング制約
+
+### 背景
+
+QWebEngineView (Chromium) は初期化タイミングに厳密な制約がある。
+違反するとセグメンテーションフォルトが発生する (PR #103, #104, #105)。
+
+### ルール
+
+1. **`setUrl()` と `hide()` を同一 Tick で実行しない**
+   - `setUrl()` は Chromium レンダリングレイヤーの初期化をトリガーする
+   - 同一イベントループ Tick 内で `hide()` すると初期化が中断されクラッシュ
+
+2. **`matchup_data_updated` コールスタック内で QWebEngineView を生成しない**
+   - `lcu_detector.py` のシグナル発行順序:
+     `matchup_data_updated` → `champion_detected` → `enemy_champion_detected`
+   - `matchup_data_updated` がトリガーするレイアウト処理中に
+     QWebEngineView を作成すると Chromium がクラッシュ
+
+### 遅延実行パターン（共通メカニズム）
+
+すべてのシグナルトリガー型ビューア生成は共通ヘルパーを経由する:
+
+- `_schedule_auto_viewer_creation()` — 生成を次の Tick に遅延
+- `_open_url_and_hide()` — URL設定と遅延 hide をセットで実行
+
+フロー図:
+
+```
+Tick 0: シグナルハンドラ → _schedule_auto_viewer_creation()
+Tick 1: _create_*_viewer() → add_viewer + setText + _open_url_and_hide()
+Tick 2: hide_viewer (敵ビューアのみ、_open_url_and_hide 内で自動スケジュール)
+```
+
+### 回帰テスト
+
+`test_chromium_timing.py` が AST 解析と動作テストで
+このパターンの違反を自動検出する。
+
 ## 起動シーケンス
 
 ```
