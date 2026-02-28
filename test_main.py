@@ -67,7 +67,6 @@ class TestChampionViewerWidget:
         assert widget.build_button is not None
         assert widget.counter_button is not None
         assert widget.web_view is not None
-        assert widget.hide_button is not None
 
     def test_widget_button_text(self, qapp, champion_data):
         """Test button text is correct"""
