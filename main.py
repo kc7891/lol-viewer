@@ -570,7 +570,6 @@ class ChampionViewerWidget(QWidget):
     """Widget containing champion input, build/counter buttons, and web view"""
 
     close_requested = pyqtSignal(object)  # Signal to request closing this viewer
-    hide_requested = pyqtSignal(object)   # Signal to request hiding this viewer
     champion_updated = pyqtSignal(object)  # Signal when champion name is updated
 
     def __init__(self, viewer_id: int, champion_data: ChampionData = None, is_picked: bool = False, main_window=None):
@@ -753,40 +752,6 @@ class ChampionViewerWidget(QWidget):
         self._opponent_selector_btn.setIconSize(QSize(20, 20))
         self._opponent_selector_btn.clicked.connect(lambda: self._open_champion_selector("opponent"))
         cb_layout.addWidget(self._opponent_selector_btn)
-
-        # Close button (compact ×)
-        self.close_button = QPushButton(CLOSE_BUTTON_GLYPH)
-        self.close_button.setToolTip("Close this viewer")
-        self.close_button.setStyleSheet("""
-            QPushButton {
-                padding: 0px;
-                font-size: 12pt;
-                background-color: transparent;
-                color: #6d7a8a;
-                border: none;
-                min-width: 24px; max-width: 24px;
-                min-height: 24px; max-height: 24px;
-                margin-left: 4px;
-            }
-            QPushButton:hover { color: #e0342c; }
-        """)
-        self.close_button.clicked.connect(lambda: self.close_requested.emit(self))
-        cb_layout.addWidget(self.close_button)
-
-        # Hide button (kept for compatibility, not in wireframe)
-        self.hide_button = QPushButton("−")
-        self.hide_button.setToolTip("Hide this viewer")
-        self.hide_button.setStyleSheet("""
-            QPushButton {
-                padding: 0px; font-size: 10pt;
-                background-color: transparent; color: #6d7a8a;
-                border: none;
-                min-width: 0px; max-width: 0px;
-                min-height: 0px; max-height: 0px;
-            }
-        """)
-        self.hide_button.setVisible(False)
-        self.hide_button.clicked.connect(lambda: self.hide_requested.emit(self))
 
         layout.addWidget(control_bar)
 
@@ -3211,7 +3176,6 @@ class MainWindow(QMainWindow):
 
         # Connect signals
         viewer.close_requested.connect(self.close_viewer)
-        viewer.hide_requested.connect(self.hide_viewer)
         viewer.champion_updated.connect(self.update_champion_name)
 
         # Add to splitter and viewers list at the specified position
@@ -3244,7 +3208,6 @@ class MainWindow(QMainWindow):
             # callbacks firing on a partially-destroyed widget.
             try:
                 viewer.close_requested.disconnect()
-                viewer.hide_requested.disconnect()
                 viewer.champion_updated.disconnect()
             except (TypeError, RuntimeError):
                 pass
