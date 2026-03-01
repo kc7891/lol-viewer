@@ -48,6 +48,168 @@ FEATURE_FLAG_DEFINITIONS: dict = {}
 ARAM_QUEUE_IDS = {450, 65, 100, 720}
 ARAM_MAYHEM_QUEUE_IDS = {2400, 2401, 2403, 2405, 3240, 3270}
 
+# ── UI size presets ──
+# Each preset defines all tuneable size/spacing tokens used across the UI.
+# "small" preserves the original hard-coded values; "medium" and "large" scale
+# them up for users who prefer bigger controls.
+UI_SIZE_PRESETS = {
+    "small": {
+        "font_base": "9pt",
+        "font_small": "8pt",
+        "font_title": "11pt",
+        "font_section": "12pt",
+        "font_page_title": "18pt",
+        "font_pill": "9pt",
+        "font_mode_btn": "9pt",
+        "font_selector_item": "9pt",
+        "font_lane_item": "10pt",
+        "font_settings_input": "10pt",
+        "font_settings_label": "10pt",
+        "font_settings_desc": "9pt",
+        "font_settings_version": "11pt",
+        "font_sidebar_item": "12px",
+        "font_sidebar_type": "9px",
+        "font_matchup_title": "8pt",
+        "font_matchup_name": "9pt",
+        "padding_btn": "4px 10px",
+        "padding_pill": "3px 8px 3px 4px",
+        "padding_primary_btn": "8px 16px",
+        "padding_search": "6px 8px",
+        "padding_selector_item": "5px 8px",
+        "padding_lane_item": "8px 12px",
+        "padding_settings_input": "8px",
+        "icon_size_header": 28,
+        "icon_size_sidebar": 30,
+        "icon_size_selector": 28,
+        "icon_size_pill": 20,
+        "icon_size_matchup": 24,
+        "icon_size_sidebar_btn": 20,
+        "icon_size_close_btn": 24,
+        "font_sidebar_btn": "14px",
+        "font_close_btn": "16px",
+        "height_control_bar": 36,
+        "height_header": 44,
+        "height_lcu_status": 48,
+        "height_matchup_row": 33,
+        "height_matchup_title": 24,
+        "width_matchup_lane": 44,
+        "height_dot_container": 30,
+        "width_dot_indicator": 10,
+        "height_dot_indicator": 30,
+        "icon_size_checkbox": 16,
+        "min_width_combobox": 100,
+        "height_matchup_btn": 18,
+        "border_radius": "4px",
+        "border_radius_lg": "6px",
+        "margin_mode_btn": "3px 2px",
+    },
+    "medium": {
+        "font_base": "11pt",
+        "font_small": "10pt",
+        "font_title": "13pt",
+        "font_section": "14pt",
+        "font_page_title": "22pt",
+        "font_pill": "11pt",
+        "font_mode_btn": "11pt",
+        "font_selector_item": "11pt",
+        "font_lane_item": "12pt",
+        "font_settings_input": "12pt",
+        "font_settings_label": "12pt",
+        "font_settings_desc": "11pt",
+        "font_settings_version": "13pt",
+        "font_sidebar_item": "14px",
+        "font_sidebar_type": "11px",
+        "font_matchup_title": "10pt",
+        "font_matchup_name": "11pt",
+        "padding_btn": "5px 12px",
+        "padding_pill": "4px 10px 4px 5px",
+        "padding_primary_btn": "10px 20px",
+        "padding_search": "7px 10px",
+        "padding_selector_item": "6px 10px",
+        "padding_lane_item": "10px 14px",
+        "padding_settings_input": "10px",
+        "icon_size_header": 34,
+        "icon_size_sidebar": 36,
+        "icon_size_selector": 34,
+        "icon_size_pill": 24,
+        "icon_size_matchup": 28,
+        "icon_size_sidebar_btn": 24,
+        "icon_size_close_btn": 28,
+        "font_sidebar_btn": "17px",
+        "font_close_btn": "19px",
+        "height_control_bar": 42,
+        "height_header": 52,
+        "height_lcu_status": 56,
+        "height_matchup_row": 40,
+        "height_matchup_title": 28,
+        "width_matchup_lane": 52,
+        "height_dot_container": 36,
+        "width_dot_indicator": 12,
+        "height_dot_indicator": 36,
+        "icon_size_checkbox": 20,
+        "min_width_combobox": 120,
+        "height_matchup_btn": 22,
+        "border_radius": "5px",
+        "border_radius_lg": "7px",
+        "margin_mode_btn": "4px 3px",
+    },
+    "large": {
+        "font_base": "13pt",
+        "font_small": "11pt",
+        "font_title": "15pt",
+        "font_section": "17pt",
+        "font_page_title": "25pt",
+        "font_pill": "13pt",
+        "font_mode_btn": "13pt",
+        "font_selector_item": "13pt",
+        "font_lane_item": "14pt",
+        "font_settings_input": "14pt",
+        "font_settings_label": "14pt",
+        "font_settings_desc": "13pt",
+        "font_settings_version": "15pt",
+        "font_sidebar_item": "17px",
+        "font_sidebar_type": "13px",
+        "font_matchup_title": "11pt",
+        "font_matchup_name": "13pt",
+        "padding_btn": "6px 14px",
+        "padding_pill": "5px 12px 5px 6px",
+        "padding_primary_btn": "12px 24px",
+        "padding_search": "8px 12px",
+        "padding_selector_item": "7px 12px",
+        "padding_lane_item": "12px 16px",
+        "padding_settings_input": "12px",
+        "icon_size_header": 40,
+        "icon_size_sidebar": 42,
+        "icon_size_selector": 40,
+        "icon_size_pill": 28,
+        "icon_size_matchup": 34,
+        "icon_size_sidebar_btn": 28,
+        "icon_size_close_btn": 34,
+        "font_sidebar_btn": "20px",
+        "font_close_btn": "22px",
+        "height_control_bar": 50,
+        "height_header": 60,
+        "height_lcu_status": 64,
+        "height_matchup_row": 46,
+        "height_matchup_title": 34,
+        "width_matchup_lane": 60,
+        "height_dot_container": 42,
+        "width_dot_indicator": 14,
+        "height_dot_indicator": 42,
+        "icon_size_checkbox": 24,
+        "min_width_combobox": 140,
+        "height_matchup_btn": 26,
+        "border_radius": "6px",
+        "border_radius_lg": "8px",
+        "margin_mode_btn": "4px 3px",
+    },
+}
+
+
+def get_ui_sizes(size_name: str = "medium") -> dict:
+    """Return the size preset dict for *size_name* (default ``"small"``)."""
+    return UI_SIZE_PRESETS.get(size_name, UI_SIZE_PRESETS["small"])
+
 class LCUConnectionStatusWidget(QWidget):
     """Widget displaying LCU connection status with animated dots"""
 
@@ -55,6 +217,7 @@ class LCUConnectionStatusWidget(QWidget):
         super().__init__()
         self.current_status = "connecting"
         self.dot_count = 1  # For animating dots (1, 2, 3)
+        self._sz = get_ui_sizes()
         self.init_ui()
 
         # Timer for dot animation (500ms interval)
@@ -64,7 +227,8 @@ class LCUConnectionStatusWidget(QWidget):
 
     def init_ui(self):
         """Initialize the UI"""
-        self.setFixedHeight(48)
+        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
+        self.setFixedHeight(sz["height_lcu_status"])
         self.setStyleSheet("""
             QWidget {
                 background-color: #090e14;
@@ -75,46 +239,46 @@ class LCUConnectionStatusWidget(QWidget):
         layout.setContentsMargins(10, 0, 10, 0)
 
         # Inner container for vertically centering content
-        inner = QWidget()
-        inner.setFixedHeight(30)
-        inner.setStyleSheet("QWidget { border: none; }")
-        inner_layout = QHBoxLayout(inner)
+        self.inner_container = QWidget()
+        self.inner_container.setFixedHeight(sz["height_dot_container"])
+        self.inner_container.setStyleSheet("QWidget { border: none; }")
+        inner_layout = QHBoxLayout(self.inner_container)
         inner_layout.setContentsMargins(0, 0, 0, 0)
         inner_layout.setSpacing(6)
 
         # Green/yellow/red dot indicator
         self.dot_label = QLabel("\u25cf")
-        self.dot_label.setFixedSize(10, 30)
+        self.dot_label.setFixedSize(sz["width_dot_indicator"], sz["height_dot_indicator"])
         self.dot_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.dot_label.setStyleSheet("""
-            QLabel {
-                font-size: 8px;
+        self.dot_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_sidebar_type']};
                 color: #6d7a8a;
                 background-color: transparent;
                 border: none;
-            }
+            }}
         """)
         inner_layout.addWidget(self.dot_label)
 
         # Status text
         self.status_label = QLabel("Riot API: Connecting")
-        self.status_label.setStyleSheet("""
-            QLabel {
-                font-size: 10px;
+        self.status_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_sidebar_type']};
                 color: #6d7a8a;
                 background-color: transparent;
                 border: none;
-            }
+            }}
         """)
         inner_layout.addWidget(self.status_label, 1)
 
-        layout.addWidget(inner)
+        layout.addWidget(self.inner_container)
 
     def _apply_status_color(self, color: str):
         """Apply color to all status indicator elements"""
         self.dot_label.setStyleSheet(f"""
             QLabel {{
-                font-size: 8px;
+                font-size: {self._sz['font_sidebar_type']};
                 color: {color};
                 background-color: transparent;
                 border: none;
@@ -122,7 +286,7 @@ class LCUConnectionStatusWidget(QWidget):
         """)
         self.status_label.setStyleSheet(f"""
             QLabel {{
-                font-size: 10px;
+                font-size: {self._sz['font_sidebar_type']};
                 color: {color};
                 background-color: transparent;
                 border: none;
@@ -154,6 +318,21 @@ class LCUConnectionStatusWidget(QWidget):
             self.dot_count = 1
             self.status_label.setText("Riot API: Connecting.")
             self._apply_status_color("#6d7a8a")
+
+    def update_sizes(self, sz):
+        """Update sizes based on UI size preset."""
+        self._sz = sz
+        self.setFixedHeight(sz["height_lcu_status"])
+        if hasattr(self, "inner_container"):
+            self.inner_container.setFixedHeight(sz["height_dot_container"])
+        if hasattr(self, "dot_label"):
+            self.dot_label.setFixedSize(sz["width_dot_indicator"], sz["height_dot_indicator"])
+        self._apply_status_color(
+            "#00d6a1" if self.current_status == "connected"
+            else "#e0342c" if self.current_status == "disconnected"
+            else "#6d7a8a"
+        )
+
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 
@@ -408,13 +587,14 @@ class ViewerListItemWidget(QWidget):
 
     def init_ui(self, display_name: str):
         """Initialize the UI components"""
+        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 6, 8, 6)
         layout.setSpacing(8)
 
         # Champion icon
         self.icon_label = QLabel()
-        self.icon_label.setFixedSize(30, 30)
+        self.icon_label.setFixedSize(sz["icon_size_sidebar"], sz["icon_size_sidebar"])
         self.icon_label.setStyleSheet("""
             QLabel {
                 background-color: #1c2330;
@@ -434,25 +614,25 @@ class ViewerListItemWidget(QWidget):
         # Champion name
         champ_name = (self.viewer.current_champion or "").strip().title() or "(Empty)"
         self.name_label = QLabel(champ_name)
-        self.name_label.setStyleSheet("""
-            QLabel {
+        self.name_label.setStyleSheet(f"""
+            QLabel {{
                 color: #e2e8f0;
-                font-size: 12px;
+                font-size: {sz['font_sidebar_item']};
                 font-weight: bold;
                 background-color: transparent;
-            }
+            }}
         """)
         text_layout.addWidget(self.name_label)
 
         # Page type label (e.g. "BUILD", "COUNTER", "ARAM")
         page_type = (self.viewer.current_page_type or "").upper() or "BUILD"
         self.type_label = QLabel(page_type)
-        self.type_label.setStyleSheet("""
-            QLabel {
+        self.type_label.setStyleSheet(f"""
+            QLabel {{
                 color: #6d7a8a;
-                font-size: 9px;
+                font-size: {sz['font_sidebar_type']};
                 background-color: transparent;
-            }
+            }}
         """)
         text_layout.addWidget(self.type_label)
 
@@ -463,19 +643,19 @@ class ViewerListItemWidget(QWidget):
         toggle_tip = "Hide viewer" if self.viewer.isVisible() else "Show viewer"
         self.toggle_button = QPushButton(toggle_glyph)
         self.toggle_button.setToolTip(toggle_tip)
-        self.toggle_button.setFixedSize(20, 20)
+        self.toggle_button.setFixedSize(sz["icon_size_sidebar_btn"], sz["icon_size_sidebar_btn"])
         self.toggle_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.toggle_button.setStyleSheet("""
-            QPushButton {
+        self.toggle_button.setStyleSheet(f"""
+            QPushButton {{
                 background-color: transparent;
                 border: none;
                 color: #6d7a8a;
-                font-size: 14px;
+                font-size: {sz['font_sidebar_btn']};
                 font-weight: bold;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 color: #00d6a1;
-            }
+            }}
         """)
         self.toggle_button.clicked.connect(self._toggle_visibility)
         self.toggle_button.setVisible(False)
@@ -484,18 +664,18 @@ class ViewerListItemWidget(QWidget):
         # Close button (visible on hover only)
         self.close_button = QPushButton(self.CLOSE_GLYPH)
         self.close_button.setToolTip("Close viewer")
-        self.close_button.setFixedSize(20, 20)
+        self.close_button.setFixedSize(sz["icon_size_sidebar_btn"], sz["icon_size_sidebar_btn"])
         self.close_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.close_button.setStyleSheet("""
-            QPushButton {
+        self.close_button.setStyleSheet(f"""
+            QPushButton {{
                 background-color: transparent;
                 border: none;
                 color: #6d7a8a;
-                font-size: 14px;
-            }
-            QPushButton:hover {
+                font-size: {sz['font_sidebar_btn']};
+            }}
+            QPushButton:hover {{
                 color: #e0342c;
-            }
+            }}
         """)
         self.close_button.clicked.connect(self._close_viewer)
         self.close_button.setVisible(False)
@@ -503,9 +683,10 @@ class ViewerListItemWidget(QWidget):
 
     def sizeHint(self):
         """Return size based on actual content height."""
-        # 30px icon + 6px top margin + 6px bottom margin = 42px minimum
+        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
+        icon_h = sz["icon_size_sidebar"]
         hint = super().sizeHint()
-        min_h = 30 + 12  # icon height + vertical margins
+        min_h = icon_h + 12  # icon height + vertical margins
         if hint.height() < min_h:
             hint.setHeight(min_h)
         return hint
@@ -547,16 +728,18 @@ class ViewerListItemWidget(QWidget):
         url = champ.get("image_url", "")
         if not url:
             return
+        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
+        icon_s = sz["icon_size_sidebar"]
         cache = self.parent_window._sidebar_image_cache
         pixmap = cache.get_image(
             url,
             callback=lambda pm, lbl=self.icon_label: lbl.setPixmap(
-                pm.scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                pm.scaled(icon_s, icon_s, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             ),
         )
         if pixmap:
             self.icon_label.setPixmap(
-                pixmap.scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                pixmap.scaled(icon_s, icon_s, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             )
 
 
@@ -592,18 +775,26 @@ class ChampionViewerWidget(QWidget):
         """Legacy helper used by tests: counter URL for a champion."""
         return DEFAULT_COUNTER_URL.replace("{name}", champion_name)
 
+    def _get_ui_sizes(self) -> dict:
+        """Return the active UI size preset for this viewer."""
+        size_name = "small"
+        if self.main_window:
+            size_name = QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium")
+        return get_ui_sizes(size_name)
+
     def init_ui(self):
         """Initialize the UI components
 
-        Layout based on issue #74 wireframe:
+        Layout:
         ┌────────────────────────────────────────────────────┐
-        │ [icon] Darius vs Garen                             │  Header
+        │ [icon] [Champion▾] vs [Opponent▾]    [Lane▾]       │  Header
         ├────────────────────────────────────────────────────┤
-        │ [Build][Counter][ARAM]   [Darius▾] vs [Garen▾] ×  │  Control bar
+        │ [Build][Counter][ARAM]                              │  Control bar
         ├────────────────────────────────────────────────────┤
         │ WebView  /  Champion Selector                      │  Content
         └────────────────────────────────────────────────────┘
         """
+        sz = self._get_ui_sizes()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -611,72 +802,121 @@ class ChampionViewerWidget(QWidget):
         # Image cache (must init before UI elements that use it)
         self._champion_icon_cache = ChampionImageCache()
 
-        # ── Header: [icon] "Champion vs Opponent" ──
+        # -- Shared pill style (used in header for champion/opponent/lane) --
+        selector_pill_style = f"""
+            QPushButton {{
+                padding: {sz['padding_pill']};
+                font-size: {sz['font_pill']};
+                background-color: #1c2330;
+                color: #e2e8f0;
+                border: 1px solid #222a35;
+                border-radius: {sz['border_radius']};
+                text-align: left;
+            }}
+            QPushButton:hover {{
+                background-color: #222a35;
+                border-color: #00d6a1;
+            }}
+        """
+        self._selector_pill_style = selector_pill_style
+
+        # ── Header: [icon] [Champion▾] vs [Opponent▾]  <stretch>  [Lane▾] ──
         header_widget = QWidget()
         header_widget.setStyleSheet("QWidget { background-color: #141b24; }")
+        header_widget.setFixedHeight(sz["height_header"])
         header_layout = QHBoxLayout(header_widget)
-        header_layout.setContentsMargins(10, 8, 10, 8)
-        header_layout.setSpacing(8)
+        header_layout.setContentsMargins(10, 4, 10, 4)
+        header_layout.setSpacing(6)
 
-        self.champion_display_icon = QLabel()
-        self.champion_display_icon.setFixedSize(28, 28)
-        self.champion_display_icon.setStyleSheet(
-            "QLabel { background-color: transparent; border-radius: 14px; }"
-        )
-        header_layout.addWidget(self.champion_display_icon)
-
-        self.champion_display_name = QLabel("")
-        self.champion_display_name.setStyleSheet("""
-            QLabel {
-                font-size: 11pt;
-                font-weight: bold;
-                color: #e2e8f0;
-                background-color: transparent;
-            }
+        # Close button for this viewer
+        self._header_close_btn = QPushButton(CLOSE_BUTTON_GLYPH)
+        self._header_close_btn.setFixedSize(sz["icon_size_close_btn"], sz["icon_size_close_btn"])
+        self._header_close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._header_close_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent;
+                border: none;
+                color: #888;
+                font-size: {sz["font_close_btn"]};
+                border-radius: {sz["border_radius"]};
+            }}
+            QPushButton:hover {{
+                background: transparent;
+                color: #e0342c;
+            }}
         """)
-        header_layout.addWidget(self.champion_display_name)
+        self._header_close_btn.setToolTip("Close this viewer")
+        self._header_close_btn.clicked.connect(lambda: self.close_requested.emit(self))
+        header_layout.addWidget(self._header_close_btn)
+
+        pill_icon = sz["icon_size_pill"]
+        self._champion_selector_btn = QPushButton("Champion \u25BE")
+        self._champion_selector_btn.setStyleSheet(selector_pill_style)
+        self._champion_selector_btn.setIconSize(QSize(pill_icon, pill_icon))
+        self._champion_selector_btn.clicked.connect(lambda: self._open_champion_selector("champion"))
+        header_layout.addWidget(self._champion_selector_btn)
+
+        self._header_vs_label = QLabel("vs")
+        self._header_vs_label.setStyleSheet(
+            f"QLabel {{ font-size: {sz['font_pill']}; color: #6d7a8a; background-color: transparent; margin: 0 2px; }}"
+        )
+        self._header_vs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header_layout.addWidget(self._header_vs_label)
+
+        self._opponent_selector_btn = QPushButton("Opponent \u25BE")
+        self._opponent_selector_btn.setStyleSheet(selector_pill_style)
+        self._opponent_selector_btn.setIconSize(QSize(pill_icon, pill_icon))
+        self._opponent_selector_btn.clicked.connect(lambda: self._open_champion_selector("opponent"))
+        header_layout.addWidget(self._opponent_selector_btn)
+
         header_layout.addStretch()
 
-        layout.addWidget(header_widget)
+        self._lane_selector_btn = QPushButton("Lane \u25BE")
+        self._lane_selector_btn.setStyleSheet(selector_pill_style)
+        self._lane_selector_btn.clicked.connect(lambda: self._open_champion_selector("lane"))
+        header_layout.addWidget(self._lane_selector_btn)
 
-        # ── Control bar: [Build][Counter][ARAM]  <stretch>  [Champ▾] vs [Opp▾] × ──
+        layout.addWidget(header_widget)
+        self._header_widget = header_widget
+
+        # ── Control bar: [Build][Counter][ARAM] ──
         control_bar = QWidget()
         control_bar.setStyleSheet("QWidget { background-color: #0d1117; }")
-        control_bar.setFixedHeight(36)
+        control_bar.setFixedHeight(sz["height_control_bar"])
         cb_layout = QHBoxLayout(control_bar)
         cb_layout.setContentsMargins(4, 0, 4, 0)
         cb_layout.setSpacing(0)
 
-        # -- Mode tab style (compact / shrunk) --
-        mode_tab_checked = """
-            QPushButton {
-                padding: 4px 10px;
-                font-size: 9pt;
+        # -- Mode tab style --
+        mode_tab_checked = f"""
+            QPushButton {{
+                padding: {sz['padding_btn']};
+                font-size: {sz['font_mode_btn']};
                 font-weight: bold;
                 background-color: #00d6a1;
                 color: #0d1117;
                 border: none;
-                border-radius: 4px;
-                margin: 3px 2px;
-            }
-            QPushButton:hover { background-color: #00efb3; }
+                border-radius: {sz['border_radius']};
+                margin: {sz['margin_mode_btn']};
+            }}
+            QPushButton:hover {{ background-color: #00efb3; }}
         """
-        mode_tab_unchecked = """
-            QPushButton {
-                padding: 4px 10px;
-                font-size: 9pt;
+        mode_tab_unchecked = f"""
+            QPushButton {{
+                padding: {sz['padding_btn']};
+                font-size: {sz['font_mode_btn']};
                 background-color: transparent;
                 color: #6d7a8a;
                 border: none;
-                border-radius: 4px;
-                margin: 3px 2px;
-            }
-            QPushButton:hover { background-color: #1c2330; color: #e2e8f0; }
-            QPushButton:checked {
+                border-radius: {sz['border_radius']};
+                margin: {sz['margin_mode_btn']};
+            }}
+            QPushButton:hover {{ background-color: #1c2330; color: #e2e8f0; }}
+            QPushButton:checked {{
                 font-weight: bold;
                 background-color: #00d6a1;
                 color: #0d1117;
-            }
+            }}
         """
 
         self.build_button = QPushButton("Build")
@@ -703,51 +943,9 @@ class ChampionViewerWidget(QWidget):
         self._mode_tab_style_inactive = mode_tab_unchecked
         self._set_selected_mode_index(0)
 
-        # -- Lane selector pill (left-aligned, right of ARAM) --
-        selector_pill_style = """
-            QPushButton {
-                padding: 3px 8px 3px 4px;
-                font-size: 9pt;
-                background-color: #1c2330;
-                color: #e2e8f0;
-                border: 1px solid #222a35;
-                border-radius: 4px;
-                text-align: left;
-            }
-            QPushButton:hover {
-                background-color: #222a35;
-                border-color: #00d6a1;
-            }
-        """
-
-        self._lane_selector_btn = QPushButton("Lane \u25BE")
-        self._lane_selector_btn.setStyleSheet(selector_pill_style)
-        self._lane_selector_btn.clicked.connect(lambda: self._open_champion_selector("lane"))
-        cb_layout.addWidget(self._lane_selector_btn)
-
         cb_layout.addStretch()
-
-        self._champion_selector_btn = QPushButton("Champion \u25BE")
-        self._champion_selector_btn.setStyleSheet(selector_pill_style)
-        self._champion_selector_btn.setIconSize(QSize(20, 20))
-        self._champion_selector_btn.clicked.connect(lambda: self._open_champion_selector("champion"))
-        cb_layout.addWidget(self._champion_selector_btn)
-
-        vs_label = QLabel("vs")
-        vs_label.setStyleSheet(
-            "QLabel { font-size: 9pt; color: #6d7a8a; background-color: transparent; margin: 0 4px; }"
-        )
-        vs_label.setFixedWidth(20)
-        vs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        cb_layout.addWidget(vs_label)
-
-        self._opponent_selector_btn = QPushButton("Opponent \u25BE")
-        self._opponent_selector_btn.setStyleSheet(selector_pill_style)
-        self._opponent_selector_btn.setIconSize(QSize(20, 20))
-        self._opponent_selector_btn.clicked.connect(lambda: self._open_champion_selector("opponent"))
-        cb_layout.addWidget(self._opponent_selector_btn)
-
         layout.addWidget(control_bar)
+        self._control_bar = control_bar
 
         # ── Hidden inputs for compatibility ──
         self.champion_input = QLineEdit()
@@ -823,69 +1021,91 @@ class ChampionViewerWidget(QWidget):
 
     def _create_champion_selector_panel(self) -> QWidget:
         """Create the champion selector panel: SELECT CHAMPION header + search + list."""
+        sz = self._get_ui_sizes()
         panel = QWidget()
         panel.setStyleSheet("QWidget { background-color: #1c2330; }")
         panel_layout = QVBoxLayout(panel)
         panel_layout.setContentsMargins(12, 8, 12, 8)
         panel_layout.setSpacing(6)
 
-        # "SELECT CHAMPION" header label
+        # Header row: "SELECT CHAMPION" + close button
+        header_row = QHBoxLayout()
+        header_row.setContentsMargins(0, 0, 0, 0)
         select_label = QLabel("SELECT CHAMPION")
-        select_label.setStyleSheet("""
-            QLabel {
-                font-size: 8pt;
+        select_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_small']};
                 font-weight: bold;
                 color: #6d7a8a;
                 background-color: transparent;
                 letter-spacing: 1px;
                 padding: 2px 0;
-            }
+            }}
         """)
-        select_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        panel_layout.addWidget(select_label)
+        header_row.addStretch()
+        header_row.addWidget(select_label)
+        header_row.addStretch()
+
+        close_btn = QPushButton(CLOSE_BUTTON_GLYPH)
+        close_btn.setFixedSize(sz["icon_size_close_btn"], sz["icon_size_close_btn"])
+        close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        close_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                border: none;
+                color: #6d7a8a;
+                font-size: {sz['font_close_btn']};
+                font-weight: bold;
+            }}
+            QPushButton:hover {{ color: #e2e8f0; }}
+        """)
+        close_btn.clicked.connect(lambda: self.viewer_content_stack.setCurrentIndex(0))
+        header_row.addWidget(close_btn)
+        panel_layout.addLayout(header_row)
 
         # Search field
         self._champion_search_input = QLineEdit()
         self._champion_search_input.setPlaceholderText("Search...")
-        self._champion_search_input.setStyleSheet("""
-            QLineEdit {
-                padding: 6px 8px;
-                font-size: 9pt;
+        self._champion_search_input.setStyleSheet(f"""
+            QLineEdit {{
+                padding: {sz['padding_search']};
+                font-size: {sz['font_selector_item']};
                 background-color: #141b24;
                 color: #e2e8f0;
                 border: 1px solid #222a35;
-                border-radius: 4px;
-            }
-            QLineEdit:focus {
+                border-radius: {sz['border_radius']};
+            }}
+            QLineEdit:focus {{
                 border: 1px solid #00d6a1;
-            }
+            }}
         """)
         self._champion_search_input.textChanged.connect(self._filter_champion_list)
         self._champion_search_input.installEventFilter(self)
         panel_layout.addWidget(self._champion_search_input)
 
         # Champion list
+        icon_sz = sz["icon_size_selector"]
         self._champion_list_widget = QListWidget()
-        self._champion_list_widget.setStyleSheet("""
-            QListWidget {
+        self._champion_list_widget.setStyleSheet(f"""
+            QListWidget {{
                 background-color: #141b24;
                 border: none;
-                border-radius: 4px;
+                border-radius: {sz['border_radius']};
                 color: #e2e8f0;
                 outline: none;
-            }
-            QListWidget::item {
-                padding: 5px 8px;
-            }
-            QListWidget::item:hover {
+            }}
+            QListWidget::item {{
+                padding: {sz['padding_selector_item']};
+            }}
+            QListWidget::item:hover {{
                 background-color: #1c2330;
-            }
-            QListWidget::item:selected {
+            }}
+            QListWidget::item:selected {{
                 background-color: #00d6a1;
                 color: #0d1117;
-            }
+            }}
         """)
-        self._champion_list_widget.setIconSize(QSize(28, 28))
+        self._champion_list_widget.setIconSize(QSize(icon_sz, icon_sz))
         self._champion_list_widget.itemClicked.connect(self._on_champion_list_item_clicked)
         panel_layout.addWidget(self._champion_list_widget)
 
@@ -898,11 +1118,13 @@ class ChampionViewerWidget(QWidget):
         if not self.champion_data:
             return
 
+        icon_sz = self._get_ui_sizes()["icon_size_selector"]
+
         def _safe_set_icon(it, px):
             """Set icon on item, ignoring if the C++ object was already deleted."""
             try:
                 it.setIcon(QIcon(px.scaled(
-                    28, 28, Qt.AspectRatioMode.KeepAspectRatio,
+                    icon_sz, icon_sz, Qt.AspectRatioMode.KeepAspectRatio,
                     Qt.TransformationMode.SmoothTransformation)))
             except RuntimeError:
                 pass
@@ -990,46 +1212,68 @@ class ChampionViewerWidget(QWidget):
 
     def _create_lane_selector_panel(self) -> QWidget:
         """Create the lane selector panel: SELECT LANE header + lane list."""
+        sz = self._get_ui_sizes()
         panel = QWidget()
         panel.setStyleSheet("QWidget { background-color: #1c2330; }")
         panel_layout = QVBoxLayout(panel)
         panel_layout.setContentsMargins(12, 8, 12, 8)
         panel_layout.setSpacing(6)
 
+        # Header row: "SELECT LANE" + close button
+        header_row = QHBoxLayout()
+        header_row.setContentsMargins(0, 0, 0, 0)
         select_label = QLabel("SELECT LANE")
-        select_label.setStyleSheet("""
-            QLabel {
-                font-size: 8pt;
+        select_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_small']};
                 font-weight: bold;
                 color: #6d7a8a;
                 background-color: transparent;
                 letter-spacing: 1px;
                 padding: 2px 0;
-            }
+            }}
         """)
-        select_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        panel_layout.addWidget(select_label)
+        header_row.addStretch()
+        header_row.addWidget(select_label)
+        header_row.addStretch()
+
+        close_btn = QPushButton(CLOSE_BUTTON_GLYPH)
+        close_btn.setFixedSize(sz["icon_size_close_btn"], sz["icon_size_close_btn"])
+        close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        close_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                border: none;
+                color: #6d7a8a;
+                font-size: {sz['font_close_btn']};
+                font-weight: bold;
+            }}
+            QPushButton:hover {{ color: #e2e8f0; }}
+        """)
+        close_btn.clicked.connect(lambda: self.viewer_content_stack.setCurrentIndex(0))
+        header_row.addWidget(close_btn)
+        panel_layout.addLayout(header_row)
 
         self._lane_list_widget = QListWidget()
-        self._lane_list_widget.setStyleSheet("""
-            QListWidget {
+        self._lane_list_widget.setStyleSheet(f"""
+            QListWidget {{
                 background-color: #141b24;
                 border: none;
-                border-radius: 4px;
+                border-radius: {sz['border_radius']};
                 color: #e2e8f0;
                 outline: none;
-            }
-            QListWidget::item {
-                padding: 8px 12px;
-                font-size: 10pt;
-            }
-            QListWidget::item:hover {
+            }}
+            QListWidget::item {{
+                padding: {sz['padding_lane_item']};
+                font-size: {sz['font_lane_item']};
+            }}
+            QListWidget::item:hover {{
                 background-color: #1c2330;
-            }
-            QListWidget::item:selected {
+            }}
+            QListWidget::item:selected {{
                 background-color: #00d6a1;
                 color: #0d1117;
-            }
+            }}
         """)
         lanes = [("None", ""), ("Top", "top"), ("Jungle", "jungle"),
                  ("Mid", "middle"), ("Bot", "bottom"), ("Support", "support")]
@@ -1124,34 +1368,22 @@ class ChampionViewerWidget(QWidget):
             self.open_selected_mode()
 
     def _update_header_display(self):
-        """Update the header 'Champion vs Opponent' display."""
-        champ_name = self.champion_input.text().strip().lower()
-        opp_name = self.opponent_champion_input.text().strip().lower()
-
-        champ_display = self._get_display_name(champ_name)
-        opp_display = self._get_display_name(opp_name)
-
-        if champ_display and opp_display:
-            self.champion_display_name.setText(f"{champ_display} vs {opp_display}")
-        elif champ_display:
-            self.champion_display_name.setText(champ_display)
-        else:
-            self.champion_display_name.setText("")
-
-        # Update header icon from champion
-        self._set_label_champion_icon(self.champion_display_icon, champ_name, 28)
+        """Update the header icon (pill buttons are updated separately)."""
+        pass
 
     def _update_champion_selector_btn(self, champ_id: str):
         """Update the champion selector pill button text and icon."""
         display = self._get_display_name(champ_id) or "Champion"
         self._champion_selector_btn.setText(f"{display} \u25BE")
-        self._set_btn_champion_icon(self._champion_selector_btn, champ_id, 20)
+        sz = self._get_ui_sizes()
+        self._set_btn_champion_icon(self._champion_selector_btn, champ_id, sz["icon_size_pill"])
 
     def _update_opponent_selector_btn(self, champ_id: str):
         """Update the opponent selector pill button text and icon."""
         display = self._get_display_name(champ_id) or "Opponent"
         self._opponent_selector_btn.setText(f"{display} \u25BE")
-        self._set_btn_champion_icon(self._opponent_selector_btn, champ_id, 20)
+        sz = self._get_ui_sizes()
+        self._set_btn_champion_icon(self._opponent_selector_btn, champ_id, sz["icon_size_pill"])
 
     def _get_display_name(self, champ_id: str) -> str:
         """Get the display name for a champion id."""
@@ -1809,6 +2041,7 @@ class MainWindow(QMainWindow):
 
     def create_settings_page(self):
         """Create the Settings page with version information and update check"""
+        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
         self.settings_page = QWidget()
         settings_scroll = QScrollArea()
         settings_scroll.setWidgetResizable(True)
@@ -1826,13 +2059,13 @@ class MainWindow(QMainWindow):
 
         # Title
         title_label = QLabel("Settings")
-        title_label.setStyleSheet("""
-            QLabel {
-                font-size: 18pt;
+        title_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_page_title']};
                 font-weight: bold;
                 color: #e2e8f0;
                 background-color: transparent;
-            }
+            }}
         """)
         settings_layout.addWidget(title_label)
 
@@ -1842,13 +2075,13 @@ class MainWindow(QMainWindow):
         url_layout.setSpacing(15)
 
         url_title = QLabel("Analytics URLs")
-        url_title.setStyleSheet("""
-            QLabel {
-                font-size: 12pt;
+        url_title.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_section']};
                 font-weight: bold;
                 color: #e2e8f0;
                 background-color: transparent;
-            }
+            }}
         """)
         url_layout.addWidget(url_title)
 
@@ -1856,126 +2089,126 @@ class MainWindow(QMainWindow):
             "Configure URLs for each analytics type. Use {name} as placeholder for champion name, {lane} for lane parameter. "
             "For matchup URLs, use {champion_name1}, {champion_name2}, {lane_name}."
         )
-        url_description.setStyleSheet("""
-            QLabel {
-                font-size: 9pt;
+        url_description.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_settings_desc']};
                 color: #6d7a8a;
                 background-color: transparent;
                 padding: 5px;
-            }
+            }}
         """)
         url_description.setWordWrap(True)
         url_layout.addWidget(url_description)
 
         # Build URL
         build_url_label = QLabel("Build URL:")
-        build_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #c1c9d4; background-color: transparent; }")
+        build_url_label.setStyleSheet(f"QLabel {{ font-size: {sz['font_settings_label']}; color: #c1c9d4; background-color: transparent; }}")
         url_layout.addWidget(build_url_label)
 
         self.build_url_input = QLineEdit()
         self.build_url_input.setPlaceholderText("e.g., https://lolalytics.com/lol/{name}/build/")
-        self.build_url_input.setStyleSheet("""
-            QLineEdit {
-                padding: 8px;
-                font-size: 10pt;
+        self.build_url_input.setStyleSheet(f"""
+            QLineEdit {{
+                padding: {sz['padding_settings_input']};
+                font-size: {sz['font_settings_input']};
                 background-color: #141b24;
                 color: #e2e8f0;
                 border: 1px solid #222a35;
                 border-radius: 6px;
-            }
-            QLineEdit:focus {
+            }}
+            QLineEdit:focus {{
                 border: 1px solid #00d6a1;
-            }
+            }}
         """)
         url_layout.addWidget(self.build_url_input)
 
         # Matchup URL
         matchup_url_label = QLabel("Matchup URL:")
-        matchup_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #c1c9d4; background-color: transparent; }")
+        matchup_url_label.setStyleSheet(f"QLabel {{ font-size: {sz['font_settings_label']}; color: #c1c9d4; background-color: transparent; }}")
         url_layout.addWidget(matchup_url_label)
 
         self.matchup_url_input = QLineEdit()
         self.matchup_url_input.setPlaceholderText(
             "e.g., https://lolalytics.com/lol/{champion_name1}/vs/{champion_name2}/build/?lane={lane_name}&vslane={lane_name}"
         )
-        self.matchup_url_input.setStyleSheet("""
-            QLineEdit {
-                padding: 8px;
-                font-size: 10pt;
+        self.matchup_url_input.setStyleSheet(f"""
+            QLineEdit {{
+                padding: {sz['padding_settings_input']};
+                font-size: {sz['font_settings_input']};
                 background-color: #141b24;
                 color: #e2e8f0;
                 border: 1px solid #222a35;
                 border-radius: 6px;
-            }
-            QLineEdit:focus {
+            }}
+            QLineEdit:focus {{
                 border: 1px solid #00d6a1;
-            }
+            }}
         """)
         url_layout.addWidget(self.matchup_url_input)
 
         # Counter URL
         counter_url_label = QLabel("Counter URL:")
-        counter_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #c1c9d4; background-color: transparent; }")
+        counter_url_label.setStyleSheet(f"QLabel {{ font-size: {sz['font_settings_label']}; color: #c1c9d4; background-color: transparent; }}")
         url_layout.addWidget(counter_url_label)
 
         self.counter_url_input = QLineEdit()
         self.counter_url_input.setPlaceholderText("e.g., https://lolalytics.com/lol/{name}/counters/")
-        self.counter_url_input.setStyleSheet("""
-            QLineEdit {
-                padding: 8px;
-                font-size: 10pt;
+        self.counter_url_input.setStyleSheet(f"""
+            QLineEdit {{
+                padding: {sz['padding_settings_input']};
+                font-size: {sz['font_settings_input']};
                 background-color: #141b24;
                 color: #e2e8f0;
                 border: 1px solid #222a35;
                 border-radius: 6px;
-            }
-            QLineEdit:focus {
+            }}
+            QLineEdit:focus {{
                 border: 1px solid #00d6a1;
-            }
+            }}
         """)
         url_layout.addWidget(self.counter_url_input)
 
         # ARAM URL
         aram_url_label = QLabel("ARAM URL:")
-        aram_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #c1c9d4; background-color: transparent; }")
+        aram_url_label.setStyleSheet(f"QLabel {{ font-size: {sz['font_settings_label']}; color: #c1c9d4; background-color: transparent; }}")
         url_layout.addWidget(aram_url_label)
 
         self.aram_url_input = QLineEdit()
         self.aram_url_input.setPlaceholderText("e.g., https://u.gg/lol/champions/aram/{name}-aram")
-        self.aram_url_input.setStyleSheet("""
-            QLineEdit {
-                padding: 8px;
-                font-size: 10pt;
+        self.aram_url_input.setStyleSheet(f"""
+            QLineEdit {{
+                padding: {sz['padding_settings_input']};
+                font-size: {sz['font_settings_input']};
                 background-color: #141b24;
                 color: #e2e8f0;
                 border: 1px solid #222a35;
                 border-radius: 6px;
-            }
-            QLineEdit:focus {
+            }}
+            QLineEdit:focus {{
                 border: 1px solid #00d6a1;
-            }
+            }}
         """)
         url_layout.addWidget(self.aram_url_input)
 
         # Live Game URL
         live_game_url_label = QLabel("Live Game URL:")
-        live_game_url_label.setStyleSheet("QLabel { font-size: 10pt; color: #c1c9d4; background-color: transparent; }")
+        live_game_url_label.setStyleSheet(f"QLabel {{ font-size: {sz['font_settings_label']}; color: #c1c9d4; background-color: transparent; }}")
         url_layout.addWidget(live_game_url_label)
 
         self.live_game_url_input = QLineEdit()
         self.live_game_url_input.setPlaceholderText("e.g., https://u.gg/lol/lg-splash")
-        self.live_game_url_input.setStyleSheet("""
-            QLineEdit {
-                padding: 8px;
-                font-size: 10pt;
+        self.live_game_url_input.setStyleSheet(f"""
+            QLineEdit {{
+                padding: {sz['padding_settings_input']};
+                font-size: {sz['font_settings_input']};
                 background-color: #141b24;
                 color: #e2e8f0;
                 border: 1px solid #222a35;
                 border-radius: 6px;
-            }
-            QLineEdit:focus {
+            }}
+            QLineEdit:focus {{
                 border: 1px solid #00d6a1;
-            }
+            }}
         """)
         url_layout.addWidget(self.live_game_url_input)
 
@@ -1983,42 +2216,42 @@ class MainWindow(QMainWindow):
         url_buttons_layout = QHBoxLayout()
 
         self.save_urls_button = QPushButton("Save URLs")
-        self.save_urls_button.setStyleSheet("""
-            QPushButton {
-                padding: 8px 16px;
-                font-size: 10pt;
+        self.save_urls_button.setStyleSheet(f"""
+            QPushButton {{
+                padding: {sz['padding_primary_btn']};
+                font-size: {sz['font_settings_input']};
                 background-color: #00d6a1;
                 color: #0d1117;
                 border: none;
                 border-radius: 6px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: #00efb3;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: #00b888;
-            }
+            }}
         """)
         self.save_urls_button.clicked.connect(self.save_url_settings)
         url_buttons_layout.addWidget(self.save_urls_button)
 
         self.reset_urls_button = QPushButton("Reset to Defaults")
-        self.reset_urls_button.setStyleSheet("""
-            QPushButton {
-                padding: 8px 16px;
-                font-size: 10pt;
+        self.reset_urls_button.setStyleSheet(f"""
+            QPushButton {{
+                padding: {sz['padding_primary_btn']};
+                font-size: {sz['font_settings_input']};
                 background-color: #1c2330;
                 color: #c1c9d4;
                 border: 1px solid #222a35;
                 border-radius: 6px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: #222a35;
                 color: #e2e8f0;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: #141b24;
-            }
+            }}
         """)
         self.reset_urls_button.clicked.connect(self.reset_url_settings)
         url_buttons_layout.addWidget(self.reset_urls_button)
@@ -2028,13 +2261,13 @@ class MainWindow(QMainWindow):
 
         # URL save status label
         self.url_status_label = QLabel("")
-        self.url_status_label.setStyleSheet("""
-            QLabel {
-                font-size: 9pt;
+        self.url_status_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_settings_desc']};
                 color: #6d7a8a;
                 background-color: transparent;
                 padding: 5px;
-            }
+            }}
         """)
         url_layout.addWidget(self.url_status_label)
 
@@ -2046,49 +2279,49 @@ class MainWindow(QMainWindow):
         connection_layout.setSpacing(10)
 
         connection_title = QLabel("LCU Connection")
-        connection_title.setStyleSheet("""
-            QLabel {
-                font-size: 12pt;
+        connection_title.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_section']};
                 font-weight: bold;
                 color: #e2e8f0;
                 background-color: transparent;
-            }
+            }}
         """)
         connection_layout.addWidget(connection_title)
 
         connection_description = QLabel("LoLクライアントを後から起動した場合は、下のボタンを押すと即座に接続を再試行します。")
         connection_description.setWordWrap(True)
-        connection_description.setStyleSheet("""
-            QLabel {
-                font-size: 9pt;
+        connection_description.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_settings_desc']};
                 color: #6d7a8a;
                 background-color: transparent;
                 padding: 5px 0px;
-            }
+            }}
         """)
         connection_layout.addWidget(connection_description)
 
         self.lcu_connect_button = QPushButton("Retry LCU Connection")
-        self.lcu_connect_button.setStyleSheet("""
-            QPushButton {
-                padding: 8px 16px;
-                font-size: 10pt;
+        self.lcu_connect_button.setStyleSheet(f"""
+            QPushButton {{
+                padding: {sz['padding_primary_btn']};
+                font-size: {sz['font_settings_input']};
                 background-color: #1c2330;
                 color: #c1c9d4;
                 border: 1px solid #222a35;
                 border-radius: 6px;
-            }
-            QPushButton:hover:enabled {
+            }}
+            QPushButton:hover:enabled {{
                 background-color: #222a35;
                 color: #e2e8f0;
-            }
-            QPushButton:pressed:enabled {
+            }}
+            QPushButton:pressed:enabled {{
                 background-color: #141b24;
-            }
-            QPushButton:disabled {
+            }}
+            QPushButton:disabled {{
                 background-color: #141b24;
                 color: #6d7a8a;
-            }
+            }}
         """)
         self.lcu_connect_button.clicked.connect(self.manual_connect_lcu)
         connection_layout.addWidget(self.lcu_connect_button)
@@ -2101,49 +2334,49 @@ class MainWindow(QMainWindow):
         version_layout.setSpacing(10)
 
         version_title = QLabel("Version Information")
-        version_title.setStyleSheet("""
-            QLabel {
-                font-size: 12pt;
+        version_title.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_section']};
                 font-weight: bold;
                 color: #e2e8f0;
                 background-color: transparent;
-            }
+            }}
         """)
         version_layout.addWidget(version_title)
 
         # Current version
         self.current_version_label = QLabel(f"Current version: {__version__}")
-        self.current_version_label.setStyleSheet("""
-            QLabel {
-                font-size: 11pt;
+        self.current_version_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_settings_version']};
                 color: #c1c9d4;
                 background-color: transparent;
                 padding: 5px;
-            }
+            }}
         """)
         version_layout.addWidget(self.current_version_label)
 
         # Latest version (initially unknown)
         self.latest_version_label = QLabel("Latest version: Checking...")
-        self.latest_version_label.setStyleSheet("""
-            QLabel {
-                font-size: 11pt;
+        self.latest_version_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_settings_version']};
                 color: #c1c9d4;
                 background-color: transparent;
                 padding: 5px;
-            }
+            }}
         """)
         version_layout.addWidget(self.latest_version_label)
 
         # Status message
         self.status_label = QLabel("")
-        self.status_label.setStyleSheet("""
-            QLabel {
-                font-size: 10pt;
+        self.status_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_settings_label']};
                 color: #6d7a8a;
                 background-color: transparent;
                 padding: 5px;
-            }
+            }}
         """)
         self.status_label.setWordWrap(True)
         version_layout.addWidget(self.status_label)
@@ -2152,25 +2385,25 @@ class MainWindow(QMainWindow):
 
         # Update button
         self.update_button = QPushButton("Check for Updates")
-        self.update_button.setStyleSheet("""
-            QPushButton {
-                padding: 10px 20px;
-                font-size: 11pt;
+        self.update_button.setStyleSheet(f"""
+            QPushButton {{
+                padding: {sz['padding_primary_btn']};
+                font-size: {sz['font_settings_version']};
                 background-color: #00d6a1;
                 color: #0d1117;
                 border: none;
                 border-radius: 6px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: #00efb3;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: #00b888;
-            }
-            QPushButton:disabled {
+            }}
+            QPushButton:disabled {{
                 background-color: #1c2330;
                 color: #6d7a8a;
-            }
+            }}
         """)
         self.update_button.clicked.connect(self.check_for_updates)
         settings_layout.addWidget(self.update_button)
@@ -2181,46 +2414,103 @@ class MainWindow(QMainWindow):
         display_layout.setSpacing(10)
 
         display_title = QLabel("Display Settings")
-        display_title.setStyleSheet("""
-            QLabel {
-                font-size: 12pt;
+        display_title.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_section']};
                 font-weight: bold;
                 color: #e2e8f0;
                 background-color: transparent;
-            }
+            }}
         """)
         display_layout.addWidget(display_title)
 
         display_description = QLabel(
             "Configure display-related options."
         )
-        display_description.setStyleSheet("""
-            QLabel {
-                font-size: 9pt;
+        display_description.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_settings_desc']};
                 color: #6d7a8a;
                 background-color: transparent;
                 padding: 5px;
-            }
+            }}
         """)
         display_description.setWordWrap(True)
         display_layout.addWidget(display_description)
+
+        # UI Size selector
+        ui_size_row = QHBoxLayout()
+        ui_size_label = QLabel("UI Size")
+        ui_size_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_settings_label']};
+                color: #c1c9d4;
+                background-color: transparent;
+                padding: 4px;
+            }}
+        """)
+        ui_size_row.addWidget(ui_size_label)
+
+        self.ui_size_combo = QComboBox()
+        self.ui_size_combo.addItems(["Small", "Medium", "Large"])
+        current_size = QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium")
+        size_map = {"small": 0, "medium": 1, "large": 2}
+        self.ui_size_combo.setCurrentIndex(size_map.get(current_size, 0))
+        self.ui_size_combo.setStyleSheet(f"""
+            QComboBox {{
+                font-size: {sz['font_settings_label']};
+                padding: 4px 8px;
+                background-color: #141b24;
+                color: #e2e8f0;
+                border: 1px solid #222a35;
+                border-radius: 4px;
+                min-width: {sz['min_width_combobox']}px;
+            }}
+            QComboBox:hover {{ border-color: #00d6a1; }}
+            QComboBox::drop-down {{
+                border: none;
+                padding-right: 8px;
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: #141b24;
+                color: #e2e8f0;
+                selection-background-color: #00d6a1;
+                selection-color: #0d1117;
+                border: 1px solid #222a35;
+            }}
+        """)
+        self.ui_size_combo.currentIndexChanged.connect(self._on_ui_size_changed)
+        ui_size_row.addWidget(self.ui_size_combo)
+        ui_size_row.addStretch()
+        display_layout.addLayout(ui_size_row)
+
+        ui_size_hint = QLabel("Requires restart to take effect.")
+        ui_size_hint.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_settings_desc']};
+                color: #6d7a8a;
+                background-color: transparent;
+                padding: 0px 4px;
+            }}
+        """)
+        display_layout.addWidget(ui_size_hint)
 
         self.qr_overlay_checkbox = QCheckBox("QR Code Overlay")
         self.qr_overlay_checkbox.setChecked(self.qr_overlay_enabled)
         self.qr_overlay_checkbox.setToolTip(
             "Show a QR code of the current page URL on the bottom-right of each web view"
         )
-        self.qr_overlay_checkbox.setStyleSheet("""
-            QCheckBox {
-                font-size: 10pt;
+        self.qr_overlay_checkbox.setStyleSheet(f"""
+            QCheckBox {{
+                font-size: {sz['font_settings_label']};
                 color: #c1c9d4;
                 background-color: transparent;
                 padding: 4px;
-            }
-            QCheckBox::indicator {
-                width: 16px;
-                height: 16px;
-            }
+            }}
+            QCheckBox::indicator {{
+                width: {sz['icon_size_checkbox']}px;
+                height: {sz['icon_size_checkbox']}px;
+            }}
         """)
         self.qr_overlay_checkbox.stateChanged.connect(
             lambda state: self._set_qr_overlay_enabled(state == 2)
@@ -2237,26 +2527,26 @@ class MainWindow(QMainWindow):
             flags_layout.setSpacing(10)
 
             flags_title = QLabel("Feature Flags")
-            flags_title.setStyleSheet("""
-                QLabel {
-                    font-size: 12pt;
+            flags_title.setStyleSheet(f"""
+                QLabel {{
+                    font-size: {sz['font_section']};
                     font-weight: bold;
                     color: #e2e8f0;
                     background-color: transparent;
-                }
+                }}
             """)
             flags_layout.addWidget(flags_title)
 
             flags_description = QLabel(
                 "Toggle experimental or gated features. If something breaks, turn the flag OFF and restart the app."
             )
-            flags_description.setStyleSheet("""
-                QLabel {
-                    font-size: 9pt;
+            flags_description.setStyleSheet(f"""
+                QLabel {{
+                    font-size: {sz['font_settings_desc']};
                     color: #6d7a8a;
                     background-color: transparent;
                     padding: 5px;
-                }
+                }}
             """)
             flags_description.setWordWrap(True)
             flags_layout.addWidget(flags_description)
@@ -2267,17 +2557,17 @@ class MainWindow(QMainWindow):
                 checkbox.setChecked(bool(self.feature_flags.get(key, meta.get("default", False))))
                 if meta.get("description"):
                     checkbox.setToolTip(meta["description"])
-                checkbox.setStyleSheet("""
-                    QCheckBox {
-                        font-size: 10pt;
+                checkbox.setStyleSheet(f"""
+                    QCheckBox {{
+                        font-size: {sz['font_settings_label']};
                         color: #c1c9d4;
                         background-color: transparent;
                         padding: 4px;
-                    }
-                    QCheckBox::indicator {
-                        width: 16px;
-                        height: 16px;
-                    }
+                    }}
+                    QCheckBox::indicator {{
+                        width: {sz['icon_size_checkbox']}px;
+                        height: {sz['icon_size_checkbox']}px;
+                    }}
                 """)
                 checkbox.stateChanged.connect(lambda state, k=key: self.set_feature_flag(k, state == 2))
                 self.feature_flag_checkboxes[key] = checkbox
@@ -2285,22 +2575,22 @@ class MainWindow(QMainWindow):
 
             flags_buttons_layout = QHBoxLayout()
             self.reset_flags_button = QPushButton("Reset Flags to Defaults")
-            self.reset_flags_button.setStyleSheet("""
-                QPushButton {
-                    padding: 8px 16px;
-                    font-size: 10pt;
+            self.reset_flags_button.setStyleSheet(f"""
+                QPushButton {{
+                    padding: {sz['padding_primary_btn']};
+                    font-size: {sz['font_settings_input']};
                     background-color: #1c2330;
                     color: #c1c9d4;
                     border: 1px solid #222a35;
                     border-radius: 6px;
-                }
-                QPushButton:hover {
+                }}
+                QPushButton:hover {{
                     background-color: #222a35;
                     color: #e2e8f0;
-                }
-                QPushButton:pressed {
+                }}
+                QPushButton:pressed {{
                     background-color: #141b24;
-                }
+                }}
             """)
             self.reset_flags_button.clicked.connect(self.reset_feature_flags)
             flags_buttons_layout.addWidget(self.reset_flags_button)
@@ -2308,13 +2598,13 @@ class MainWindow(QMainWindow):
             flags_layout.addLayout(flags_buttons_layout)
 
             self.flags_status_label = QLabel("")
-            self.flags_status_label.setStyleSheet("""
-                QLabel {
-                    font-size: 9pt;
+            self.flags_status_label.setStyleSheet(f"""
+                QLabel {{
+                    font-size: {sz['font_settings_desc']};
                     color: #6d7a8a;
                     background-color: transparent;
                     padding: 5px;
-                }
+                }}
             """)
             flags_layout.addWidget(self.flags_status_label)
 
@@ -2326,26 +2616,26 @@ class MainWindow(QMainWindow):
         debug_layout.setSpacing(10)
 
         debug_title = QLabel("Debug")
-        debug_title.setStyleSheet("""
-            QLabel {
-                font-size: 12pt;
+        debug_title.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_section']};
                 font-weight: bold;
                 color: #e2e8f0;
                 background-color: transparent;
-            }
+            }}
         """)
         debug_layout.addWidget(debug_title)
 
         debug_description = QLabel(
             "Manually add champions to the Matchup List for testing."
         )
-        debug_description.setStyleSheet("""
-            QLabel {
-                font-size: 9pt;
+        debug_description.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_settings_desc']};
                 color: #6d7a8a;
                 background-color: transparent;
                 padding: 5px;
-            }
+            }}
         """)
         debug_description.setWordWrap(True)
         debug_layout.addWidget(debug_description)
@@ -2355,18 +2645,18 @@ class MainWindow(QMainWindow):
 
         self._debug_champion_input = QLineEdit()
         self._debug_champion_input.setPlaceholderText("Champion name (e.g., ahri, lux)")
-        self._debug_champion_input.setStyleSheet("""
-            QLineEdit {
-                padding: 8px;
-                font-size: 10pt;
+        self._debug_champion_input.setStyleSheet(f"""
+            QLineEdit {{
+                padding: {sz['padding_settings_input']};
+                font-size: {sz['font_settings_input']};
                 background-color: #141b24;
                 color: #e2e8f0;
                 border: 1px solid #222a35;
                 border-radius: 6px;
-            }
-            QLineEdit:focus {
+            }}
+            QLineEdit:focus {{
                 border: 1px solid #00d6a1;
-            }
+            }}
         """)
         debug_input_row.addWidget(self._debug_champion_input, 1)
 
@@ -2375,41 +2665,41 @@ class MainWindow(QMainWindow):
             setup_champion_input(self._debug_champion_input, self.champion_data)
 
         add_ally_btn = QPushButton("Add Ally")
-        add_ally_btn.setStyleSheet("""
-            QPushButton {
-                padding: 8px 16px;
-                font-size: 10pt;
+        add_ally_btn.setStyleSheet(f"""
+            QPushButton {{
+                padding: {sz['padding_primary_btn']};
+                font-size: {sz['font_settings_input']};
                 background-color: #0078f5;
                 color: #ffffff;
                 border: none;
                 border-radius: 6px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: #1a8aff;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: #0060c0;
-            }
+            }}
         """)
         add_ally_btn.clicked.connect(lambda: self._debug_add_to_matchup("ally"))
         debug_input_row.addWidget(add_ally_btn)
 
         add_enemy_btn = QPushButton("Add Enemy")
-        add_enemy_btn.setStyleSheet("""
-            QPushButton {
-                padding: 8px 16px;
-                font-size: 10pt;
+        add_enemy_btn.setStyleSheet(f"""
+            QPushButton {{
+                padding: {sz['padding_primary_btn']};
+                font-size: {sz['font_settings_input']};
                 background-color: #e0342c;
                 color: #ffffff;
                 border: none;
                 border-radius: 6px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: #f04038;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: #c02820;
-            }
+            }}
         """)
         add_enemy_btn.clicked.connect(lambda: self._debug_add_to_matchup("enemy"))
         debug_input_row.addWidget(add_enemy_btn)
@@ -2417,13 +2707,13 @@ class MainWindow(QMainWindow):
         debug_layout.addLayout(debug_input_row)
 
         self._debug_status_label = QLabel("")
-        self._debug_status_label.setStyleSheet("""
-            QLabel {
-                font-size: 9pt;
+        self._debug_status_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_settings_desc']};
                 color: #6d7a8a;
                 background-color: transparent;
                 padding: 5px;
-            }
+            }}
         """)
         debug_layout.addWidget(self._debug_status_label)
 
@@ -2444,31 +2734,33 @@ class MainWindow(QMainWindow):
 
     def create_sidebar(self):
         """Create the left sidebar with tabs for Live Game and Viewers"""
+        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
         self.sidebar = QTabWidget()
-        self.sidebar.setStyleSheet("""
-            QTabWidget {
+        self.sidebar.setStyleSheet(f"""
+            QTabWidget {{
                 background-color: #090e14;
                 border-right: 1px solid #1c2330;
-            }
-            QTabWidget::pane {
+            }}
+            QTabWidget::pane {{
                 border: none;
                 background-color: #090e14;
-            }
-            QTabBar::tab {
+            }}
+            QTabBar::tab {{
                 background-color: #141b24;
                 color: #c1c9d4;
                 padding: 8px 16px;
+                font-size: {sz['font_sidebar_item']};
                 border: none;
                 border-bottom: 2px solid transparent;
-            }
-            QTabBar::tab:selected {
+            }}
+            QTabBar::tab:selected {{
                 background-color: #00d6a1;
                 color: #0d1117;
                 border-bottom: 2px solid #00efb3;
-            }
-            QTabBar::tab:hover {
+            }}
+            QTabBar::tab:hover {{
                 background-color: #171e28;
-            }
+            }}
         """)
 
         # Live Game tab (empty for now, will show web view in main content)
@@ -2477,12 +2769,12 @@ class MainWindow(QMainWindow):
         live_game_layout.setContentsMargins(10, 10, 10, 10)
 
         live_game_label = QLabel("Live Game\n\nSelect this tab to view\nu.gg live game splash")
-        live_game_label.setStyleSheet("""
-            QLabel {
-                font-size: 10pt;
+        live_game_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_base']};
                 color: #6d7a8a;
                 padding: 10px;
-            }
+            }}
         """)
         live_game_label.setWordWrap(True)
         live_game_layout.addWidget(live_game_label)
@@ -2501,57 +2793,57 @@ class MainWindow(QMainWindow):
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 0)
         windows_label = QLabel("TABS")
-        windows_label.setStyleSheet("""
-            QLabel {
+        windows_label.setStyleSheet(f"""
+            QLabel {{
                 color: #6d7a8a;
-                font-size: 10px;
+                font-size: {sz['font_sidebar_type']};
                 font-weight: bold;
                 letter-spacing: 1px;
                 background-color: transparent;
-            }
+            }}
         """)
         header_layout.addWidget(windows_label)
         header_layout.addStretch()
 
         sidebar_close_all_button = QPushButton(CLOSE_BUTTON_GLYPH)
         sidebar_close_all_button.setToolTip("Close All")
-        sidebar_close_all_button.setStyleSheet("""
-            QPushButton {
+        sidebar_close_all_button.setStyleSheet(f"""
+            QPushButton {{
                 padding: 0px;
                 background-color: transparent;
                 color: #6d7a8a;
                 border: none;
-                font-size: 14px;
-                min-width: 20px;
-                max-width: 20px;
-                min-height: 20px;
-                max-height: 20px;
-            }
-            QPushButton:hover {
+                font-size: {sz['font_sidebar_btn']};
+                min-width: {sz['icon_size_sidebar_btn']}px;
+                max-width: {sz['icon_size_sidebar_btn']}px;
+                min-height: {sz['icon_size_sidebar_btn']}px;
+                max-height: {sz['icon_size_sidebar_btn']}px;
+            }}
+            QPushButton:hover {{
                 color: #e2e8f0;
-            }
+            }}
         """)
         sidebar_close_all_button.clicked.connect(self.close_all_viewers)
         header_layout.addWidget(sidebar_close_all_button)
 
         sidebar_add_button = QPushButton("+")
         sidebar_add_button.setToolTip("Add Viewer")
-        sidebar_add_button.setStyleSheet("""
-            QPushButton {
+        sidebar_add_button.setStyleSheet(f"""
+            QPushButton {{
                 padding: 0px;
                 background-color: transparent;
                 color: #6d7a8a;
                 border: none;
-                font-size: 16px;
+                font-size: {sz['font_sidebar_btn']};
                 font-weight: bold;
-                min-width: 20px;
-                max-width: 20px;
-                min-height: 20px;
-                max-height: 20px;
-            }
-            QPushButton:hover {
+                min-width: {sz['icon_size_sidebar_btn']}px;
+                max-width: {sz['icon_size_sidebar_btn']}px;
+                min-height: {sz['icon_size_sidebar_btn']}px;
+                max-height: {sz['icon_size_sidebar_btn']}px;
+            }}
+            QPushButton:hover {{
                 color: #e2e8f0;
-            }
+            }}
         """)
         sidebar_add_button.clicked.connect(self.add_viewer)
         header_layout.addWidget(sidebar_add_button)
@@ -2599,12 +2891,12 @@ class MainWindow(QMainWindow):
         settings_sidebar_layout.setContentsMargins(10, 10, 10, 10)
 
         settings_label = QLabel("Settings\n\nSelect this tab to view\napplication settings")
-        settings_label.setStyleSheet("""
-            QLabel {
-                font-size: 10pt;
+        settings_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_base']};
                 color: #6d7a8a;
                 padding: 10px;
-            }
+            }}
         """)
         settings_label.setWordWrap(True)
         settings_sidebar_layout.addWidget(settings_label)
@@ -2632,9 +2924,11 @@ class MainWindow(QMainWindow):
         - No swap button next to VS
         - Open button: open-blank style icon
         """
+        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
         container = QWidget()
-        # Title (24) + 5 rows (33 each) + 5 separators (1 each) = 194px
-        container.setFixedHeight(194)
+        # Title + 5 rows + 5 separators
+        container_h = sz["height_matchup_title"] + 5 * sz["height_matchup_row"] + 5
+        container.setFixedHeight(container_h)
         container.setStyleSheet("QWidget { background-color: #090e14; }")
         layout = QVBoxLayout(container)
         layout.setContentsMargins(8, 0, 8, 0)
@@ -2642,14 +2936,14 @@ class MainWindow(QMainWindow):
 
         # Section title bar (#73): "CURRENT MATCHUP" left, "Ally vs Enemy" right
         title_row = QWidget()
-        title_row.setFixedHeight(24)
+        title_row.setFixedHeight(sz["height_matchup_title"])
         title_layout = QHBoxLayout(title_row)
         title_layout.setContentsMargins(4, 0, 4, 0)
         title_layout.setSpacing(0)
 
         title_left = QLabel("CURRENT MATCHUP")
         title_left.setStyleSheet(
-            "QLabel { font-size: 8pt; font-weight: bold; color: #c1c9d4;"
+            f"QLabel {{ font-size: {sz['font_matchup_title']}; font-weight: bold; color: #c1c9d4;"
             " background-color: transparent; }"
         )
         title_left.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
@@ -2661,18 +2955,18 @@ class MainWindow(QMainWindow):
         )
         title_right.setTextFormat(Qt.TextFormat.RichText)
         title_right.setStyleSheet(
-            "QLabel { font-size: 8pt; background-color: transparent; }"
+            f"QLabel {{ font-size: {sz['font_matchup_title']}; background-color: transparent; }}"
         )
         title_right.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         refresh_btn = QPushButton("Refresh")
         refresh_btn.setStyleSheet(
-            "QPushButton { font-size: 7pt; padding: 1px 6px; background-color: transparent;"
+            f"QPushButton {{ font-size: {sz['font_matchup_title']}; padding: 1px 6px; background-color: transparent;"
             " color: #6d7a8a; border: 1px solid #6d7a8a; border-radius: 3px; }"
             "QPushButton:hover { color: #c1c9d4; border-color: #c1c9d4; }"
             "QPushButton:pressed { color: #e2e8f0; border-color: #e2e8f0; }"
         )
-        refresh_btn.setFixedHeight(18)
+        refresh_btn.setFixedHeight(sz['height_matchup_btn'])
         refresh_btn.setToolTip("Clear all matchup data and re-fetch")
         refresh_btn.clicked.connect(self._refresh_matchup_list)
 
@@ -2688,20 +2982,20 @@ class MainWindow(QMainWindow):
         self._matchup_data: list[tuple[str, str]] = [("", "")] * 5  # (ally, enemy)
         self._matchup_row_widgets: list[MatchupRowWidget] = []
 
-        icon_size = 24
-        lane_label_style = "QLabel { font-size: 8pt; color: #6d7a8a; background-color: transparent; }"
-        name_style = "QLabel { font-size: 9pt; font-weight: bold; color: #e2e8f0; background-color: transparent; }"
-        vs_style = "QLabel { font-size: 8pt; color: #6d7a8a; background-color: transparent; }"
+        icon_size = sz["icon_size_matchup"]
+        lane_label_style = f"QLabel {{ font-size: {sz['font_matchup_title']}; color: #6d7a8a; background-color: transparent; }}"
+        name_style = f"QLabel {{ font-size: {sz['font_matchup_name']}; font-weight: bold; color: #e2e8f0; background-color: transparent; }}"
+        vs_style = f"QLabel {{ font-size: {sz['font_matchup_title']}; color: #6d7a8a; background-color: transparent; }}"
         icon_style = "QLabel { background-color: transparent; }"
         separator_style = "QFrame { background-color: rgba(34, 39, 47, 128); }"
-        open_btn_style = """
-            QPushButton {
-                font-size: 9pt; padding: 0px; min-width: 18px; max-width: 18px;
-                min-height: 18px; max-height: 18px; background-color: transparent;
+        open_btn_style = f"""
+            QPushButton {{
+                font-size: {sz['font_matchup_name']}; padding: 0px; min-width: {sz['height_matchup_btn']}px; max-width: {sz['height_matchup_btn']}px;
+                min-height: {sz['height_matchup_btn']}px; max-height: {sz['height_matchup_btn']}px; background-color: transparent;
                 color: #6d7a8a; border: none;
-            }
-            QPushButton:hover { color: #c1c9d4; }
-            QPushButton:pressed { color: #e2e8f0; }
+            }}
+            QPushButton:hover {{ color: #c1c9d4; }}
+            QPushButton:pressed {{ color: #e2e8f0; }}
         """
 
         for i in range(5):
@@ -2713,14 +3007,14 @@ class MainWindow(QMainWindow):
             layout.addWidget(sep)
 
             row = MatchupRowWidget(row_index=i, main_window=self)
-            row.setFixedHeight(33)
+            row.setFixedHeight(sz["height_matchup_row"])
             row_layout = QHBoxLayout(row)
             row_layout.setContentsMargins(4, 0, 4, 0)
             row_layout.setSpacing(4)
 
             # Lane label (#73)
             lane_label = QLabel(self.MATCHUP_LANE_LABELS[i])
-            lane_label.setFixedWidth(44)
+            lane_label.setFixedWidth(sz['width_matchup_lane'])
             lane_label.setStyleSheet(lane_label_style)
             lane_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
@@ -3146,14 +3440,15 @@ class MainWindow(QMainWindow):
         self.feature_flags[key] = bool(enabled)
         self.settings.setValue(f"feature_flags/{key}", bool(enabled))
         if hasattr(self, "flags_status_label"):
+            _sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
             self.flags_status_label.setText(f"✓ Flag '{key}' set to {'ON' if enabled else 'OFF'} (restart may be required)")
-            self.flags_status_label.setStyleSheet("""
-                QLabel {
-                    font-size: 9pt;
+            self.flags_status_label.setStyleSheet(f"""
+                QLabel {{
+                    font-size: {_sz['font_settings_desc']};
                     color: #22c55e;
                     background-color: transparent;
                     padding: 5px;
-                }
+                }}
             """)
         logger.info(f"Feature flag updated: {key}={enabled}")
 
@@ -3165,14 +3460,15 @@ class MainWindow(QMainWindow):
             self.settings.setValue(f"feature_flags/{key}", default_value)
         self.load_feature_flag_settings()
         if hasattr(self, "flags_status_label"):
+            _sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
             self.flags_status_label.setText("✓ Feature flags reset to defaults")
-            self.flags_status_label.setStyleSheet("""
-                QLabel {
-                    font-size: 9pt;
+            self.flags_status_label.setStyleSheet(f"""
+                QLabel {{
+                    font-size: {_sz['font_settings_desc']};
                     color: #22c55e;
                     background-color: transparent;
                     padding: 5px;
-                }
+                }}
             """)
         logger.info("Feature flags reset to defaults")
 
@@ -3209,6 +3505,13 @@ class MainWindow(QMainWindow):
                     viewer._qr_overlay.deleteLater()
                     viewer._qr_overlay = None
 
+    def _on_ui_size_changed(self, index: int):
+        """Handle UI size combo box change."""
+        size_names = ["small", "medium", "large"]
+        size_name = size_names[index] if 0 <= index < len(size_names) else "small"
+        self.settings.setValue("display/ui_size", size_name)
+        logger.info(f"Display setting updated: ui_size={size_name}")
+
     def save_url_settings(self):
         """Save URL settings to QSettings"""
         self.build_url = self.build_url_input.text().strip()
@@ -3221,14 +3524,15 @@ class MainWindow(QMainWindow):
         # Validate that URLs are not empty
         required = [self.build_url, self.matchup_url, self.counter_url, self.aram_url, self.live_game_url]
         if not all(required):
+            _sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
             self.url_status_label.setText("✗ Error: All URLs must be filled")
-            self.url_status_label.setStyleSheet("""
-                QLabel {
-                    font-size: 9pt;
+            self.url_status_label.setStyleSheet(f"""
+                QLabel {{
+                    font-size: {_sz['font_settings_desc']};
                     color: #e0342c;
                     background-color: transparent;
                     padding: 5px;
-                }
+                }}
             """)
             return
 
@@ -3242,14 +3546,15 @@ class MainWindow(QMainWindow):
         # Update live game URL immediately
         self.live_game_web_view.setUrl(QUrl(self.live_game_url))
 
+        _sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
         self.url_status_label.setText("✓ URLs saved successfully")
-        self.url_status_label.setStyleSheet("""
-            QLabel {
-                font-size: 9pt;
+        self.url_status_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {_sz['font_settings_desc']};
                 color: #22c55e;
                 background-color: transparent;
                 padding: 5px;
-            }
+            }}
         """)
 
         logger.info(
@@ -3286,14 +3591,15 @@ class MainWindow(QMainWindow):
         # Update live game URL immediately
         self.live_game_web_view.setUrl(QUrl(self.live_game_url))
 
+        _sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
         self.url_status_label.setText("✓ URLs reset to defaults")
-        self.url_status_label.setStyleSheet("""
-            QLabel {
-                font-size: 9pt;
+        self.url_status_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {_sz['font_settings_desc']};
                 color: #22c55e;
                 background-color: transparent;
                 padding: 5px;
-            }
+            }}
         """)
 
         logger.info("URL settings reset to defaults")
@@ -3658,49 +3964,52 @@ class MainWindow(QMainWindow):
                 latest_version = release_info.get('tag_name', 'Unknown').lstrip('v')
                 self.latest_version_label.setText(f"Latest version: {latest_version}")
 
+                sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
                 if has_update:
                     self.status_label.setText("✓ New version available!")
-                    self.status_label.setStyleSheet("""
-                        QLabel {
-                            font-size: 10pt;
+                    self.status_label.setStyleSheet(f"""
+                        QLabel {{
+                            font-size: {sz['font_base']};
                             color: #00d6a1;
                             background-color: transparent;
                             padding: 5px;
-                        }
+                        }}
                     """)
                 else:
                     self.status_label.setText("✓ You have the latest version")
-                    self.status_label.setStyleSheet("""
-                        QLabel {
-                            font-size: 10pt;
+                    self.status_label.setStyleSheet(f"""
+                        QLabel {{
+                            font-size: {sz['font_base']};
                             color: #22c55e;
                             background-color: transparent;
                             padding: 5px;
-                        }
+                        }}
                     """)
             else:
+                sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
                 self.latest_version_label.setText("Latest version: Unable to check")
                 self.status_label.setText("⚠ Could not connect to update server")
-                self.status_label.setStyleSheet("""
-                    QLabel {
-                        font-size: 10pt;
+                self.status_label.setStyleSheet(f"""
+                    QLabel {{
+                        font-size: {sz['font_base']};
                         color: #e0342c;
                         background-color: transparent;
                         padding: 5px;
-                    }
+                    }}
                 """)
 
         except Exception as e:
+            sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
             logger.error(f"Error checking for updates: {e}")
             self.latest_version_label.setText("Latest version: Error")
             self.status_label.setText(f"✗ Error: {str(e)}")
-            self.status_label.setStyleSheet("""
-                QLabel {
-                    font-size: 10pt;
+            self.status_label.setStyleSheet(f"""
+                QLabel {{
+                    font-size: {sz['font_base']};
                     color: #e0342c;
                     background-color: transparent;
                     padding: 5px;
-                }
+                }}
             """)
 
     def check_for_updates(self):
@@ -3721,15 +4030,16 @@ class MainWindow(QMainWindow):
             self.check_latest_version()
 
         except Exception as e:
+            sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
             logger.error(f"Error during manual update check: {e}")
             self.status_label.setText(f"✗ Error: {str(e)}")
-            self.status_label.setStyleSheet("""
-                QLabel {
-                    font-size: 10pt;
+            self.status_label.setStyleSheet(f"""
+                QLabel {{
+                    font-size: {sz['font_base']};
                     color: #e0342c;
                     background-color: transparent;
                     padding: 5px;
-                }
+                }}
             """)
         finally:
             self.update_button.setEnabled(True)
