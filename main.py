@@ -48,6 +48,135 @@ FEATURE_FLAG_DEFINITIONS: dict = {}
 ARAM_QUEUE_IDS = {450, 65, 100, 720}
 ARAM_MAYHEM_QUEUE_IDS = {2400, 2401, 2403, 2405, 3240, 3270}
 
+# ── UI size presets ──
+# Each preset defines all tuneable size/spacing tokens used across the UI.
+# "small" preserves the original hard-coded values; "medium" and "large" scale
+# them up for users who prefer bigger controls.
+UI_SIZE_PRESETS = {
+    "small": {
+        "font_base": "9pt",
+        "font_small": "8pt",
+        "font_title": "11pt",
+        "font_section": "12pt",
+        "font_page_title": "18pt",
+        "font_pill": "9pt",
+        "font_mode_btn": "9pt",
+        "font_selector_item": "9pt",
+        "font_lane_item": "10pt",
+        "font_settings_input": "10pt",
+        "font_settings_label": "10pt",
+        "font_settings_desc": "9pt",
+        "font_settings_version": "11pt",
+        "font_sidebar_item": "12px",
+        "font_sidebar_type": "9px",
+        "font_matchup_title": "8pt",
+        "font_matchup_name": "9pt",
+        "padding_btn": "4px 10px",
+        "padding_pill": "3px 8px 3px 4px",
+        "padding_primary_btn": "8px 16px",
+        "padding_search": "6px 8px",
+        "padding_selector_item": "5px 8px",
+        "padding_lane_item": "8px 12px",
+        "padding_settings_input": "8px",
+        "icon_size_header": 28,
+        "icon_size_sidebar": 30,
+        "icon_size_selector": 28,
+        "icon_size_pill": 20,
+        "icon_size_matchup": 24,
+        "height_control_bar": 36,
+        "height_header": 44,
+        "height_lcu_status": 48,
+        "height_matchup_row": 33,
+        "height_matchup_title": 24,
+        "border_radius": "4px",
+        "border_radius_lg": "6px",
+        "margin_mode_btn": "3px 2px",
+    },
+    "medium": {
+        "font_base": "11pt",
+        "font_small": "10pt",
+        "font_title": "13pt",
+        "font_section": "14pt",
+        "font_page_title": "22pt",
+        "font_pill": "11pt",
+        "font_mode_btn": "11pt",
+        "font_selector_item": "11pt",
+        "font_lane_item": "12pt",
+        "font_settings_input": "12pt",
+        "font_settings_label": "12pt",
+        "font_settings_desc": "11pt",
+        "font_settings_version": "13pt",
+        "font_sidebar_item": "14px",
+        "font_sidebar_type": "11px",
+        "font_matchup_title": "10pt",
+        "font_matchup_name": "11pt",
+        "padding_btn": "5px 12px",
+        "padding_pill": "4px 10px 4px 5px",
+        "padding_primary_btn": "10px 20px",
+        "padding_search": "7px 10px",
+        "padding_selector_item": "6px 10px",
+        "padding_lane_item": "10px 14px",
+        "padding_settings_input": "10px",
+        "icon_size_header": 34,
+        "icon_size_sidebar": 36,
+        "icon_size_selector": 34,
+        "icon_size_pill": 24,
+        "icon_size_matchup": 28,
+        "height_control_bar": 42,
+        "height_header": 52,
+        "height_lcu_status": 56,
+        "height_matchup_row": 40,
+        "height_matchup_title": 28,
+        "border_radius": "5px",
+        "border_radius_lg": "7px",
+        "margin_mode_btn": "4px 3px",
+    },
+    "large": {
+        "font_base": "13pt",
+        "font_small": "11pt",
+        "font_title": "15pt",
+        "font_section": "17pt",
+        "font_page_title": "25pt",
+        "font_pill": "13pt",
+        "font_mode_btn": "13pt",
+        "font_selector_item": "13pt",
+        "font_lane_item": "14pt",
+        "font_settings_input": "14pt",
+        "font_settings_label": "14pt",
+        "font_settings_desc": "13pt",
+        "font_settings_version": "15pt",
+        "font_sidebar_item": "17px",
+        "font_sidebar_type": "13px",
+        "font_matchup_title": "11pt",
+        "font_matchup_name": "13pt",
+        "padding_btn": "6px 14px",
+        "padding_pill": "5px 12px 5px 6px",
+        "padding_primary_btn": "12px 24px",
+        "padding_search": "8px 12px",
+        "padding_selector_item": "7px 12px",
+        "padding_lane_item": "12px 16px",
+        "padding_settings_input": "12px",
+        "icon_size_header": 40,
+        "icon_size_sidebar": 42,
+        "icon_size_selector": 40,
+        "icon_size_pill": 28,
+        "icon_size_matchup": 34,
+        "height_control_bar": 50,
+        "height_header": 60,
+        "height_lcu_status": 64,
+        "height_matchup_row": 46,
+        "height_matchup_title": 34,
+        "border_radius": "6px",
+        "border_radius_lg": "8px",
+        "margin_mode_btn": "4px 3px",
+    },
+}
+
+
+def get_ui_sizes(size_name: str = "small") -> dict:
+    """Return the size preset dict for *size_name* (default ``"small"``)."""
+    return UI_SIZE_PRESETS.get(size_name, UI_SIZE_PRESETS["small"])
+
 class LCUConnectionStatusWidget(QWidget):
     """Widget displaying LCU connection status with animated dots"""
 
@@ -592,18 +721,26 @@ class ChampionViewerWidget(QWidget):
         """Legacy helper used by tests: counter URL for a champion."""
         return DEFAULT_COUNTER_URL.replace("{name}", champion_name)
 
+    def _get_ui_sizes(self) -> dict:
+        """Return the active UI size preset for this viewer."""
+        size_name = "small"
+        if self.main_window:
+            size_name = QSettings().value("display/ui_size", "small")
+        return get_ui_sizes(size_name)
+
     def init_ui(self):
         """Initialize the UI components
 
-        Layout based on issue #74 wireframe:
+        Layout:
         ┌────────────────────────────────────────────────────┐
-        │ [icon] Darius vs Garen                             │  Header
+        │ [icon] [Champion▾] vs [Opponent▾]    [Lane▾]       │  Header
         ├────────────────────────────────────────────────────┤
-        │ [Build][Counter][ARAM]   [Darius▾] vs [Garen▾] ×  │  Control bar
+        │ [Build][Counter][ARAM]                              │  Control bar
         ├────────────────────────────────────────────────────┤
         │ WebView  /  Champion Selector                      │  Content
         └────────────────────────────────────────────────────┘
         """
+        sz = self._get_ui_sizes()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -611,72 +748,108 @@ class ChampionViewerWidget(QWidget):
         # Image cache (must init before UI elements that use it)
         self._champion_icon_cache = ChampionImageCache()
 
-        # ── Header: [icon] "Champion vs Opponent" ──
+        # -- Shared pill style (used in header for champion/opponent/lane) --
+        selector_pill_style = f"""
+            QPushButton {{
+                padding: {sz['padding_pill']};
+                font-size: {sz['font_pill']};
+                background-color: #1c2330;
+                color: #e2e8f0;
+                border: 1px solid #222a35;
+                border-radius: {sz['border_radius']};
+                text-align: left;
+            }}
+            QPushButton:hover {{
+                background-color: #222a35;
+                border-color: #00d6a1;
+            }}
+        """
+        self._selector_pill_style = selector_pill_style
+
+        # ── Header: [icon] [Champion▾] vs [Opponent▾]  <stretch>  [Lane▾] ──
         header_widget = QWidget()
         header_widget.setStyleSheet("QWidget { background-color: #141b24; }")
+        header_widget.setFixedHeight(sz["height_header"])
         header_layout = QHBoxLayout(header_widget)
-        header_layout.setContentsMargins(10, 8, 10, 8)
-        header_layout.setSpacing(8)
+        header_layout.setContentsMargins(10, 4, 10, 4)
+        header_layout.setSpacing(6)
 
+        icon_sz = sz["icon_size_header"]
         self.champion_display_icon = QLabel()
-        self.champion_display_icon.setFixedSize(28, 28)
+        self.champion_display_icon.setFixedSize(icon_sz, icon_sz)
         self.champion_display_icon.setStyleSheet(
-            "QLabel { background-color: transparent; border-radius: 14px; }"
+            f"QLabel {{ background-color: transparent; border-radius: {icon_sz // 2}px; }}"
         )
         header_layout.addWidget(self.champion_display_icon)
 
-        self.champion_display_name = QLabel("")
-        self.champion_display_name.setStyleSheet("""
-            QLabel {
-                font-size: 11pt;
-                font-weight: bold;
-                color: #e2e8f0;
-                background-color: transparent;
-            }
-        """)
-        header_layout.addWidget(self.champion_display_name)
+        pill_icon = sz["icon_size_pill"]
+        self._champion_selector_btn = QPushButton("Champion \u25BE")
+        self._champion_selector_btn.setStyleSheet(selector_pill_style)
+        self._champion_selector_btn.setIconSize(QSize(pill_icon, pill_icon))
+        self._champion_selector_btn.clicked.connect(lambda: self._open_champion_selector("champion"))
+        header_layout.addWidget(self._champion_selector_btn)
+
+        self._header_vs_label = QLabel("vs")
+        self._header_vs_label.setStyleSheet(
+            f"QLabel {{ font-size: {sz['font_pill']}; color: #6d7a8a; background-color: transparent; margin: 0 2px; }}"
+        )
+        self._header_vs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header_layout.addWidget(self._header_vs_label)
+
+        self._opponent_selector_btn = QPushButton("Opponent \u25BE")
+        self._opponent_selector_btn.setStyleSheet(selector_pill_style)
+        self._opponent_selector_btn.setIconSize(QSize(pill_icon, pill_icon))
+        self._opponent_selector_btn.clicked.connect(lambda: self._open_champion_selector("opponent"))
+        header_layout.addWidget(self._opponent_selector_btn)
+
         header_layout.addStretch()
 
-        layout.addWidget(header_widget)
+        self._lane_selector_btn = QPushButton("Lane \u25BE")
+        self._lane_selector_btn.setStyleSheet(selector_pill_style)
+        self._lane_selector_btn.clicked.connect(lambda: self._open_champion_selector("lane"))
+        header_layout.addWidget(self._lane_selector_btn)
 
-        # ── Control bar: [Build][Counter][ARAM]  <stretch>  [Champ▾] vs [Opp▾] × ──
+        layout.addWidget(header_widget)
+        self._header_widget = header_widget
+
+        # ── Control bar: [Build][Counter][ARAM] ──
         control_bar = QWidget()
         control_bar.setStyleSheet("QWidget { background-color: #0d1117; }")
-        control_bar.setFixedHeight(36)
+        control_bar.setFixedHeight(sz["height_control_bar"])
         cb_layout = QHBoxLayout(control_bar)
         cb_layout.setContentsMargins(4, 0, 4, 0)
         cb_layout.setSpacing(0)
 
-        # -- Mode tab style (compact / shrunk) --
-        mode_tab_checked = """
-            QPushButton {
-                padding: 4px 10px;
-                font-size: 9pt;
+        # -- Mode tab style --
+        mode_tab_checked = f"""
+            QPushButton {{
+                padding: {sz['padding_btn']};
+                font-size: {sz['font_mode_btn']};
                 font-weight: bold;
                 background-color: #00d6a1;
                 color: #0d1117;
                 border: none;
-                border-radius: 4px;
-                margin: 3px 2px;
-            }
-            QPushButton:hover { background-color: #00efb3; }
+                border-radius: {sz['border_radius']};
+                margin: {sz['margin_mode_btn']};
+            }}
+            QPushButton:hover {{ background-color: #00efb3; }}
         """
-        mode_tab_unchecked = """
-            QPushButton {
-                padding: 4px 10px;
-                font-size: 9pt;
+        mode_tab_unchecked = f"""
+            QPushButton {{
+                padding: {sz['padding_btn']};
+                font-size: {sz['font_mode_btn']};
                 background-color: transparent;
                 color: #6d7a8a;
                 border: none;
-                border-radius: 4px;
-                margin: 3px 2px;
-            }
-            QPushButton:hover { background-color: #1c2330; color: #e2e8f0; }
-            QPushButton:checked {
+                border-radius: {sz['border_radius']};
+                margin: {sz['margin_mode_btn']};
+            }}
+            QPushButton:hover {{ background-color: #1c2330; color: #e2e8f0; }}
+            QPushButton:checked {{
                 font-weight: bold;
                 background-color: #00d6a1;
                 color: #0d1117;
-            }
+            }}
         """
 
         self.build_button = QPushButton("Build")
@@ -703,51 +876,9 @@ class ChampionViewerWidget(QWidget):
         self._mode_tab_style_inactive = mode_tab_unchecked
         self._set_selected_mode_index(0)
 
-        # -- Lane selector pill (left-aligned, right of ARAM) --
-        selector_pill_style = """
-            QPushButton {
-                padding: 3px 8px 3px 4px;
-                font-size: 9pt;
-                background-color: #1c2330;
-                color: #e2e8f0;
-                border: 1px solid #222a35;
-                border-radius: 4px;
-                text-align: left;
-            }
-            QPushButton:hover {
-                background-color: #222a35;
-                border-color: #00d6a1;
-            }
-        """
-
-        self._lane_selector_btn = QPushButton("Lane \u25BE")
-        self._lane_selector_btn.setStyleSheet(selector_pill_style)
-        self._lane_selector_btn.clicked.connect(lambda: self._open_champion_selector("lane"))
-        cb_layout.addWidget(self._lane_selector_btn)
-
         cb_layout.addStretch()
-
-        self._champion_selector_btn = QPushButton("Champion \u25BE")
-        self._champion_selector_btn.setStyleSheet(selector_pill_style)
-        self._champion_selector_btn.setIconSize(QSize(20, 20))
-        self._champion_selector_btn.clicked.connect(lambda: self._open_champion_selector("champion"))
-        cb_layout.addWidget(self._champion_selector_btn)
-
-        vs_label = QLabel("vs")
-        vs_label.setStyleSheet(
-            "QLabel { font-size: 9pt; color: #6d7a8a; background-color: transparent; margin: 0 4px; }"
-        )
-        vs_label.setFixedWidth(20)
-        vs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        cb_layout.addWidget(vs_label)
-
-        self._opponent_selector_btn = QPushButton("Opponent \u25BE")
-        self._opponent_selector_btn.setStyleSheet(selector_pill_style)
-        self._opponent_selector_btn.setIconSize(QSize(20, 20))
-        self._opponent_selector_btn.clicked.connect(lambda: self._open_champion_selector("opponent"))
-        cb_layout.addWidget(self._opponent_selector_btn)
-
         layout.addWidget(control_bar)
+        self._control_bar = control_bar
 
         # ── Hidden inputs for compatibility ──
         self.champion_input = QLineEdit()
@@ -823,69 +954,91 @@ class ChampionViewerWidget(QWidget):
 
     def _create_champion_selector_panel(self) -> QWidget:
         """Create the champion selector panel: SELECT CHAMPION header + search + list."""
+        sz = self._get_ui_sizes()
         panel = QWidget()
         panel.setStyleSheet("QWidget { background-color: #1c2330; }")
         panel_layout = QVBoxLayout(panel)
         panel_layout.setContentsMargins(12, 8, 12, 8)
         panel_layout.setSpacing(6)
 
-        # "SELECT CHAMPION" header label
+        # Header row: "SELECT CHAMPION" + close button
+        header_row = QHBoxLayout()
+        header_row.setContentsMargins(0, 0, 0, 0)
         select_label = QLabel("SELECT CHAMPION")
-        select_label.setStyleSheet("""
-            QLabel {
-                font-size: 8pt;
+        select_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_small']};
                 font-weight: bold;
                 color: #6d7a8a;
                 background-color: transparent;
                 letter-spacing: 1px;
                 padding: 2px 0;
-            }
+            }}
         """)
-        select_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        panel_layout.addWidget(select_label)
+        header_row.addStretch()
+        header_row.addWidget(select_label)
+        header_row.addStretch()
+
+        close_btn = QPushButton(CLOSE_BUTTON_GLYPH)
+        close_btn.setFixedSize(24, 24)
+        close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                color: #6d7a8a;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            QPushButton:hover { color: #e2e8f0; }
+        """)
+        close_btn.clicked.connect(lambda: self.viewer_content_stack.setCurrentIndex(0))
+        header_row.addWidget(close_btn)
+        panel_layout.addLayout(header_row)
 
         # Search field
         self._champion_search_input = QLineEdit()
         self._champion_search_input.setPlaceholderText("Search...")
-        self._champion_search_input.setStyleSheet("""
-            QLineEdit {
-                padding: 6px 8px;
-                font-size: 9pt;
+        self._champion_search_input.setStyleSheet(f"""
+            QLineEdit {{
+                padding: {sz['padding_search']};
+                font-size: {sz['font_selector_item']};
                 background-color: #141b24;
                 color: #e2e8f0;
                 border: 1px solid #222a35;
-                border-radius: 4px;
-            }
-            QLineEdit:focus {
+                border-radius: {sz['border_radius']};
+            }}
+            QLineEdit:focus {{
                 border: 1px solid #00d6a1;
-            }
+            }}
         """)
         self._champion_search_input.textChanged.connect(self._filter_champion_list)
         self._champion_search_input.installEventFilter(self)
         panel_layout.addWidget(self._champion_search_input)
 
         # Champion list
+        icon_sz = sz["icon_size_selector"]
         self._champion_list_widget = QListWidget()
-        self._champion_list_widget.setStyleSheet("""
-            QListWidget {
+        self._champion_list_widget.setStyleSheet(f"""
+            QListWidget {{
                 background-color: #141b24;
                 border: none;
-                border-radius: 4px;
+                border-radius: {sz['border_radius']};
                 color: #e2e8f0;
                 outline: none;
-            }
-            QListWidget::item {
-                padding: 5px 8px;
-            }
-            QListWidget::item:hover {
+            }}
+            QListWidget::item {{
+                padding: {sz['padding_selector_item']};
+            }}
+            QListWidget::item:hover {{
                 background-color: #1c2330;
-            }
-            QListWidget::item:selected {
+            }}
+            QListWidget::item:selected {{
                 background-color: #00d6a1;
                 color: #0d1117;
-            }
+            }}
         """)
-        self._champion_list_widget.setIconSize(QSize(28, 28))
+        self._champion_list_widget.setIconSize(QSize(icon_sz, icon_sz))
         self._champion_list_widget.itemClicked.connect(self._on_champion_list_item_clicked)
         panel_layout.addWidget(self._champion_list_widget)
 
@@ -898,11 +1051,13 @@ class ChampionViewerWidget(QWidget):
         if not self.champion_data:
             return
 
+        icon_sz = self._get_ui_sizes()["icon_size_selector"]
+
         def _safe_set_icon(it, px):
             """Set icon on item, ignoring if the C++ object was already deleted."""
             try:
                 it.setIcon(QIcon(px.scaled(
-                    28, 28, Qt.AspectRatioMode.KeepAspectRatio,
+                    icon_sz, icon_sz, Qt.AspectRatioMode.KeepAspectRatio,
                     Qt.TransformationMode.SmoothTransformation)))
             except RuntimeError:
                 pass
@@ -990,46 +1145,68 @@ class ChampionViewerWidget(QWidget):
 
     def _create_lane_selector_panel(self) -> QWidget:
         """Create the lane selector panel: SELECT LANE header + lane list."""
+        sz = self._get_ui_sizes()
         panel = QWidget()
         panel.setStyleSheet("QWidget { background-color: #1c2330; }")
         panel_layout = QVBoxLayout(panel)
         panel_layout.setContentsMargins(12, 8, 12, 8)
         panel_layout.setSpacing(6)
 
+        # Header row: "SELECT LANE" + close button
+        header_row = QHBoxLayout()
+        header_row.setContentsMargins(0, 0, 0, 0)
         select_label = QLabel("SELECT LANE")
-        select_label.setStyleSheet("""
-            QLabel {
-                font-size: 8pt;
+        select_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_small']};
                 font-weight: bold;
                 color: #6d7a8a;
                 background-color: transparent;
                 letter-spacing: 1px;
                 padding: 2px 0;
-            }
+            }}
         """)
-        select_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        panel_layout.addWidget(select_label)
+        header_row.addStretch()
+        header_row.addWidget(select_label)
+        header_row.addStretch()
+
+        close_btn = QPushButton(CLOSE_BUTTON_GLYPH)
+        close_btn.setFixedSize(24, 24)
+        close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                color: #6d7a8a;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            QPushButton:hover { color: #e2e8f0; }
+        """)
+        close_btn.clicked.connect(lambda: self.viewer_content_stack.setCurrentIndex(0))
+        header_row.addWidget(close_btn)
+        panel_layout.addLayout(header_row)
 
         self._lane_list_widget = QListWidget()
-        self._lane_list_widget.setStyleSheet("""
-            QListWidget {
+        self._lane_list_widget.setStyleSheet(f"""
+            QListWidget {{
                 background-color: #141b24;
                 border: none;
-                border-radius: 4px;
+                border-radius: {sz['border_radius']};
                 color: #e2e8f0;
                 outline: none;
-            }
-            QListWidget::item {
-                padding: 8px 12px;
-                font-size: 10pt;
-            }
-            QListWidget::item:hover {
+            }}
+            QListWidget::item {{
+                padding: {sz['padding_lane_item']};
+                font-size: {sz['font_lane_item']};
+            }}
+            QListWidget::item:hover {{
                 background-color: #1c2330;
-            }
-            QListWidget::item:selected {
+            }}
+            QListWidget::item:selected {{
                 background-color: #00d6a1;
                 color: #0d1117;
-            }
+            }}
         """)
         lanes = [("None", ""), ("Top", "top"), ("Jungle", "jungle"),
                  ("Mid", "middle"), ("Bot", "bottom"), ("Support", "support")]
@@ -1124,34 +1301,24 @@ class ChampionViewerWidget(QWidget):
             self.open_selected_mode()
 
     def _update_header_display(self):
-        """Update the header 'Champion vs Opponent' display."""
+        """Update the header icon (pill buttons are updated separately)."""
         champ_name = self.champion_input.text().strip().lower()
-        opp_name = self.opponent_champion_input.text().strip().lower()
-
-        champ_display = self._get_display_name(champ_name)
-        opp_display = self._get_display_name(opp_name)
-
-        if champ_display and opp_display:
-            self.champion_display_name.setText(f"{champ_display} vs {opp_display}")
-        elif champ_display:
-            self.champion_display_name.setText(champ_display)
-        else:
-            self.champion_display_name.setText("")
-
-        # Update header icon from champion
-        self._set_label_champion_icon(self.champion_display_icon, champ_name, 28)
+        sz = self._get_ui_sizes()
+        self._set_label_champion_icon(self.champion_display_icon, champ_name, sz["icon_size_header"])
 
     def _update_champion_selector_btn(self, champ_id: str):
         """Update the champion selector pill button text and icon."""
         display = self._get_display_name(champ_id) or "Champion"
         self._champion_selector_btn.setText(f"{display} \u25BE")
-        self._set_btn_champion_icon(self._champion_selector_btn, champ_id, 20)
+        sz = self._get_ui_sizes()
+        self._set_btn_champion_icon(self._champion_selector_btn, champ_id, sz["icon_size_pill"])
 
     def _update_opponent_selector_btn(self, champ_id: str):
         """Update the opponent selector pill button text and icon."""
         display = self._get_display_name(champ_id) or "Opponent"
         self._opponent_selector_btn.setText(f"{display} \u25BE")
-        self._set_btn_champion_icon(self._opponent_selector_btn, champ_id, 20)
+        sz = self._get_ui_sizes()
+        self._set_btn_champion_icon(self._opponent_selector_btn, champ_id, sz["icon_size_pill"])
 
     def _get_display_name(self, champ_id: str) -> str:
         """Get the display name for a champion id."""
@@ -2205,6 +2372,52 @@ class MainWindow(QMainWindow):
         display_description.setWordWrap(True)
         display_layout.addWidget(display_description)
 
+        # UI Size selector
+        ui_size_row = QHBoxLayout()
+        ui_size_label = QLabel("UI Size")
+        ui_size_label.setStyleSheet("""
+            QLabel {
+                font-size: 10pt;
+                color: #c1c9d4;
+                background-color: transparent;
+                padding: 4px;
+            }
+        """)
+        ui_size_row.addWidget(ui_size_label)
+
+        self.ui_size_combo = QComboBox()
+        self.ui_size_combo.addItems(["Small", "Medium", "Large"])
+        current_size = QSettings().value("display/ui_size", "small")
+        size_map = {"small": 0, "medium": 1, "large": 2}
+        self.ui_size_combo.setCurrentIndex(size_map.get(current_size, 0))
+        self.ui_size_combo.setStyleSheet("""
+            QComboBox {
+                font-size: 10pt;
+                padding: 4px 8px;
+                background-color: #141b24;
+                color: #e2e8f0;
+                border: 1px solid #222a35;
+                border-radius: 4px;
+                min-width: 100px;
+            }
+            QComboBox:hover { border-color: #00d6a1; }
+            QComboBox::drop-down {
+                border: none;
+                padding-right: 8px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #141b24;
+                color: #e2e8f0;
+                selection-background-color: #00d6a1;
+                selection-color: #0d1117;
+                border: 1px solid #222a35;
+            }
+        """)
+        self.ui_size_combo.currentIndexChanged.connect(self._on_ui_size_changed)
+        ui_size_row.addWidget(self.ui_size_combo)
+        ui_size_row.addStretch()
+        display_layout.addLayout(ui_size_row)
+
         self.qr_overlay_checkbox = QCheckBox("QR Code Overlay")
         self.qr_overlay_checkbox.setChecked(self.qr_overlay_enabled)
         self.qr_overlay_checkbox.setToolTip(
@@ -3208,6 +3421,107 @@ class MainWindow(QMainWindow):
                     viewer._qr_overlay.hide()
                     viewer._qr_overlay.deleteLater()
                     viewer._qr_overlay = None
+
+    def _on_ui_size_changed(self, index: int):
+        """Handle UI size combo box change."""
+        size_names = ["small", "medium", "large"]
+        size_name = size_names[index] if 0 <= index < len(size_names) else "small"
+        self.settings.setValue("display/ui_size", size_name)
+        logger.info(f"Display setting updated: ui_size={size_name}")
+        self.apply_ui_size()
+
+    def apply_ui_size(self):
+        """Re-apply UI size preset to all ChampionViewerWidgets by recreating their panels."""
+        sz = get_ui_sizes(QSettings().value("display/ui_size", "small"))
+        for viewer in self.viewers:
+            # Update header height and pill styles
+            viewer._header_widget.setFixedHeight(sz["height_header"])
+
+            pill_style = f"""
+                QPushButton {{
+                    padding: {sz['padding_pill']};
+                    font-size: {sz['font_pill']};
+                    background-color: #1c2330;
+                    color: #e2e8f0;
+                    border: 1px solid #222a35;
+                    border-radius: {sz['border_radius']};
+                    text-align: left;
+                }}
+                QPushButton:hover {{
+                    background-color: #222a35;
+                    border-color: #00d6a1;
+                }}
+            """
+            viewer._selector_pill_style = pill_style
+            viewer._champion_selector_btn.setStyleSheet(pill_style)
+            viewer._opponent_selector_btn.setStyleSheet(pill_style)
+            viewer._lane_selector_btn.setStyleSheet(pill_style)
+
+            pill_icon = sz["icon_size_pill"]
+            viewer._champion_selector_btn.setIconSize(QSize(pill_icon, pill_icon))
+            viewer._opponent_selector_btn.setIconSize(QSize(pill_icon, pill_icon))
+
+            # Update header icon
+            icon_sz = sz["icon_size_header"]
+            viewer.champion_display_icon.setFixedSize(icon_sz, icon_sz)
+            viewer.champion_display_icon.setStyleSheet(
+                f"QLabel {{ background-color: transparent; border-radius: {icon_sz // 2}px; }}"
+            )
+
+            # Update vs label
+            viewer._header_vs_label.setStyleSheet(
+                f"QLabel {{ font-size: {sz['font_pill']}; color: #6d7a8a; background-color: transparent; margin: 0 2px; }}"
+            )
+
+            # Update control bar
+            viewer._control_bar.setFixedHeight(sz["height_control_bar"])
+            mode_tab_checked = f"""
+                QPushButton {{
+                    padding: {sz['padding_btn']};
+                    font-size: {sz['font_mode_btn']};
+                    font-weight: bold;
+                    background-color: #00d6a1;
+                    color: #0d1117;
+                    border: none;
+                    border-radius: {sz['border_radius']};
+                    margin: {sz['margin_mode_btn']};
+                }}
+                QPushButton:hover {{ background-color: #00efb3; }}
+            """
+            mode_tab_unchecked = f"""
+                QPushButton {{
+                    padding: {sz['padding_btn']};
+                    font-size: {sz['font_mode_btn']};
+                    background-color: transparent;
+                    color: #6d7a8a;
+                    border: none;
+                    border-radius: {sz['border_radius']};
+                    margin: {sz['margin_mode_btn']};
+                }}
+                QPushButton:hover {{ background-color: #1c2330; color: #e2e8f0; }}
+                QPushButton:checked {{
+                    font-weight: bold;
+                    background-color: #00d6a1;
+                    color: #0d1117;
+                }}
+            """
+            viewer._mode_tab_style_active = mode_tab_checked
+            viewer._mode_tab_style_inactive = mode_tab_unchecked
+            for btn in [viewer.build_button, viewer.counter_button, viewer.aram_button]:
+                if btn.isChecked():
+                    btn.setStyleSheet(mode_tab_checked)
+                else:
+                    btn.setStyleSheet(mode_tab_unchecked)
+
+            # Re-render header display
+            viewer._update_header_display()
+            # Re-render pill button icons
+            champ = viewer.champion_input.text().strip().lower()
+            opp = viewer.opponent_champion_input.text().strip().lower() if viewer.opponent_champion_input else ""
+            if champ:
+                viewer._update_champion_selector_btn(champ)
+            if opp:
+                viewer._update_opponent_selector_btn(opp)
 
     def save_url_settings(self):
         """Save URL settings to QSettings"""
