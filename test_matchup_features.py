@@ -81,7 +81,6 @@ def test_get_open_champion_suggestions_deduplicates_and_excludes_self():
 def _make_window():
     """Create a minimal MainWindow stub with matchup list state initialised."""
     window = MainWindow.__new__(MainWindow)
-    window.feature_flags = {"matchup_list": True}
     window._matchup_data = [("", "")] * 5
     # Stub out UI refresh (no real widgets)
     window._matchup_rows = []
