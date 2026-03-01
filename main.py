@@ -93,6 +93,12 @@ UI_SIZE_PRESETS = {
         "height_matchup_row": 33,
         "height_matchup_title": 24,
         "width_matchup_lane": 44,
+        "height_dot_container": 30,
+        "width_dot_indicator": 10,
+        "height_dot_indicator": 30,
+        "icon_size_checkbox": 16,
+        "min_width_combobox": 100,
+        "height_matchup_btn": 18,
         "border_radius": "4px",
         "border_radius_lg": "6px",
         "margin_mode_btn": "3px 2px",
@@ -137,6 +143,12 @@ UI_SIZE_PRESETS = {
         "height_matchup_row": 40,
         "height_matchup_title": 28,
         "width_matchup_lane": 52,
+        "height_dot_container": 36,
+        "width_dot_indicator": 12,
+        "height_dot_indicator": 36,
+        "icon_size_checkbox": 20,
+        "min_width_combobox": 120,
+        "height_matchup_btn": 22,
         "border_radius": "5px",
         "border_radius_lg": "7px",
         "margin_mode_btn": "4px 3px",
@@ -181,6 +193,12 @@ UI_SIZE_PRESETS = {
         "height_matchup_row": 46,
         "height_matchup_title": 34,
         "width_matchup_lane": 60,
+        "height_dot_container": 42,
+        "width_dot_indicator": 14,
+        "height_dot_indicator": 42,
+        "icon_size_checkbox": 24,
+        "min_width_combobox": 140,
+        "height_matchup_btn": 26,
         "border_radius": "6px",
         "border_radius_lg": "8px",
         "margin_mode_btn": "4px 3px",
@@ -221,40 +239,40 @@ class LCUConnectionStatusWidget(QWidget):
         layout.setContentsMargins(10, 0, 10, 0)
 
         # Inner container for vertically centering content
-        inner = QWidget()
-        inner.setFixedHeight(30)
-        inner.setStyleSheet("QWidget { border: none; }")
-        inner_layout = QHBoxLayout(inner)
+        self.inner_container = QWidget()
+        self.inner_container.setFixedHeight(sz["height_dot_container"])
+        self.inner_container.setStyleSheet("QWidget { border: none; }")
+        inner_layout = QHBoxLayout(self.inner_container)
         inner_layout.setContentsMargins(0, 0, 0, 0)
         inner_layout.setSpacing(6)
 
         # Green/yellow/red dot indicator
         self.dot_label = QLabel("\u25cf")
-        self.dot_label.setFixedSize(10, 30)
+        self.dot_label.setFixedSize(sz["width_dot_indicator"], sz["height_dot_indicator"])
         self.dot_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.dot_label.setStyleSheet("""
-            QLabel {
-                font-size: 8px;
+        self.dot_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_sidebar_type']};
                 color: #6d7a8a;
                 background-color: transparent;
                 border: none;
-            }
+            }}
         """)
         inner_layout.addWidget(self.dot_label)
 
         # Status text
         self.status_label = QLabel("Riot API: Connecting")
-        self.status_label.setStyleSheet("""
-            QLabel {
-                font-size: 10px;
+        self.status_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_sidebar_type']};
                 color: #6d7a8a;
                 background-color: transparent;
                 border: none;
-            }
+            }}
         """)
         inner_layout.addWidget(self.status_label, 1)
 
-        layout.addWidget(inner)
+        layout.addWidget(self.inner_container)
 
     def _apply_status_color(self, color: str):
         """Apply color to all status indicator elements"""
@@ -305,6 +323,10 @@ class LCUConnectionStatusWidget(QWidget):
         """Update sizes based on UI size preset."""
         self._sz = sz
         self.setFixedHeight(sz["height_lcu_status"])
+        if hasattr(self, "inner_container"):
+            self.inner_container.setFixedHeight(sz["height_dot_container"])
+        if hasattr(self, "dot_label"):
+            self.dot_label.setFixedSize(sz["width_dot_indicator"], sz["height_dot_indicator"])
         self._apply_status_color(
             "#00d6a1" if self.current_status == "connected"
             else "#e0342c" if self.current_status == "disconnected"
@@ -2442,7 +2464,7 @@ class MainWindow(QMainWindow):
                 color: #e2e8f0;
                 border: 1px solid #222a35;
                 border-radius: 4px;
-                min-width: 100px;
+                min-width: {sz['min_width_combobox']}px;
             }}
             QComboBox:hover {{ border-color: #00d6a1; }}
             QComboBox::drop-down {{
@@ -2475,8 +2497,8 @@ class MainWindow(QMainWindow):
                 padding: 4px;
             }}
             QCheckBox::indicator {{
-                width: 16px;
-                height: 16px;
+                width: {sz['icon_size_checkbox']}px;
+                height: {sz['icon_size_checkbox']}px;
             }}
         """)
         self.qr_overlay_checkbox.stateChanged.connect(
@@ -2532,8 +2554,8 @@ class MainWindow(QMainWindow):
                         padding: 4px;
                     }}
                     QCheckBox::indicator {{
-                        width: 16px;
-                        height: 16px;
+                        width: {sz['icon_size_checkbox']}px;
+                        height: {sz['icon_size_checkbox']}px;
                     }}
                 """)
                 checkbox.stateChanged.connect(lambda state, k=key: self.set_feature_flag(k, state == 2))
@@ -2933,7 +2955,7 @@ class MainWindow(QMainWindow):
             "QPushButton:hover { color: #c1c9d4; border-color: #c1c9d4; }"
             "QPushButton:pressed { color: #e2e8f0; border-color: #e2e8f0; }"
         )
-        refresh_btn.setFixedHeight(18)
+        refresh_btn.setFixedHeight(sz['height_matchup_btn'])
         refresh_btn.setToolTip("Clear all matchup data and re-fetch")
         refresh_btn.clicked.connect(self._refresh_matchup_list)
 
@@ -2957,8 +2979,8 @@ class MainWindow(QMainWindow):
         separator_style = "QFrame { background-color: rgba(34, 39, 47, 128); }"
         open_btn_style = f"""
             QPushButton {{
-                font-size: {sz['font_matchup_name']}; padding: 0px; min-width: 18px; max-width: 18px;
-                min-height: 18px; max-height: 18px; background-color: transparent;
+                font-size: {sz['font_matchup_name']}; padding: 0px; min-width: {sz['height_matchup_btn']}px; max-width: {sz['height_matchup_btn']}px;
+                min-height: {sz['height_matchup_btn']}px; max-height: {sz['height_matchup_btn']}px; background-color: transparent;
                 color: #6d7a8a; border: none;
             }}
             QPushButton:hover {{ color: #c1c9d4; }}
@@ -3613,6 +3635,59 @@ class MainWindow(QMainWindow):
                     background-color: #171e28;
                 }}
             """)
+
+        # Update settings page combobox and checkboxes
+        if hasattr(self, "ui_size_combo"):
+            self.ui_size_combo.setStyleSheet(f"""
+                QComboBox {{
+                    font-size: {sz['font_settings_label']};
+                    padding: 4px 8px;
+                    background-color: #141b24;
+                    color: #e2e8f0;
+                    border: 1px solid #222a35;
+                    border-radius: 4px;
+                    min-width: {sz['min_width_combobox']}px;
+                }}
+                QComboBox:hover {{ border-color: #00d6a1; }}
+                QComboBox::drop-down {{
+                    border: none;
+                    padding-right: 8px;
+                }}
+                QComboBox QAbstractItemView {{
+                    background-color: #141b24;
+                    color: #e2e8f0;
+                    selection-background-color: #00d6a1;
+                    selection-color: #0d1117;
+                    border: 1px solid #222a35;
+                }}
+            """)
+        if hasattr(self, "qr_overlay_checkbox"):
+            self.qr_overlay_checkbox.setStyleSheet(f"""
+                QCheckBox {{
+                    font-size: {sz['font_settings_label']};
+                    color: #c1c9d4;
+                    background-color: transparent;
+                    padding: 4px;
+                }}
+                QCheckBox::indicator {{
+                    width: {sz['icon_size_checkbox']}px;
+                    height: {sz['icon_size_checkbox']}px;
+                }}
+            """)
+        if hasattr(self, "feature_flag_checkboxes"):
+            for checkbox in self.feature_flag_checkboxes.values():
+                checkbox.setStyleSheet(f"""
+                    QCheckBox {{
+                        font-size: {sz['font_settings_label']};
+                        color: #c1c9d4;
+                        background-color: transparent;
+                        padding: 4px;
+                    }}
+                    QCheckBox::indicator {{
+                        width: {sz['icon_size_checkbox']}px;
+                        height: {sz['icon_size_checkbox']}px;
+                    }}
+                """)
 
         # Rebuild viewer list items to pick up new sizes
         if hasattr(self, "update_viewers_list"):
