@@ -206,7 +206,7 @@ UI_SIZE_PRESETS = {
 }
 
 
-def get_ui_sizes(size_name: str = "small") -> dict:
+def get_ui_sizes(size_name: str = "medium") -> dict:
     """Return the size preset dict for *size_name* (default ``"small"``)."""
     return UI_SIZE_PRESETS.get(size_name, UI_SIZE_PRESETS["small"])
 
@@ -227,7 +227,7 @@ class LCUConnectionStatusWidget(QWidget):
 
     def init_ui(self):
         """Initialize the UI"""
-        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
+        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
         self.setFixedHeight(sz["height_lcu_status"])
         self.setStyleSheet("""
             QWidget {
@@ -587,7 +587,7 @@ class ViewerListItemWidget(QWidget):
 
     def init_ui(self, display_name: str):
         """Initialize the UI components"""
-        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
+        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 6, 8, 6)
         layout.setSpacing(8)
@@ -683,7 +683,7 @@ class ViewerListItemWidget(QWidget):
 
     def sizeHint(self):
         """Return size based on actual content height."""
-        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
+        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
         icon_h = sz["icon_size_sidebar"]
         hint = super().sizeHint()
         min_h = icon_h + 12  # icon height + vertical margins
@@ -728,7 +728,7 @@ class ViewerListItemWidget(QWidget):
         url = champ.get("image_url", "")
         if not url:
             return
-        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
+        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
         icon_s = sz["icon_size_sidebar"]
         cache = self.parent_window._sidebar_image_cache
         pixmap = cache.get_image(
@@ -779,7 +779,7 @@ class ChampionViewerWidget(QWidget):
         """Return the active UI size preset for this viewer."""
         size_name = "small"
         if self.main_window:
-            size_name = QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small")
+            size_name = QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium")
         return get_ui_sizes(size_name)
 
     def init_ui(self):
@@ -2041,7 +2041,7 @@ class MainWindow(QMainWindow):
 
     def create_settings_page(self):
         """Create the Settings page with version information and update check"""
-        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
+        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
         self.settings_page = QWidget()
         settings_scroll = QScrollArea()
         settings_scroll.setWidgetResizable(True)
@@ -2453,7 +2453,7 @@ class MainWindow(QMainWindow):
 
         self.ui_size_combo = QComboBox()
         self.ui_size_combo.addItems(["Small", "Medium", "Large"])
-        current_size = QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small")
+        current_size = QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium")
         size_map = {"small": 0, "medium": 1, "large": 2}
         self.ui_size_combo.setCurrentIndex(size_map.get(current_size, 0))
         self.ui_size_combo.setStyleSheet(f"""
@@ -2734,7 +2734,7 @@ class MainWindow(QMainWindow):
 
     def create_sidebar(self):
         """Create the left sidebar with tabs for Live Game and Viewers"""
-        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
+        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
         self.sidebar = QTabWidget()
         self.sidebar.setStyleSheet(f"""
             QTabWidget {{
@@ -2924,7 +2924,7 @@ class MainWindow(QMainWindow):
         - No swap button next to VS
         - Open button: open-blank style icon
         """
-        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
+        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
         container = QWidget()
         # Title + 5 rows + 5 separators
         container_h = sz["height_matchup_title"] + 5 * sz["height_matchup_row"] + 5
@@ -3440,7 +3440,7 @@ class MainWindow(QMainWindow):
         self.feature_flags[key] = bool(enabled)
         self.settings.setValue(f"feature_flags/{key}", bool(enabled))
         if hasattr(self, "flags_status_label"):
-            _sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
+            _sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
             self.flags_status_label.setText(f"✓ Flag '{key}' set to {'ON' if enabled else 'OFF'} (restart may be required)")
             self.flags_status_label.setStyleSheet(f"""
                 QLabel {{
@@ -3460,7 +3460,7 @@ class MainWindow(QMainWindow):
             self.settings.setValue(f"feature_flags/{key}", default_value)
         self.load_feature_flag_settings()
         if hasattr(self, "flags_status_label"):
-            _sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
+            _sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
             self.flags_status_label.setText("✓ Feature flags reset to defaults")
             self.flags_status_label.setStyleSheet(f"""
                 QLabel {{
@@ -3524,7 +3524,7 @@ class MainWindow(QMainWindow):
         # Validate that URLs are not empty
         required = [self.build_url, self.matchup_url, self.counter_url, self.aram_url, self.live_game_url]
         if not all(required):
-            _sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
+            _sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
             self.url_status_label.setText("✗ Error: All URLs must be filled")
             self.url_status_label.setStyleSheet(f"""
                 QLabel {{
@@ -3546,7 +3546,7 @@ class MainWindow(QMainWindow):
         # Update live game URL immediately
         self.live_game_web_view.setUrl(QUrl(self.live_game_url))
 
-        _sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
+        _sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
         self.url_status_label.setText("✓ URLs saved successfully")
         self.url_status_label.setStyleSheet(f"""
             QLabel {{
@@ -3591,7 +3591,7 @@ class MainWindow(QMainWindow):
         # Update live game URL immediately
         self.live_game_web_view.setUrl(QUrl(self.live_game_url))
 
-        _sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
+        _sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
         self.url_status_label.setText("✓ URLs reset to defaults")
         self.url_status_label.setStyleSheet(f"""
             QLabel {{
@@ -3964,7 +3964,7 @@ class MainWindow(QMainWindow):
                 latest_version = release_info.get('tag_name', 'Unknown').lstrip('v')
                 self.latest_version_label.setText(f"Latest version: {latest_version}")
 
-                sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
+                sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
                 if has_update:
                     self.status_label.setText("✓ New version available!")
                     self.status_label.setStyleSheet(f"""
@@ -3986,7 +3986,7 @@ class MainWindow(QMainWindow):
                         }}
                     """)
             else:
-                sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
+                sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
                 self.latest_version_label.setText("Latest version: Unable to check")
                 self.status_label.setText("⚠ Could not connect to update server")
                 self.status_label.setStyleSheet(f"""
@@ -3999,7 +3999,7 @@ class MainWindow(QMainWindow):
                 """)
 
         except Exception as e:
-            sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
+            sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
             logger.error(f"Error checking for updates: {e}")
             self.latest_version_label.setText("Latest version: Error")
             self.status_label.setText(f"✗ Error: {str(e)}")
@@ -4030,7 +4030,7 @@ class MainWindow(QMainWindow):
             self.check_latest_version()
 
         except Exception as e:
-            sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
+            sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
             logger.error(f"Error during manual update check: {e}")
             self.status_label.setText(f"✗ Error: {str(e)}")
             self.status_label.setStyleSheet(f"""
