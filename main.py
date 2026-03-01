@@ -725,7 +725,7 @@ class ChampionViewerWidget(QWidget):
         """Return the active UI size preset for this viewer."""
         size_name = "small"
         if self.main_window:
-            size_name = QSettings().value("display/ui_size", "small")
+            size_name = QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small")
         return get_ui_sizes(size_name)
 
     def init_ui(self):
@@ -2387,7 +2387,7 @@ class MainWindow(QMainWindow):
 
         self.ui_size_combo = QComboBox()
         self.ui_size_combo.addItems(["Small", "Medium", "Large"])
-        current_size = QSettings().value("display/ui_size", "small")
+        current_size = QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small")
         size_map = {"small": 0, "medium": 1, "large": 2}
         self.ui_size_combo.setCurrentIndex(size_map.get(current_size, 0))
         self.ui_size_combo.setStyleSheet("""
@@ -3432,7 +3432,7 @@ class MainWindow(QMainWindow):
 
     def apply_ui_size(self):
         """Re-apply UI size preset to all ChampionViewerWidgets by recreating their panels."""
-        sz = get_ui_sizes(QSettings().value("display/ui_size", "small"))
+        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
         for viewer in self.viewers:
             # Update header height and pill styles
             viewer._header_widget.setFixedHeight(sz["height_header"])
