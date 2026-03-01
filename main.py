@@ -869,8 +869,6 @@ class ChampionViewerWidget(QWidget):
         self._opponent_selector_btn.clicked.connect(lambda: self._open_champion_selector("opponent"))
         header_layout.addWidget(self._opponent_selector_btn)
 
-        header_layout.addStretch()
-
         self._lane_selector_btn = QPushButton("Lane \u25BE")
         self._lane_selector_btn.setStyleSheet(selector_pill_style)
         self._lane_selector_btn.clicked.connect(lambda: self._open_champion_selector("lane"))
