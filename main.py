@@ -38,18 +38,7 @@ CLOSE_BUTTON_GLYPH = "×"
 # NOTE: Keys are persisted via QSettings at "feature_flags/<key>".
 #
 # This build currently ships with no gated/experimental features.
-FEATURE_FLAG_DEFINITIONS: dict = {
-    "matchup_list": {
-        "label": "Matchup List",
-        "description": "Show a 5-row matchup list above the viewer toolbar displaying ally vs enemy champion picks.",
-        "default": False,
-    },
-    "matchup_dnd": {
-        "label": "Matchup Drag & Drop",
-        "description": "Allow drag-and-drop reordering of champions in the matchup list. Requires Matchup List to be enabled.",
-        "default": False,
-    },
-}
+FEATURE_FLAG_DEFINITIONS: dict = {}
 
 # Queue IDs used to detect ARAM / ARAM: Mayhem.
 # - ARAM (Howling Abyss): 450 (current), plus a few legacy/special variants.
@@ -944,18 +933,16 @@ class ChampionViewerWidget(QWidget):
 
         Sources (in priority order):
         1. Enemy-picked champions from the detector.
-        2. Enemies from the matchup-list data (when the feature flag is on).
+        2. Enemies from the matchup-list data.
         3. Fallback: champion names currently shown in other viewer tabs.
         """
         ids = self._get_enemy_picked_champion_ids()
 
-        # Also include enemies from matchup data when the feature is enabled
-        if self.main_window and hasattr(self.main_window, "feature_flags"):
-            if self.main_window.feature_flags.get("matchup_list", False):
-                if hasattr(self.main_window, "_matchup_data"):
-                    for _ally, enemy in self.main_window._matchup_data:
-                        if enemy:
-                            ids.add(enemy.lower())
+        # Also include enemies from matchup data
+        if self.main_window and hasattr(self.main_window, "_matchup_data"):
+            for _ally, enemy in self.main_window._matchup_data:
+                if enemy:
+                    ids.add(enemy.lower())
 
         if ids:
             return ids
@@ -1791,9 +1778,8 @@ class MainWindow(QMainWindow):
         viewers_layout.setSpacing(0)
         viewers_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Matchup list (ally vs enemy, 5 rows) — controlled by feature flag
+        # Matchup list (ally vs enemy, 5 rows)
         self.matchup_list_widget = self._create_matchup_list_widget()
-        self.matchup_list_widget.setVisible(self.feature_flags.get("matchup_list", False))
         viewers_layout.addWidget(self.matchup_list_widget)
 
         # Splitter for resizable viewers
@@ -2822,8 +2808,6 @@ class MainWindow(QMainWindow):
 
     def update_matchup_list(self):
         """Refresh the matchup list widget from current matchup data."""
-        if not self.feature_flags.get("matchup_list", False):
-            return
         try:
             for i, (ally_icon, ally_name, enemy_name, enemy_icon) in enumerate(self._matchup_rows):
                 ally, enemy = self._matchup_data[i] if i < len(self._matchup_data) else ("", "")
@@ -2873,8 +2857,6 @@ class MainWindow(QMainWindow):
         - Enemies are placed in first empty slot (pick order).
         """
         if not isinstance(data, dict):
-            return
-        if not self.feature_flags.get("matchup_list", False):
             return
 
         try:
@@ -3003,16 +2985,15 @@ class MainWindow(QMainWindow):
         self.update_matchup_list()
 
     def _apply_matchup_dnd_state(self):
-        """Enable or disable matchup drag-and-drop based on the feature flag."""
-        enabled = self.feature_flags.get("matchup_dnd", False)
+        """Enable matchup drag-and-drop (always on)."""
         for _ally_icon, ally_name, enemy_name, _enemy_icon in self._matchup_rows:
             if isinstance(ally_name, DraggableMatchupLabel):
-                ally_name.set_drag_enabled(enabled)
+                ally_name.set_drag_enabled(True)
             if isinstance(enemy_name, DraggableMatchupLabel):
-                enemy_name.set_drag_enabled(enabled)
+                enemy_name.set_drag_enabled(True)
         if hasattr(self, "_matchup_row_widgets"):
             for row_widget in self._matchup_row_widgets:
-                row_widget.setAcceptDrops(enabled)
+                row_widget.setAcceptDrops(True)
 
     def _debug_add_to_matchup(self, side: str):
         """Add a champion to the matchup list from the debug input field."""
@@ -3020,9 +3001,6 @@ class MainWindow(QMainWindow):
             return
         name = self._debug_champion_input.text().strip()
         if not name:
-            return
-        if not self.feature_flags.get("matchup_list", False):
-            self._debug_status_label.setText("Enable 'Matchup List' feature flag first")
             return
         for i in range(5):
             if side == "ally" and not self._matchup_data[i][0]:
@@ -3167,12 +3145,6 @@ class MainWindow(QMainWindow):
         """Persist a feature flag change and update in-memory state."""
         self.feature_flags[key] = bool(enabled)
         self.settings.setValue(f"feature_flags/{key}", bool(enabled))
-        if key == "matchup_list" and hasattr(self, "matchup_list_widget"):
-            self.matchup_list_widget.setVisible(bool(enabled))
-            if enabled:
-                self.update_matchup_list()
-        if key == "matchup_dnd" and hasattr(self, "_matchup_rows"):
-            self._apply_matchup_dnd_state()
         if hasattr(self, "flags_status_label"):
             self.flags_status_label.setText(f"✓ Flag '{key}' set to {'ON' if enabled else 'OFF'} (restart may be required)")
             self.flags_status_label.setStyleSheet("""
@@ -3522,12 +3494,10 @@ class MainWindow(QMainWindow):
         """
         # Prefer enemy picks from Current Matchup data
         try:
-            matchup_enabled = self.feature_flags.get("matchup_list", False)
             matchup_data = self._matchup_data
         except RuntimeError:
-            matchup_enabled = False
             matchup_data = []
-        if matchup_enabled and matchup_data:
+        if matchup_data:
             enemies: List[str] = []
             seen: set = set()
             for _ally, enemy in matchup_data:
