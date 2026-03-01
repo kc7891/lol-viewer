@@ -841,8 +841,8 @@ class ChampionViewerWidget(QWidget):
                 border-radius: {sz["border_radius"]};
             }}
             QPushButton:hover {{
-                background: #e0342c;
-                color: white;
+                background: transparent;
+                color: #e0342c;
             }}
         """)
         self._header_close_btn.setToolTip("Close this viewer")
@@ -2484,6 +2484,17 @@ class MainWindow(QMainWindow):
         ui_size_row.addStretch()
         display_layout.addLayout(ui_size_row)
 
+        ui_size_hint = QLabel("Requires restart to take effect.")
+        ui_size_hint.setStyleSheet(f"""
+            QLabel {{
+                font-size: {sz['font_settings_desc']};
+                color: #6d7a8a;
+                background-color: transparent;
+                padding: 0px 4px;
+            }}
+        """)
+        display_layout.addWidget(ui_size_hint)
+
         self.qr_overlay_checkbox = QCheckBox("QR Code Overlay")
         self.qr_overlay_checkbox.setChecked(self.qr_overlay_enabled)
         self.qr_overlay_checkbox.setToolTip(
@@ -3500,198 +3511,6 @@ class MainWindow(QMainWindow):
         size_name = size_names[index] if 0 <= index < len(size_names) else "small"
         self.settings.setValue("display/ui_size", size_name)
         logger.info(f"Display setting updated: ui_size={size_name}")
-        self.apply_ui_size()
-
-    def apply_ui_size(self):
-        """Re-apply UI size preset to all ChampionViewerWidgets by recreating their panels."""
-        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "small"))
-        for viewer in self.viewers:
-            # Update header height and pill styles
-            viewer._header_widget.setFixedHeight(sz["height_header"])
-
-            pill_style = f"""
-                QPushButton {{
-                    padding: {sz['padding_pill']};
-                    font-size: {sz['font_pill']};
-                    background-color: #1c2330;
-                    color: #e2e8f0;
-                    border: 1px solid #222a35;
-                    border-radius: {sz['border_radius']};
-                    text-align: left;
-                }}
-                QPushButton:hover {{
-                    background-color: #222a35;
-                    border-color: #00d6a1;
-                }}
-            """
-            viewer._selector_pill_style = pill_style
-            viewer._champion_selector_btn.setStyleSheet(pill_style)
-            viewer._opponent_selector_btn.setStyleSheet(pill_style)
-            viewer._lane_selector_btn.setStyleSheet(pill_style)
-
-            pill_icon = sz["icon_size_pill"]
-            viewer._champion_selector_btn.setIconSize(QSize(pill_icon, pill_icon))
-            viewer._opponent_selector_btn.setIconSize(QSize(pill_icon, pill_icon))
-
-            # Update vs label
-            viewer._header_vs_label.setStyleSheet(
-                f"QLabel {{ font-size: {sz['font_pill']}; color: #6d7a8a; background-color: transparent; margin: 0 2px; }}"
-            )
-
-            # Update close button
-            if hasattr(viewer, '_header_close_btn'):
-                viewer._header_close_btn.setFixedSize(sz["icon_size_close_btn"], sz["icon_size_close_btn"])
-                viewer._header_close_btn.setStyleSheet(f"""
-                    QPushButton {{
-                        background: transparent;
-                        border: none;
-                        color: #888;
-                        font-size: {sz["font_close_btn"]};
-                        border-radius: {sz["border_radius"]};
-                    }}
-                    QPushButton:hover {{
-                        background: #e0342c;
-                        color: white;
-                    }}
-                """)
-
-            # Update control bar
-            viewer._control_bar.setFixedHeight(sz["height_control_bar"])
-            mode_tab_checked = f"""
-                QPushButton {{
-                    padding: {sz['padding_btn']};
-                    font-size: {sz['font_mode_btn']};
-                    font-weight: bold;
-                    background-color: #00d6a1;
-                    color: #0d1117;
-                    border: none;
-                    border-radius: {sz['border_radius']};
-                    margin: {sz['margin_mode_btn']};
-                }}
-                QPushButton:hover {{ background-color: #00efb3; }}
-            """
-            mode_tab_unchecked = f"""
-                QPushButton {{
-                    padding: {sz['padding_btn']};
-                    font-size: {sz['font_mode_btn']};
-                    background-color: transparent;
-                    color: #6d7a8a;
-                    border: none;
-                    border-radius: {sz['border_radius']};
-                    margin: {sz['margin_mode_btn']};
-                }}
-                QPushButton:hover {{ background-color: #1c2330; color: #e2e8f0; }}
-                QPushButton:checked {{
-                    font-weight: bold;
-                    background-color: #00d6a1;
-                    color: #0d1117;
-                }}
-            """
-            viewer._mode_tab_style_active = mode_tab_checked
-            viewer._mode_tab_style_inactive = mode_tab_unchecked
-            for btn in [viewer.build_button, viewer.counter_button, viewer.aram_button]:
-                if btn.isChecked():
-                    btn.setStyleSheet(mode_tab_checked)
-                else:
-                    btn.setStyleSheet(mode_tab_unchecked)
-
-            # Re-render pill button icons
-            champ = viewer.champion_input.text().strip().lower()
-            opp = viewer.opponent_champion_input.text().strip().lower() if viewer.opponent_champion_input else ""
-            if champ:
-                viewer._update_champion_selector_btn(champ)
-            if opp:
-                viewer._update_opponent_selector_btn(opp)
-
-        # Update LCU status widget
-        if hasattr(self, "connection_status_widget"):
-            self.connection_status_widget.update_sizes(sz)
-
-        # Update sidebar tab style
-        if hasattr(self, "sidebar"):
-            self.sidebar.setStyleSheet(f"""
-                QTabWidget {{
-                    background-color: #090e14;
-                    border-right: 1px solid #1c2330;
-                }}
-                QTabWidget::pane {{
-                    border: none;
-                    background-color: #090e14;
-                }}
-                QTabBar::tab {{
-                    background-color: #141b24;
-                    color: #c1c9d4;
-                    padding: 8px 16px;
-                    font-size: {sz['font_sidebar_item']};
-                    border: none;
-                    border-bottom: 2px solid transparent;
-                }}
-                QTabBar::tab:selected {{
-                    background-color: #00d6a1;
-                    color: #0d1117;
-                    border-bottom: 2px solid #00efb3;
-                }}
-                QTabBar::tab:hover {{
-                    background-color: #171e28;
-                }}
-            """)
-
-        # Update settings page combobox and checkboxes
-        if hasattr(self, "ui_size_combo"):
-            self.ui_size_combo.setStyleSheet(f"""
-                QComboBox {{
-                    font-size: {sz['font_settings_label']};
-                    padding: 4px 8px;
-                    background-color: #141b24;
-                    color: #e2e8f0;
-                    border: 1px solid #222a35;
-                    border-radius: 4px;
-                    min-width: {sz['min_width_combobox']}px;
-                }}
-                QComboBox:hover {{ border-color: #00d6a1; }}
-                QComboBox::drop-down {{
-                    border: none;
-                    padding-right: 8px;
-                }}
-                QComboBox QAbstractItemView {{
-                    background-color: #141b24;
-                    color: #e2e8f0;
-                    selection-background-color: #00d6a1;
-                    selection-color: #0d1117;
-                    border: 1px solid #222a35;
-                }}
-            """)
-        if hasattr(self, "qr_overlay_checkbox"):
-            self.qr_overlay_checkbox.setStyleSheet(f"""
-                QCheckBox {{
-                    font-size: {sz['font_settings_label']};
-                    color: #c1c9d4;
-                    background-color: transparent;
-                    padding: 4px;
-                }}
-                QCheckBox::indicator {{
-                    width: {sz['icon_size_checkbox']}px;
-                    height: {sz['icon_size_checkbox']}px;
-                }}
-            """)
-        if hasattr(self, "feature_flag_checkboxes"):
-            for checkbox in self.feature_flag_checkboxes.values():
-                checkbox.setStyleSheet(f"""
-                    QCheckBox {{
-                        font-size: {sz['font_settings_label']};
-                        color: #c1c9d4;
-                        background-color: transparent;
-                        padding: 4px;
-                    }}
-                    QCheckBox::indicator {{
-                        width: {sz['icon_size_checkbox']}px;
-                        height: {sz['icon_size_checkbox']}px;
-                    }}
-                """)
-
-        # Rebuild viewer list items to pick up new sizes
-        if hasattr(self, "update_viewers_list"):
-            self.update_viewers_list()
 
     def save_url_settings(self):
         """Save URL settings to QSettings"""
