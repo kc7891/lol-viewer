@@ -29,6 +29,7 @@ jobs:
       - name: Fetch latest champion data
         run: |
           python -c "
+          import csv
           import json
           import requests
 
@@ -61,6 +62,37 @@ jobs:
                   'image_url': image_url,
                   'id': champ_id
               }
+
+          # Load lane scores from champion_lane.csv
+          lane_scores = {}
+          try:
+              with open('champion_lane.csv', newline='', encoding='utf-8') as cf:
+                  reader = csv.DictReader(cf)
+                  for row in reader:
+                      name_key = row.get('name', '').strip().lower()
+                      if not name_key:
+                          continue
+                      try:
+                          lane_scores[name_key] = {
+                              'top': int(row.get('top', 0) or 0),
+                              'jg': int(row.get('jg', 0) or 0),
+                              'mid': int(row.get('mid', 0) or 0),
+                              'bot': int(row.get('bot', 0) or 0),
+                              'sup': int(row.get('sup', 0) or 0),
+                          }
+                      except ValueError:
+                          # Skip rows with invalid numeric data
+                          continue
+          except FileNotFoundError:
+              # If CSV is missing, fall back to all-zero lanes
+              lane_scores = {}
+
+          default_lanes = {'top': 0, 'jg': 0, 'mid': 0, 'bot': 0, 'sup': 0}
+          for key, champ in champion_dict.items():
+              lanes = lane_scores.get(key)
+              if lanes is None:
+                  lanes = default_lanes
+              champ['lanes'] = dict(lanes)
 
           print(f'Found {len(champion_dict)} champions')
 
