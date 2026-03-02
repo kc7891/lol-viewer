@@ -825,8 +825,9 @@ class ChampionViewerWidget(QWidget):
         header_widget.setStyleSheet("QWidget { background-color: #141b24; }")
         header_widget.setFixedHeight(sz["height_header"])
         header_layout = QHBoxLayout(header_widget)
-        header_layout.setContentsMargins(10, 4, 10, 4)
-        header_layout.setSpacing(6)
+        # 左寄せを保ちつつ、上下の余白とウィジェット間の詰まり具合を微調整
+        header_layout.setContentsMargins(6, 6, 6, 4)
+        header_layout.setSpacing(4)
 
         # Close button for this viewer
         self._header_close_btn = QPushButton(CLOSE_BUTTON_GLYPH)
@@ -873,6 +874,8 @@ class ChampionViewerWidget(QWidget):
         self._lane_selector_btn.setStyleSheet(selector_pill_style)
         self._lane_selector_btn.clicked.connect(lambda: self._open_champion_selector("lane"))
         header_layout.addWidget(self._lane_selector_btn)
+        # 右側にのみ余白を集めて、ボタン群をきれいに左寄せにする
+        header_layout.addStretch()
 
         layout.addWidget(header_widget)
         self._header_widget = header_widget
