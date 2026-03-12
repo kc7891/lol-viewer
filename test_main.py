@@ -232,6 +232,7 @@ class TestOpponentChampionInput:
         viewer = ChampionViewerWidget(999, champion_data, main_window=window)
         qtbot.addWidget(viewer)
         viewer.show()
+        viewer._ensure_completer_initialized()
 
         opponent = viewer.opponent_champion_input
         assert opponent is not None
@@ -259,6 +260,7 @@ class TestOpponentChampionInput:
         viewer = ChampionViewerWidget(1000, champion_data, main_window=window)
         qtbot.addWidget(viewer)
         viewer.show()
+        viewer._ensure_completer_initialized()
 
         opponent = viewer.opponent_champion_input
         completer = opponent.completer()
