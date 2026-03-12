@@ -960,13 +960,7 @@ class ChampionViewerWidget(QWidget):
         self.opponent_champion_input.setVisible(False)
         layout.addWidget(self.opponent_champion_input)
 
-        if self.champion_data:
-            setup_champion_input(self.champion_input, self.champion_data)
-            setup_opponent_champion_input(
-                self.opponent_champion_input,
-                self.champion_data,
-                suggestion_provider=self._get_open_champion_suggestions,
-            )
+        self._completer_initialized = False
 
         # Lane selector (hidden, functional)
         self.lane_selector = QComboBox()
@@ -1301,8 +1295,22 @@ class ChampionViewerWidget(QWidget):
         if champion_name:
             self.open_selected_mode()
 
+    def _ensure_completer_initialized(self):
+        """Lazily initialize autocomplete on first use to avoid UI freeze."""
+        if self._completer_initialized:
+            return
+        self._completer_initialized = True
+        if self.champion_data:
+            setup_champion_input(self.champion_input, self.champion_data)
+            setup_opponent_champion_input(
+                self.opponent_champion_input,
+                self.champion_data,
+                suggestion_provider=self._get_open_champion_suggestions,
+            )
+
     def _open_champion_selector(self, target: str):
         """Open champion/lane selector panel for the given target."""
+        self._ensure_completer_initialized()
         if target == "lane":
             # Toggle lane selector (page 2)
             if self.viewer_content_stack.currentIndex() == 2:
