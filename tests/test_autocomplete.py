@@ -3,12 +3,18 @@
 Test champion autocomplete model construction
 """
 import json
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def test_autocomplete_data():
     """Test that autocomplete data is correctly structured"""
     # Load champion data
-    with open('champions.json', 'r', encoding='utf-8') as f:
+    with open(os.path.join(_ROOT, 'champions.json'), 'r', encoding='utf-8') as f:
         champions = json.load(f)
 
     print(f"[OK] Loaded {len(champions)} champions")
