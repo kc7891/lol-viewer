@@ -168,6 +168,16 @@ def test_ally_lane_occupied_falls_back_to_first_empty():
     assert window._matchup_data[0] == ("Ahri", "")
 
 
+def test_blind_pick_ally_placed_by_lane_aptitude():
+    """Blind pick allies (no lane info) should be placed by lane aptitude from champions.json."""
+    window = _make_window_with_champion_data()
+    # Aatrox top:5, Ahri mid:5 — both sent without lane info (blind pick)
+    _emit(window, allies=[("Aatrox", ""), ("Ahri", "")])
+
+    assert window._matchup_data[0] == ("Aatrox", "")  # top → row 0
+    assert window._matchup_data[2] == ("Ahri", "")    # mid → row 2
+
+
 # ---------------------------------------------------------------------------
 # Enemy placement tests
 # ---------------------------------------------------------------------------
