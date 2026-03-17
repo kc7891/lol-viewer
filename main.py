@@ -3200,15 +3200,30 @@ class MainWindow(QMainWindow):
                         self._matchup_data[i] = (name, enemy)
                         break
 
-        # Pass 2: place no-lane allies in first empty slot
+        # Pass 2: place no-lane allies by lane aptitude (or first empty slot as fallback)
         for name, _ in without_lane:
             if any(self._matchup_data[i][0] == name for i in range(5)):
                 continue
-            for i in range(5):
-                if not self._matchup_data[i][0]:
-                    _, enemy = self._matchup_data[i]
-                    self._matchup_data[i] = (name, enemy)
-                    break
+            empty_indices = [i for i in range(5) if not self._matchup_data[i][0]]
+            if not empty_indices:
+                break
+            best_idx = empty_indices[0]
+            champ_info = None
+            try:
+                if self.champion_data:
+                    champ_info = self.champion_data.get_champion(name)
+            except (AttributeError, RuntimeError):
+                pass
+            if champ_info:
+                lanes = champ_info.get("lanes", {})
+                best_score = -1
+                for i in empty_indices:
+                    score = lanes.get(self.INDEX_TO_LANE_JSON[i], 0)
+                    if score > best_score:
+                        best_score = score
+                        best_idx = i
+            _, enemy = self._matchup_data[best_idx]
+            self._matchup_data[best_idx] = (name, enemy)
 
     def _apply_new_enemies(self, enemies: list):
         """Place new enemy champions into matchup rows based on lane aptitude.
