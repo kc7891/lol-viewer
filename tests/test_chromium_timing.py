@@ -13,7 +13,10 @@ in PR #103, #104, #105.  Two categories of tests are included:
 import ast
 import os
 import pathlib
+import sys
 from unittest.mock import patch, MagicMock
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Headless-friendly defaults for CI environments (no display server).
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -32,7 +35,7 @@ from main import MainWindow
 # Helpers for AST analysis
 # ---------------------------------------------------------------------------
 
-_MAIN_PY = pathlib.Path(__file__).parent / "main.py"
+_MAIN_PY = pathlib.Path(__file__).parent.parent / "main.py"
 
 
 def _parse_main_py() -> ast.Module:
