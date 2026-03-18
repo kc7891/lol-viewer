@@ -3,12 +3,18 @@
 Basic test for champion_data module (no GUI required)
 """
 import json
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def test_champion_data_module():
     """Test ChampionData class basic functionality"""
     # Import only the data loading part
-    with open('champions.json', 'r', encoding='utf-8') as f:
+    with open(os.path.join(_ROOT, 'champions.json'), 'r', encoding='utf-8') as f:
         champions = json.load(f)
 
     print(f"[OK] Loaded {len(champions)} champions")
