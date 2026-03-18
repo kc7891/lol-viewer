@@ -6,6 +6,9 @@ and the redesigned matchup list logic (incremental fill, no auto-clear).
 """
 
 import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Headless-friendly defaults for CI environments (no display server).
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")

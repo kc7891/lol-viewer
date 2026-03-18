@@ -52,8 +52,7 @@ python fetch_champions.py
 ### Running Tests
 
 ```bash
-python test_champion_data_basic.py
-python test_autocomplete.py
+pytest tests/
 ```
 
 ### Running the Application
@@ -274,7 +273,7 @@ You can also trigger a release manually from GitHub Actions UI:
 To test the update mechanism:
 ```bash
 # Use the quick test script (no build required)
-python quick_test_update.py
+python tests/quick_test_update.py
 
 # Or test with actual app
 python main.py  # Will check for updates on startup
