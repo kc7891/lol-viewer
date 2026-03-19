@@ -46,7 +46,7 @@ pip install -r requirements.txt
 ### Updating Champion Data
 
 ```bash
-python fetch_champions.py
+python scripts/fetch_champions.py
 ```
 
 ### Running Tests
@@ -96,7 +96,7 @@ whether to proceed **without Feature Flag split** (and how to mitigate risk: Bet
 Before building, verify that all required files are present:
 
 ```bash
-python check_build.py
+python scripts/check_build.py
 ```
 
 Confirm that all items show ✓ before proceeding with the build.
@@ -108,7 +108,7 @@ Confirm that all items show ✓ before proceeding with the build.
 **Debug Version (with logging):**
 ```bash
 # Clean build (recommended)
-python clean_build.py
+python scripts/clean_build.py
 pyinstaller lol-viewer-debug.spec
 
 # Or direct build
@@ -118,14 +118,14 @@ pyinstaller lol-viewer-debug.spec
 **Release Version (no logging):**
 ```bash
 # Clean build (recommended)
-python clean_build.py
+python scripts/clean_build.py
 pyinstaller lol-viewer.spec
 
 # Or direct build
 pyinstaller lol-viewer.spec
 ```
 
-**Note:** After modifying `.spec` files, it's recommended to clear the cache with `python clean_build.py` before rebuilding.
+**Note:** After modifying `.spec` files, it's recommended to clear the cache with `python scripts/clean_build.py` before rebuilding.
 
 ### Manual Build
 
