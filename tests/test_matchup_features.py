@@ -19,11 +19,9 @@ os.environ.setdefault("LOL_VIEWER_DISABLE_WEBENGINE", "1")
 os.environ.setdefault("LOL_VIEWER_DISABLE_LCU_SERVICE", "1")
 os.environ.setdefault("LOL_VIEWER_DISABLE_DIALOGS", "1")
 
-from main import (
-    ChampionViewerWidget,
-    DEFAULT_MATCHUP_URL,
-    MainWindow,
-)
+from widgets import ChampionViewerWidget
+from constants import DEFAULT_MATCHUP_URL
+from main_window import MainWindow
 
 
 def test_matchup_url_uses_default_template():

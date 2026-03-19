@@ -29,13 +29,13 @@ os.environ.setdefault("LOL_VIEWER_DISABLE_DIALOGS", "1")
 
 import pytest
 from PyQt6.QtWidgets import QApplication
-from main import MainWindow
+from main_window import MainWindow
 
 # ---------------------------------------------------------------------------
 # Helpers for AST analysis
 # ---------------------------------------------------------------------------
 
-_MAIN_PY = pathlib.Path(__file__).parent.parent / "main.py"
+_MAIN_PY = pathlib.Path(__file__).parent.parent / "main_window.py"
 
 
 def _parse_main_py() -> ast.Module:
@@ -203,7 +203,7 @@ class TestDeferredCreationBehavior:
         """on_enemy_champion_detected must NOT create a viewer synchronously —
         creation must be deferred to the next event-loop tick via QTimer.
         """
-        with patch("main.QTimer") as mock_timer:
+        with patch("main_window.QTimer") as mock_timer:
             initial_count = len(window.viewers)
             window.on_enemy_champion_detected("Zed")
             # No viewer should be created synchronously.
@@ -220,7 +220,7 @@ class TestDeferredCreationBehavior:
         """on_champion_detected must NOT create a viewer synchronously —
         creation must be deferred to the next event-loop tick via QTimer.
         """
-        with patch("main.QTimer") as mock_timer:
+        with patch("main_window.QTimer") as mock_timer:
             initial_count = len(window.viewers)
             window.on_champion_detected("Ahri", "middle")
             # No viewer should be created synchronously.
@@ -239,7 +239,7 @@ class TestDeferredCreationBehavior:
         _open_url_and_hide.
         """
         with patch.object(window, "hide_viewer") as mock_hide:
-            with patch("main.QTimer") as mock_timer:
+            with patch("main_window.QTimer") as mock_timer:
                 window._create_enemy_viewer("Zed")
                 # hide_viewer must NOT have been called directly.
                 mock_hide.assert_not_called()
