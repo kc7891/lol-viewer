@@ -111,14 +111,14 @@ class TestASTPatterns:
         return _parse_main_py()
 
     def test_signal_handlers_must_not_directly_call_viewer_methods(self, tree):
-        """on_champion_detected and on_enemy_champion_detected must not directly
-        call add_viewer, hide_viewer, open_counter, open_build, open_aram, or setUrl.
+        """on_champion_detected must not directly call add_viewer, hide_viewer,
+        open_counter, open_build, open_aram, or setUrl.
 
         These operations create or mutate QWebEngineView state and must only
         happen in a deferred callback, not synchronously in the signal handler.
         """
         forbidden = {"add_viewer", "hide_viewer", "open_counter", "open_build", "open_aram", "setUrl"}
-        for method_name in ("on_champion_detected", "on_enemy_champion_detected"):
+        for method_name in ("on_champion_detected",):
             func_node = _find_method(tree, method_name)
             direct_calls = _collect_self_attr_calls(func_node)
             violations = forbidden & direct_calls
@@ -128,11 +128,11 @@ class TestASTPatterns:
             )
 
     def test_deferred_creators_must_not_directly_call_hide_viewer(self, tree):
-        """_create_enemy_viewer and _create_ally_viewer must NOT call
-        self.hide_viewer() directly.  The hide must be deferred to the next
-        event-loop tick via _open_url_and_hide (which uses QTimer.singleShot).
+        """_create_ally_viewer must NOT call self.hide_viewer() directly.
+        The hide must be deferred to the next event-loop tick via
+        _open_url_and_hide (which uses QTimer.singleShot).
         """
-        for method_name in ("_create_enemy_viewer", "_create_ally_viewer"):
+        for method_name in ("_create_ally_viewer",):
             func_node = _find_method(tree, method_name)
             direct_self_calls = _collect_self_attr_calls(func_node)
             assert "hide_viewer" not in direct_self_calls, (
@@ -141,29 +141,16 @@ class TestASTPatterns:
             )
 
     def test_signal_handlers_use_schedule_auto_viewer_creation(self, tree):
-        """on_champion_detected and on_enemy_champion_detected must call
-        self._schedule_auto_viewer_creation to ensure viewer creation is
-        deferred to the next event-loop tick.
+        """on_champion_detected must call self._schedule_auto_viewer_creation
+        to ensure viewer creation is deferred to the next event-loop tick.
         """
-        for method_name in ("on_champion_detected", "on_enemy_champion_detected"):
+        for method_name in ("on_champion_detected",):
             func_node = _find_method(tree, method_name)
             direct_self_calls = _collect_self_attr_calls(func_node)
             assert "_schedule_auto_viewer_creation" in direct_self_calls, (
                 f"{method_name} does not call self._schedule_auto_viewer_creation — "
                 "all signal-triggered viewer creation must go through this helper."
             )
-
-    def test_create_enemy_viewer_uses_open_url_and_hide(self, tree):
-        """_create_enemy_viewer must use _open_url_and_hide instead of calling
-        open_counter and hide_viewer separately, so that the timing contract
-        (setUrl and hide in different ticks) is enforced centrally.
-        """
-        func_node = _find_method(tree, "_create_enemy_viewer")
-        direct_self_calls = _collect_self_attr_calls(func_node)
-        assert "_open_url_and_hide" in direct_self_calls, (
-            "_create_enemy_viewer does not call self._open_url_and_hide — "
-            "use _open_url_and_hide to guarantee setUrl/hide tick separation."
-        )
 
 
 # ---------------------------------------------------------------------------
@@ -200,21 +187,23 @@ class TestDeferredCreationBehavior:
     """
 
     def test_enemy_detection_does_not_immediately_create_viewer(self, window):
-        """on_enemy_champion_detected must NOT create a viewer synchronously —
-        creation must be deferred to the next event-loop tick via QTimer.
+        """on_enemy_champion_detected must add the champion to pending_enemy_picks
+        and must NOT create any viewer synchronously.
         """
-        with patch("main_window.QTimer") as mock_timer:
-            initial_count = len(window.viewers)
-            window.on_enemy_champion_detected("Zed")
-            # No viewer should be created synchronously.
-            assert len(window.viewers) == initial_count, (
-                "on_enemy_champion_detected created a viewer synchronously — "
-                "this violates the Chromium timing constraint (PR #103, #105)."
-            )
-            # QTimer.singleShot(0, ...) must have been called to defer creation.
-            mock_timer.singleShot.assert_called_once()
-            args = mock_timer.singleShot.call_args
-            assert args[0][0] == 0, "Deferral must use delay=0"
+        initial_count = len(window.viewers)
+        initial_pending = list(window.pending_enemy_picks)
+        window.on_enemy_champion_detected("Zed")
+        # No viewer should be created synchronously.
+        assert len(window.viewers) == initial_count, (
+            "on_enemy_champion_detected created a viewer synchronously — "
+            "enemy viewers must only be created when the user clicks '+'."
+        )
+        # "Zed" must have been added to pending_enemy_picks.
+        assert "Zed" in window.pending_enemy_picks, (
+            "on_enemy_champion_detected did not add 'Zed' to pending_enemy_picks."
+        )
+        # Cleanup: restore pending_enemy_picks to its original state.
+        window.pending_enemy_picks[:] = initial_pending
 
     def test_ally_detection_does_not_immediately_create_viewer(self, window):
         """on_champion_detected must NOT create a viewer synchronously —
@@ -233,17 +222,45 @@ class TestDeferredCreationBehavior:
             args = mock_timer.singleShot.call_args
             assert args[0][0] == 0, "Deferral must use delay=0"
 
-    def test_create_enemy_viewer_does_not_immediately_hide(self, window):
-        """_create_enemy_viewer must NOT call hide_viewer synchronously —
-        the hide must be deferred to the next tick via QTimer inside
-        _open_url_and_hide.
+    def test_create_enemy_viewer_adds_to_pending_picks(self, window):
+        """_create_enemy_viewer must append the champion to pending_enemy_picks
+        without creating any viewer.
         """
-        with patch.object(window, "hide_viewer") as mock_hide:
-            with patch("main_window.QTimer") as mock_timer:
-                window._create_enemy_viewer("Zed")
-                # hide_viewer must NOT have been called directly.
-                mock_hide.assert_not_called()
-                # QTimer.singleShot(0, ...) must have been called to defer hide.
-                mock_timer.singleShot.assert_called_once()
-                args = mock_timer.singleShot.call_args
-                assert args[0][0] == 0, "Hide deferral must use delay=0"
+        initial_count = len(window.viewers)
+        initial_pending = list(window.pending_enemy_picks)
+        window._create_enemy_viewer("Zed")
+        # No viewer should be created.
+        assert len(window.viewers) == initial_count, (
+            "_create_enemy_viewer created a viewer — it should only append to "
+            "pending_enemy_picks and call update_viewers_list()."
+        )
+        # Champion must have been added to pending_enemy_picks.
+        assert "Zed" in window.pending_enemy_picks, (
+            "_create_enemy_viewer did not add 'Zed' to pending_enemy_picks."
+        )
+        # Cleanup: restore pending_enemy_picks to its original state.
+        window.pending_enemy_picks[:] = initial_pending
+
+    def test_materialize_enemy_viewer_creates_viewer(self, window):
+        """materialize_enemy_viewer must remove the champion from
+        pending_enemy_picks (and attempt to create a viewer).
+        """
+        # Seed pending_enemy_picks with "Zed".
+        if "Zed" not in window.pending_enemy_picks:
+            window.pending_enemy_picks.append("Zed")
+        window.materialize_enemy_viewer("Zed")
+        # "Zed" must have been removed from pending_enemy_picks.
+        assert "Zed" not in window.pending_enemy_picks, (
+            "materialize_enemy_viewer did not remove 'Zed' from pending_enemy_picks."
+        )
+
+    def test_pending_picks_cleared_on_new_session(self, window):
+        """on_matchup_data_updated with is_new_session=True must clear
+        pending_enemy_picks.
+        """
+        window.pending_enemy_picks.append("Jinx")
+        window.pending_enemy_picks.append("Caitlyn")
+        window.on_matchup_data_updated({"is_new_session": True})
+        assert len(window.pending_enemy_picks) == 0, (
+            "pending_enemy_picks was not cleared when a new session started."
+        )
