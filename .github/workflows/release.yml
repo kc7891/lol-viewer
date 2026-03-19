@@ -240,11 +240,11 @@ jobs:
 
       - name: Fetch champion data
         run: |
-          python fetch_champions.py
+          python scripts/fetch_champions.py
           python -c "import json; data = json.load(open('champions.json', 'r', encoding='utf-8')); print(f'{len(data)} champions loaded')"
 
       - name: Verify build prerequisites
-        run: python check_build.py
+        run: python scripts/check_build.py
 
       - name: Build Release Version
         run: pyinstaller lol-viewer.spec

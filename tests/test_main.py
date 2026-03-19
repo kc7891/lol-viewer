@@ -19,7 +19,8 @@ os.environ.setdefault("LOL_VIEWER_DISABLE_DIALOGS", "1")
 import pytest
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
-from main import ChampionViewerWidget, MainWindow
+from widgets import ChampionViewerWidget
+from main_window import MainWindow
 from champion_data import ChampionData
 
 

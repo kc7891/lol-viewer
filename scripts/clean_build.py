@@ -9,7 +9,7 @@ import sys
 
 def clean_build():
     """Remove build artifacts"""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     folders_to_remove = ['build', 'dist']
     files_to_remove = ['*.spec~']  # Backup spec files
