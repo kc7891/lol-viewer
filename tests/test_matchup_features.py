@@ -83,6 +83,7 @@ def _make_window():
     """Create a minimal MainWindow stub with matchup list state initialised."""
     window = MainWindow.__new__(MainWindow)
     window._matchup_data = [("", "")] * 5
+    window.pending_enemy_picks = []
     # Stub out UI refresh (no real widgets)
     window._matchup_rows = []
     window.update_matchup_list = lambda: None

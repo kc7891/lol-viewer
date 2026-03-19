@@ -27,7 +27,7 @@ from constants import (
 from widgets import (
     LCUConnectionStatusWidget, NullWebView, QrCodeOverlay,
     _install_qr_overlay, _webengine_disabled,
-    ViewerListItemWidget, ChampionViewerWidget,
+    ViewerListItemWidget, PendingPickListItemWidget, ChampionViewerWidget,
     DraggableMatchupLabel, MatchupRowWidget,
 )
 from champion_data import ChampionData, ChampionImageCache, setup_champion_input, setup_opponent_champion_input
@@ -114,6 +114,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.viewers = []  # List of all viewer widgets
         self.hidden_viewers = []  # List of hidden viewer widgets
+        self.pending_enemy_picks: list[str] = []  # Enemy picks waiting for user to open
         self.next_viewer_id = 0  # Counter for assigning viewer IDs
         self.champion_data = ChampionData()  # Load champion data
 
@@ -1441,11 +1442,13 @@ class MainWindow(QMainWindow):
     def clear_matchup_list(self):
         """Clear all matchup entries."""
         self._matchup_data = [("", "")] * 5
+        self.pending_enemy_picks.clear()
         self.update_matchup_list()
 
     def _refresh_matchup_list(self):
         """Refresh button handler: clear all matchup data and trigger re-fetch."""
         self._matchup_data = [("", "")] * 5
+        self.pending_enemy_picks.clear()
         self.update_matchup_list()
         # Trigger immediate re-check from detector
         if hasattr(self, 'champion_detector') and self.champion_detector:
@@ -1469,6 +1472,7 @@ class MainWindow(QMainWindow):
             # New ChampSelect session → auto-clear before applying new data
             if data.get("is_new_session"):
                 self._matchup_data = [("", "")] * 5
+                self.pending_enemy_picks.clear()
 
             allies = data.get("allies", [])
             enemies = data.get("enemies", [])
@@ -2089,6 +2093,12 @@ class MainWindow(QMainWindow):
                 if viewer in self.hidden_viewers:
                     self.hidden_viewers.remove(viewer)
             self.update_viewers_list()
+        else:
+            # Check if it's a pending enemy pick
+            pending_index = index - len(sorted_viewers)
+            if 0 <= pending_index < len(self.pending_enemy_picks):
+                champion_name = self.pending_enemy_picks[pending_index]
+                self.materialize_enemy_viewer(champion_name)
 
     def update_champion_name(self, viewer: ChampionViewerWidget):
         """Update sidebar when a viewer's champion name is changed"""
@@ -2115,6 +2125,15 @@ class MainWindow(QMainWindow):
             # Create custom widget for this item
             item_widget = ViewerListItemWidget(display_name, viewer, self)
             # Force layout calculation so sizeHint returns the real height
+            item_widget.adjustSize()
+            item.setSizeHint(item_widget.sizeHint())
+            self.viewers_list.setItemWidget(item, item_widget)
+
+        # Pending enemy picks (no viewer created yet)
+        for champ_name in self.pending_enemy_picks:
+            item = QListWidgetItem()
+            self.viewers_list.addItem(item)
+            item_widget = PendingPickListItemWidget(champ_name, self)
             item_widget.adjustSize()
             item.setSizeHint(item_widget.sizeHint())
             self.viewers_list.setItemWidget(item, item_widget)
@@ -2241,25 +2260,34 @@ class MainWindow(QMainWindow):
             logger.error(f"Error in _create_ally_viewer: {e}")
 
     def on_enemy_champion_detected(self, champion_name: str):
-        """Handle enemy champion detection — schedule counter page opening."""
-        self._schedule_auto_viewer_creation(
-            champion_name,
-            lambda name=champion_name: self._create_enemy_viewer(name),
-        )
+        """Handle enemy champion detection — add to pending picks list."""
+        self._create_enemy_viewer(champion_name)
 
     def _create_enemy_viewer(self, champion_name: str):
-        """Deferred handler for enemy champion viewer creation.
+        """Add enemy champion to pending picks list without creating a viewer.
 
-        Phase 1 (this method): create the viewer, set the champion, load the URL.
-        Phase 2 (next tick): hide the viewer -- must be a separate event-loop
-        iteration because hiding a QWebEngineView in the same tick as setUrl()
-        crashes the Chromium rendering layer (see PR #103).
+        The viewer will be created lazily when the user clicks the '+' button
+        or double-clicks the pending pick in the sidebar.  This avoids
+        Chromium initialization crashes (PR #103, #104, #105).
+        """
+        logger.info(f"Enemy champion detected (pending): {champion_name}")
+        if champion_name not in self.pending_enemy_picks:
+            self.pending_enemy_picks.append(champion_name)
+            self.update_viewers_list()
+
+    def materialize_enemy_viewer(self, champion_name: str):
+        """Create an actual viewer for a pending enemy pick.
+
+        Called when the user clicks '+' on a pending pick item or
+        double-clicks it in the sidebar.
         """
         try:
-            logger.info(f"Enemy champion detected: {champion_name}")
+            if champion_name in self.pending_enemy_picks:
+                self.pending_enemy_picks.remove(champion_name)
 
             if len(self.viewers) >= self.MAX_VIEWERS:
-                logger.warning("Cannot auto-open enemy champion counter: maximum viewers reached")
+                logger.warning("Cannot open enemy champion counter: maximum viewers reached")
+                self.update_viewers_list()
                 return
 
             has_own_pick = any(viewer.is_picked for viewer in self.viewers)
@@ -2268,16 +2296,22 @@ class MainWindow(QMainWindow):
 
             if target_viewer:
                 logger.info(
-                    f"Auto-opening counter page for enemy {champion_name} "
-                    f"in new viewer {target_viewer.viewer_id} at position {position}"
+                    f"Materializing counter page for enemy {champion_name} "
+                    f"in viewer {target_viewer.viewer_id} at position {position}"
                 )
                 target_viewer.champion_input.blockSignals(True)
                 target_viewer.champion_input.setText(champion_name)
                 target_viewer.champion_input.blockSignals(False)
-                self._open_url_and_hide(target_viewer, target_viewer.open_counter)
-                logger.info(f"Opponent pick window for {champion_name} hidden by default")
+                target_viewer.open_counter()
+                logger.info(f"Enemy viewer for {champion_name} opened (user-initiated)")
         except Exception as e:
-            logger.error(f"Error in on_enemy_champion_detected: {e}")
+            logger.error(f"Error in materialize_enemy_viewer: {e}")
+
+    def remove_pending_pick(self, champion_name: str):
+        """Remove an enemy champion from the pending picks list."""
+        if champion_name in self.pending_enemy_picks:
+            self.pending_enemy_picks.remove(champion_name)
+            self.update_viewers_list()
 
     def check_latest_version(self):
         """Check latest version without prompting update"""
