@@ -13,8 +13,8 @@ def check_build_prerequisites():
     print("PRE-BUILD CHECK")
     print("=" * 60)
 
-    # Get the directory of this script
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Get the project root directory (parent of scripts/)
+    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     print(f"Project directory: {script_dir}")
 
     # Check for required files
