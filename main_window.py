@@ -5,11 +5,12 @@ LoL Viewer - Main application window.
 import sys
 import logging
 import os
+import re
 from datetime import datetime
 from typing import List, Optional
 
 from PyQt6.QtCore import QUrl, pyqtSignal, Qt, QTimer, QSettings, QByteArray, QSize
-from PyQt6.QtGui import QColor, QIcon, QPixmap
+from PyQt6.QtGui import QColor, QIcon, QPixmap, QPainter, QFont
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QMessageBox,
@@ -145,6 +146,19 @@ class MainWindow(QMainWindow):
 
         # Create connection status widget
         self.connection_status_widget = LCUConnectionStatusWidget()
+
+        # Sidebar tab bookkeeping (used for "New version" indicator on Settings tab)
+        self.settings_tab_index: Optional[int] = None
+
+        # Prevent duplicate update checks (startup / tab-open / manual flow)
+        self._latest_version_check_inflight: bool = False
+        self._latest_version_check_done: bool = False
+        self._latest_version_check_force: bool = False
+
+        # Cache for Settings tab "new version" indicator dot icon
+        self._settings_new_version_dot_icon_cache_key: Optional[tuple] = None
+        self._settings_new_version_dot_icon_cache: Optional[QIcon] = None
+        self._settings_new_version_indicator_shown: bool = False
 
         self.init_ui()
 
@@ -296,6 +310,9 @@ class MainWindow(QMainWindow):
 
         # Update viewers list after window is shown to fix initial [Hidden] tag issue
         QTimer.singleShot(0, self.update_viewers_list)
+
+        # Startup update check so the Settings tab indicator can be shown immediately.
+        QTimer.singleShot(100, self.check_latest_version)
 
     def create_live_game_page(self):
         """Create the Live Game page with web view using configured URL"""
@@ -1075,6 +1092,8 @@ class MainWindow(QMainWindow):
                 background-color: #171e28;
             }}
         """)
+        # Keep tab icon size consistent with the Riot API status dot indicator.
+        self.sidebar.setIconSize(QSize(sz["width_dot_indicator"], sz["height_dot_indicator"]))
 
         # Live Game tab (empty for now, will show web view in main content)
         live_game_widget = QWidget()
@@ -1215,7 +1234,9 @@ class MainWindow(QMainWindow):
         settings_sidebar_layout.addWidget(settings_label)
         settings_sidebar_layout.addStretch()
 
-        self.sidebar.addTab(settings_widget, "Settings")
+        self.settings_tab_index = self.sidebar.addTab(settings_widget, "Settings")
+        # Default: no "new version" indicator dot.
+        self.sidebar.setTabIcon(self.settings_tab_index, QIcon())
 
         # Connect tab change signal to update main content
         self.sidebar.currentChanged.connect(self.on_sidebar_tab_changed)
@@ -1696,7 +1717,7 @@ class MainWindow(QMainWindow):
         self.main_content_stack.setCurrentIndex(index)
 
         # When settings tab is selected (index 2), check for updates
-        if index == 2:
+        if self.settings_tab_index is not None and index == self.settings_tab_index:
             QTimer.singleShot(100, self.check_latest_version)
 
     def load_url_settings(self):
@@ -2313,8 +2334,82 @@ class MainWindow(QMainWindow):
             self.pending_enemy_picks.remove(champion_name)
             self.update_viewers_list()
 
+    def _extract_px(self, css_value: str, default_px: int) -> int:
+        """Extract numeric px from strings like '11px' or '13px'."""
+        if not css_value:
+            return default_px
+        m = re.search(r"(\d+)", str(css_value))
+        return int(m.group(1)) if m else default_px
+
+    def _get_settings_tab_new_version_dot_icon(self) -> QIcon:
+        """Create (and cache) the red dot icon for the Settings tab."""
+        # Use the stored UI size preset so the dot matches the sidebar status dot.
+        ui_size_name = self.settings.value("display/ui_size", "medium")
+        sz = get_ui_sizes(ui_size_name)
+
+        color = "#e0342c"  # Riot API: disconnected
+        symbol = "●"
+        font_px = self._extract_px(sz.get("font_sidebar_type", ""), default_px=11)
+        w = int(sz["width_dot_indicator"])
+        h = int(sz["height_dot_indicator"])
+
+        key = (ui_size_name, color, symbol, w, h, font_px)
+        if self._settings_new_version_dot_icon_cache_key == key and self._settings_new_version_dot_icon_cache:
+            return self._settings_new_version_dot_icon_cache
+
+        pixmap = QPixmap(w, h)
+        pixmap.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
+        painter.setPen(QColor(color))
+
+        font = QFont()
+        font.setPixelSize(font_px)
+        painter.setFont(font)
+
+        # Render the same "●" glyph used by the Riot API status dot widget.
+        painter.drawText(
+            pixmap.rect(),
+            int(Qt.AlignmentFlag.AlignCenter),
+            symbol,
+        )
+        painter.end()
+
+        icon = QIcon(pixmap)
+        self._settings_new_version_dot_icon_cache_key = key
+        self._settings_new_version_dot_icon_cache = icon
+        return icon
+
+    def _set_settings_tab_new_version_indicator(self, show_new_version: bool) -> None:
+        """Toggle the red dot icon shown before the 'Settings' tab label."""
+        if self.settings_tab_index is None:
+            return
+
+        if show_new_version:
+            icon = self._get_settings_tab_new_version_dot_icon()
+            self.sidebar.setTabIcon(self.settings_tab_index, icon)
+        else:
+            self.sidebar.setTabIcon(self.settings_tab_index, QIcon())
+
+        self._settings_new_version_indicator_shown = bool(show_new_version)
+
     def check_latest_version(self):
         """Check latest version without prompting update"""
+        # Avoid noisy/slow update checks in headless/test environments.
+        if os.environ.get("PYTEST_CURRENT_TEST") or _ui_dialogs_disabled():
+            return
+
+        # Prevent duplicate checks from startup/tab-change/manual flows.
+        if self._latest_version_check_inflight:
+            return
+        if self._latest_version_check_done and not self._latest_version_check_force:
+            return
+
+        self._latest_version_check_inflight = True
+        self._latest_version_check_force = False
+
         try:
             from updater import Updater
             updater = Updater(__version__, parent_widget=self.settings_page)
@@ -2324,6 +2419,9 @@ class MainWindow(QMainWindow):
             if release_info:
                 latest_version = release_info.get('tag_name', 'Unknown').lstrip('v')
                 self.latest_version_label.setText(f"Latest version: {latest_version}")
+
+                # Settings tab "●" indicator.
+                self._set_settings_tab_new_version_indicator(bool(has_update))
 
                 sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
                 if has_update:
@@ -2347,6 +2445,7 @@ class MainWindow(QMainWindow):
                         }}
                     """)
             else:
+                self._set_settings_tab_new_version_indicator(False)
                 sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
                 self.latest_version_label.setText("Latest version: Unable to check")
                 self.status_label.setText("⚠ Could not connect to update server")
@@ -2372,6 +2471,11 @@ class MainWindow(QMainWindow):
                     padding: 5px;
                 }}
             """)
+            self._set_settings_tab_new_version_indicator(False)
+
+        finally:
+            self._latest_version_check_inflight = False
+            self._latest_version_check_done = True
 
     def check_for_updates(self):
         """Manual update check with full update flow"""
@@ -2388,6 +2492,8 @@ class MainWindow(QMainWindow):
             updater.check_and_update()
 
             # If we reach here, no update was applied or user declined
+            # Allow re-check so the Settings tab indicator matches the final state.
+            self._latest_version_check_done = False
             self.check_latest_version()
 
         except Exception as e:
