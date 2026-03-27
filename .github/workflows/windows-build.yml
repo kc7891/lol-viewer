@@ -39,7 +39,7 @@ jobs:
 
     - name: Update Installer Version
       run: |
-        $version = python -c "import main; print(main.__version__)"
+        $version = python -c "from constants import __version__; print(__version__)"
         $issContent = Get-Content lol-viewer.iss -Raw
         $issContent = $issContent -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"$version`""
         Set-Content lol-viewer.iss -Value $issContent

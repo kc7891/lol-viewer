@@ -113,19 +113,19 @@ jobs:
             echo "✓ Tag v${{ steps.version.outputs.new }} does not exist, proceeding with release"
           fi
 
-      - name: Update version in main.py
+      - name: Update version in constants.py
         if: steps.check_tag.outputs.exists == 'false'
         run: |
-          sed -i 's/__version__ = ".*"/__version__ = "${{ steps.version.outputs.new }}"/' main.py
-          echo "Updated main.py with version ${{ steps.version.outputs.new }}"
-          grep "__version__" main.py
+          sed -i 's/__version__ = ".*"/__version__ = "${{ steps.version.outputs.new }}"/' constants.py
+          echo "Updated constants.py with version ${{ steps.version.outputs.new }}"
+          grep "__version__" constants.py
 
       - name: Commit version bump
         if: steps.check_tag.outputs.exists == 'false'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add main.py
+          git add constants.py
           git commit -m "chore: bump version to ${{ steps.version.outputs.new }}"
           git push
 
@@ -251,7 +251,7 @@ jobs:
 
       - name: Update Installer Version
         run: |
-          $version = python -c "import main; print(main.__version__)"
+          $version = python -c "from constants import __version__; print(__version__)"
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           Write-Host "Building installer for version: $version"
           Write-Host "Git commit SHA: $(git rev-parse HEAD)"
