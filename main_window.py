@@ -1092,8 +1092,8 @@ class MainWindow(QMainWindow):
                 background-color: #171e28;
             }}
         """)
-        # Keep tab icon size consistent with the Riot API status dot indicator.
-        self.sidebar.setIconSize(QSize(sz["width_dot_indicator"], sz["height_dot_indicator"]))
+        # Use tab-specific dot size so the icon doesn't inflate the tab bar height.
+        self.sidebar.setIconSize(QSize(sz["width_tab_dot_indicator"], sz["height_tab_dot_indicator"]))
 
         # Live Game tab (empty for now, will show web view in main content)
         live_game_widget = QWidget()
@@ -2349,9 +2349,9 @@ class MainWindow(QMainWindow):
 
         color = "#e0342c"  # Riot API: disconnected
         symbol = "●"
-        font_px = self._extract_px(sz.get("font_sidebar_type", ""), default_px=11)
-        w = int(sz["width_dot_indicator"])
-        h = int(sz["height_dot_indicator"])
+        w = int(sz["width_tab_dot_indicator"])
+        h = int(sz["height_tab_dot_indicator"])
+        font_px = max(w, h)  # Fill the small icon area with the dot glyph
 
         key = (ui_size_name, color, symbol, w, h, font_px)
         if self._settings_new_version_dot_icon_cache_key == key and self._settings_new_version_dot_icon_cache:
