@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       version_type:
@@ -14,6 +17,9 @@ on:
           - patch
           - minor
           - major
+
+env:
+  DRY_RUN: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   release:
@@ -113,24 +119,34 @@ jobs:
             echo "✓ Tag v${{ steps.version.outputs.new }} does not exist, proceeding with release"
           fi
 
-      - name: Update version in main.py
+      - name: Update version in constants.py
         if: steps.check_tag.outputs.exists == 'false'
         run: |
-          sed -i 's/__version__ = ".*"/__version__ = "${{ steps.version.outputs.new }}"/' main.py
-          echo "Updated main.py with version ${{ steps.version.outputs.new }}"
-          grep "__version__" main.py
+          sed -i 's/__version__ = ".*"/__version__ = "${{ steps.version.outputs.new }}"/' constants.py
+          echo "Updated constants.py with version ${{ steps.version.outputs.new }}"
+          grep "__version__" constants.py
+
+      - name: Verify version was updated
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          UPDATED=$(grep '__version__' constants.py)
+          echo "Updated line: $UPDATED"
+          if ! echo "$UPDATED" | grep -q '${{ steps.version.outputs.new }}'; then
+            echo "ERROR: version update failed - sed did not match"
+            exit 1
+          fi
 
       - name: Commit version bump
-        if: steps.check_tag.outputs.exists == 'false'
+        if: steps.check_tag.outputs.exists == 'false' && env.DRY_RUN != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add main.py
+          git add constants.py
           git commit -m "chore: bump version to ${{ steps.version.outputs.new }}"
           git push
 
       - name: Get version commit SHA
-        if: steps.check_tag.outputs.exists == 'false'
+        if: steps.check_tag.outputs.exists == 'false' && env.DRY_RUN != 'true'
         id: get_commit_sha
         run: |
           SHA=$(git rev-parse HEAD)
@@ -138,14 +154,14 @@ jobs:
           echo "Version commit SHA: $SHA"
 
       - name: Create Git tag
-        if: steps.check_tag.outputs.exists == 'false'
+        if: steps.check_tag.outputs.exists == 'false' && env.DRY_RUN != 'true'
         run: |
           git tag -a "v${{ steps.version.outputs.new }}" -m "Release v${{ steps.version.outputs.new }}"
           git push origin "v${{ steps.version.outputs.new }}"
           echo "✓ Created and pushed tag v${{ steps.version.outputs.new }}"
 
       - name: Generate release notes
-        if: steps.check_tag.outputs.exists == 'false'
+        if: steps.check_tag.outputs.exists == 'false' && env.DRY_RUN != 'true'
         id: notes
         run: |
           # Get commits since last tag
@@ -170,7 +186,7 @@ jobs:
           cat release_notes.md
 
       - name: Create GitHub Release
-        if: steps.check_tag.outputs.exists == 'false'
+        if: steps.check_tag.outputs.exists == 'false' && env.DRY_RUN != 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.version.outputs.new }}
@@ -181,8 +197,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Dry Run Summary
+        if: env.DRY_RUN == 'true' && steps.check_tag.outputs.exists == 'false'
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✓ Release dry-run passed"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "Version: ${{ steps.version.outputs.current }} → ${{ steps.version.outputs.new }}"
+          echo "Bump type: ${{ steps.bump_type.outputs.type }}"
+          echo "Tag would be: v${{ steps.version.outputs.new }}"
+
       - name: Summary
-        if: steps.check_tag.outputs.exists == 'false'
+        if: steps.check_tag.outputs.exists == 'false' && env.DRY_RUN != 'true'
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "✓ Release created successfully"
@@ -205,7 +232,7 @@ jobs:
   # Build Windows installer after release is created
   build-installer:
     needs: release
-    if: needs.release.outputs.tag_exists == 'false'
+    if: needs.release.outputs.tag_exists == 'false' && github.event_name != 'pull_request'
     runs-on: windows-latest
     permissions:
       contents: write
@@ -251,7 +278,7 @@ jobs:
 
       - name: Update Installer Version
         run: |
-          $version = python -c "import main; print(main.__version__)"
+          $version = python -c "from constants import __version__; print(__version__)"
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           Write-Host "Building installer for version: $version"
           Write-Host "Git commit SHA: $(git rev-parse HEAD)"
