@@ -169,7 +169,7 @@ BREAKING CHANGE: API署名が変更されました"
 PRが`main`にマージされると：
 
 1. GitHub Actionsがコミットメッセージを解析
-2. `main.py`の`__version__`を自動更新
+2. `constants.py`の`__version__`を自動更新
 3. Gitタグを作成 (例: `v0.3.0`)
 4. Windows環境で`lol-viewer.exe`をビルド
 5. GitHub Releaseを作成してexeを添付
