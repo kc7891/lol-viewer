@@ -281,9 +281,9 @@ python main.py  # Will check for updates on startup
 
 ### Version Management
 
-- Current version is in `main.py` as `__version__`
+- Current version is in `constants.py` as `__version__`
 - **DO NOT manually edit this** - it's automatically updated on release
-- If you need to check current version: `grep __version__ main.py`
+- If you need to check current version: `grep __version__ constants.py`
 
 ### Notes
 
