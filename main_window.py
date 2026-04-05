@@ -2209,11 +2209,14 @@ class MainWindow(QMainWindow):
         return suggestions
 
     def close_all_viewers(self):
-        """Close all viewer widgets"""
+        """Close all viewer widgets and pending picks"""
         # Create a copy of the list to avoid modification during iteration
         viewers_copy = self.viewers.copy()
         for viewer in viewers_copy:
             self.close_viewer(viewer)
+        # Also clear pending enemy picks from sidebar
+        self.pending_enemy_picks.clear()
+        self.update_viewers_list()
 
     def on_champion_detected(self, champion_name: str, lane: str):
         """Handle own champion detection — schedule build page opening."""
