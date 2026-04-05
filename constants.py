@@ -3,7 +3,7 @@
 LoL Viewer - Constants, URL templates, and UI size configuration.
 """
 
-__version__ = "0.28.2"
+__version__ = "0.28.3"
 
 # Default analytics URLs
 DEFAULT_BUILD_URL = "https://lolalytics.com/lol/{name}/build/"
