@@ -5,6 +5,16 @@ from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButt
 from constants import get_ui_sizes
 
 
+def _safe_set_icon_pixmap(label: QLabel, pixmap: QPixmap, size: int):
+    """Set pixmap on a sidebar icon label, ignoring if the C++ object was deleted."""
+    try:
+        label.setPixmap(
+            pixmap.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        )
+    except RuntimeError:
+        pass
+
+
 class ViewerListItemWidget(QWidget):
     """Custom widget for viewer list items showing champion icon, name and page type"""
 
@@ -164,9 +174,7 @@ class ViewerListItemWidget(QWidget):
         cache = self.parent_window._sidebar_image_cache
         pixmap = cache.get_image(
             url,
-            callback=lambda pm, lbl=self.icon_label: lbl.setPixmap(
-                pm.scaled(icon_s, icon_s, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            ),
+            callback=lambda pm, lbl=self.icon_label, s=icon_s: _safe_set_icon_pixmap(lbl, pm, s),
         )
         if pixmap:
             self.icon_label.setPixmap(
@@ -320,9 +328,7 @@ class PendingPickListItemWidget(QWidget):
         cache = self.parent_window._sidebar_image_cache
         pixmap = cache.get_image(
             url,
-            callback=lambda pm, lbl=self.icon_label: lbl.setPixmap(
-                pm.scaled(icon_s, icon_s, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            ),
+            callback=lambda pm, lbl=self.icon_label, s=icon_s: _safe_set_icon_pixmap(lbl, pm, s),
         )
         if pixmap:
             self.icon_label.setPixmap(
