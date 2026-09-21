@@ -32,7 +32,10 @@ from widgets import (
     ViewerListItemWidget, PendingPickListItemWidget, ChampionViewerWidget,
     DraggableMatchupLabel, MatchupRowWidget,
 )
-from champion_data import ChampionData, ChampionImageCache, setup_champion_input, setup_opponent_champion_input
+from champion_data import (
+    ChampionData, setup_champion_input, setup_opponent_champion_input,
+    get_shared_image_cache, prune_icon_cache,
+)
 from logger import log
 from lcu_detector import ChampionDetectorService
 
@@ -119,6 +122,14 @@ class MainWindow(QMainWindow):
         self.pending_enemy_picks: list[str] = []  # Enemy picks waiting for user to open
         self.next_viewer_id = 0  # Counter for assigning viewer IDs
         self.champion_data = ChampionData()  # Load champion data
+
+        # Sweep icons left over from a previous Data Dragon patch (image_url is
+        # versioned by patch, so these are unreachable dead weight). Best-effort:
+        # a cleanup failure must never block startup.
+        try:
+            prune_icon_cache(self.champion_data)
+        except Exception as e:
+            logger.warning(f"Failed to prune champion icon cache: {e}")
 
         # Load URL settings
         self.settings = QSettings("LoLViewer", "LoLViewer")
@@ -247,8 +258,8 @@ class MainWindow(QMainWindow):
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Image cache for sidebar champion icons
-        self._sidebar_image_cache = ChampionImageCache()
+        # Image cache for sidebar champion icons (shared process-wide, see champion_data.py)
+        self._sidebar_image_cache = get_shared_image_cache()
 
         # Left sidebar with tabs
         self.create_sidebar()
@@ -1311,7 +1322,7 @@ class MainWindow(QMainWindow):
         title_layout.addWidget(title_right, 0)
         layout.addWidget(title_row)
 
-        self._matchup_image_cache = ChampionImageCache()
+        self._matchup_image_cache = get_shared_image_cache()
         # Each row: (ally_icon, ally_name, enemy_name, enemy_icon)
         self._matchup_rows: list[tuple[QLabel, QLabel, QLabel, QLabel]] = []
         self._matchup_data: list[tuple[str, str]] = [("", "")] * 5  # (ally, enemy)
