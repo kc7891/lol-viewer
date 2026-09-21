@@ -90,3 +90,34 @@ Viewersページ上部に表示される5行のマッチアップリスト。ラ
 ### デザイン仕様
 
 詳細なデザイン仕様は [docs/design/matchup-list.md](./design/matchup-list.md) を参照。
+
+---
+
+## Viewerヘッダー: レーン優先並び + Enemyクイックピック (Beta)
+
+Viewersタブのチャンピオンウィンドウ上部ヘッダーの並び順を変更し、CURRENT MATCHUPで検出済みの敵チャンピオンをワンクリックでOpponentに設定できるボタン群を追加する機能。
+
+### 概要
+
+- Feature Flag (`viewer_header_quick_opponent`) で ON/OFF を切り替え可能（デフォルト: OFF）
+- OFF時は既存の見た目・挙動を完全に維持する
+- ON時、ヘッダーの並びが `[×] [Champion▾] vs [Opponent▾] [Lane▾]` から `[×] [Lane▾] [Champion▾] vs [Opponent▾] [クイックピック×5]` に変わる
+- クイックピックボタンは CURRENT MATCHUP に表示されている敵チャンピオン（最大5体）のアイコン＋名前ボタンで、クリックすると即座にOpponentとして設定され、ページが再読み込みされる
+- ボタン幅が足りない場合は名前が省略記号（…）で圧縮される（横スクロールは発生しない）
+
+### 技術詳細
+
+| 項目 | 値 |
+|------|-----|
+| フラグキー | `viewer_header_quick_opponent` |
+| 実装箇所 | `widgets/viewer_widget.py` (`ChampionViewerWidget.init_ui`, `refresh_opponent_quick_picks`, `_on_quick_opponent_clicked`) |
+| ボタンウィジェット | `QuickPickButton` (`widgets/matchup_widgets.py`) |
+| 最大ボタン数 | 5 (`ChampionViewerWidget.QUICK_OPPONENT_MAX`) |
+| 更新トリガー | `MainWindow.update_matchup_list()` → `_refresh_viewer_quick_picks()` |
+
+### 仕組み
+
+1. `ChampionViewerWidget.init_ui()` が**ビューア生成時に** `main_window.feature_flags` からフラグを読み取り、`_quick_opponent_enabled` を確定する。このためフラグ切り替え後に**新規で開いたビューアは再起動なしで反映される**が、既存のビューアのヘッダーは再構築されないため変わらない
+2. フラグONの場合のみ、ヘッダーの `addWidget()` 呼び出し順を並び替え、`QuickPickButton` を5個生成してOpponentピルの直後に配置する
+3. `MainWindow.update_matchup_list()` が呼ばれるたびに（LCU検知・DnD・デバッグ追加など全経路）、`_refresh_viewer_quick_picks()` が全ビューアの `refresh_opponent_quick_picks()` を呼び、CURRENT MATCHUPの敵チャンピオンIDでボタンを再描画する
+4. ボタンをクリックすると `_on_quick_opponent_clicked()` が呼ばれ、Opponentセレクターから選択したときと同じ処理（`opponent_champion_input` 更新 → ページ再読み込み）が実行される

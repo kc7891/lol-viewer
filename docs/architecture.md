@@ -67,6 +67,12 @@
 
 Feature Flagは `feature_flags/{key}` としてQSettingsに永続化される。`cleanup_feature_flag_settings()` が起動時に呼ばれ、定義から削除されたフラグのゴミデータを自動削除する。
 
+### 現行フラグ
+
+| キー | デフォルト | 内容 |
+|------|-----------|------|
+| `viewer_header_quick_opponent` | OFF | Viewerヘッダーをレーン優先の並びに変更し、CURRENT MATCHUPの敵チャンピオンをワンクリックでOpponentに設定するクイックピックボタン（最大5個）を追加する（Beta）。詳細は [docs/features.md](./features.md) を参照。 |
+
 ### Feature Flag vs Display Settings の使い分け
 
 - **Feature Flag**: 実験的・不安定な機能。テスト完了後に正式設定へ昇格させる

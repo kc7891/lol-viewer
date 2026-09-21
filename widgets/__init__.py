@@ -3,7 +3,7 @@ from widgets.status_widget import LCUConnectionStatusWidget
 from widgets.webview_utils import NullWebView, QrCodeOverlay, _install_qr_overlay, _webengine_disabled
 from widgets.viewer_list_item import ViewerListItemWidget, PendingPickListItemWidget
 from widgets.viewer_widget import ChampionViewerWidget
-from widgets.matchup_widgets import DraggableMatchupLabel, MatchupRowWidget
+from widgets.matchup_widgets import DraggableMatchupLabel, MatchupRowWidget, QuickPickButton
 
 __all__ = [
     "LCUConnectionStatusWidget",
@@ -16,4 +16,5 @@ __all__ = [
     "ChampionViewerWidget",
     "DraggableMatchupLabel",
     "MatchupRowWidget",
+    "QuickPickButton",
 ]
