@@ -15,10 +15,12 @@ from constants import (
     __version__, DEFAULT_BUILD_URL, DEFAULT_COUNTER_URL,
     DEFAULT_MATCHUP_URL, DEFAULT_ARAM_URL,
     CLOSE_BUTTON_GLYPH, FEATURE_FLAG_DEFINITIONS,
+    FLAG_VIEWER_HEADER_QUICK_OPPONENT,
     ARAM_QUEUE_IDS, ARAM_MAYHEM_QUEUE_IDS,
     get_ui_sizes,
 )
 from widgets.webview_utils import NullWebView, QrCodeOverlay, _install_qr_overlay, _webengine_disabled
+from widgets.matchup_widgets import QuickPickButton
 from champion_data import ChampionData, ChampionImageCache, setup_champion_input, setup_opponent_champion_input
 from logger import log
 
@@ -34,6 +36,14 @@ class ChampionViewerWidget(QWidget):
 
     close_requested = pyqtSignal(object)  # Signal to request closing this viewer
     champion_updated = pyqtSignal(object)  # Signal when champion name is updated
+
+    # Beta: max number of CURRENT MATCHUP enemy quick-pick buttons in the header.
+    QUICK_OPPONENT_MAX = 5
+    # Class-level empty defaults: the quick-pick buttons only exist when the Beta flag
+    # is ON, and sip raises RuntimeError (not AttributeError) for a never-assigned
+    # attribute on a QObject, so getattr() fallbacks are not usable here.
+    _quick_opponent_buttons: tuple = ()
+    _quick_opponent_ids: tuple = ()
 
     def __init__(self, viewer_id: int, champion_data: ChampionData = None, is_picked: bool = False, main_window=None):
         super().__init__()
@@ -84,6 +94,12 @@ class ChampionViewerWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+
+        # Beta: Lane-first header layout + enemy quick-pick buttons (default OFF).
+        self._quick_opponent_enabled = bool(
+            self.main_window is not None
+            and getattr(self.main_window, "feature_flags", {}).get(FLAG_VIEWER_HEADER_QUICK_OPPONENT, False)
+        )
 
         # Image cache (must init before UI elements that use it)
         self._champion_icon_cache = ChampionImageCache()
@@ -141,25 +157,48 @@ class ChampionViewerWidget(QWidget):
         self._champion_selector_btn.setStyleSheet(selector_pill_style)
         self._champion_selector_btn.setIconSize(QSize(pill_icon, pill_icon))
         self._champion_selector_btn.clicked.connect(lambda: self._open_champion_selector("champion"))
-        header_layout.addWidget(self._champion_selector_btn)
 
         self._header_vs_label = QLabel("vs")
         self._header_vs_label.setStyleSheet(
             f"QLabel {{ font-size: {sz['font_pill']}; color: #6d7a8a; background-color: transparent; margin: 0 2px; }}"
         )
         self._header_vs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header_layout.addWidget(self._header_vs_label)
 
         self._opponent_selector_btn = QPushButton("Opponent \u25BE")
         self._opponent_selector_btn.setStyleSheet(selector_pill_style)
         self._opponent_selector_btn.setIconSize(QSize(pill_icon, pill_icon))
         self._opponent_selector_btn.clicked.connect(lambda: self._open_champion_selector("opponent"))
-        header_layout.addWidget(self._opponent_selector_btn)
 
         self._lane_selector_btn = QPushButton("Lane \u25BE")
         self._lane_selector_btn.setStyleSheet(selector_pill_style)
         self._lane_selector_btn.clicked.connect(lambda: self._open_champion_selector("lane"))
-        header_layout.addWidget(self._lane_selector_btn)
+
+        if self._quick_opponent_enabled:
+            # Beta (flag ON): close / Lane / Champion / vs / Opponent / [quick x5] / stretch
+            header_layout.addWidget(self._lane_selector_btn)
+            header_layout.addWidget(self._champion_selector_btn)
+            header_layout.addWidget(self._header_vs_label)
+            header_layout.addWidget(self._opponent_selector_btn)
+
+            self._quick_opponent_buttons: list[QuickPickButton] = []
+            self._quick_opponent_ids: list[str] = []
+            for idx in range(self.QUICK_OPPONENT_MAX):
+                btn = QuickPickButton()
+                btn.setStyleSheet(selector_pill_style)
+                btn.setIconSize(QSize(pill_icon, pill_icon))
+                btn.setMinimumWidth(pill_icon + 12)
+                btn.setCursor(Qt.CursorShape.PointingHandCursor)
+                btn.setVisible(False)
+                btn.clicked.connect(lambda _=False, i=idx: self._on_quick_opponent_clicked(i))
+                header_layout.addWidget(btn)
+                self._quick_opponent_buttons.append(btn)
+            self.refresh_opponent_quick_picks()
+        else:
+            # 現状 (flag OFF): close / Champion / vs / Opponent / Lane / stretch
+            header_layout.addWidget(self._champion_selector_btn)
+            header_layout.addWidget(self._header_vs_label)
+            header_layout.addWidget(self._opponent_selector_btn)
+            header_layout.addWidget(self._lane_selector_btn)
         # 右側にのみ余白を集めて、ボタン群をきれいに左寄せにする
         header_layout.addStretch()
 
@@ -453,6 +492,55 @@ class ChampionViewerWidget(QWidget):
         # Fallback: champion names from other viewer tabs
         suggestions = self._get_open_champion_suggestions()
         return {s.lower() for s in suggestions if s}
+
+    def _get_matchup_enemy_champion_ids(self) -> list[str]:
+        """Return enemy champion ids shown in CURRENT MATCHUP, in row order (max 5)."""
+        data = getattr(self.main_window, "_matchup_data", None) if self.main_window else None
+        if not data or not self.champion_data:
+            return []
+        ids: list[str] = []
+        for entry in data:
+            enemy = (entry[1] or "").strip() if len(entry) > 1 else ""
+            if not enemy:
+                continue
+            info = self.champion_data.get_champion(enemy)
+            champ_id = (info or {}).get("id", "").lower()
+            if champ_id and champ_id not in ids:
+                ids.append(champ_id)
+            if len(ids) >= self.QUICK_OPPONENT_MAX:
+                break
+        return ids
+
+    def refresh_opponent_quick_picks(self):
+        """Repopulate the Beta quick-pick buttons from CURRENT MATCHUP enemy data."""
+        buttons = self._quick_opponent_buttons
+        if not buttons:  # flag OFF -> no quick-pick buttons were built
+            return
+        self._quick_opponent_ids = self._get_matchup_enemy_champion_ids()
+        size = self._get_ui_sizes()["icon_size_pill"]
+        for btn, champ_id in zip(buttons, self._quick_opponent_ids):
+            display = self._get_display_name(champ_id) or champ_id
+            btn.set_full_text(display)
+            btn.setToolTip(f"Set {display} as opponent")
+            self._set_btn_champion_icon(btn, champ_id, size)   # existing helper
+            btn.setVisible(True)
+        for btn in buttons[len(self._quick_opponent_ids):]:
+            btn.setVisible(False)
+            btn.setIcon(QIcon())
+            btn.set_full_text("")
+
+    def _on_quick_opponent_clicked(self, index: int):
+        """Beta: one-click opponent selection from a CURRENT MATCHUP enemy."""
+        ids = self._quick_opponent_ids
+        if index < 0 or index >= len(ids):
+            return
+        champ_id = ids[index]
+        self.opponent_champion_input.setText(champ_id)
+        self._update_opponent_selector_btn(champ_id)
+        self._update_header_display()
+        self.viewer_content_stack.setCurrentIndex(0)
+        if self.champion_input.text().strip():
+            self.open_selected_mode()
 
     def _filter_champion_list(self, text: str):
         """Filter the champion list based on search text.

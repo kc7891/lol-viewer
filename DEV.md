@@ -67,13 +67,13 @@ This project uses **Feature Flags** to ship changes safely and avoid breaking st
 
 ### Where flags live
 
-- **Definitions**: `main.py` → `FEATURE_FLAG_DEFINITIONS`
+- **Definitions**: `constants.py` → `FEATURE_FLAG_DEFINITIONS`
 - **Persistence**: stored via `QSettings` under `feature_flags/<key>`
 - **UI**: Settings page bottom → **Feature Flags** section (toggle ON/OFF)
 
 ### How to add a new flag (implementation checklist)
 
-1. Add a new entry to `FEATURE_FLAG_DEFINITIONS` in `main.py` (default should usually be **OFF**).
+1. Add a new entry to `FEATURE_FLAG_DEFINITIONS` in `constants.py` (default should usually be **OFF**).
 2. Guard the new behavior behind the flag:
    - Example: `if self.feature_flags.get("your_flag_key", False): ...`
 3. Ensure **flag OFF** keeps the app usable (degraded behavior is OK; crashes are not).
