@@ -65,12 +65,6 @@ Viewers ページ
 - **オープンボタン**: 透明背景, `#6d7a8a` → hover `#c1c9d4`, ⧉ アイコン
 - **Refreshボタン**: 透明背景, `#6d7a8a`, 1px border, border-radius 3px
 
-### Feature Flag
-
-- キー: `matchup_list`
-- デフォルト: OFF (実験的機能)
-- Settings > Feature Flags で切り替え可能
-
 ## データ管理ルール
 
 ### 基本原則: 一度取得したデータは自動的に破棄しない
