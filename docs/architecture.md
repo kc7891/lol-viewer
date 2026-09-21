@@ -49,6 +49,16 @@
 | `feature_flags/{key}` | bool | フラグ定義による | 実験的機能のON/OFF |
 | `display/qr_code_overlay` | bool | True | QRコードオーバーレイの表示 |
 
+## アイコンキャッシュ
+
+チャンピオンアイコン（Data Dragon から取得）はメモリだけでなくディスクにも永続化される（`ChampionImageCache`, `champion_data.py`）。
+
+- **保存先**: `%LOCALAPPDATA%\LoLViewer\cache\champion_icons`（`get_icon_cache_dir()`）。`LOL_VIEWER_ICON_CACHE_DIR` 環境変数で上書き可能（テストが実ユーザーのキャッシュを汚さないための隔離用）。
+- **キー**: `sha256(image_url).hexdigest() + ".png"`。`image_url` にはDDragonのパッチ番号が含まれるため、パッチ更新時は全件miss（既存ファイルは次回起動時に自動で掃除される）。
+- **書き込み**: `.tmp` に書いてから `os.replace()` する原子的書き込み。プロセスがkillされても壊れたファイルが残らない。
+- **共有**: キャッシュインスタンスはプロセス全体で1個（`get_shared_image_cache()`）。サイドバー・マッチアップパネル・各ビューアが同じインスタンスを参照するため、同じアイコンを二重にダウンロードしない。
+- **掃除**: 起動時（`MainWindow.__init__`）に `prune_icon_cache()` を呼び、`champions.json` が参照しなくなったファイル（旧パッチのアイコンや書きかけの `.tmp`）を削除する。失敗しても起動は止めない。
+
 ### 新しい設定を追加する手順
 
 1. `MainWindow.__init__()` で `self.settings.value()` を使って読み込む
@@ -66,6 +76,12 @@
 - `description`: ツールチップに表示する説明
 
 Feature Flagは `feature_flags/{key}` としてQSettingsに永続化される。`cleanup_feature_flag_settings()` が起動時に呼ばれ、定義から削除されたフラグのゴミデータを自動削除する。
+
+### 現行フラグ
+
+| キー | デフォルト | 内容 |
+|------|-----------|------|
+| `viewer_header_quick_opponent` | OFF | Viewerヘッダーをレーン優先の並びに変更し、CURRENT MATCHUPの敵チャンピオンをワンクリックでOpponentに設定するクイックピックボタン（最大5個）を追加する（Beta）。詳細は [docs/features.md](./features.md) を参照。 |
 
 ### Feature Flag vs Display Settings の使い分け
 
