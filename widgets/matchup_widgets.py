@@ -111,50 +111,46 @@ class QuickPickButton(QPushButton):
     """Pill button that elides its label to fit the available width.
 
     QPushButton clips rather than elides an over-long label, so the visible text is
-    re-elided whenever the width, the icon or the label changes. Two details keep that
-    stable:
+    re-elided whenever the width, the icon or the label changes.
 
-    - The non-text width (icon, spacing, padding, border) is *measured* rather than
-      estimated, because the champion icon is fetched asynchronously and only widens the
-      button once it arrives. The measurement uses a long sentinel label so the style's
-      minimum-width floor cannot be folded into the result -- deriving it from the
-      currently displayed text instead makes a short or empty label inflate the result,
-      which shrinks the text room, which shortens the label further.
-    - ``sizeHint`` is derived from the full label rather than the displayed one, so
-      eliding never feeds back into the layout.
+    The width needed for the full label is obtained by briefly setting that label and
+    asking the style (``_measure``), rather than by adding up font metrics and padding.
+    Mixing the two measurements is not safe: a style's button hint is subject to a
+    minimum-width floor and is computed with ``QFontMetrics.size()``, which on some
+    platforms disagrees with ``horizontalAdvance()`` by a pixel or two -- and a pixel
+    or two is the difference between "Zed" and "Z...". Comparing width against that
+    measured value keeps the "does it fit?" decision exact on every platform.
 
-    The Maximum size policy then lets the layout shrink the button below that hint when
-    the header runs out of room, but never stretch it past its natural width.
+    Measuring the full label (never the displayed one) also stops eliding from feeding
+    back into the layout, which would otherwise ratchet the label away to nothing.
+    The Maximum size policy lets the layout shrink the button when the header runs out
+    of room, but never stretch it past its natural width.
     """
 
     _ELLIPSIS = "…"
-    # Long enough to sit well above any style-imposed minimum button width.
-    _MEASURE_TEXT = "M" * 40
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._full_text = ""
-        self._chrome = 0
+        self._full_width = 0
         self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
-        self._measure_chrome()
+        self._measure()
 
     def set_full_text(self, text: str):
         self._full_text = text
+        self._measure()
         self._apply_elided_text()
         self.updateGeometry()
 
     def setIcon(self, icon):
         # The icon is loaded asynchronously and changes how much room the text gets.
         super().setIcon(icon)
-        self._measure_chrome()
+        self._measure()
         self._apply_elided_text()
         self.updateGeometry()
 
     def sizeHint(self):
-        return QSize(
-            self._chrome + self.fontMetrics().horizontalAdvance(self._full_text),
-            super().sizeHint().height(),
-        )
+        return QSize(self._full_width, super().sizeHint().height())
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -164,24 +160,30 @@ class QuickPickButton(QPushButton):
         super().changeEvent(event)
         # setStyleSheet() and font changes both move the padding/border geometry.
         if event.type() in (QEvent.Type.FontChange, QEvent.Type.StyleChange):
-            self._measure_chrome()
+            self._measure()
             self._apply_elided_text()
 
-    def _measure_chrome(self):
-        """Measure the width needed for everything but the label.
+    def _measure(self):
+        """Record the width this button needs to show its full label.
 
-        Only ever called from label/icon/style changes -- never from sizeHint() -- so the
+        Only ever called on a label/icon/style change -- never from sizeHint() -- so the
         temporary setText() cannot re-enter an in-progress layout pass.
         """
         current = super().text()
-        super().setText(self._MEASURE_TEXT)
-        hint_width = super().sizeHint().width()
+        super().setText(self._full_text)
+        self._full_width = super().sizeHint().width()
         super().setText(current)
-        self._chrome = max(0, hint_width - self.fontMetrics().horizontalAdvance(self._MEASURE_TEXT))
 
     def _apply_elided_text(self):
+        if self.width() >= self._full_width:
+            # Enough room for the whole label, measured the same way the layout sized us.
+            super().setText(self._full_text)
+            return
+
         metrics = self.fontMetrics()
-        avail = max(0, self.width() - self._chrome)
+        # Approximate the non-text width; only used while the label is already being cut.
+        chrome = max(0, self._full_width - metrics.horizontalAdvance(self._full_text))
+        avail = max(0, self.width() - chrome)
         elided = metrics.elidedText(self._full_text, Qt.TextElideMode.ElideRight, avail)
         # Too narrow for even one character: show the icon alone, not a bare ellipsis.
         if self._full_text and elided.strip(self._ELLIPSIS) == "":
