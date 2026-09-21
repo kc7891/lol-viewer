@@ -22,7 +22,6 @@ from constants import (
     __version__, DEFAULT_BUILD_URL, DEFAULT_COUNTER_URL,
     DEFAULT_MATCHUP_URL, DEFAULT_ARAM_URL, DEFAULT_LIVE_GAME_URL,
     CLOSE_BUTTON_GLYPH, FEATURE_FLAG_DEFINITIONS,
-    FLAG_VIEWER_HEADER_QUICK_OPPONENT,
     ARAM_QUEUE_IDS, ARAM_MAYHEM_QUEUE_IDS,
     UI_SIZE_PRESETS, get_ui_sizes,
 )
@@ -1463,9 +1462,7 @@ class MainWindow(QMainWindow):
             logger.error(f"Error updating matchup list: {e}")
 
     def _refresh_viewer_quick_picks(self):
-        """Beta: push CURRENT MATCHUP enemies to each viewer's quick-pick buttons."""
-        if not self.feature_flags.get(FLAG_VIEWER_HEADER_QUICK_OPPONENT, False):
-            return
+        """Push CURRENT MATCHUP enemies to each viewer's quick-pick buttons."""
         for viewer in self.viewers:
             try:
                 viewer.refresh_opponent_quick_picks()

@@ -21,20 +21,9 @@ CLOSE_BUTTON_GLYPH = "×"
 
 # Feature flags (toggle in Settings page).
 # NOTE: Keys are persisted via QSettings at "feature_flags/<key>".
-
-# Feature flag keys (also used as the QSettings sub-key).
-FLAG_VIEWER_HEADER_QUICK_OPPONENT = "viewer_header_quick_opponent"
-
-FEATURE_FLAG_DEFINITIONS: dict = {
-    FLAG_VIEWER_HEADER_QUICK_OPPONENT: {
-        "label": "Viewer header: Lane-first layout + enemy quick-pick (Beta)",
-        "description": (
-            "Reorders the viewer header to Lane -> Champion -> Opponent, and adds up to 5 "
-            "one-click buttons for the enemy champions shown in CURRENT MATCHUP."
-        ),
-        "default": False,
-    },
-}
+#
+# This build currently ships with no gated/experimental features.
+FEATURE_FLAG_DEFINITIONS: dict = {}
 
 # Queue IDs used to detect ARAM / ARAM: Mayhem.
 # - ARAM (Howling Abyss): 450 (current), plus a few legacy/special variants.

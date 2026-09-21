@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Tests for the Beta viewer header: Lane-first layout + enemy quick-pick buttons.
+"""Tests for the viewer header: Lane-first layout + enemy quick-pick buttons.
 
-These tests validate the FLAG_VIEWER_HEADER_QUICK_OPPONENT feature flag
-(default OFF). Flag OFF must keep the existing header order/behavior byte
-for byte; flag ON adds up to 5 one-click opponent buttons sourced from
-CURRENT MATCHUP enemy data.
+The header always shows a Lane-first layout (close / Lane / Champion / vs /
+Opponent / up to 5 quick-pick buttons). The quick-pick buttons are sourced
+from CURRENT MATCHUP enemy data, and the button matching the currently
+selected Opponent is hidden (the Opponent pill right next to them already
+shows that champion).
 """
 
 import os
@@ -26,7 +27,6 @@ from PyQt6.QtCore import QSize
 from PyQt6.QtWidgets import QApplication, QHBoxLayout, QWidget
 
 from widgets import ChampionViewerWidget, QuickPickButton
-from constants import FEATURE_FLAG_DEFINITIONS, FLAG_VIEWER_HEADER_QUICK_OPPONENT
 from champion_data import ChampionData
 from main_window import MainWindow
 
@@ -109,7 +109,7 @@ class TestGetMatchupEnemyChampionIds:
         widget = _make_bare_widget(None)
         assert widget._get_matchup_enemy_champion_ids() == []
 
-    def test_refresh_is_noop_when_flag_off(self):
+    def test_refresh_is_noop_on_a_bare_instance(self):
         """refresh_opponent_quick_picks() must no-op silently when buttons were never built.
 
         `_quick_opponent_buttons` is genuinely undefined here (never built on this bare
@@ -117,13 +117,6 @@ class TestGetMatchupEnemyChampionIds:
         """
         widget = _make_bare_widget(_DummyMainWindow([("", "Ahri")]))
         widget.refresh_opponent_quick_picks()  # Should not raise.
-
-
-class TestFeatureFlagDefinition:
-    """The flag itself must exist and default to OFF."""
-
-    def test_flag_default_is_false(self):
-        assert FEATURE_FLAG_DEFINITIONS[FLAG_VIEWER_HEADER_QUICK_OPPONENT]["default"] is False
 
 
 def _header_widgets(viewer):
@@ -138,35 +131,11 @@ def _header_widgets(viewer):
     return widgets
 
 
-class TestHeaderLayoutFlagOff:
-    """Flag OFF must reproduce the exact pre-existing header order."""
-
-    def test_header_order_unchanged_and_no_quick_pick_attrs(self, qapp):
-        window = MainWindow()
-        # Flaky-guard: explicitly assign right before viewer construction, never rely on default.
-        window.feature_flags[FLAG_VIEWER_HEADER_QUICK_OPPONENT] = False
-        viewer = window.add_viewer()
-
-        widgets = _header_widgets(viewer)
-        assert widgets == [
-            viewer._header_close_btn,
-            viewer._champion_selector_btn,
-            viewer._header_vs_label,
-            viewer._opponent_selector_btn,
-            viewer._lane_selector_btn,
-        ]
-        # No buttons were built; the class-level empty default is still in effect.
-        assert viewer._quick_opponent_buttons == ()
-        assert viewer._quick_opponent_ids == ()
-
-
-class TestHeaderLayoutFlagOn:
-    """Flag ON reorders the header to Lane-first and appends 5 quick-pick buttons."""
+class TestHeaderLayout:
+    """The header is always Lane-first and always appends up to 5 quick-pick buttons."""
 
     def test_header_order_is_lane_first_with_quick_picks(self, qapp):
         window = MainWindow()
-        # Flaky-guard: explicitly assign right before viewer construction, never rely on default.
-        window.feature_flags[FLAG_VIEWER_HEADER_QUICK_OPPONENT] = True
         viewer = window.add_viewer()
 
         widgets = _header_widgets(viewer)
@@ -184,7 +153,6 @@ class TestHeaderLayoutFlagOn:
 
     def test_update_matchup_list_shows_only_matching_quick_buttons(self, qapp):
         window = MainWindow()
-        window.feature_flags[FLAG_VIEWER_HEADER_QUICK_OPPONENT] = True
         viewer = window.add_viewer()
 
         window._matchup_data[0] = ("", "Ahri")
@@ -200,7 +168,6 @@ class TestHeaderLayoutFlagOn:
 
     def test_quick_pick_click_sets_opponent_champion(self, qapp):
         window = MainWindow()
-        window.feature_flags[FLAG_VIEWER_HEADER_QUICK_OPPONENT] = True
         viewer = window.add_viewer()
 
         window._matchup_data[0] = ("", "Ahri")
@@ -208,6 +175,114 @@ class TestHeaderLayoutFlagOn:
 
         viewer._on_quick_opponent_clicked(0)
         assert viewer.opponent_champion_input.text() == "ahri"
+
+
+def _visible_quick_pick_texts(viewer) -> set:
+    """Return the `_full_text` of every currently visible quick-pick button."""
+    return {btn._full_text for btn in viewer._quick_opponent_buttons if not btn.isHidden()}
+
+
+class TestQuickPickHidesSelectedOpponent:
+    """The quick-pick button matching the currently selected Opponent is hidden."""
+
+    @staticmethod
+    def _seed_five_enemies(window):
+        """Fill all 5 CURRENT MATCHUP rows with distinct enemies and refresh."""
+        names = ["Ahri", "Zed", "Yasuo", "Garen", "Lux"]
+        for i, name in enumerate(names):
+            window._matchup_data[i] = ("", name)
+        window.update_matchup_list()
+        return names
+
+    def test_all_enemy_buttons_shown_when_no_opponent_selected(self, qapp):
+        """1. No Opponent selected -> all 5 enemy buttons are visible."""
+        window = MainWindow()
+        viewer = window.add_viewer()
+        self._seed_five_enemies(window)
+
+        assert _visible_quick_pick_texts(viewer) == {"Ahri", "Zed", "Yasuo", "Garen", "Lux"}
+        assert viewer._quick_opponent_ids == ["ahri", "zed", "yasuo", "garen", "lux"]
+
+    def test_selecting_opponent_hides_its_button_and_others_pack_left(self, qapp):
+        """2. Selecting an Opponent hides only its button; the rest pack to the front."""
+        window = MainWindow()
+        viewer = window.add_viewer()
+        self._seed_five_enemies(window)
+
+        viewer.opponent_champion_input.setText("zed")
+        viewer.refresh_opponent_quick_picks()
+
+        assert _visible_quick_pick_texts(viewer) == {"Ahri", "Yasuo", "Garen", "Lux"}
+        visible_buttons = [b for b in viewer._quick_opponent_buttons if not b.isHidden()]
+        # Visible buttons occupy the leading slots of the row (no gaps left behind).
+        assert viewer._quick_opponent_buttons[:len(visible_buttons)] == visible_buttons
+
+    def test_clearing_opponent_to_none_restores_hidden_button(self, qapp):
+        """3. Clearing the Opponent (selecting "None") brings the hidden button back."""
+        window = MainWindow()
+        viewer = window.add_viewer()
+        self._seed_five_enemies(window)
+
+        viewer.opponent_champion_input.setText("zed")
+        viewer.refresh_opponent_quick_picks()
+        assert "Zed" not in _visible_quick_pick_texts(viewer)
+
+        viewer.opponent_champion_input.clear()
+        viewer.refresh_opponent_quick_picks()
+
+        assert _visible_quick_pick_texts(viewer) == {"Ahri", "Zed", "Yasuo", "Garen", "Lux"}
+
+    def test_clicking_a_quick_pick_button_hides_itself(self, qapp):
+        """4. End-to-end via _on_quick_opponent_clicked(): the clicked button hides itself.
+
+        Buttons are repopulated positionally after exclusion (the remaining ids pack
+        into buttons[0:]), so clicking the *last* populated button is the case where the
+        clicked widget itself ends up with nothing to display and is hidden -- a button
+        in the middle would instead be repurposed to show the next champion.
+        """
+        window = MainWindow()
+        viewer = window.add_viewer()
+        self._seed_five_enemies(window)
+
+        last_index = len(viewer._quick_opponent_ids) - 1
+        clicked_btn = viewer._quick_opponent_buttons[last_index]
+        assert clicked_btn._full_text == "Lux"
+
+        viewer._on_quick_opponent_clicked(last_index)
+
+        assert viewer.opponent_champion_input.text() == "lux"
+        assert clicked_btn.isHidden()
+
+    def test_wukong_opponent_hides_monkeyking_button(self, qapp):
+        """5. Regression: "Wukong" (LCU name) must hide the "monkeyking" button.
+
+        A naive `.lower()` comparison leaves "wukong", which never matches the
+        champions.json id "monkeyking" -- this only passes via _resolve_champion_id().
+        """
+        window = MainWindow()
+        viewer = window.add_viewer()
+        window._matchup_data[0] = ("", "Wukong")
+        window._matchup_data[1] = ("", "Ahri")
+        window.update_matchup_list()
+
+        viewer.opponent_champion_input.setText("Wukong")
+        viewer.refresh_opponent_quick_picks()
+
+        assert "monkeyking" not in viewer._quick_opponent_ids
+        assert _visible_quick_pick_texts(viewer) == {"Ahri"}
+
+    def test_button_index_still_matches_champion_after_exclusion(self, qapp):
+        """6. `_quick_opponent_ids` stays index-aligned with the buttons after exclusion."""
+        window = MainWindow()
+        viewer = window.add_viewer()
+        self._seed_five_enemies(window)
+
+        viewer.opponent_champion_input.setText("zed")
+        viewer.refresh_opponent_quick_picks()
+        assert viewer._quick_opponent_ids == ["ahri", "yasuo", "garen", "lux"]
+
+        viewer._on_quick_opponent_clicked(2)  # index 2 in the post-exclusion list -> "garen"
+        assert viewer.opponent_champion_input.text() == "garen"
 
 
 class TestQuickPickButtonSizing:
