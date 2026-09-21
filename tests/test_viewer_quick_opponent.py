@@ -211,12 +211,19 @@ class TestHeaderLayoutFlagOn:
 
 
 class TestQuickPickButtonSizing:
-    """A quick-pick button must actually show its champion name when there is room.
+    """Properties a quick-pick label must hold, independent of font and platform.
 
     Regression guard: an earlier revision used QSizePolicy.Ignored, which made the
     layout collapse every button to its minimum width and elide the label away to an
     empty string even on a very wide header -- the buttons rendered as icons only.
+
+    These assertions deliberately avoid comparing against exact strings at an exact
+    pixel width: how many characters fit depends on the font the machine happens to
+    have, so such a test passes on Windows and fails on a Linux CI runner. What
+    matters is that a label survives when there is room and shrinks when there is not.
     """
+
+    NAMES = ("Zed", "Ashe", "Leona", "Ornn")
 
     def _build_row(self, host_width):
         host = QWidget()
@@ -224,7 +231,7 @@ class TestQuickPickButtonSizing:
         layout.setContentsMargins(6, 6, 6, 4)
         layout.setSpacing(4)
         buttons = []
-        for name in ("Zed", "Ashe", "Leona", "Ornn"):
+        for name in self.NAMES:
             btn = QuickPickButton()
             btn.setIconSize(QSize(24, 24))
             btn.setMinimumWidth(36)
@@ -234,29 +241,73 @@ class TestQuickPickButtonSizing:
         layout.addStretch()
         host.resize(host_width, 52)
         host.show()
+        for _ in range(3):
+            QApplication.processEvents()
         return host, buttons
 
-    def test_labels_are_fully_visible_when_the_header_is_wide(self, qapp):
+    def test_labels_survive_when_the_header_is_wide(self, qapp):
+        """The original bug: plenty of room, yet every label elided away to ''."""
         host, buttons = self._build_row(1400)
-        for _ in range(3):
-            qapp.processEvents()
-        assert [b.text() for b in buttons] == ["Zed", "Ashe", "Leona", "Ornn"]
+        assert all(b.text() for b in buttons), [b.text() for b in buttons]
+        host.close()
+
+    def test_full_label_is_shown_once_the_button_has_its_natural_width(self, qapp):
+        """The contract _apply_elided_text() implements, stated without pixel counts."""
+        host, buttons = self._build_row(1400)
+        for btn in buttons:
+            if btn.width() >= btn._full_width:
+                assert btn.text() == btn._full_text
         host.close()
 
     def test_buttons_do_not_stretch_past_their_natural_width(self, qapp):
-        """Maximum policy: a wide header must leave the slack to the trailing stretch."""
+        """Maximum policy: slack goes to the trailing stretch, not into the buttons."""
         host, buttons = self._build_row(1400)
-        for _ in range(3):
-            qapp.processEvents()
-        assert sum(b.width() for b in buttons) < 700
+        for btn in buttons:
+            assert btn.width() <= btn.sizeHint().width()
         host.close()
 
-    def test_label_is_elided_rather_than_clipped_when_space_is_tight(self, qapp):
-        host, buttons = self._build_row(320)
+    def test_long_label_is_strictly_truncated_and_stays_a_prefix(self, qapp):
+        """A label far too long for the button must come back *shorter*, not just similar.
+
+        The length check is the load-bearing half: a prefix assertion on its own is also
+        satisfied by a button that wrongly renders the label in full. The label is made
+        long enough that no font could fit it in the width given, so this stays true
+        regardless of which fonts the machine running the suite happens to have.
+        """
+        full = "Nunu & Willump the Boy and His Yeti " * 8  # ~288 chars
+        host = QWidget()
+        layout = QHBoxLayout(host)
+        layout.setContentsMargins(6, 6, 6, 4)
+        btn = QuickPickButton()
+        btn.setIconSize(QSize(24, 24))
+        btn.setMinimumWidth(36)
+        btn.set_full_text(full)
+        layout.addWidget(btn)
+        layout.addStretch()
+        host.resize(400, 52)
+        host.show()
         for _ in range(3):
-            qapp.processEvents()
-        for btn in buttons:
-            # Never wider than the full label, and never showing text it cannot fit.
-            assert btn.text() != "Leona" or btn.width() >= 36
-            assert len(btn.text()) <= len(btn._full_text)
+            QApplication.processEvents()
+
+        shown = btn.text()
+        assert shown, "label collapsed away entirely despite having room for some of it"
+        assert len(shown) < len(full), f"label was not truncated: {len(shown)} chars shown"
+        assert shown.endswith("…"), f"truncated label should end with an ellipsis: {shown!r}"
+        assert full.startswith(shown[:-1]), f"shown text is not a prefix of the name: {shown!r}"
         host.close()
+
+    def test_each_label_shrinks_when_the_header_gets_narrow(self, qapp):
+        """Per button, not in aggregate: every name here is too long for a 320px row."""
+        wide_host, wide = self._build_row(1400)
+        wide_text = {b._full_text: b.text() for b in wide}
+        wide_host.close()
+
+        narrow_host, narrow = self._build_row(320)
+        for btn in narrow:
+            shown = btn.text()
+            assert len(shown) < len(wide_text[btn._full_text]), (
+                f"{btn._full_text!r} did not shrink: {shown!r}"
+            )
+            stem = shown.rstrip("…")
+            assert btn._full_text.startswith(stem), f"{shown!r} is not a prefix"
+        narrow_host.close()
