@@ -21,7 +21,10 @@ from constants import (
 )
 from widgets.webview_utils import NullWebView, QrCodeOverlay, _install_qr_overlay, _webengine_disabled
 from widgets.matchup_widgets import QuickPickButton
-from champion_data import ChampionData, ChampionImageCache, setup_champion_input, setup_opponent_champion_input
+from champion_data import (
+    ChampionData, setup_champion_input, setup_opponent_champion_input,
+    get_shared_image_cache,
+)
 from logger import log
 
 logger = logging.getLogger(__name__)
@@ -101,8 +104,8 @@ class ChampionViewerWidget(QWidget):
             and getattr(self.main_window, "feature_flags", {}).get(FLAG_VIEWER_HEADER_QUICK_OPPONENT, False)
         )
 
-        # Image cache (must init before UI elements that use it)
-        self._champion_icon_cache = ChampionImageCache()
+        # Image cache (must init before UI elements that use it; shared process-wide)
+        self._champion_icon_cache = get_shared_image_cache()
 
         # -- Shared pill style (used in header for champion/opponent/lane) --
         selector_pill_style = f"""

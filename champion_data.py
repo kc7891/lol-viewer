@@ -3,11 +3,17 @@
 Champion data management module for LoL Viewer
 Handles loading champion data and providing autocomplete functionality
 """
+import hashlib
 import json
+import re
 import os
 import sys
+import tempfile
 from typing import Dict, List, Optional
-from PyQt6.QtCore import Qt, QSize, QRect, QUrl, QObject, QEvent, QTimer, QStringListModel
+from PyQt6.QtCore import (
+    Qt, QSize, QRect, QUrl, QObject, QEvent, QTimer, QStringListModel,
+    QStandardPaths,
+)
 from PyQt6.QtGui import QStandardItemModel, QStandardItem, QPixmap, QImage
 from PyQt6.QtWidgets import (
     QCompleter, QStyledItemDelegate, QStyleOptionViewItem,
@@ -124,13 +130,51 @@ class ChampionData:
         return None
 
 
-class ChampionImageCache:
-    """Cache for champion images"""
+def get_icon_cache_dir() -> str:
+    """Return (and create) the on-disk champion icon cache directory.
 
-    def __init__(self):
+    We deliberately do NOT rely on QApplication.setApplicationName() +
+    QStandardPaths.CacheLocation here: setting the org/app name also changes
+    where QtWebEngine stores its profile, which would silently reset the
+    user's existing cookies/login state. Nothing else in the app calls
+    setOrganizationName()/setApplicationName(), so we build the path
+    explicitly instead.
+
+    LOL_VIEWER_ICON_CACHE_DIR is an override in the same spirit as the
+    existing LOL_VIEWER_DISABLE_* env vars, and lets tests redirect the cache
+    to a throwaway directory instead of the real user profile.
+    """
+    override = os.environ.get("LOL_VIEWER_ICON_CACHE_DIR")
+    if override:
+        directory = override
+    else:
+        base = os.environ.get("LOCALAPPDATA") or QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.GenericCacheLocation
+        ) or tempfile.gettempdir()
+        directory = os.path.join(base, "LoLViewer", "cache", "champion_icons")
+    os.makedirs(directory, exist_ok=True)
+    return directory
+
+
+class ChampionImageCache:
+    """Cache for champion images.
+
+    Images are kept in an in-memory dict for the lifetime of the process, and
+    also persisted to disk so a fresh process doesn't have to re-download
+    every champion icon it has already fetched once. The image_url baked into
+    champions.json includes the Data Dragon patch number, so cache entries
+    naturally expire (and get swept up by prune_icon_cache()) whenever the
+    app updates.
+    """
+
+    def __init__(self, cache_dir: Optional[str] = None):
         self.cache: Dict[str, QPixmap] = {}
         self.network_manager = QNetworkAccessManager()
         self.pending_requests: Dict[str, List] = {}
+        # Test callers pass an explicit cache_dir (e.g. tmp_path); production
+        # code falls back to the shared per-user cache directory.
+        self.cache_dir = cache_dir or get_icon_cache_dir()
+        os.makedirs(self.cache_dir, exist_ok=True)
 
     def get_image(self, url: str, callback=None) -> Optional[QPixmap]:
         """
@@ -146,6 +190,16 @@ class ChampionImageCache:
         if url in self.cache:
             return self.cache[url]
 
+        # Synchronous disk hit: this is the key trick that lets every
+        # existing call site (which already does "use the return value if
+        # any, otherwise wait for the callback") work unchanged. From the
+        # second run onward this means no async download/callback happens at
+        # all for already-cached icons.
+        pixmap = self._load_from_disk(url)
+        if pixmap is not None:
+            self.cache[url] = pixmap
+            return pixmap
+
         # If not in cache and callback provided, download it
         if callback:
             if url not in self.pending_requests:
@@ -156,6 +210,54 @@ class ChampionImageCache:
 
         return None
 
+    def _path_for_url(self, url: str) -> str:
+        """Map an image URL to its on-disk cache file path."""
+        key = hashlib.sha256(url.encode("utf-8")).hexdigest()
+        return os.path.join(self.cache_dir, f"{key}.png")
+
+    def _load_from_disk(self, url: str) -> Optional[QPixmap]:
+        """Return a QPixmap for `url` from the on-disk cache, or None on a miss.
+
+        A corrupt cache file (e.g. left behind by a process killed mid-write)
+        is deleted so the caller falls back to a fresh network download
+        instead of getting stuck with a broken icon forever.
+        """
+        path = self._path_for_url(url)
+        if not os.path.exists(path):
+            return None
+
+        pixmap = QPixmap()
+        if not pixmap.load(path) or pixmap.isNull():
+            log(f"[ChampionImageCache] Corrupt icon cache file, removing: {path}")
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+            return None
+
+        return pixmap
+
+    def _save_to_disk(self, url: str, data: bytes):
+        """Atomically persist raw downloaded image bytes to disk.
+
+        Writes to a ".tmp" file first and renames it into place with
+        os.replace(), so a process killed mid-write never leaves a truncated
+        PNG behind for a later run to trip over. The raw bytes are stored
+        as-is (no re-encoding).
+        """
+        path = self._path_for_url(url)
+        tmp_path = path + ".tmp"
+        try:
+            with open(tmp_path, "wb") as f:
+                f.write(data)
+            os.replace(tmp_path, path)
+        except OSError as e:
+            log(f"[ChampionImageCache] Failed to write icon cache file for {url}: {e}")
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+
     def _download_image(self, url: str):
         """Download image from URL"""
         request = QNetworkRequest(QUrl(url))
@@ -163,23 +265,111 @@ class ChampionImageCache:
         reply.finished.connect(lambda: self._on_image_downloaded(url, reply))
 
     def _on_image_downloaded(self, url: str, reply: QNetworkReply):
-        """Handle image download completion"""
-        if reply.error() == QNetworkReply.NetworkError.NoError:
+        """Handle image download completion.
+
+        NOTE: pending_requests[url] is always cleared in the `finally` block
+        below, not only on success. The original implementation only cleared
+        it after a successful decode, so a network error or a malformed
+        response left the entry in place for the rest of the process:
+        get_image() would never retry that URL again (since
+        "url not in self.pending_requests" was permanently False), and the
+        queued callbacks -- which close over widgets -- would never fire and
+        would never be released, which is a real leak.
+        """
+        try:
+            if reply.error() != QNetworkReply.NetworkError.NoError:
+                log(f"[ChampionImageCache] Download failed for {url}: {reply.errorString()}")
+                return
+
             image_data = reply.readAll()
             image = QImage()
             image.loadFromData(image_data)
 
-            if not image.isNull():
-                pixmap = QPixmap.fromImage(image)
-                self.cache[url] = pixmap
+            if image.isNull():
+                log(f"[ChampionImageCache] Downloaded data could not be decoded as an image: {url}")
+                return
 
-                # Call all pending callbacks
-                if url in self.pending_requests:
-                    for callback in self.pending_requests[url]:
-                        callback(pixmap)
-                    del self.pending_requests[url]
+            pixmap = QPixmap.fromImage(image)
+            self.cache[url] = pixmap
+            self._save_to_disk(url, bytes(image_data))
 
-        reply.deleteLater()
+            # Call all pending callbacks (success only).
+            for callback in self.pending_requests.get(url, []):
+                callback(pixmap)
+        finally:
+            # Always clear the in-flight entry: otherwise one failure wedges this URL for
+            # the whole process lifetime and the queued callbacks are never released.
+            self.pending_requests.pop(url, None)
+            reply.deleteLater()
+
+
+_shared_image_cache: Optional["ChampionImageCache"] = None
+
+
+def get_shared_image_cache() -> "ChampionImageCache":
+    """Return the process-wide champion icon cache.
+
+    Every viewer shares one cache so a given icon is fetched and held in memory once.
+    Created lazily because QNetworkAccessManager needs a live QApplication.
+    """
+    global _shared_image_cache
+    if _shared_image_cache is None:
+        _shared_image_cache = ChampionImageCache()
+    return _shared_image_cache
+
+
+# Files written by ChampionImageCache: "<sha256 hex>.png", plus the ".tmp"
+# staging file _save_to_disk() renames into place.
+_CACHE_FILE_RE = re.compile(r"^[0-9a-f]{64}\.png(\.tmp)?$")
+
+
+def prune_icon_cache(champion_data: ChampionData, cache_dir: Optional[str] = None) -> int:
+    """Delete cached icons no longer referenced by champions.json.
+
+    The image_url for every champion is versioned by Data Dragon patch, so
+    after an app update the entire previous patch's icon set becomes
+    unreachable dead weight (~4MB for all 173 champions). This also sweeps up
+    any stray ".tmp" file left behind by an interrupted write, since those
+    never match a current URL's hash either.
+
+    Only files that look like our own cache entries are ever deleted (see
+    _CACHE_FILE_RE). This runs unconditionally at every startup, so if
+    LOL_VIEWER_ICON_CACHE_DIR is ever pointed at a directory holding anything
+    else, we must not take the user's files down with us.
+
+    Returns:
+        Number of files removed.
+    """
+    directory = cache_dir or get_icon_cache_dir()
+
+    keep = set()
+    for data in champion_data.champions.values():
+        image_url = data.get('image_url', '')
+        if image_url:
+            key = hashlib.sha256(image_url.encode("utf-8")).hexdigest()
+            keep.add(f"{key}.png")
+
+    try:
+        entries = os.listdir(directory)
+    except OSError as e:
+        log(f"[prune_icon_cache] Failed to list {directory}: {e}")
+        return 0
+
+    removed = 0
+    for name in entries:
+        if name in keep or not _CACHE_FILE_RE.match(name):
+            continue
+        path = os.path.join(directory, name)
+        try:
+            os.remove(path)
+            removed += 1
+        except OSError as e:
+            log(f"[prune_icon_cache] Failed to remove {path}: {e}")
+
+    if removed:
+        log(f"[prune_icon_cache] Removed {removed} stale icon cache file(s) from {directory}")
+
+    return removed
 
 
 class ChampionItemDelegate(QStyledItemDelegate):
@@ -266,7 +456,11 @@ class ChampionCompleter(QCompleter):
     def __init__(self, champion_data: ChampionData, parent=None):
         super().__init__(parent)
         self.champion_data = champion_data
-        self.image_cache = ChampionImageCache()
+        # Shared cache: this completer is created per-viewer (setup_champion_input()
+        # is called once per ChampionViewerWidget), and the delegate that would use
+        # it is currently disabled below, but the QNetworkAccessManager it owned
+        # was still being needlessly duplicated (2x per viewer).
+        self.image_cache = get_shared_image_cache()
 
         # Create model and populate with all champions
         self.model_data = QStandardItemModel()

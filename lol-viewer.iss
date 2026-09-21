@@ -64,3 +64,5 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
+; Champion icon disk cache (QSettings/registry is intentionally left behind).
+Type: filesandordirs; Name: "{localappdata}\LoLViewer\cache"
