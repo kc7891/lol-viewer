@@ -3,11 +3,12 @@
 # Security alerts from the GitHub Advisory Database are raised independently of
 # this file; it controls the scheduled *version* update PRs.
 #
-# The requirements*.txt files are compiled, hash-pinned output; requirements*.in
-# hold the direct dependencies. Dependabot recognises the .in -> .txt pair and
-# will usually regenerate the compiled file itself, but our locks are produced by
-# `uv pip compile --universal`, which Dependabot does not run. Always verify a
-# Dependabot PR's lock and recompile it locally if needed -- see CONTRIBUTING.md.
+# Direct dependencies are declared as PEP 735 dependency groups in
+# pyproject.toml. The requirements*.txt files are the compiled, hash-pinned
+# output. Dependabot supports [dependency-groups] (dependabot-core#10847), but
+# our locks are produced by `uv pip compile --universal`, which Dependabot does
+# not run -- so always verify a Dependabot PR's lock and recompile it locally
+# if needed. See CONTRIBUTING.md ("依存関係の更新").
 version: 2
 
 updates:
@@ -26,8 +27,16 @@ updates:
         patterns:
           - "PyQt6"
           - "PyQt6-*"
-      dev-dependencies:
-        dependency-type: "development"
+      # Matched by name rather than by `dependency-type: development`: without a
+      # [project] table there is no production/development split for Dependabot
+      # to key off, so an explicit pattern list keeps the grouping predictable.
+      tooling:
+        patterns:
+          - "pytest"
+          - "pytest-*"
+          - "pyinstaller"
+          - "beautifulsoup4"
+          - "pip-audit"
 
   - package-ecosystem: "github-actions"
     directory: "/"
