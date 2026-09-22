@@ -287,16 +287,41 @@ pip-audit --disable-pip -r requirements.txt -r requirements-ci.txt
 pytest
 ```
 
-### Dependabot からの PR
+### 更新 PR の自動化（誰が何を担当するか）
 
-Dependabot は毎週月曜に `pip` と `github-actions` の更新 PR を出します
-（設定は `.github/dependabot.yml`）。
+更新の種類によって担当が分かれています。
 
-Dependabot は `pyproject.toml` を書き換えますが、ロックは `uv pip compile --universal` で
-作られているため、**再生成されたロックが正しいとは限りません**。
-Dependabot の PR は必ずロックを確認し、必要なら上記の手順でローカルで
-再生成してコミットを追加してください。`python-tests.yml` の `audit` ジョブと
-`--require-hashes` インストールが、ずれたロックを検出する安全網になります。
+| 種類 | 担当 | 出てくる PR の中身 |
+|---|---|---|
+| ルーチンのバージョン更新 | `lock-refresh.yml`（週次・月曜） | `requirements*.txt` の差分のみ |
+| 脆弱性由来の更新 | Dependabot（security update） | `pyproject.toml` の `>=` 下限 |
+| GitHub Actions の更新 | Dependabot（`github-actions`） | ワークフローの SHA ピン |
+
+この分担になっているのは、**Dependabot がロックを再生成できない**からです。
+Dependabot は `pyproject.toml` を書き換えますが、ロックは
+`uv pip compile --universal` で作られており Dependabot はこれを実行しません。
+つまり Dependabot が `>=` 下限を上げても、CI とリリースビルドがインストールするのは
+ロックなので、**実際に入るバージョンは1つも変わりません**。
+
+そこで `.github/workflows/lock-refresh.yml` が週次でロックを再生成し、
+差分があれば `automated/refresh-locks` ブランチで PR を出します。
+**これをマージして初めてバージョンが実際に上がります。**
+Dependabot 側は pip の version update を止めてあります
+（`open-pull-requests-limit: 0`）。同じ依存に2つの PR が出て競合するのを避けるためで、
+security update はこの設定の影響を受けないため脆弱性由来の PR は従来どおり届きます。
+
+Dependabot の security update PR をマージしたら、`>=` 下限が上がっただけなので
+`lock-refresh.yml` を `workflow_dispatch` で手動実行するか、次の週次実行を待ってください。
+
+#### lock-refresh の PR では checks が自動で走りません
+
+`GITHUB_TOKEN` で作成された PR は後続のワークフローを起動しません
+（`update-champions.yml` の PR と同じ制約）。テストを走らせたい場合は、
+その PR を一度 close → reopen してください。
+
+なお、ずれたロックに対する安全網は別途効いています。`--require-hashes` での
+インストールはハッシュが合わなければ失敗し、`python-tests.yml` の `audit` ジョブが
+週次で脆弱性を検査します。
 
 ### GitHub Actions のピン留め
 

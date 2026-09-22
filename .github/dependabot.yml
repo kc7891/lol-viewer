@@ -5,10 +5,15 @@
 #
 # Direct dependencies are declared as PEP 735 dependency groups in
 # pyproject.toml. The requirements*.txt files are the compiled, hash-pinned
-# output. Dependabot supports [dependency-groups] (dependabot-core#10847), but
-# our locks are produced by `uv pip compile --universal`, which Dependabot does
-# not run -- so always verify a Dependabot PR's lock and recompile it locally
-# if needed. See CONTRIBUTING.md ("依存関係の更新").
+# output, and they are what CI and the release build actually install.
+#
+# Dependabot updates pyproject.toml but cannot reproduce
+# `uv pip compile --universal`, so a Dependabot version bump would change a
+# `>=` floor without changing a single installed version. Routine version
+# movement is therefore owned by .github/workflows/lock-refresh.yml, which
+# recompiles the locks weekly and opens its own PR.
+#
+# See CONTRIBUTING.md ("依存関係の更新").
 version: 2
 
 updates:
@@ -17,7 +22,11 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 5
+    # 0 disables *version* update PRs -- lock-refresh.yml handles those, and
+    # running both would produce two competing PRs for the same upgrade.
+    # Security update PRs are explicitly not subject to this limit, so
+    # vulnerability-driven bumps still come through.
+    open-pull-requests-limit: 0
     commit-message:
       prefix: "chore(deps)"
     groups:
