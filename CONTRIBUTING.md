@@ -33,8 +33,13 @@ setup-hooks.bat
 3. 依存関係をインストール
 
 ```bash
-pip install -r requirements.txt
+# 開発・テスト・ビルドに必要なもの一式（ハッシュ検証付き）
+pip install -r requirements-dev.txt
 ```
+
+`requirements*.txt` はハッシュ固定済みのコンパイル済みファイルです。ハッシュが
+含まれているため、pip は `--require-hashes` を明示しなくても全パッケージの
+ハッシュを検証します。
 
 4. アプリケーションを実行
 
@@ -91,7 +96,12 @@ pyinstaller --onefile --windowed --name lol-viewer main.py
 ```
 lol-viewer/
 ├── main.py                    # メインアプリケーション
-├── requirements.txt           # Python依存関係
+├── requirements.in            # 実行時の直接依存（編集するのはこちら）
+├── requirements-dev.in        # テスト・ビルド用の直接依存
+├── requirements-ci.in         # 軽量CIジョブ用（PyQt6を含まない）
+├── requirements.txt           # ↑から生成されたハッシュ固定ロック
+├── requirements-dev.txt       # 同上
+├── requirements-ci.txt        # 同上
 ├── .github/
 │   └── workflows/
 │       └── windows-build.yml  # GitHub Actions設定
@@ -222,3 +232,55 @@ PRが`main`にマージされると：
 ## ライセンス
 
 このプロジェクトに貢献することで、あなたの貢献がプロジェクトのライセンスの下で公開されることに同意するものとします。
+
+## 依存関係の更新
+
+依存関係は `requirements*.in`（直接依存のみ）と、そこから生成される
+`requirements*.txt`（推移的依存まで含むハッシュ固定ロック）の2層構成です。
+CI とリリースビルドは必ずロック側をインストールするため、ビルドは再現可能で、
+上流パッケージが差し替わっても勝手に取り込まれません。
+
+### 手動で更新する場合
+
+1. `requirements.in` / `requirements-dev.in` / `requirements-ci.in` を編集する
+2. ロックを再生成する（`uv` が必要: `pip install uv`）
+
+```bash
+uv pip compile --universal --generate-hashes --python-version 3.11 \
+    requirements.in -o requirements.txt
+uv pip compile --universal --generate-hashes --python-version 3.11 \
+    requirements-dev.in -o requirements-dev.txt
+uv pip compile --universal --generate-hashes --python-version 3.11 \
+    requirements-ci.in -o requirements-ci.txt
+```
+
+`--universal` は必須です。テストは Linux、リリースビルドは Windows で走るため、
+ロックは両方のプラットフォームで解決できる必要があります（`pip-compile` は
+実行したプラットフォーム専用のロックしか作れないので使いません）。
+
+3. 脆弱性を確認してテストを流す
+
+```bash
+pip install --require-hashes -r requirements-ci.txt
+pip-audit --disable-pip -r requirements.txt -r requirements-dev.txt -r requirements-ci.txt
+pytest
+```
+
+### Dependabot からの PR
+
+Dependabot は毎週月曜に `pip` と `github-actions` の更新 PR を出します
+（設定は `.github/dependabot.yml`）。
+
+Dependabot は `.in` を書き換えますが、ロックは `uv pip compile --universal` で
+作られているため、**再生成されたロックが正しいとは限りません**。
+Dependabot の PR は必ずロックを確認し、必要なら上記の手順でローカルで
+再生成してコミットを追加してください。`python-tests.yml` の `audit` ジョブと
+`--require-hashes` インストールが、ずれたロックを検出する安全網になります。
+
+### GitHub Actions のピン留め
+
+ワークフロー内の action はすべてコミット SHA で固定し、行末に
+`# vX.Y.Z` のコメントを添えています。タグは動かせるため、SHA 固定でないと
+リリースワークフロー（releases への書き込み権限を持つ）が
+サードパーティ製 action の差し替えに晒されます。更新は Dependabot の
+`github-actions` エコシステムが SHA ごと追従します。

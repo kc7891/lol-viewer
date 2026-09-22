@@ -3,9 +3,11 @@
 LCU Champion Detector - Detects current champion from League Client
 """
 import base64
+import contextlib
 import logging
 import re
 import time
+import warnings
 from typing import Optional, Dict, Callable
 import requests
 import urllib3
@@ -21,8 +23,21 @@ except ImportError:
         print(msg)
 
 
-# Disable SSL warnings for self-signed certificates
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+@contextlib.contextmanager
+def _allow_self_signed_cert():
+    """Suppress InsecureRequestWarning for a single LCU request.
+
+    The League Client exposes its API over HTTPS on 127.0.0.1 using a Riot
+    self-signed certificate, so `verify=False` is unavoidable there. Scope the
+    suppression to that one call instead of calling
+    urllib3.disable_warnings() at import time, which would silence TLS warnings
+    process-wide -- including for the genuinely remote HTTPS requests made
+    further down this module and in updater.py / champion_data.py.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
+        yield
+
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +133,9 @@ class LCUConnectionManager:
         try:
             url = f"https://127.0.0.1:{self.port}{endpoint}"
             headers = {'Authorization': self.get_auth_header()}
-            response = requests.get(url, headers=headers, verify=False, timeout=2)
+            # verify=False: LCU uses a self-signed cert on localhost only.
+            with _allow_self_signed_cert():
+                response = requests.get(url, headers=headers, verify=False, timeout=2)
 
             if response.status_code == 200:
                 return response.json()

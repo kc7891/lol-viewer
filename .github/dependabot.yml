@@ -1,0 +1,42 @@
+# Automated dependency update PRs.
+#
+# Security alerts from the GitHub Advisory Database are raised independently of
+# this file; it controls the scheduled *version* update PRs.
+#
+# The requirements*.txt files are compiled, hash-pinned output; requirements*.in
+# hold the direct dependencies. Dependabot recognises the .in -> .txt pair and
+# will usually regenerate the compiled file itself, but our locks are produced by
+# `uv pip compile --universal`, which Dependabot does not run. Always verify a
+# Dependabot PR's lock and recompile it locally if needed -- see CONTRIBUTING.md.
+version: 2
+
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # PyQt6 and PyQt6-WebEngine must move together: a mismatched pair fails
+      # to import QtWebEngineWidgets at runtime.
+      pyqt:
+        patterns:
+          - "PyQt6"
+          - "PyQt6-*"
+      dev-dependencies:
+        dependency-type: "development"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(actions)"
+    groups:
+      actions:
+        patterns:
+          - "*"

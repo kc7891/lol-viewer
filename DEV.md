@@ -40,8 +40,12 @@ The log file (`lol_viewer_debug.log`) records:
 ### Required Packages
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
+
+`requirements*.txt` are compiled, hash-pinned lock files generated from the
+`requirements*.in` inputs. See "依存関係の更新" in CONTRIBUTING.md before
+changing a dependency.
 
 ### Updating Champion Data
 

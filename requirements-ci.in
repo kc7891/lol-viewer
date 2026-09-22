@@ -1,0 +1,18 @@
+# Lightweight CI dependencies -- deliberately free of PyQt6 so the jobs that
+# only need a couple of pure-Python packages stay fast. Used by:
+#   - update-champions.yml          (inline script; needs requests)
+#   - release.yml version-bump job  (needs packaging)
+#   - python-tests.yml audit job    (needs pip-audit)
+#
+# This is also the file to install if you want to audit locally:
+#   pip install --require-hashes -r requirements-ci.txt
+#   pip-audit --disable-pip -r requirements.txt -r requirements-dev.txt -r requirements-ci.txt
+#
+# Regenerate the lock after editing this file:
+#
+#   uv pip compile --universal --generate-hashes --python-version 3.11 \
+#       requirements-ci.in -o requirements-ci.txt
+
+requests>=2.33.0
+packaging>=26.0
+pip-audit>=2.9.0
