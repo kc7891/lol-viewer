@@ -1,0 +1,51 @@
+# Automated dependency update PRs.
+#
+# Security alerts from the GitHub Advisory Database are raised independently of
+# this file; it controls the scheduled *version* update PRs.
+#
+# Direct dependencies are declared as PEP 735 dependency groups in
+# pyproject.toml. The requirements*.txt files are the compiled, hash-pinned
+# output. Dependabot supports [dependency-groups] (dependabot-core#10847), but
+# our locks are produced by `uv pip compile --universal`, which Dependabot does
+# not run -- so always verify a Dependabot PR's lock and recompile it locally
+# if needed. See CONTRIBUTING.md ("依存関係の更新").
+version: 2
+
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # PyQt6 and PyQt6-WebEngine must move together: a mismatched pair fails
+      # to import QtWebEngineWidgets at runtime.
+      pyqt:
+        patterns:
+          - "PyQt6"
+          - "PyQt6-*"
+      # Matched by name rather than by `dependency-type: development`: without a
+      # [project] table there is no production/development split for Dependabot
+      # to key off, so an explicit pattern list keeps the grouping predictable.
+      tooling:
+        patterns:
+          - "pytest"
+          - "pytest-*"
+          - "pyinstaller"
+          - "beautifulsoup4"
+          - "pip-audit"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(actions)"
+    groups:
+      actions:
+        patterns:
+          - "*"

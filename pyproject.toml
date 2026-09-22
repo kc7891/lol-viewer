@@ -1,0 +1,88 @@
+# Dependency declarations for lol-viewer.
+#
+# This project is a PyInstaller-packaged desktop application, not a
+# distributable package, so there is deliberately no [project] table: the
+# version lives in constants.py (__version__) and is rewritten by
+# .github/workflows/release.yml, and a [project].version here would be a second
+# source of truth that the release workflow does not update.
+#
+# Dependencies are therefore declared entirely as PEP 735 dependency groups,
+# which the spec explicitly allows for projects that are not packages.
+#
+# Pinned, hash-verified versions -- including transitive dependencies -- live in
+# the generated requirements*.txt lock files, which is what CI and the release
+# build install. Regenerate them after editing a group here:
+#
+#   uv pip compile --universal --generate-hashes --python-version 3.11 --group dev -o requirements.txt
+#   uv pip compile --universal --generate-hashes --python-version 3.11 --group ci  -o requirements-ci.txt
+#
+# The `runtime` group gets no lock of its own: nothing installs runtime-only, and
+# the dev lock already contains every runtime pin at identical versions/hashes.
+#
+# See CONTRIBUTING.md ("依存関係の更新"). Lower bounds below are security
+# floors, not preferences.
+
+[dependency-groups]
+
+# Runtime dependencies -- everything the application itself imports.
+#
+# IMPORTANT: this group is compiled only as part of `dev` (below), so pip-audit
+# covers it transitively through requirements.txt. Do not remove the
+# `{ include-group = "runtime" }` line from `dev` -- these packages would drop
+# out of the audit silently.
+runtime = [
+    # GUI toolkit. PyQt6-WebEngine bundles Chromium and renders remote content
+    # in QWebEngineView (main_window.py:41, widgets/viewer_widget.py:33),
+    # making it the largest attack surface here -- keep it current.
+    "PyQt6>=6.11.0",
+    "PyQt6-WebEngine>=6.11.0",
+
+    # HTTP. urllib3 >=2.7.0 fixes GHSA-qccp-gfcp-xxvc (auth headers forwarded
+    # across origins on proxied redirects), which applies directly to the LCU
+    # requests in lcu_detector.py. requests >=2.33.0 fixes GHSA-gc5v-m9x4-r6x2.
+    "requests>=2.33.0",
+    "urllib3>=2.7.0",
+
+    # League Client process discovery (lcu_detector.py).
+    "psutil>=7.2.2",
+
+    # Version comparison for the self-updater (updater.py).
+    "packaging>=26.0",
+
+    # QR code rendering (widgets/webview_utils.py).
+    "segno>=1.6.6",
+]
+
+# Development, test and build dependencies.
+dev = [
+    { include-group = "runtime" },
+
+    # Test suite. pytest >=9.0.3 fixes GHSA-6w46-j5rx-g56g (tmpdir handling).
+    "pytest>=9.0.3",
+    "pytest-qt>=4.5.0",
+
+    # Windows binary packaging (lol-viewer.spec).
+    "pyinstaller>=6.22.3",
+
+    # HTML parsing for scripts/fetch_champions.py (CI tooling, not shipped).
+    "beautifulsoup4>=4.15.0",
+]
+
+# Lightweight CI dependencies -- deliberately does NOT include the runtime
+# group, so the jobs that only need a couple of pure-Python packages stay fast.
+# Used by:
+#   - update-champions.yml          (inline script; needs requests)
+#   - release.yml version-bump job  (needs packaging)
+#   - python-tests.yml audit job    (needs pip-audit)
+#
+# This is also the group to install if you want to audit locally:
+#   pip install --require-hashes -r requirements-ci.txt
+#   pip-audit --disable-pip -r requirements.txt -r requirements-ci.txt
+ci = [
+    "requests>=2.33.0",
+    "packaging>=26.0",
+    "pip-audit>=2.9.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

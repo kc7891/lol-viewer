@@ -33,8 +33,13 @@ setup-hooks.bat
 3. 依存関係をインストール
 
 ```bash
+# 開発・テスト・ビルドに必要なもの一式（ハッシュ検証付き）
 pip install -r requirements.txt
 ```
+
+`requirements*.txt` はハッシュ固定済みのコンパイル済みファイルです。ハッシュが
+含まれているため、pip は `--require-hashes` を明示しなくても全パッケージの
+ハッシュを検証します。
 
 4. アプリケーションを実行
 
@@ -91,7 +96,9 @@ pyinstaller --onefile --windowed --name lol-viewer main.py
 ```
 lol-viewer/
 ├── main.py                    # メインアプリケーション
-├── requirements.txt           # Python依存関係
+├── pyproject.toml             # 直接依存（編集するのはこちら）+ pytest設定
+├── requirements.txt       # ↑から生成されたハッシュ固定ロック
+├── requirements-ci.txt        # 同上
 ├── .github/
 │   └── workflows/
 │       └── windows-build.yml  # GitHub Actions設定
@@ -222,3 +229,79 @@ PRが`main`にマージされると：
 ## ライセンス
 
 このプロジェクトに貢献することで、あなたの貢献がプロジェクトのライセンスの下で公開されることに同意するものとします。
+
+## 依存関係の更新
+
+依存関係は `pyproject.toml` の PEP 735 `[dependency-groups]`（直接依存のみ）と、
+そこから生成される `requirements*.txt`（推移的依存まで含むハッシュ固定ロック）の
+2層構成です。グループは3つあります。
+
+| グループ | 生成先 | 用途 |
+|---|---|---|
+| `runtime` | （単独のロックなし） | アプリが import する実行時依存。宣言のみで、`dev` に含まれる形でロックされる |
+| `dev` | **`requirements.txt`** | `runtime` + テスト・ビルド。開発一式なので、慣例どおり `requirements.txt` が生成先 |
+| `ci` | `requirements-ci.txt` | 軽量CIジョブ用。**`runtime` を含まない**（PyQt6が入らない） |
+
+グループ名と生成先が一対一に対応していないのは意図的です。`dev` は PEP 735 の
+慣例名でツールが特別扱いするため（`pip install --group dev` など）グループ名は
+そのままにし、生成先は pip の慣例名である `requirements.txt` にしています。
+`requirements.txt` の意味は従来どおり「このプロジェクトを触るのに必要なもの一式」です。
+
+`runtime` 単独のロックは作りません。実行時依存のみをインストールする箇所が
+どこにもなく、`dev` のロックが runtime の全ピンを同一バージョン・同一ハッシュで
+含んでいるためです。したがって **`dev` から `{ include-group = "runtime" }` を
+外すと、実行時依存が pip-audit の対象から静かに漏れます。**
+
+このプロジェクトは配布パッケージではないため `[project]` テーブルは
+意図的に作っていません。バージョンは `constants.py` の `__version__` が唯一の正で、
+`release.yml` がそれを書き換えます。`[project].version` を作ると
+リリースワークフローが更新しない第二の出所になってしまいます。
+CI とリリースビルドは必ずロック側をインストールするため、ビルドは再現可能で、
+上流パッケージが差し替わっても勝手に取り込まれません。
+
+### 手動で更新する場合
+
+1. `pyproject.toml` の該当するグループを編集する
+2. ロックを再生成する（`uv` が必要: `pip install uv`）
+
+```bash
+uv pip compile --universal --generate-hashes --python-version 3.11 \
+    --group dev -o requirements.txt
+uv pip compile --universal --generate-hashes --python-version 3.11 \
+    --group ci -o requirements-ci.txt
+
+`--group` は入力ファイルの *代わり* に指定します（`uv pip compile` の usage は
+`<SRC_FILE|--group <GROUP>>`）。`pyproject.toml` を引数に渡すと `[project]` の
+依存も混ざるため、渡してはいけません。
+```
+
+`--universal` は必須です。テストは Linux、リリースビルドは Windows で走るため、
+ロックは両方のプラットフォームで解決できる必要があります（`pip-compile` は
+実行したプラットフォーム専用のロックしか作れないので使いません）。
+
+3. 脆弱性を確認してテストを流す
+
+```bash
+pip install --require-hashes -r requirements-ci.txt
+pip-audit --disable-pip -r requirements.txt -r requirements-ci.txt
+pytest
+```
+
+### Dependabot からの PR
+
+Dependabot は毎週月曜に `pip` と `github-actions` の更新 PR を出します
+（設定は `.github/dependabot.yml`）。
+
+Dependabot は `pyproject.toml` を書き換えますが、ロックは `uv pip compile --universal` で
+作られているため、**再生成されたロックが正しいとは限りません**。
+Dependabot の PR は必ずロックを確認し、必要なら上記の手順でローカルで
+再生成してコミットを追加してください。`python-tests.yml` の `audit` ジョブと
+`--require-hashes` インストールが、ずれたロックを検出する安全網になります。
+
+### GitHub Actions のピン留め
+
+ワークフロー内の action はすべてコミット SHA で固定し、行末に
+`# vX.Y.Z` のコメントを添えています。タグは動かせるため、SHA 固定でないと
+リリースワークフロー（releases への書き込み権限を持つ）が
+サードパーティ製 action の差し替えに晒されます。更新は Dependabot の
+`github-actions` エコシステムが SHA ごと追従します。

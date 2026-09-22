@@ -43,6 +43,10 @@ The log file (`lol_viewer_debug.log`) records:
 pip install -r requirements.txt
 ```
 
+`requirements*.txt` are compiled, hash-pinned lock files generated from the
+PEP 735 `[dependency-groups]` in `pyproject.toml`. See "依存関係の更新" in
+CONTRIBUTING.md before changing a dependency.
+
 ### Updating Champion Data
 
 ```bash
