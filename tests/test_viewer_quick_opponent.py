@@ -119,6 +119,61 @@ class TestGetMatchupEnemyChampionIds:
         widget.refresh_opponent_quick_picks()  # Should not raise.
 
 
+class _StaleChampionDetector:
+    """Stub whose stale champion names must NOT leak into opponent suggestions.
+
+    Regression guard for the bug where `_get_opponent_suggestion_ids()` sourced
+    candidates from `ChampionDetector.detected_enemy_champions`, an append-only set
+    that `MainWindow._refresh_matchup_list()` never clears -- so pressing Refresh on
+    CURRENT MATCHUP did not clear stale champions out of the opponent selector.
+    """
+
+    def get_detected_enemy_champion_names(self):
+        return ["Yasuo"]
+
+
+class TestGetOpponentSuggestionIds:
+    """Pure-logic tests for _get_opponent_suggestion_ids() (no Qt widgets built)."""
+
+    def test_sources_solely_from_matchup_data(self):
+        """CURRENT MATCHUP enemies -> Ahri + Zed are suggested."""
+        matchup_data = [("", "Ahri"), ("", "Zed")]
+        widget = _make_bare_widget(_DummyMainWindow(matchup_data))
+        assert widget._get_opponent_suggestion_ids() == {"ahri", "zed"}
+
+    def test_stale_detector_names_do_not_leak_in(self):
+        """A champion_detector stub with stale names must not contribute (regression)."""
+        matchup_data = [("", "Ahri"), ("", "Zed")]
+        main_window = _DummyMainWindow(matchup_data)
+        main_window.champion_detector = _StaleChampionDetector()
+        widget = _make_bare_widget(main_window)
+
+        ids = widget._get_opponent_suggestion_ids()
+
+        assert "yasuo" not in ids
+        assert ids == {"ahri", "zed"}
+
+    def test_refresh_just_pressed_falls_through_to_other_tabs_fallback(self):
+        """Blank CURRENT MATCHUP rows (state right after Refresh) must not resurrect
+        stale detector champions; the method falls through to the other-tabs fallback.
+        """
+        matchup_data = [("", "")] * 5
+        main_window = _DummyMainWindow(matchup_data)
+        main_window.champion_detector = _StaleChampionDetector()
+        widget = _make_bare_widget(main_window)
+        widget._get_open_champion_suggestions = lambda: []
+
+        assert widget._get_opponent_suggestion_ids() == set()
+
+    def test_shrinking_matchup_removes_departed_enemy(self):
+        """Ahri+Zed shrinking to just Ahri -> the suggestion set shrinks with it."""
+        widget = _make_bare_widget(_DummyMainWindow([("", "Ahri"), ("", "Zed")]))
+        assert widget._get_opponent_suggestion_ids() == {"ahri", "zed"}
+
+        widget.main_window._matchup_data = [("", "Ahri")]
+        assert widget._get_opponent_suggestion_ids() == {"ahri"}
+
+
 def _header_widgets(viewer):
     """Return the list of widgets (skipping the None entries left by addStretch())."""
     layout = viewer._header_widget.layout()

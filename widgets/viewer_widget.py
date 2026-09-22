@@ -453,29 +453,15 @@ class ChampionViewerWidget(QWidget):
                     _safe_set_icon(item, cached)
             self._champion_list_widget.addItem(item)
 
-    def _get_enemy_picked_champion_ids(self) -> set:
-        """Return set of champion IDs (lowercase) picked by the enemy team."""
-        if not self.main_window or not hasattr(self.main_window, "champion_detector"):
-            return set()
-        names = self.main_window.champion_detector.get_detected_enemy_champion_names()
-        return {n.lower() for n in names}
-
     def _get_opponent_suggestion_ids(self) -> set:
         """Return champion IDs (lowercase) to suggest in the opponent selector.
 
-        Sources (in priority order):
-        1. Enemy-picked champions from the detector.
-        2. Enemies from the matchup-list data.
-        3. Fallback: champion names currently shown in other viewer tabs.
+        Source: the enemy column of CURRENT MATCHUP (`MainWindow._matchup_data`) —
+        the same single source the quick-pick buttons use, so the Refresh button
+        clears both at once.
+        Fallback: champion names currently shown in other viewer tabs.
         """
-        ids = self._get_enemy_picked_champion_ids()
-
-        # Also include enemies from matchup data
-        if self.main_window and hasattr(self.main_window, "_matchup_data"):
-            for _ally, enemy in self.main_window._matchup_data:
-                if enemy:
-                    ids.add(enemy.lower())
-
+        ids = set(self._get_matchup_enemy_champion_ids())
         if ids:
             return ids
 
