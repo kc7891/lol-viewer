@@ -41,3 +41,9 @@ package/
 *.log
 logs/
 .claude/settings.local.json
+
+# Release artifacts (never commit build output)
+release/
+*.zip
+*.zip.part*
+*.part[a-z][a-z]
