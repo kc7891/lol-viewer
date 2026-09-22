@@ -1,0 +1,103 @@
+name: Refresh Dependency Locks
+
+# Recompiles requirements.txt / requirements-ci.txt from the dependency groups
+# in pyproject.toml and opens a PR when anything actually moved.
+#
+# Why this exists: Dependabot updates the `>=` floors in pyproject.toml, but CI
+# and the release build install from the hash-pinned lock files. Bumping a floor
+# therefore changes nothing on its own -- this workflow is what makes an upgrade
+# real. See CONTRIBUTING.md ("依存関係の更新").
+
+on:
+  schedule:
+    # Mondays, after Dependabot's weekly window, so any floor it raised is
+    # picked up in the same run.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      # uv comes from the hash-pinned ci lock, so the tool that produces our
+      # locks is itself pinned rather than pulled unverified at run time.
+      - name: Install uv
+        run: pip install --require-hashes -r requirements-ci.txt
+
+      - name: Recompile locks
+        run: |
+          uv pip compile --universal --generate-hashes --python-version 3.11 \
+            --group dev -o requirements.txt
+          uv pip compile --universal --generate-hashes --python-version 3.11 \
+            --group ci -o requirements-ci.txt
+
+      - name: Summarise version changes
+        id: changes
+        run: |
+          # Compare only the pinned "name==version" lines; header comments and
+          # provenance lines are noise here.
+          CHANGES=$(git diff -U0 -- requirements.txt requirements-ci.txt \
+            | grep -E '^[+-][a-zA-Z0-9_.-]+==' \
+            | grep -vE '^(\+\+\+|---)' \
+            | sed 's/[[:space:]]*[\]$//' \
+            | sort -u || true)
+
+          if [ -z "$CHANGES" ]; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No version changes."
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "Version changes:"
+            echo "$CHANGES"
+            {
+              echo 'body<<LOCKDIFF'
+              echo '```diff'
+              echo "$CHANGES"
+              echo '```'
+              echo LOCKDIFF
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          commit-message: |
+            chore(deps): refresh dependency locks
+
+            Recompiled from the pyproject.toml dependency groups with
+            uv pip compile --universal --generate-hashes.
+          branch: automated/refresh-locks
+          delete-branch: true
+          title: "chore(deps): refresh dependency locks"
+          body: |
+            ## 🔒 ロックファイルの自動再生成
+
+            `pyproject.toml` の `[dependency-groups]` から
+            `uv pip compile --universal --generate-hashes` で再生成しました。
+            **実際にインストールされるバージョンが変わります。**
+
+            ### バージョン差分
+            ${{ steps.changes.outputs.body }}
+
+            ### マージ前の確認
+            このPRは `GITHUB_TOKEN` で作成されているため checks が自動起動しません
+            （`update-champions.yml` と同じ制約）。テストを走らせたい場合は、
+            このPRを一度 close → reopen してください。
+
+            変更は `requirements.txt` と `requirements-ci.txt` のみです。
+            直接依存の宣言 (`pyproject.toml`) は変更していません。

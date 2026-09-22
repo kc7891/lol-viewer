@@ -74,6 +74,7 @@ dev = [
 #   - update-champions.yml          (inline script; needs requests)
 #   - release.yml version-bump job  (needs packaging)
 #   - python-tests.yml audit job    (needs pip-audit)
+#   - lock-refresh.yml              (needs uv to recompile the locks)
 #
 # This is also the group to install if you want to audit locally:
 #   pip install --require-hashes -r requirements-ci.txt
@@ -82,6 +83,11 @@ ci = [
     "requests>=2.33.0",
     "packaging>=26.0",
     "pip-audit>=2.9.0",
+
+    # Used by .github/workflows/lock-refresh.yml to regenerate the locks. It
+    # lives here rather than being `pip install`ed in the workflow so that the
+    # tool producing our hash-pinned locks is itself hash-pinned.
+    "uv>=0.12.0",
 ]
 
 [tool.pytest.ini_options]
