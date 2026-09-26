@@ -15,7 +15,8 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QMessageBox,
     QScrollArea, QSplitter, QListWidget, QListWidgetItem, QLabel,
-    QTabWidget, QStackedWidget, QComboBox, QCheckBox, QButtonGroup, QFrame
+    QTabWidget, QStackedWidget, QComboBox, QCheckBox, QButtonGroup, QFrame,
+    QMenu
 )
 
 from constants import (
@@ -1123,7 +1124,7 @@ class MainWindow(QMainWindow):
         live_game_layout.addWidget(live_game_label)
         live_game_layout.addStretch()
 
-        self.sidebar.addTab(live_game_widget, "Live Game")
+        self.live_game_tab_index = self.sidebar.addTab(live_game_widget, "Live Game")
 
         # Viewers tab
         viewers_widget = QWidget()
@@ -1251,6 +1252,11 @@ class MainWindow(QMainWindow):
 
         # Connect tab change signal to update main content
         self.sidebar.currentChanged.connect(self.on_sidebar_tab_changed)
+
+        # Right-click on the Live Game tab to refresh the page (#refresh-live-game-tab)
+        tab_bar = self.sidebar.tabBar()
+        tab_bar.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        tab_bar.customContextMenuRequested.connect(self._show_sidebar_tab_context_menu)
 
     # Lane order used when opening viewer from matchup list (#68)
     MATCHUP_LANE_ORDER = ["top", "jungle", "middle", "bottom", "support"]
@@ -1739,6 +1745,46 @@ class MainWindow(QMainWindow):
         # When settings tab is selected (index 2), check for updates
         if self.settings_tab_index is not None and index == self.settings_tab_index:
             QTimer.singleShot(100, self.check_latest_version)
+
+    def _create_sidebar_tab_menu(self, index: int) -> Optional[QMenu]:
+        """Build the right-click menu for a sidebar tab (Live Game only)."""
+        if index != getattr(self, "live_game_tab_index", None):
+            return None
+        sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
+        menu = QMenu(self.sidebar)
+        menu.setStyleSheet(f"""
+            QMenu {{
+                background-color: #141b24;
+                color: #c1c9d4;
+                border: 1px solid #222a35;
+                font-size: {sz['font_sidebar_item']};
+            }}
+            QMenu::item {{
+                padding: 6px 16px;
+            }}
+            QMenu::item:selected {{
+                background-color: #00d6a1;
+                color: #0d1117;
+            }}
+        """)
+        refresh_action = menu.addAction("Refresh")
+        refresh_action.triggered.connect(self.refresh_live_game_page)
+        return menu
+
+    def _show_sidebar_tab_context_menu(self, pos):
+        """Show the sidebar tab context menu at the clicked position."""
+        tab_bar = self.sidebar.tabBar()
+        menu = self._create_sidebar_tab_menu(tab_bar.tabAt(pos))
+        if menu is not None:
+            menu.exec(tab_bar.mapToGlobal(pos))
+
+    def refresh_live_game_page(self):
+        """Reload the Live Game view by reopening the configured URL."""
+        url = self.live_game_url or DEFAULT_LIVE_GAME_URL
+        logger.info("Refreshing Live Game page: %s", url)
+        self.live_game_web_view.setUrl(QUrl(url))
+        if getattr(self, "_live_game_qr_overlay", None):
+            self._live_game_qr_overlay.set_url(url)
 
     def load_url_settings(self):
         """Load URL settings from QSettings and populate input fields"""
