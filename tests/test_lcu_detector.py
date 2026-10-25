@@ -285,24 +285,31 @@ class TestChampionDetectorService:
 
 
 class TestNewMatchDetection:
-    """New ChampSelect session detection and service pause/resume behaviour"""
+    """New ChampSelect session detection (phase/gameId based, switch ON)"""
 
     @staticmethod
-    def _make_detector():
+    def _make_detector(enabled=True):
         manager = Mock()
         phase_tracker = Mock()
         detector = ChampionDetector(manager, phase_tracker)
         detector.champion_map = {}
+        detector.new_match_detection_enabled = enabled
         return manager, phase_tracker, detector
 
     @staticmethod
-    def _session(game_id=0):
+    def _session(game_id=0, timer=0):
         return {
             'gameId': game_id,
+            'timer': {'internalNowInEpochMs': timer},
             'localPlayerCellId': 0,
             'myTeam': [{'cellId': 0, 'championId': 0, 'summonerId': 100, 'assignedPosition': ''}],
             'theirTeam': [],
         }
+
+    def test_switch_defaults_to_off(self):
+        _, _, detector = self._make_detector(enabled=False)
+        assert detector.new_match_detection_enabled is False
+        assert ChampionDetectorService().new_match_detection_enabled is False
 
     def test_lobby_to_champ_select_is_new_session(self):
         manager, tracker, detector = self._make_detector()
@@ -345,41 +352,274 @@ class TestNewMatchDetection:
         _, _, info = detector.detect_champion_and_enemies()
         assert info['is_new_session'] is False
 
-    def test_paused_service_keeps_timer_and_resumes_after_champ_select(self):
+    def test_off_uses_legacy_timer_heuristic(self):
+        manager, tracker, detector = self._make_detector(enabled=False)
+        tracker.update_phase.return_value = 'ChampSelect'
+
+        manager.make_request.return_value = self._session(1, timer=1000)
+        _, _, info = detector.detect_champion_and_enemies()
+        assert info['is_new_session'] is True  # first session (timer was 0)
+
+        manager.make_request.return_value = self._session(1, timer=2000)
+        _, _, info = detector.detect_champion_and_enemies()
+        assert info['is_new_session'] is False
+
+        # Timer jumped backward -> new session (legacy heuristic)
+        manager.make_request.return_value = self._session(1, timer=500)
+        _, _, info = detector.detect_champion_and_enemies()
+        assert info['is_new_session'] is True
+
+        # A different gameId alone does NOT count when OFF
+        manager.make_request.return_value = self._session(2, timer=900)
+        _, _, info = detector.detect_champion_and_enemies()
+        assert info['is_new_session'] is False
+
+        # Lobby resets the timer, so the next ChampSelect is new again
+        tracker.update_phase.return_value = 'Lobby'
+        detector.detect_champion_and_enemies()
+        tracker.update_phase.return_value = 'ChampSelect'
+        manager.make_request.return_value = self._session(2, timer=1000)
+        _, _, info = detector.detect_champion_and_enemies()
+        assert info['is_new_session'] is True
+
+
+FULL_CHAMP_SELECT = {
+    'allies': [('A', 'top')] * 5,
+    'enemies': ['E'] * 5,
+    'phase': 'ChampSelect',
+    'is_new_session': False,
+}
+
+
+def _make_service(enabled, interval_ms=1000):
+    service = ChampionDetectorService()
+    service.set_new_match_detection(enabled)
+    service.start(interval_ms=interval_ms)
+    service.lcu_manager.is_client_running = Mock(return_value=True)
+    service.lcu_manager.connected = True
+    service.phase_tracker.update_phase = Mock(return_value='ChampSelect')
+    service.detector.detect_champion_and_enemies = Mock(return_value=(None, [], dict(FULL_CHAMP_SELECT)))
+    return service
+
+
+class TestNewMatchSwitchOff:
+    """Switch OFF (default): legacy runtime behaviour"""
+
+    def test_timer_stops_at_ten_champions(self):
+        service = _make_service(False)
+        service._check_champion()
+        assert service._polling_paused is True
+        assert service.timer.isActive() is False
+        service.stop()
+
+    def test_no_new_match_signal_and_last_champion_kept(self):
         service = ChampionDetectorService()
+        service.lcu_manager.is_client_running = Mock(return_value=True)
+        service.lcu_manager.connected = True
+        service.last_champion = 'Ashe'
+        service.last_lane = 'bottom'
+        info = {'allies': [], 'enemies': [], 'phase': 'ChampSelect', 'is_new_session': True}
+        service.detector.detect_champion_and_enemies = Mock(return_value=(('Ashe', 'bottom'), [], info))
+
+        emitted = []
+        service.new_match_started.connect(lambda: emitted.append(1))
+        service.matchup_data_updated.connect(lambda d: emitted.append(d))
+        service._check_champion()
+
+        assert emitted == [info]
+        assert service.last_champion == 'Ashe'
+        assert service.last_lane == 'bottom'
+
+    def test_process_scan_every_tick(self):
+        service = _make_service(False)
+        service.current_interval_ms = 4000
+        service._check_champion()
+        service.lcu_manager.is_client_running.assert_called_once()
+        service.stop()
+
+    def test_resume_polling_restarts_stopped_timer(self):
+        service = _make_service(False)
+        service._check_champion()
+        assert service.timer.isActive() is False
+        service.resume_polling()
+        assert service._polling_paused is False
+        assert service.timer.isActive() is True
+        assert service.timer.interval() == service.base_interval_ms
+        service.stop()
+
+    def test_turning_off_in_watch_keeps_timer_and_next_tick_restores_base(self):
+        service = _make_service(True)
+        service._check_champion()
+        assert service._watch_mode is True
+        service.set_new_match_detection(False)
+        assert service._watch_mode is False
+        assert service.timer.isActive() is True
+        assert service.timer.interval() == service.paused_interval_ms
+        service.phase_tracker.update_phase.return_value = 'Lobby'
+        service.detector.detect_champion_and_enemies.return_value = (None, [], None)
+        service._check_champion()
+        assert service.timer.interval() == service.base_interval_ms
+        service.stop()
+
+
+class TestNewMatchWatchMode:
+    """Switch ON: low-load watch mode after all 10 champions are known"""
+
+    def test_enters_watch_mode_and_keeps_timer(self):
+        service = _make_service(True)
+        service._check_champion()
+        assert service._watch_mode is True
+        assert service.timer.isActive() is True
+        assert service.timer.interval() == service.paused_interval_ms
+        service.stop()
+
+    def test_watch_tick_skips_process_scan_and_detection(self):
+        service = _make_service(True)
+        service._check_champion()
+        service.lcu_manager.is_client_running.reset_mock()
+        service.detector.detect_champion_and_enemies.reset_mock()
+        service.phase_tracker.update_phase.reset_mock()
+
+        service._check_champion()
+
+        service.lcu_manager.is_client_running.assert_not_called()
+        service.detector.detect_champion_and_enemies.assert_not_called()
+        service.phase_tracker.update_phase.assert_called_once()
+        assert service._watch_mode is True
+        service.stop()
+
+    def test_watch_uses_slow_interval_during_game_and_stays_in_watch(self):
+        service = _make_service(True)
+        service._check_champion()
+        service.detector.detect_champion_and_enemies.reset_mock()
+
+        for phase in ('GameStart', 'InProgress', 'InProgress', 'WaitingForStats', 'PreEndOfGame', 'EndOfGame'):
+            service.phase_tracker.update_phase.return_value = phase
+            service._check_champion()
+            assert service._watch_mode is True
+            assert service.timer.interval() == service.in_game_watch_interval_ms
+        service.detector.detect_champion_and_enemies.assert_not_called()
+
+        service.phase_tracker.update_phase.return_value = 'Lobby'
+        service._check_champion()
+        assert service._watch_mode is True
+        assert service.timer.interval() == service.paused_interval_ms
+        service.stop()
+
+    def test_champ_select_again_after_game_resumes_and_emits_new_match(self):
+        service = _make_service(True)
+        service.last_champion = 'Ashe'
+        service._check_champion()
+        service.phase_tracker.update_phase.return_value = 'InProgress'
+        service._check_champion()
+        assert service.timer.interval() == service.in_game_watch_interval_ms
+
+        service.phase_tracker.update_phase.return_value = 'ChampSelect'
+        info = {'allies': [], 'enemies': [], 'phase': 'ChampSelect', 'is_new_session': True}
+        service.detector.detect_champion_and_enemies.return_value = (None, [], info)
+        order = []
+        service.new_match_started.connect(lambda: order.append('new_match'))
+        service.matchup_data_updated.connect(lambda d: order.append('matchup'))
+        service._check_champion()
+
+        assert order == ['new_match', 'matchup']
+        assert service._watch_mode is False
+        assert service._polling_paused is False
+        assert service.timer.interval() == service.base_interval_ms
+        assert service.last_champion is None
+        service.stop()
+
+    def test_real_detector_reports_new_session_after_watch(self):
+        service = ChampionDetectorService()
+        service.set_new_match_detection(True)
         service.start(interval_ms=1000)
         service.lcu_manager.is_client_running = Mock(return_value=True)
         service.lcu_manager.connected = True
         service.phase_tracker.update_phase = Mock(return_value='ChampSelect')
-        full = {
-            'allies': [('A', 'top')] * 5,
-            'enemies': ['E'] * 5,
-            'phase': 'ChampSelect',
-            'is_new_session': False,
-        }
-        service.detector.detect_champion_and_enemies = Mock(return_value=(None, [], full))
+        service.lcu_manager.make_request = Mock(return_value={'gameId': 5})
+        service.detector._prev_phase = 'ChampSelect'
+        service.detector._last_champ_select_game_id = 5
+        service._enter_watch_mode()
 
+        service.phase_tracker.update_phase.return_value = 'InProgress'
         service._check_champion()
-        assert service._polling_paused is True
-        assert service.timer.isActive() is True
-        assert service.timer.interval() == service.paused_interval_ms
+        service.phase_tracker.update_phase.return_value = 'ChampSelect'
+        infos = []
+        service.matchup_data_updated.connect(infos.append)
+        service._check_champion()
+        assert infos and infos[0]['is_new_session'] is True
+        service.stop()
 
-        # Still ChampSelect: no detection while paused
+    def test_game_id_change_during_champ_select_exits_watch(self):
+        service = _make_service(True)
+        service.detector._last_champ_select_game_id = 111
+        service._check_champion()
+        assert service._watch_mode is True
+        service.lcu_manager.make_request = Mock(return_value={'gameId': 222})
         service.detector.detect_champion_and_enemies.reset_mock()
-        service._check_champion()
-        service.detector.detect_champion_and_enemies.assert_not_called()
-        assert service._polling_paused is True
+        partial = {'allies': [], 'enemies': [], 'phase': 'ChampSelect', 'is_new_session': True}
+        service.detector.detect_champion_and_enemies.return_value = (None, [], partial)
 
-        # Leaving ChampSelect resumes normal polling
-        service.phase_tracker.update_phase.return_value = 'Lobby'
-        service.detector.detect_champion_and_enemies.return_value = (None, [], None)
+        every = service.WATCH_GAME_ID_CHECK_EVERY
+        for _ in range(every - 1):
+            service._check_champion()
+            assert service._watch_mode is True
+        service.lcu_manager.make_request.assert_not_called()
+
         service._check_champion()
+        service.lcu_manager.make_request.assert_called_once_with("/lol-champ-select/v1/session")
+        assert service._watch_mode is False
+        service.detector.detect_champion_and_enemies.assert_called_once()
+        assert service.timer.interval() == service.base_interval_ms
+        service.stop()
+
+    def test_same_game_id_stays_in_watch(self):
+        service = _make_service(True)
+        service.detector._last_champ_select_game_id = 111
+        service._check_champion()
+        service.lcu_manager.make_request = Mock(return_value={'gameId': 111})
+        for _ in range(service.WATCH_GAME_ID_CHECK_EVERY * 2):
+            service._check_champion()
+        assert service._watch_mode is True
+        service.stop()
+
+    def test_not_connected_falls_back_to_process_scan(self):
+        service = _make_service(True)
+        service._check_champion()
+        service.lcu_manager.connected = False
+        service.lcu_manager.is_client_running.reset_mock()
+        service.lcu_manager.connect = Mock(return_value=False)
+
+        service._check_champion()
+
+        service.lcu_manager.is_client_running.assert_called_once()
+        service.lcu_manager.connect.assert_called_once()
+        service.stop()
+
+    def test_client_closed_leaves_watch_mode(self):
+        service = _make_service(True)
+        service._check_champion()
+        service.lcu_manager.connected = False
+        service.lcu_manager.is_client_running.return_value = False
+        service._check_champion()
+        assert service._watch_mode is False
+        assert service._polling_paused is False
+        service.stop()
+
+    def test_resume_polling_exits_watch_mode(self):
+        service = _make_service(True)
+        service._check_champion()
+        service.phase_tracker.update_phase.return_value = 'InProgress'
+        service._check_champion()
+        service.resume_polling()
+        assert service._watch_mode is False
         assert service._polling_paused is False
         assert service.timer.interval() == service.base_interval_ms
         service.stop()
 
     def test_new_match_started_emitted_before_matchup_data(self):
         service = ChampionDetectorService()
+        service.set_new_match_detection(True)
         service.lcu_manager.is_client_running = Mock(return_value=True)
         service.lcu_manager.connected = True
         service.last_champion = 'Ashe'
@@ -395,383 +635,3 @@ class TestNewMatchDetection:
         assert order == ['new_match', 'matchup']
         assert service.last_champion is None
         assert service.last_lane is None
-
-
-class TestMatchupPairs:
-    """Test cases for matchup pair extraction"""
-
-    def test_get_matchup_pairs_from_champ_select_data(self):
-        """Test matchup pairs from ChampSelect myTeam/theirTeam"""
-        manager = Mock()
-        phase_tracker = Mock()
-        detector = ChampionDetector(manager, phase_tracker)
-        detector.champion_map = {22: 'Ashe', 51: 'Caitlyn', 238: 'Zed'}
-
-        data = {
-            'myTeam': [{'championId': 22}],
-            'theirTeam': [{'championId': 51}, {'championId': 238}],
-        }
-        pairs = detector.get_matchup_pairs_from_data(data)
-        assert pairs == [('Ashe', 'Caitlyn'), ('', 'Zed')]
-
-    def test_get_matchup_pairs_unpicked(self):
-        """Test that unpicked champions (id=0) show as empty string"""
-        manager = Mock()
-        phase_tracker = Mock()
-        detector = ChampionDetector(manager, phase_tracker)
-        detector.champion_map = {22: 'Ashe'}
-
-        data = {
-            'myTeam': [{'championId': 22}, {'championId': 0}],
-            'theirTeam': [{'championId': 0}, {'championId': 0}],
-        }
-        pairs = detector.get_matchup_pairs_from_data(data)
-        assert pairs == [('Ashe', ''), ('', '')]
-
-    def test_get_matchup_pairs_from_gamedata_team_one(self):
-        """Test matchup pairs from gameData when player is on teamOne"""
-        manager = Mock()
-        phase_tracker = Mock()
-        phase_tracker.last_session_data = {
-            'gameData': {
-                'teamOne': [{'summonerId': 100, 'championId': 22}],
-                'teamTwo': [{'summonerId': 200, 'championId': 51}],
-            }
-        }
-        detector = ChampionDetector(manager, phase_tracker)
-        detector.champion_map = {22: 'Ashe', 51: 'Caitlyn'}
-        detector.current_summoner_id = 100
-
-        pairs = detector.get_matchup_pairs_from_gamedata()
-        assert len(pairs) == 5
-        assert pairs[0] == ('Ashe', 'Caitlyn')
-
-    def test_get_matchup_pairs_from_gamedata_team_two(self):
-        """Test matchup pairs from gameData when player is on teamTwo"""
-        manager = Mock()
-        phase_tracker = Mock()
-        phase_tracker.last_session_data = {
-            'gameData': {
-                'teamOne': [{'summonerId': 200, 'championId': 51}],
-                'teamTwo': [{'summonerId': 100, 'championId': 22}],
-            }
-        }
-        detector = ChampionDetector(manager, phase_tracker)
-        detector.champion_map = {22: 'Ashe', 51: 'Caitlyn'}
-        detector.current_summoner_id = 100
-
-        pairs = detector.get_matchup_pairs_from_gamedata()
-        # ally=Ashe (teamTwo), enemy=Caitlyn (teamOne)
-        assert len(pairs) == 5
-        assert pairs[0] == ('Ashe', 'Caitlyn')
-
-    def test_get_matchup_pairs_from_gamedata_no_session(self):
-        """Test matchup pairs when no session data is available"""
-        manager = Mock()
-        phase_tracker = Mock()
-        phase_tracker.last_session_data = None
-        detector = ChampionDetector(manager, phase_tracker)
-
-        assert detector.get_matchup_pairs_from_gamedata() == []
-
-    def test_detect_champion_and_enemies_clears_on_lobby(self):
-        """Test that None/Lobby phase resets champion state (summoner_id etc.)"""
-        manager = Mock()
-        phase_tracker = Mock()
-        phase_tracker.update_phase.return_value = 'Lobby'
-        detector = ChampionDetector(manager, phase_tracker)
-        detector.current_champion_name = 'Ashe'
-        detector.current_summoner_id = 100
-        # No locked pairs → returns None for matchup_info (UI should not be updated)
-        result = detector.detect_champion_and_enemies()
-        assert result == (None, [], None)
-        assert detector.current_summoner_id is None
-
-    def test_detect_champion_and_enemies_in_progress_uses_gamedata(self):
-        """Test that InProgress phase uses gameData for matchup info"""
-        manager = Mock()
-        phase_tracker = Mock()
-        phase_tracker.update_phase.return_value = 'InProgress'
-        phase_tracker.last_session_data = {
-            'gameData': {
-                'teamOne': [{'summonerId': 100, 'championId': 22}],
-                'teamTwo': [{'summonerId': 200, 'championId': 51}],
-            }
-        }
-        detector = ChampionDetector(manager, phase_tracker)
-        detector.champion_map = {22: 'Ashe', 51: 'Caitlyn'}
-        detector.current_champion_name = 'Ashe'
-        detector.current_lane = 'bottom'
-        detector.current_summoner_id = 100
-
-        own, enemies, matchup_info = detector.detect_champion_and_enemies()
-        assert own == ('Ashe', 'bottom')
-        assert enemies == []
-        assert matchup_info["phase"] == "InProgress"
-        assert ("Ashe", "") in matchup_info["allies"]
-        assert "Caitlyn" in matchup_info["enemies"]
-
-
-    def test_matchup_pairs_locked_after_10_champions(self):
-        """Test that matchup pairs are locked once all 10 champions are confirmed"""
-        manager = Mock()
-        phase_tracker = Mock()
-        phase_tracker.last_session_data = {
-            'gameData': {
-                'teamOne': [
-                    {'summonerId': 100, 'championId': 22},
-                    {'summonerId': 101, 'championId': 51},
-                    {'summonerId': 102, 'championId': 86},
-                    {'summonerId': 103, 'championId': 99},
-                    {'summonerId': 104, 'championId': 40},
-                ],
-                'teamTwo': [
-                    {'summonerId': 200, 'championId': 238},
-                    {'summonerId': 201, 'championId': 157},
-                    {'summonerId': 202, 'championId': 67},
-                    {'summonerId': 203, 'championId': 63},
-                    {'summonerId': 204, 'championId': 37},
-                ],
-            }
-        }
-        detector = ChampionDetector(manager, phase_tracker)
-        detector.champion_map = {
-            22: 'Ashe', 51: 'Caitlyn', 86: 'Garen', 99: 'Lux', 40: 'Janna',
-            238: 'Zed', 157: 'Yasuo', 67: 'Vayne', 63: 'Brand', 37: 'Sona',
-        }
-        detector.current_summoner_id = 100
-
-        pairs = detector.get_matchup_pairs_from_gamedata()
-        assert len(pairs) == 5
-        assert all(ally and enemy for ally, enemy in pairs)
-        assert detector._matchup_pairs_locked is True
-
-    def test_locked_pairs_not_overwritten_by_incomplete_data(self):
-        """Test that once locked, incomplete API data does not overwrite the list"""
-        manager = Mock()
-        phase_tracker = Mock()
-        # First call: full data
-        phase_tracker.last_session_data = {
-            'gameData': {
-                'teamOne': [
-                    {'summonerId': 100, 'championId': 22},
-                    {'summonerId': 101, 'championId': 51},
-                    {'summonerId': 102, 'championId': 86},
-                    {'summonerId': 103, 'championId': 99},
-                    {'summonerId': 104, 'championId': 40},
-                ],
-                'teamTwo': [
-                    {'summonerId': 200, 'championId': 238},
-                    {'summonerId': 201, 'championId': 157},
-                    {'summonerId': 202, 'championId': 67},
-                    {'summonerId': 203, 'championId': 63},
-                    {'summonerId': 204, 'championId': 37},
-                ],
-            }
-        }
-        detector = ChampionDetector(manager, phase_tracker)
-        detector.champion_map = {
-            22: 'Ashe', 51: 'Caitlyn', 86: 'Garen', 99: 'Lux', 40: 'Janna',
-            238: 'Zed', 157: 'Yasuo', 67: 'Vayne', 63: 'Brand', 37: 'Sona',
-        }
-        detector.current_summoner_id = 100
-
-        original_pairs = detector.get_matchup_pairs_from_gamedata()
-        assert detector._matchup_pairs_locked is True
-
-        # Second call: API returns incomplete data (first player championId=0)
-        phase_tracker.last_session_data = {
-            'gameData': {
-                'teamOne': [
-                    {'summonerId': 100, 'championId': 0},  # Missing!
-                    {'summonerId': 101, 'championId': 51},
-                    {'summonerId': 102, 'championId': 86},
-                    {'summonerId': 103, 'championId': 99},
-                    {'summonerId': 104, 'championId': 40},
-                ],
-                'teamTwo': [
-                    {'summonerId': 200, 'championId': 0},  # Missing!
-                    {'summonerId': 201, 'championId': 157},
-                    {'summonerId': 202, 'championId': 67},
-                    {'summonerId': 203, 'championId': 63},
-                    {'summonerId': 204, 'championId': 37},
-                ],
-            }
-        }
-        locked_pairs = detector.get_matchup_pairs_from_gamedata()
-        # Locked pairs must be identical to the original full list
-        assert locked_pairs == original_pairs
-
-    def test_locked_pairs_not_overwritten_by_none_session(self):
-        """Test that locked pairs survive when session data becomes None"""
-        manager = Mock()
-        phase_tracker = Mock()
-        phase_tracker.last_session_data = {
-            'gameData': {
-                'teamOne': [
-                    {'summonerId': 100, 'championId': 22},
-                    {'summonerId': 101, 'championId': 51},
-                    {'summonerId': 102, 'championId': 86},
-                    {'summonerId': 103, 'championId': 99},
-                    {'summonerId': 104, 'championId': 40},
-                ],
-                'teamTwo': [
-                    {'summonerId': 200, 'championId': 238},
-                    {'summonerId': 201, 'championId': 157},
-                    {'summonerId': 202, 'championId': 67},
-                    {'summonerId': 203, 'championId': 63},
-                    {'summonerId': 204, 'championId': 37},
-                ],
-            }
-        }
-        detector = ChampionDetector(manager, phase_tracker)
-        detector.champion_map = {
-            22: 'Ashe', 51: 'Caitlyn', 86: 'Garen', 99: 'Lux', 40: 'Janna',
-            238: 'Zed', 157: 'Yasuo', 67: 'Vayne', 63: 'Brand', 37: 'Sona',
-        }
-        detector.current_summoner_id = 100
-
-        original_pairs = detector.get_matchup_pairs_from_gamedata()
-        assert detector._matchup_pairs_locked is True
-
-        # Session becomes None (transient failure)
-        phase_tracker.last_session_data = None
-        pairs_after = detector.get_matchup_pairs_from_gamedata()
-        assert pairs_after == original_pairs
-
-    def test_locked_pairs_persist_through_lobby(self):
-        """Test that locked matchup pairs remain cached in Lobby after game ends.
-
-        In the redesigned flow, detect_champion_and_enemies returns None for
-        matchup_info in Lobby (UI preserves its own state). The lock/cache from
-        get_matchup_pairs_from_gamedata is tested here directly.
-        """
-        manager = Mock()
-        phase_tracker = Mock()
-        champion_map = {
-            22: 'Ashe', 51: 'Caitlyn', 86: 'Garen', 99: 'Lux', 40: 'Janna',
-            238: 'Zed', 157: 'Yasuo', 67: 'Vayne', 63: 'Brand', 37: 'Sona',
-        }
-
-        phase_tracker.last_session_data = {
-            'gameData': {
-                'teamOne': [
-                    {'summonerId': 100, 'championId': 22},
-                    {'summonerId': 101, 'championId': 51},
-                    {'summonerId': 102, 'championId': 86},
-                    {'summonerId': 103, 'championId': 99},
-                    {'summonerId': 104, 'championId': 40},
-                ],
-                'teamTwo': [
-                    {'summonerId': 200, 'championId': 238},
-                    {'summonerId': 201, 'championId': 157},
-                    {'summonerId': 202, 'championId': 67},
-                    {'summonerId': 203, 'championId': 63},
-                    {'summonerId': 204, 'championId': 37},
-                ],
-            }
-        }
-        detector = ChampionDetector(manager, phase_tracker)
-        detector.champion_map = champion_map
-        detector.current_summoner_id = 100
-
-        # Lock via get_matchup_pairs_from_gamedata (legacy path still used for locking)
-        pairs_in_game = detector.get_matchup_pairs_from_gamedata()
-        assert detector._matchup_pairs_locked is True
-        assert all(ally and enemy for ally, enemy in pairs_in_game[:5])
-
-        # Lobby phase: detect returns None for matchup_info (no UI clearing)
-        phase_tracker.update_phase.return_value = 'Lobby'
-        detector.current_champion_name = 'Ashe'
-        own, _, matchup_info = detector.detect_champion_and_enemies()
-        assert own is None  # champion state cleared
-        assert matchup_info is None  # UI should not be updated
-        assert detector._matchup_pairs_locked is True  # lock preserved
-        assert detector._cached_matchup_pairs != []  # cache preserved
-
-    def test_lock_cleared_on_next_champ_select(self):
-        """Test that matchup lock/cache is cleared when a new ChampSelect starts"""
-        manager = Mock()
-        phase_tracker = Mock()
-        champion_map = {
-            22: 'Ashe', 51: 'Caitlyn', 86: 'Garen', 99: 'Lux', 40: 'Janna',
-            238: 'Zed', 157: 'Yasuo', 67: 'Vayne', 63: 'Brand', 37: 'Sona',
-        }
-
-        # 1) Lock via get_matchup_pairs_from_gamedata (simulates InProgress)
-        phase_tracker.last_session_data = {
-            'gameData': {
-                'teamOne': [
-                    {'summonerId': 100, 'championId': 22},
-                    {'summonerId': 101, 'championId': 51},
-                    {'summonerId': 102, 'championId': 86},
-                    {'summonerId': 103, 'championId': 99},
-                    {'summonerId': 104, 'championId': 40},
-                ],
-                'teamTwo': [
-                    {'summonerId': 200, 'championId': 238},
-                    {'summonerId': 201, 'championId': 157},
-                    {'summonerId': 202, 'championId': 67},
-                    {'summonerId': 203, 'championId': 63},
-                    {'summonerId': 204, 'championId': 37},
-                ],
-            }
-        }
-        detector = ChampionDetector(manager, phase_tracker)
-        detector.champion_map = champion_map
-        detector.current_summoner_id = 100
-        detector.current_champion_name = 'Ashe'
-        detector.current_lane = 'bottom'
-
-        detector.get_matchup_pairs_from_gamedata()
-        assert detector._matchup_pairs_locked is True
-
-        # 2) Transition to Lobby → lock remains
-        phase_tracker.update_phase.return_value = 'Lobby'
-        detector.detect_champion_and_enemies()
-        assert detector._matchup_pairs_locked is True
-
-        # 3) New ChampSelect → lock and cache cleared (new session detected)
-        phase_tracker.update_phase.return_value = 'ChampSelect'
-        manager.make_request.return_value = {
-            'localPlayerCellId': 0,
-            'timer': {'internalNowInEpochMs': 1000},
-            'myTeam': [{'cellId': 0, 'championId': 0, 'summonerId': 100, 'assignedPosition': ''}],
-            'theirTeam': [],
-        }
-        detector.detect_champion_and_enemies()
-        assert detector._matchup_pairs_locked is False
-        assert detector._cached_matchup_pairs == []
-
-    def test_phase_tracker_keeps_phase_during_transient_failure(self):
-        """Test that phase tracker does not reset to None during InProgress API failure"""
-        manager = Mock()
-        tracker = GamePhaseTracker(manager)
-
-        # Simulate being in InProgress
-        manager.make_request.return_value = {'phase': 'InProgress'}
-        phase = tracker.update_phase()
-        assert phase == 'InProgress'
-
-        # Simulate API failure (returns None)
-        manager.make_request.return_value = None
-        phase = tracker.update_phase()
-        # Should keep InProgress, not reset to None
-        assert phase == 'InProgress'
-        # last_session_data should be preserved (not set to None)
-        assert tracker.last_session_data is not None
-
-    def test_phase_tracker_resets_when_not_in_game(self):
-        """Test that phase tracker resets to None when API fails outside of game"""
-        manager = Mock()
-        tracker = GamePhaseTracker(manager)
-
-        # Not in game
-        tracker.current_phase = "None"
-        manager.make_request.return_value = None
-        phase = tracker.update_phase()
-        assert phase == 'None'
-
-
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])

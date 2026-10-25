@@ -155,6 +155,7 @@ class MainWindow(QMainWindow):
         self.champion_detector.enemy_champion_detected.connect(self.on_enemy_champion_detected)
         self.champion_detector.matchup_data_updated.connect(self.on_matchup_data_updated)
         self.champion_detector.new_match_started.connect(self.on_new_match_started)
+        self.champion_detector.set_new_match_detection(self.feature_flags.get("auto_reset_on_new_match", False))
         logger.info("ChampionDetectorService initialized and connected")
 
         # Create connection status widget
@@ -1864,6 +1865,8 @@ class MainWindow(QMainWindow):
         """Persist a feature flag change and update in-memory state."""
         self.feature_flags[key] = bool(enabled)
         self.settings.setValue(f"feature_flags/{key}", bool(enabled))
+        if key == "auto_reset_on_new_match" and hasattr(self, "champion_detector") and self.champion_detector:
+            self.champion_detector.set_new_match_detection(bool(enabled))
         if hasattr(self, "flags_status_label"):
             _sz = get_ui_sizes(QSettings("LoLViewer", "LoLViewer").value("display/ui_size", "medium"))
             self.flags_status_label.setText(f"✓ Flag '{key}' set to {'ON' if enabled else 'OFF'} (restart may be required)")

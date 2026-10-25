@@ -64,3 +64,23 @@ class TestNewMatchReset:
         assert len(window.viewers) == 2
         assert window._matchup_data[0] == ("Ashe", "Jinx")
         assert len(window.pending_enemy_picks) == 1
+
+
+class TestFeatureFlagSwitchesService:
+    def test_service_switch_follows_flag(self, qapp):
+        window = MainWindow()
+        assert window.champion_detector.new_match_detection_enabled is False
+        assert window.champion_detector.detector.new_match_detection_enabled is False
+
+        window.set_feature_flag("auto_reset_on_new_match", True)
+        assert window.champion_detector.new_match_detection_enabled is True
+        assert window.champion_detector.detector.new_match_detection_enabled is True
+
+        window.set_feature_flag("auto_reset_on_new_match", False)
+        assert window.champion_detector.new_match_detection_enabled is False
+        assert window.champion_detector.detector.new_match_detection_enabled is False
+
+    def test_other_flags_do_not_touch_switch(self, qapp):
+        window = MainWindow()
+        window.set_feature_flag("some_other_flag", True)
+        assert window.champion_detector.new_match_detection_enabled is False

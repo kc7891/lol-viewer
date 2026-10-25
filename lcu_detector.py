@@ -254,6 +254,8 @@ class ChampionDetector:
         self.detected_enemy_champions: set = set()  # Track detected enemy champions by ID
         self._cached_matchup_pairs: list = []  # Cache pairs to merge incomplete data
         self._matchup_pairs_locked: bool = False  # Lock after all 10 champions confirmed
+        self._last_champ_select_timer: float = 0  # Track ChampSelect session changes (legacy heuristic, used when new-match detection is OFF)
+        self.new_match_detection_enabled: bool = False  # ON: phase/gameId based detection; OFF: legacy timer heuristic
         self._prev_phase: Optional[str] = None  # Previous phase seen by this detector (for new-session detection)
         self._last_champ_select_game_id: int = 0  # Last non-zero champ-select gameId seen
         self._cached_allies: list = []  # Cache allies for InProgress merge
@@ -313,17 +315,25 @@ class ChampionDetector:
                 if not data:
                     return (None, [], None)
 
-                # New session: entered ChampSelect from another phase, or the session gameId
-                # changed to a different non-zero value (e.g. dodge -> instant re-match)
                 is_new_session = False
                 game_id = data.get('gameId') or 0
-                if self._prev_phase != 'ChampSelect':
-                    is_new_session = True
-                elif game_id and self._last_champ_select_game_id and game_id != self._last_champ_select_game_id:
-                    is_new_session = True
+                session_timer = data.get('timer', {}).get('internalNowInEpochMs', 0)
+                if self.new_match_detection_enabled:
+                    # New session: entered ChampSelect from another phase, or the session gameId
+                    # changed to a different non-zero value (e.g. dodge -> instant re-match)
+                    if self._prev_phase != 'ChampSelect':
+                        is_new_session = True
+                    elif game_id and self._last_champ_select_game_id and game_id != self._last_champ_select_game_id:
+                        is_new_session = True
+                else:
+                    # Detect new session: timer resets or session data has new localPlayerCellId
+                    # We use a simple heuristic: if timer jumped backward or session has different counter
+                    if self._last_champ_select_timer == 0 or session_timer < self._last_champ_select_timer:
+                        is_new_session = True
                 self._prev_phase = 'ChampSelect'
                 if game_id:
                     self._last_champ_select_game_id = game_id
+                self._last_champ_select_timer = session_timer
                 if is_new_session:
                     logger.info("New ChampSelect session detected – signaling UI clear")
                     self._matchup_pairs_locked = False
@@ -387,6 +397,7 @@ class ChampionDetector:
                 self.current_lane = None
                 self.current_summoner_id = None
                 self.detected_enemy_champions.clear()
+                self._last_champ_select_timer = 0
                 self._prev_phase = phase
                 self._last_champ_select_game_id = 0
                 # Return None for matchup_info – UI should NOT be updated
@@ -776,6 +787,10 @@ class ChampionDetectorService(QObject):
     new_match_started = pyqtSignal()  # Emitted (before matchup_data_updated) when a new ChampSelect session begins
     connection_status_changed = pyqtSignal(str)  # Emits connection status: "connecting", "connected", "disconnected"
 
+    # Phases in which watch mode backs off to the slow in-game interval
+    WATCH_SLOW_PHASES = frozenset({"GameStart", "InProgress", "WaitingForStats", "PreEndOfGame", "EndOfGame"})
+    WATCH_GAME_ID_CHECK_EVERY = 4  # ticks of ChampSelect in watch mode between gameId checks (~20s at 5s)
+
     def __init__(self):
         super().__init__()
         # Ensure a Qt event loop exists so QTimer can run in headless/tests.
@@ -797,9 +812,15 @@ class ChampionDetectorService(QObject):
         self.base_interval_ms = 2000
         self.max_interval_ms = 60000
         self.current_interval_ms = self.base_interval_ms
-        self.paused_interval_ms = 5000  # Slow phase-watch interval while all 10 champions are known
+        self.paused_interval_ms = 5000  # Watch-mode interval (lobby / champ select) while all 10 champions are known
+        self.in_game_watch_interval_ms = 15000  # Watch-mode interval while a game is starting / in progress / ending
         self.is_checking = False
         self._polling_paused = False
+        # New-match detection switch (feature flag). OFF = exactly the legacy behaviour.
+        self.new_match_detection_enabled = False
+        self._watch_mode = False  # Low-load phase-only watching (only when the switch is ON)
+        self._watch_seen_non_champ_select = False
+        self._watch_champ_select_ticks = 0
         log("[LCU] ChampionDetectorService initialized")
         logger.info("ChampionDetectorService initialized")
 
@@ -810,6 +831,85 @@ class ChampionDetectorService(QObject):
             self.connection_status_changed.emit(status)
             log(f"[LCU] Status changed to: {status}")
             logger.info(f"Status changed to: {status}")
+
+    def set_new_match_detection(self, enabled: bool):
+        """Enable/disable new-match detection (phase/gameId based, with low-load watch mode).
+
+        Turning it OFF leaves watch mode but does not touch the timer; the next tick restores
+        the base interval through the legacy code path.
+        """
+        enabled = bool(enabled)
+        self.new_match_detection_enabled = enabled
+        self.detector.new_match_detection_enabled = enabled
+        if not enabled and self._watch_mode:
+            self._reset_watch_state()
+            self._polling_paused = False
+
+    def _reset_watch_state(self):
+        self._watch_mode = False
+        self._watch_seen_non_champ_select = False
+        self._watch_champ_select_ticks = 0
+
+    def _enter_watch_mode(self):
+        self._watch_mode = True
+        self._watch_seen_non_champ_select = False
+        self._watch_champ_select_ticks = 0
+        self._set_timer_interval(self.paused_interval_ms)
+
+    def _exit_watch_mode(self):
+        """Leave watch mode and restore the base polling interval."""
+        self._reset_watch_state()
+        self._polling_paused = False
+        self._set_timer_interval(self.base_interval_ms)
+
+    def _watch_set_interval(self, interval_ms: int):
+        if interval_ms != self.current_interval_ms:
+            self._set_timer_interval(interval_ms)
+
+    def _watch_game_id_changed(self) -> bool:
+        """True if the champ-select session has a different non-zero gameId than the last one seen."""
+        data = self.lcu_manager.make_request("/lol-champ-select/v1/session")
+        if not data:
+            return False
+        game_id = data.get('gameId') or 0
+        last = self.detector._last_champ_select_game_id
+        return bool(game_id and last and game_id != last)
+
+    def _watch_tick(self) -> bool:
+        """One watch-mode tick (single gameflow HTTP request).
+
+        Returns True when watch mode was exited and the normal detection should run on this tick.
+        """
+        phase = self.phase_tracker.update_phase()
+        if phase == "ChampSelect":
+            if self._watch_seen_non_champ_select:
+                logger.info("Watch mode: ChampSelect again after another phase – resuming detection")
+                self._exit_watch_mode()
+                return True
+            self._watch_champ_select_ticks += 1
+            if self._watch_champ_select_ticks % self.WATCH_GAME_ID_CHECK_EVERY == 0 and self._watch_game_id_changed():
+                logger.info("Watch mode: champ-select gameId changed – resuming detection")
+                self._exit_watch_mode()
+                return True
+            self._watch_set_interval(self.paused_interval_ms)
+            return False
+
+        self._watch_seen_non_champ_select = True
+        self._watch_champ_select_ticks = 0
+        self.detector._prev_phase = phase
+        if phase in ("None", "Lobby"):
+            # Same as the detector's None/Lobby handling: forget the finished match's champion state
+            self.detector.current_champion_id = None
+            self.detector.current_champion_name = None
+            self.detector.current_lane = None
+            self.detector.current_summoner_id = None
+            self.detector.detected_enemy_champions.clear()
+            self.detector._last_champ_select_game_id = 0
+        if phase in self.WATCH_SLOW_PHASES:
+            self._watch_set_interval(self.in_game_watch_interval_ms)
+        else:
+            self._watch_set_interval(self.paused_interval_ms)
+        return False
 
     def _clear_champion_state(self):
         """Reset cached champion data when connection drops."""
@@ -830,6 +930,7 @@ class ChampionDetectorService(QObject):
         self.detector._cached_enemies = []
         self.detector._prev_phase = None
         self.detector._last_champ_select_game_id = 0
+        self._reset_watch_state()
         self._polling_paused = False
         # Do NOT emit matchup signal on disconnect – UI preserves existing data
 
@@ -906,6 +1007,7 @@ class ChampionDetectorService(QObject):
             log("[LCU] Resuming champion detection polling")
             logger.info("Resuming champion detection polling")
             self._polling_paused = False
+            self._reset_watch_state()
             self._set_timer_interval(self.base_interval_ms)
 
     def _check_champion(self, force: bool = False):
@@ -925,7 +1027,9 @@ class ChampionDetectorService(QObject):
 
             logger.debug(f"Check #{self.check_count}: connected={self.lcu_manager.connected}")
 
-            is_running = self.lcu_manager.is_client_running()
+            # Watch mode (new-match detection ON): skip the process scan while connected
+            watching = self._watch_mode and self.lcu_manager.connected
+            is_running = True if watching else self.lcu_manager.is_client_running()
             logger.debug(f"Client running: {is_running}, connected={self.lcu_manager.connected}")
 
             if not is_running:
@@ -938,8 +1042,8 @@ class ChampionDetectorService(QObject):
                 self._clear_champion_state()
                 return
 
-            # LoL client is running - ensure we're polling quickly (unless in slow paused watch mode)
-            if not self._polling_paused:
+            # LoL client is running - ensure we're polling quickly (unless in low-load watch mode)
+            if not self._watch_mode:
                 self._reset_backoff()
 
             # Try to connect if not connected
@@ -954,11 +1058,10 @@ class ChampionDetectorService(QObject):
             # Ensure status reflects active connection
             self._set_connection_status("connected")
 
-            # Paused (all 10 champions known): only watch the phase; resume once ChampSelect is over
-            if self._polling_paused:
-                if self.phase_tracker.update_phase() == "ChampSelect":
+            # Watch mode (all 10 champions known, new-match detection ON): only watch the phase
+            if self._watch_mode:
+                if not self._watch_tick():
                     return
-                self.resume_polling()
 
             own_result = None
             enemy_champions = []
@@ -974,7 +1077,7 @@ class ChampionDetectorService(QObject):
 
             # Only emit matchup data when there is meaningful info (never emit None/empty to clear UI)
             if isinstance(matchup_info, dict):
-                if matchup_info.get("is_new_session"):
+                if matchup_info.get("is_new_session") and self.new_match_detection_enabled:
                     # Forget the previous match's champion so champion_detected fires again
                     self.last_champion = None
                     self.last_lane = None
@@ -1014,9 +1117,13 @@ class ChampionDetectorService(QObject):
                 if len(allies) >= 5 and len(enemies) >= 5:
                     if not self._polling_paused:
                         logger.info("All 10 champions detected in ChampSelect – pausing polling")
-                        log("[LCU] All 10 champions detected – switching to slow phase watch")
                         self._polling_paused = True
-                        self._set_timer_interval(self.paused_interval_ms)
+                        if self.new_match_detection_enabled:
+                            log("[LCU] All 10 champions detected – switching to low-load phase watch")
+                            self._enter_watch_mode()
+                        else:
+                            log("[LCU] All 10 champions detected – pausing polling until Refresh")
+                            self.timer.stop()
 
             # Connection might have been lost during API calls
             if not self.lcu_manager.connected:
