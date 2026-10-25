@@ -60,6 +60,12 @@ Viewersページ上部に表示される5行のマッチアップリスト。ラ
 - `ChampionDetectorService` の `matchup_data_updated` シグナルでデータを受信（味方レーン情報・敵ピック順を含むdict）
 - 行の位置がレーンに対応 (0=top, 1=jungle, 2=middle, 3=bottom, 4=support)
 
+### 新マッチ時の自動リセット (Beta)
+
+- Feature Flag (`auto_reset_on_new_match`, デフォルト OFF)
+- 新しい Champ Select 開始時（ChampSelect 以外 → ChampSelect の遷移、または champ-select session の `gameId` 変更）に `new_match_started` シグナルが `matchup_data_updated` より先に発火し、ONの場合は Close All + Matchup クリアを自動実行する
+- 10体検知後のポーリングは停止せず、5秒間隔のフェーズ監視に切り替わり、ChampSelect 終了で通常ポーリングへ復帰する
+
 ### 技術詳細
 
 | 項目 | 値 |
