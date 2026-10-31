@@ -38,11 +38,13 @@ jobs:
       - name: Install uv
         run: pip install --require-hashes -r requirements-ci.txt
 
+      # --upgrade is required: without it uv prefers the versions already
+      # pinned in the -o file, so the locks never move past their current pins.
       - name: Recompile locks
         run: |
-          uv pip compile --universal --generate-hashes --python-version 3.11 \
+          uv pip compile --universal --generate-hashes --upgrade --python-version 3.11 \
             --group dev -o requirements.txt
-          uv pip compile --universal --generate-hashes --python-version 3.11 \
+          uv pip compile --universal --generate-hashes --upgrade --python-version 3.11 \
             --group ci -o requirements-ci.txt
 
       - name: Summarise version changes
