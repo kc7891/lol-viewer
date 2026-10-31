@@ -23,6 +23,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install --require-hashes -r requirements.txt
 
+    # The Linux test job runs with WebEngine disabled, so a Qt / WebEngine DLL
+    # mismatch is only visible here. Import the modules the app loads at startup.
+    - name: Smoke test Qt WebEngine import
+      run: |
+        python -c "from PyQt6 import QtCore, QtWebEngineCore, QtWebEngineWidgets; print('Qt', QtCore.QT_VERSION_STR, 'WebEngine import OK')"
+
     - name: Fetch champion data
       run: |
         python scripts/fetch_champions.py
