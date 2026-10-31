@@ -47,6 +47,13 @@ jobs:
           uv pip compile --universal --generate-hashes --upgrade --python-version 3.11 \
             --group ci -o requirements-ci.txt
 
+      # PRs opened with GITHUB_TOKEN do not trigger the test workflows, so check
+      # here that the PyQt6 wheels still share major.minor (a mismatch breaks the
+      # Windows app at startup). Failing this step means no PR is opened.
+      - name: Check PyQt6 version consistency
+        run: |
+          python -c "import tests.test_dependency_lock as t; t.test_pyqt6_packages_are_locked(); t.test_pyqt6_packages_share_major_minor(); print('PyQt6 lock consistency OK')"
+
       - name: Summarise version changes
         id: changes
         run: |

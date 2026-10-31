@@ -275,6 +275,12 @@ uv pip compile --universal --generate-hashes --python-version 3.11 \
 依存も混ざるため、渡してはいけません。
 ```
 
+**PyQt6 系の4パッケージ（`PyQt6` / `PyQt6-Qt6` / `PyQt6-WebEngine` / `PyQt6-WebEngine-Qt6`）は
+必ず同じ major.minor に揃えてください。** WebEngine の DLL は同じマイナーの Qt 本体に
+リンクされているため、ずれると Windows で起動時に `DLL load failed while importing
+QtWebEngineWidgets` になります。`pyproject.toml` の上限（`<6.12` など）は4つまとめて上げ、
+`tests/test_dependency_lock.py` と Windows Build の import チェックで検出されます。
+
 `--universal` は必須です。テストは Linux、リリースビルドは Windows で走るため、
 ロックは両方のプラットフォームで解決できる必要があります（`pip-compile` は
 実行したプラットフォーム専用のロックしか作れないので使いません）。

@@ -34,8 +34,17 @@ runtime = [
     # GUI toolkit. PyQt6-WebEngine bundles Chromium and renders remote content
     # in QWebEngineView (main_window.py:41, widgets/viewer_widget.py:33),
     # making it the largest attack surface here -- keep it current.
-    "PyQt6>=6.11.0",
-    "PyQt6-WebEngine>=6.11.0",
+    #
+    # The four PyQt6 wheels MUST share the same major.minor: the WebEngine DLLs
+    # are linked against the Qt core DLLs of their own minor release, and a
+    # mismatch (e.g. PyQt6-Qt6 6.12 + PyQt6-WebEngine-Qt6 6.11) fails at import
+    # on Windows with "DLL load failed ... procedure not found". The `<6.12`
+    # caps exist because PyQt6-WebEngine 6.12 is not released yet; raise all
+    # four caps together once it is. tests/test_dependency_lock.py enforces this.
+    "PyQt6>=6.11.0,<6.12",
+    "PyQt6-Qt6>=6.11.0,<6.12",
+    "PyQt6-WebEngine>=6.11.0,<6.12",
+    "PyQt6-WebEngine-Qt6>=6.11.0,<6.12",
 
     # HTTP. urllib3 >=2.7.0 fixes GHSA-qccp-gfcp-xxvc (auth headers forwarded
     # across origins on proxied redirects), which applies directly to the LCU
