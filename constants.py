@@ -21,13 +21,7 @@ CLOSE_BUTTON_GLYPH = "×"
 
 # Feature flags (toggle in Settings page).
 # NOTE: Keys are persisted via QSettings at "feature_flags/<key>".
-FEATURE_FLAG_DEFINITIONS: dict = {
-    "auto_reset_on_new_match": {
-        "label": "Auto reset tabs & matchup on new match (Beta)",
-        "description": "When a new Champ Select starts, close all viewer tabs and clear the matchup list automatically.",
-        "default": False,
-    },
-}
+FEATURE_FLAG_DEFINITIONS: dict = {}
 
 # Queue IDs used to detect ARAM / ARAM: Mayhem.
 # - ARAM (Howling Abyss): 450 (current), plus a few legacy/special variants.

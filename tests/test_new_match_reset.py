@@ -38,13 +38,12 @@ def _populate(window):
 
 
 class TestNewMatchReset:
-    def test_flag_defined_and_default_off(self, qapp):
+    def test_no_feature_flag_defined(self, qapp):
         window = MainWindow()
-        assert window.feature_flags.get("auto_reset_on_new_match") is False
+        assert "auto_reset_on_new_match" not in window.feature_flags
 
-    def test_flag_on_resets_viewers_and_matchup(self, qapp):
+    def test_new_match_resets_viewers_and_matchup(self, qapp):
         window = MainWindow()
-        window.feature_flags["auto_reset_on_new_match"] = True
         _populate(window)
         assert len(window.viewers) == 2
 
@@ -54,33 +53,7 @@ class TestNewMatchReset:
         assert window._matchup_data == [("", "")] * 5
         assert len(window.pending_enemy_picks) == 0
 
-    def test_flag_off_changes_nothing(self, qapp):
+    def test_detection_enabled_by_default(self, qapp):
         window = MainWindow()
-        window.feature_flags["auto_reset_on_new_match"] = False
-        _populate(window)
-
-        window.on_new_match_started()
-
-        assert len(window.viewers) == 2
-        assert window._matchup_data[0] == ("Ashe", "Jinx")
-        assert len(window.pending_enemy_picks) == 1
-
-
-class TestFeatureFlagSwitchesService:
-    def test_service_switch_follows_flag(self, qapp):
-        window = MainWindow()
-        assert window.champion_detector.new_match_detection_enabled is False
-        assert window.champion_detector.detector.new_match_detection_enabled is False
-
-        window.set_feature_flag("auto_reset_on_new_match", True)
         assert window.champion_detector.new_match_detection_enabled is True
         assert window.champion_detector.detector.new_match_detection_enabled is True
-
-        window.set_feature_flag("auto_reset_on_new_match", False)
-        assert window.champion_detector.new_match_detection_enabled is False
-        assert window.champion_detector.detector.new_match_detection_enabled is False
-
-    def test_other_flags_do_not_touch_switch(self, qapp):
-        window = MainWindow()
-        window.set_feature_flag("some_other_flag", True)
-        assert window.champion_detector.new_match_detection_enabled is False

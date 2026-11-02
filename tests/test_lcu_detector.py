@@ -306,10 +306,9 @@ class TestNewMatchDetection:
             'theirTeam': [],
         }
 
-    def test_switch_defaults_to_off(self):
-        _, _, detector = self._make_detector(enabled=False)
-        assert detector.new_match_detection_enabled is False
-        assert ChampionDetectorService().new_match_detection_enabled is False
+    def test_switch_defaults_to_on(self):
+        assert ChampionDetector(Mock(), Mock()).new_match_detection_enabled is True
+        assert ChampionDetectorService().new_match_detection_enabled is True
 
     def test_lobby_to_champ_select_is_new_session(self):
         manager, tracker, detector = self._make_detector()
@@ -403,7 +402,7 @@ def _make_service(enabled, interval_ms=1000):
 
 
 class TestNewMatchSwitchOff:
-    """Switch OFF (default): legacy runtime behaviour"""
+    """Switch OFF (internal fallback, not the default): legacy runtime behaviour"""
 
     def test_timer_stops_at_ten_champions(self):
         service = _make_service(False)
@@ -414,6 +413,7 @@ class TestNewMatchSwitchOff:
 
     def test_no_new_match_signal_and_last_champion_kept(self):
         service = ChampionDetectorService()
+        service.set_new_match_detection(False)
         service.lcu_manager.is_client_running = Mock(return_value=True)
         service.lcu_manager.connected = True
         service.last_champion = 'Ashe'
