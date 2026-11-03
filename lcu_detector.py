@@ -255,7 +255,7 @@ class ChampionDetector:
         self._cached_matchup_pairs: list = []  # Cache pairs to merge incomplete data
         self._matchup_pairs_locked: bool = False  # Lock after all 10 champions confirmed
         self._last_champ_select_timer: float = 0  # Track ChampSelect session changes (legacy heuristic, used when new-match detection is OFF)
-        self.new_match_detection_enabled: bool = False  # ON: phase/gameId based detection; OFF: legacy timer heuristic
+        self.new_match_detection_enabled: bool = True  # ON (default): phase/gameId based detection; OFF: legacy timer heuristic
         self._prev_phase: Optional[str] = None  # Previous phase seen by this detector (for new-session detection)
         self._last_champ_select_game_id: int = 0  # Last non-zero champ-select gameId seen
         self._cached_allies: list = []  # Cache allies for InProgress merge
@@ -816,8 +816,8 @@ class ChampionDetectorService(QObject):
         self.in_game_watch_interval_ms = 15000  # Watch-mode interval while a game is starting / in progress / ending
         self.is_checking = False
         self._polling_paused = False
-        # New-match detection switch (feature flag). OFF = exactly the legacy behaviour.
-        self.new_match_detection_enabled = False
+        # New-match detection switch. Default ON; OFF = exactly the legacy behaviour.
+        self.new_match_detection_enabled = True
         self._watch_mode = False  # Low-load phase-only watching (only when the switch is ON)
         self._watch_seen_non_champ_select = False
         self._watch_champ_select_ticks = 0

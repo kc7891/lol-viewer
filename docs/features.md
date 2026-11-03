@@ -60,12 +60,12 @@ Viewersページ上部に表示される5行のマッチアップリスト。ラ
 - `ChampionDetectorService` の `matchup_data_updated` シグナルでデータを受信（味方レーン情報・敵ピック順を含むdict）
 - 行の位置がレーンに対応 (0=top, 1=jungle, 2=middle, 3=bottom, 4=support)
 
-### 新マッチ時の自動リセット (Beta)
+### 新マッチ時の自動リセット
 
-- Feature Flag (`auto_reset_on_new_match`, デフォルト OFF)
-- 新しい Champ Select 開始時（ChampSelect 以外 → ChampSelect の遷移、または champ-select session の `gameId` 変更）に `new_match_started` シグナルが `matchup_data_updated` より先に発火し、ONの場合は Close All + Matchup クリアを自動実行する
-- OFF（デフォルト）: 旧動作と完全に同一。新セッション判定は timer ヒューリスティック、10体検知後は `timer.stop()` で Refresh まで停止し、`new_match_started` は発火せず `last_champion` もリセットしない
-- ON（`ChampionDetectorService.set_new_match_detection(True)`、フラグ変更で即時反映）: 10体検知後は通常ポーリングを止めて「watch モード」に入る
+- 標準機能（Feature Flag なし。常に有効）
+- 新しい Champ Select 開始時（ChampSelect 以外 → ChampSelect の遷移、または champ-select session の `gameId` 変更）に `new_match_started` シグナルが `matchup_data_updated` より先に発火し、Close All + Matchup クリアを自動実行する
+- 内部スイッチ OFF（`set_new_match_detection(False)`、テスト・フォールバック用）: 旧動作と完全に同一。新セッション判定は timer ヒューリスティック、10体検知後は `timer.stop()` で Refresh まで停止し、`new_match_started` は発火せず `last_champion` もリセットしない
+- 通常（デフォルト）: 10体検知後は通常ポーリングを止めて「watch モード」に入る
   - watch 中は接続済みならプロセススキャンを省略し、`/lol-gameflow/v1/session` への HTTP 1本だけでフェーズを確認する（未接続なら通常の再接続・バックオフ処理）
   - 間隔は GameStart / InProgress / WaitingForStats / PreEndOfGame / EndOfGame の間は15秒、それ以外は5秒。試合中に通常の2秒ポーリングへは戻らない
   - ChampSelect 以外のフェーズを経由して ChampSelect に戻ると watch を解除して通常間隔に復帰し、同じ tick で検知を実行して `new_match_started` を発火する
