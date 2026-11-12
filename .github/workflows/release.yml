@@ -187,7 +187,7 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.check_tag.outputs.exists == 'false' && env.DRY_RUN != 'true'
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           tag_name: v${{ steps.version.outputs.new }}
           name: v${{ steps.version.outputs.new }}
@@ -297,7 +297,7 @@ jobs:
         shell: pwsh
 
       - name: Build Installer
-        uses: Minionguyjpro/inno-setup-action@ec985ef724d1fb4a05bfbc1a8e49930dc76d2b0c # v1.2.9
+        uses: Minionguyjpro/inno-setup-action@36e43b836ce2c78d21787b1f7183caf85c60ba05 # v1.3.0
         with:
           path: lol-viewer.iss
 
@@ -308,7 +308,7 @@ jobs:
         shell: pwsh
 
       - name: Upload to Release
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           tag_name: v${{ needs.release.outputs.new_version }}
           files: installer_output/lol-viewer-setup.zip
