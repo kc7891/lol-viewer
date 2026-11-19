@@ -1,0 +1,6 @@
+storybook-static/
+test-results/
+playwright-report/
+e2e/screenshots/
+apps/desktop/out/
+apps/desktop/release/

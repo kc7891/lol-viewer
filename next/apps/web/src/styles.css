@@ -1,0 +1,381 @@
+/* Design tokens: the palette from ../../../docs/architecture.md (issue #75). */
+:root {
+  --background: #0d1117;
+  --foreground: #e2e8f0;
+  --card: #141b24;
+  --primary: #00d6a1;
+  --primary-foreground: #0d1117;
+  --secondary: #1c2330;
+  --secondary-foreground: #c1c9d4;
+  --muted: #181f29;
+  --muted-foreground: #6d7a8a;
+  --border: #222a35;
+  --sidebar-background: #090e14;
+  --sidebar-accent: #171e28;
+  --sidebar-border: #1c2330;
+  --ally: #0078f5;
+  --enemy: #e0342c;
+  --destructive: #e0342c;
+  --radius: 6px;
+  --font: "Segoe UI", system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font: 13px/1.4 var(--font);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* ── App shell ── */
+.app {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  height: 100%;
+}
+
+.sidebar {
+  background: var(--sidebar-background);
+  border-right: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sidebar-header {
+  padding: 14px 12px 8px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+}
+
+.viewer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.viewer-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: none;
+  text-align: left;
+}
+
+.viewer-item:hover {
+  background: var(--sidebar-accent);
+}
+
+.viewer-item[aria-pressed="true"] {
+  background: var(--sidebar-accent);
+  border-left-color: var(--primary);
+}
+
+.viewer-item .name {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.viewer-item .kind {
+  font-size: 9px;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.toolbar .spacer {
+  flex: 1;
+}
+
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.seg button {
+  background: none;
+  border: 0;
+  padding: 4px 10px;
+  color: var(--secondary-foreground);
+}
+
+.seg button[aria-pressed="true"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.btn {
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 10px;
+}
+
+/* ── Status ── */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 12px;
+  border-top: 1px solid var(--sidebar-border);
+  font-size: 12px;
+}
+
+.status .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status[data-status="connecting"] {
+  color: var(--muted-foreground);
+}
+.status[data-status="connected"] {
+  color: var(--primary);
+}
+.status[data-status="disconnected"] {
+  color: var(--destructive);
+}
+
+/* ── Champion icon ── */
+.champ-icon {
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--secondary);
+  display: inline-grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--secondary-foreground);
+  flex-shrink: 0;
+}
+
+/* ── Matchup list ── */
+.matchup {
+  background: var(--sidebar-background);
+  border-bottom: 1px solid var(--border);
+  padding: 4px 12px 6px;
+  flex-shrink: 0;
+}
+
+.matchup-title {
+  display: flex;
+  justify-content: space-between;
+  height: 24px;
+  align-items: center;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+}
+
+.matchup-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 28px 1fr;
+  align-items: center;
+  height: 33px;
+  border-top: 1px solid rgba(34, 39, 47, 0.5);
+}
+
+.matchup-row .lane {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.side.enemy {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.side .label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side.ally .label {
+  border-left: 2px solid var(--ally);
+  padding-left: 6px;
+}
+
+.side.enemy .label {
+  border-right: 2px solid var(--enemy);
+  padding-right: 6px;
+}
+
+.side .empty {
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+
+.vs {
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 10px;
+}
+
+.self-badge {
+  font-size: 9px;
+  color: var(--primary-foreground);
+  background: var(--primary);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+/* ── Viewer grid ── */
+.viewer-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: 6px;
+  padding: 6px;
+}
+
+.viewer-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--card);
+}
+
+.viewer-pane header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.viewer-pane header .title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewer-pane header .kind {
+  font-size: 10px;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+}
+
+/* ── External view slot ── */
+.slot {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.slot-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--muted-foreground);
+  background: repeating-linear-gradient(135deg, var(--card) 0 12px, var(--muted) 12px 24px);
+}
+
+.slot-placeholder code {
+  color: var(--secondary-foreground);
+  font-size: 11px;
+  word-break: break-all;
+  padding: 0 16px;
+}
+
+.slot-placeholder a {
+  color: var(--primary);
+}
+
+.empty-state {
+  flex: 1;
+  display: grid;
+  place-content: center;
+  color: var(--muted-foreground);
+}
+
+/* ── Modal (demonstrates hiding native views under HTML overlays) ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid;
+  place-items: center;
+}
+
+.modal {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  width: min(360px, calc(100vw - 32px));
+}
+
+/* ── Mock playback bar (browser / preview mode only) ── */
+.mockbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}

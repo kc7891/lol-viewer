@@ -1,0 +1,33 @@
+{
+  "name": "lol-viewer-next",
+  "private": true,
+  "version": "0.0.0",
+  "description": "PoC: Electron + Web UI rewrite of LoL Viewer (see ../docs/design/next-architecture.md)",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r --workspace-concurrency=4 exec tsc -p tsconfig.json",
+    "test": "vitest run",
+    "fake-lcu": "tsx tools/fake-lcu/src/cli.ts",
+    "web:dev": "pnpm --filter @lol-viewer/web dev",
+    "web:build": "pnpm --filter @lol-viewer/web build",
+    "storybook": "pnpm --filter @lol-viewer/web storybook",
+    "storybook:build": "pnpm --filter @lol-viewer/web build-storybook",
+    "desktop:build": "pnpm web:build && pnpm --filter @lol-viewer/desktop build",
+    "desktop:start": "pnpm desktop:build && pnpm --filter @lol-viewer/desktop start",
+    "desktop:dist": "pnpm desktop:build && pnpm --filter @lol-viewer/desktop dist",
+    "e2e:storybook": "playwright test -c e2e/playwright.storybook.config.ts",
+    "e2e:electron": "playwright test -c e2e/playwright.electron.config.ts",
+    "check": "pnpm typecheck && pnpm test && pnpm storybook:build && pnpm e2e:storybook"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "26.6.6",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  },
+  "type": "module"
+}
