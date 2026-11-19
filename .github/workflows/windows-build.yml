@@ -3,6 +3,9 @@ name: Windows Build
 on:
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      # next/ is the Electron PoC; it has its own workflow (next-ci.yml).
+      - 'next/**'
 
 jobs:
   build:
