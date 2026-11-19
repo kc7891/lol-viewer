@@ -1,0 +1,13 @@
+{
+  "name": "@lol-viewer/core",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@lol-viewer/protocol": "workspace:*",
+    "zod": "4.6.7"
+  }
+}
