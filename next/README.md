@@ -53,16 +53,18 @@ e2e/                Playwright（Storybook スクショ、Electron E2E）
    - HTML のモーダルを開くと全ビューを隠し、閉じると戻る。
 2. **データの流れが League Client なしで全部テストできる**: シナリオ → 偽 LCU（HTTP + WAMP）→ 本物の接続部 → core → Hub → UI。
 3. **Windows なしで UI を確認できる**: Storybook の全 story と Electron 本体のスクショを Linux で生成できる。
-4. **パッケージ化**: electron-builder で作った exe（asar）でも同じ E2E が通る（Linux で確認済み。Windows は CI で確認する）。
+4. **パッケージ化**: electron-builder で作った exe（asar）でも同じ E2E が通る。Linux と、Windows CI（`windows-latest`）の両方で確認済み。
 
-### 計測メモ（Linux / Xvfb / ソフトウェア描画）
+### 計測メモ
 
-| 状態 | アプリ全体のメモリ（working set 合計） |
-|---|---|
-| 外部ビュー 0 枚 | 約 530 MB |
-| lolalytics 3 枚を読み込んだあと | 約 1.35 GB |
+| 項目 | Windows（CI, packaged exe） | Linux（Xvfb, ソフトウェア描画） |
+|---|---|---|
+| 外部ビュー 0 枚のメモリ（全プロセス合計） | 約 290 MB | 約 530 MB |
+| lolalytics 3 枚を読み込んだあと | 約 1.0 GB | 約 1.35 GB |
+| インストーラ（NSIS, 未署名） | 約 121 MB | — |
 
-lolalytics は広告などを含む重いページで、1 枚あたり 250〜300MB ほど増える。同時に開いておく数の上限と、キャッシュする数（`MAX_CACHED = 4`）の調整は今後の課題。Windows での値は CI のログで確認する。
+lolalytics は広告などを含む重いページで、1 枚あたり 250〜300MB ほど増える。同時に開いておく数の上限と、キャッシュする数（`MAX_CACHED = 4`）の調整は今後の課題。
+Windows CI の runner は画面が 1024×768 なので、スクショの右側は切れている。
 
 ## 安全性（設計書 §6 のうち実装済みのもの）
 
