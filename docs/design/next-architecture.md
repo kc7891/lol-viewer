@@ -116,6 +116,10 @@ sequenceDiagram
   - Storybook / ブラウザ / スマホ: 「スクリーンショット画像 + 『外部で開く』リンク + QR」にフォールバックする。
   → UI のレイアウト確認に外部サイトは要らない。
 - WebView のライフサイクル（作成・再利用・破棄・表示/非表示）は main プロセスの 1 クラスに閉じ込める。現行の「同じ Tick で `setUrl()` と `hide()` をするとクラッシュ」のような地雷は、プロセスが分かれることで構造的になくなる。
+- **複数の外部 WebView は 1 ウィンドウに並べられる**（公式ドキュメントで確認済み）:
+  - `win.contentView.addChildView(view)` + `view.setBounds(...)` で何枚でも置ける。公式の例でも 2 枚を横に並べている（[WebContentsView](https://www.electronjs.org/docs/latest/api/web-contents-view)）。
+  - 「Electron は複数並べられない」というのは旧 API の話。今は使わない `BrowserView` は Electron 30 から非推奨（[移行ガイド](https://www.electronjs.org/blog/migrate-to-webcontentsview)）。`<webview>` タグも公式が「使わないことを推奨」している（[webview tag](https://www.electronjs.org/docs/latest/api/webview-tag)）。どちらも採用しない。
+  - 実装上の注意: 背景がデフォルトで白い / `setAutoResize` がないのでウィンドウの resize を受けて自分で `setBounds` する / `addChildView` を同じ view にもう一度呼ぶと最前面に移る（重なり順の制御に使う）/ 1 つの WebContents は同時に 1 つの view にしか出せない / view ごとにレンダラプロセスが立つのでメモリを食う（開いておく view の数に上限を設けて、古いものから破棄する）。
 - 注意: HTML のオーバーレイ（ドロップダウンやモーダル）は WebContentsView の **下** に隠れる。セレクター展開中は該当 view を `hide` するか、モーダルを別 view に出すルールを決めておく（現行 Qt 版でも「セレクター展開時は WebView を隠す」挙動なので、体験は変わらない）。
 
 ### 3.3 リポジトリ構成
