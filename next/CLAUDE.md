@@ -10,6 +10,10 @@
   - `packages/lcu` に書き込み系（POST/PUT/PATCH/DELETE）の API を足さない
   - 外部ビューに preload や Node 権限を渡さない。iframe は使わない
 
+## データ
+
+- `packages/core/data/champions.json` は生成物。手で編集せず `pnpm champion-data` で作り直す（週次ワークフローも同じコマンドを使う）。
+
 ## 完了の定義
 
 ```bash

@@ -169,3 +169,39 @@ export interface LolViewerBridge {
   /** Present only where native external views exist (Electron). */
   readonly views?: ViewsApi;
 }
+
+// ── Static champion data (generated from Data Dragon; see tools/champion-data) ──
+
+export const SpellKeySchema = z.enum(["Q", "W", "E", "R"]);
+export type SpellKey = z.infer<typeof SpellKeySchema>;
+
+export const ChampionSpellSchema = z.object({
+  key: SpellKeySchema,
+  name: z.string().min(1),
+  nameJa: z.string().min(1),
+  maxrank: z.number().int().min(1).max(6),
+  /** Base cooldown (seconds) per rank; length === maxrank. No ability haste applied. */
+  cooldown: z.array(z.number().nonnegative()),
+});
+export type ChampionSpell = z.infer<typeof ChampionSpellSchema>;
+
+export const ChampionEntrySchema = z.object({
+  /** Numeric id the League Client uses (Data Dragon `key`). */
+  id: z.number().int().positive(),
+  /** Data Dragon id, also the image name (e.g. "MonkeyKing"). */
+  ddragonId: z.string().min(1),
+  /** URL name used by lolalytics / u.gg (e.g. "wukong"). */
+  slug: z.string().regex(/^[a-z0-9]+$/),
+  name: z.string().min(1),
+  nameJa: z.string().min(1),
+  spells: z.array(ChampionSpellSchema).length(4),
+});
+export type ChampionEntry = z.infer<typeof ChampionEntrySchema>;
+
+export const ChampionDataSchema = z.object({
+  source: z.literal("Data Dragon"),
+  /** Data Dragon version, e.g. "16.23.1". */
+  patch: z.string().regex(/^\d+\.\d+\.\d+$/),
+  champions: z.array(ChampionEntrySchema).min(1),
+});
+export type ChampionData = z.infer<typeof ChampionDataSchema>;
