@@ -21,3 +21,10 @@ export function autoViewers(state: MatchState): ViewerTarget[] {
   }
   return out;
 }
+
+/** Champion whose cooldowns to show by default: my lane opponent, else the first enemy pick. */
+export function defaultCooldownChampion(state: MatchState): number | null {
+  const lane = state.self?.lane;
+  const opp = lane ? state.matchups.find((r) => r.lane === lane)?.enemyChampionId : null;
+  return opp ?? state.enemies.find((e) => e.championId != null)?.championId ?? null;
+}

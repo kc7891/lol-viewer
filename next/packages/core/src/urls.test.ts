@@ -54,3 +54,27 @@ describe("autoViewers", async () => {
     expect(ids).toEqual(["build:103", "matchup:103:238:middle", "counter:86", "counter:76", "counter:238", "counter:51", "counter:89"]);
   });
 });
+
+describe("defaultCooldownChampion", async () => {
+  const { defaultCooldownChampion } = await import("./viewers.ts");
+  const { initialMatchState, reduce } = await import("./reducer.ts");
+  const cs = (my: number[], their: number[], local: number) =>
+    reduce(initialMatchState(), {
+      type: "champ-select-session",
+      session: {
+        localPlayerCellId: local,
+        myTeam: my.map((championId, cellId) => ({ cellId, championId, assignedPosition: ["top", "jungle", "middle", "bottom", "utility"][cellId] })),
+        theirTeam: their.map((championId, i) => ({ cellId: 5 + i, championId })),
+      },
+    });
+
+  it("prefers my lane opponent", () => {
+    expect(defaultCooldownChampion(cs([122, 64, 103], [86, 76, 238], 2))).toBe(238);
+  });
+  it("falls back to the first enemy pick", () => {
+    expect(defaultCooldownChampion(cs([0, 0, 103], [86], 2))).toBe(86);
+  });
+  it("is null before any enemy pick", () => {
+    expect(defaultCooldownChampion(cs([0, 0, 103], [], 2))).toBeNull();
+  });
+});

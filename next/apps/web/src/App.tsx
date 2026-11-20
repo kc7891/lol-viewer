@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { autoViewers, viewerId, type ViewerTarget } from "@lol-viewer/core";
+import { autoViewers, defaultCooldownChampion, viewerId, type ViewerTarget } from "@lol-viewer/core";
 import { SuppressViewsProvider, useMatchState } from "./bridge/context.tsx";
 import { ChampionIcon } from "./components/ChampionIcon.tsx";
 import { ConnectionStatus } from "./components/ConnectionStatus.tsx";
+import { CooldownPanel } from "./components/CooldownPanel.tsx";
 import { MatchupList } from "./components/MatchupList.tsx";
 import { ViewerPane, viewerTitle } from "./components/ViewerPane.tsx";
 import type { ReactNode } from "react";
@@ -22,9 +23,14 @@ export function App({ initialLayout = 2, toolbarExtra, initialSettingsOpen = fal
   const [layout, setLayout] = useState<Layout>(initialLayout);
   const [selected, setSelected] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(initialSettingsOpen);
+  const [cooldownPick, setCooldownPick] = useState<number | null>(null);
+  const cooldownChampionId = cooldownPick ?? defaultCooldownChampion(state);
 
-  // New match -> drop the previous selection (the auto viewers already reset).
-  useEffect(() => setSelected([]), [state.matchSeq]);
+  // New match -> drop the previous selections (the auto viewers already reset).
+  useEffect(() => {
+    setSelected([]);
+    setCooldownPick(null);
+  }, [state.matchSeq]);
 
   const byId = new Map(viewers.map((v) => [viewerId(v), v]));
   const visibleIds = [...selected.filter((id) => byId.has(id)), ...viewers.map(viewerId)]
@@ -60,7 +66,10 @@ export function App({ initialLayout = 2, toolbarExtra, initialSettingsOpen = fal
         </aside>
 
         <main className="main">
-          <MatchupList state={state} />
+          <div className="top-area">
+            <MatchupList state={state} selectedChampionId={cooldownChampionId} onSelectChampion={setCooldownPick} />
+            <CooldownPanel championId={cooldownChampionId} />
+          </div>
           <div className="toolbar">
             <div className="seg" role="group" aria-label="Layout">
               {([1, 2, 3] as const).map((n) => (

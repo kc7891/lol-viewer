@@ -40,6 +40,7 @@ packages/core       純粋ロジック: reducer (LcuEvent -> MatchState)、URL �
 packages/lcu        🔴 読み取り専用の LCU クライアント（GET + WAMP 購読のみ）
 packages/hub        状態ストア + 購読用サーバ（127.0.0.1 / トークン / Origin・Host 検証）
 tools/fake-lcu      シナリオを LCU と同じプロトコルで再生する偽サーバ
+tools/champion-data Data Dragon からチャンピオン表（ID・名前・URL 名・スキルのクールダウン）を生成
 scenarios/          試合のイベント列（JSONL）。テスト・Storybook・E2E で共用
 apps/web            React UI。Electron・ブラウザ・Storybook で同じものが動く
 apps/desktop        🔴 Electron main / preload / ExternalViewManager / electron-builder
@@ -74,11 +75,30 @@ Windows CI の runner は画面が 1024×768 なので、スクショの右側�
 - アプリ本体のウィンドウ: sandbox、contextIsolation、ナビゲーション禁止。IPC は送り元フレームを確認し、zod で検証する。本番ビルドは CSP を強制する。
 - Hub サーバ: 127.0.0.1 にだけ bind、トークン必須、`Origin` と `Host` を検証（DNS rebinding 対策）。テスト済み。
 
+## チャンピオンデータ（自動生成）
+
+`packages/core/data/champions.json` は **手で編集しない**。Data Dragon から生成する:
+
+```bash
+pnpm champion-data                      # 最新パッチで再生成
+pnpm champion-data --version 16.22.1    # パッチを指定
+```
+
+- 中身: League Client が送ってくる数値 ID、英語名・日本語名、lolalytics/u.gg の URL 名（`MonkeyKing` → `wukong` のみ例外）、Q/W/E/R のランク別の基本クールダウン。
+- 更新: [`.github/workflows/next-champion-data.yml`](../.github/workflows/next-champion-data.yml) が毎週木曜に再生成し、変化があれば PR を出す。PR 本文にクールダウンの変更点の表が入る。
+- アプリは同梱した JSON を読むだけで、実行時には通信しない。
+- 生成した URL 名は、全 173 体が lolalytics で 200 を返すことを確認済み（2026-11, patch 16.23.1）。
+
+### クールダウン表示
+
+- マッチアップの右に、選んだチャンピオンの Q/W/E/R のランク別の基本クールダウンを表示する（デフォルトは自分のレーンの対面。マッチアップのチャンピオンをクリックで切り替え）。
+- Wiki と同じ静的な参考情報。タイマーではなく、試合中のレベルとも連動しない。スキルヘイストは反映しない。
+- Data Dragon にクールダウンがないスキル（パッシブ、チャージ式など。例: Gangplank E）は「—」と表示する。変身チャンピオン（Jayce など）はランク数が 6 や 1 になるが、Data Dragon の値をそのまま出している。
+
 ## まだやっていないこと
 
 - 実際の LCU（https/wss、Riot の自己署名証明書）での接続確認。Windows 実機で人間が `pnpm desktop:start` する必要がある。
 - 実際の試合の録画ツール（`tools/recorder`）
 - 自動更新、コード署名、Python 版からの設定の引き継ぎ
 - Storybook の画像差分比較（今はスクショを保存するだけ。基準画像を CI 環境で作る仕組みが必要）
-- チャンピオン表を Data Dragon から自動生成する（今は PoC 用の 13 体だけ）
 - CODEOWNERS とブランチ保護による 🔴 ゾーンの強制

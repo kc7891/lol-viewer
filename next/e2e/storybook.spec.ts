@@ -46,3 +46,22 @@ test("App: second match resets the previous picks", async ({ page }) => {
   const names = await page.locator(".viewer-item .name").allTextContents();
   expect(names).toEqual(["Aatrox", "Aatrox vs Darius", "Darius"]);
 });
+
+test("App: cooldowns default to my lane opponent and follow clicks", async ({ page }) => {
+  await page.goto("/iframe.html?id=screens-app--champ-select-complete&viewMode=story");
+  const panel = page.getByRole("region", { name: "Cooldowns" });
+  await expect(panel.locator(".cooldowns-champ")).toContainText("Zed"); // Ahri (me, mid) vs Zed
+  await expect(panel.locator("tr")).toHaveCount(4);
+
+  await page.locator('.matchup-row[data-lane="top"] button.side.enemy').click(); // Garen
+  await expect(panel.locator(".cooldowns-champ")).toContainText("Garen");
+  await expect(page.locator('.matchup-row[data-lane="top"] button.side.enemy')).toHaveAttribute("aria-pressed", "true");
+});
+
+test("CooldownPanel: numbers per rank, dash when Data Dragon has none", async ({ page }) => {
+  await page.goto("/iframe.html?id=components-cooldownpanel--ahri&viewMode=story");
+  await expect(page.locator('tr[data-spell="W"] .spell-cd')).toHaveText("9 / 8 / 7 / 6 / 5 s");
+  await expect(page.locator('tr[data-spell="R"] .spell-cd')).toHaveText("140 / 120 / 100 s");
+  await page.goto("/iframe.html?id=components-cooldownpanel--gangplank&viewMode=story");
+  await expect(page.locator('tr[data-spell="E"] .spell-cd')).toHaveText("—");
+});
