@@ -1,0 +1,6407 @@
+{
+  "source": "Data Dragon",
+  "patch": "16.23.1",
+  "champions": [
+    {
+      "id": 266,
+      "ddragonId": "Aatrox",
+      "slug": "aatrox",
+      "name": "Aatrox",
+      "nameJa": "エイトロックス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "The Darkin Blade",
+          "nameJa": "ダーキンブレード",
+          "maxrank": 5,
+          "cooldown": [14, 12, 10, 8, 6]
+        },
+        {
+          "key": "W",
+          "name": "Infernal Chains",
+          "nameJa": "炎獄の鎖",
+          "maxrank": 5,
+          "cooldown": [18, 16.5, 15, 13.5, 12]
+        },
+        {
+          "key": "E",
+          "name": "Umbral Dash",
+          "nameJa": "影進撃",
+          "maxrank": 5,
+          "cooldown": [9, 8, 7, 6, 5]
+        },
+        {
+          "key": "R",
+          "name": "World Ender",
+          "nameJa": "ワールドエンダー",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 103,
+      "ddragonId": "Ahri",
+      "slug": "ahri",
+      "name": "Ahri",
+      "nameJa": "アーリ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Orb of Deception",
+          "nameJa": "幻惑のオーブ",
+          "maxrank": 5,
+          "cooldown": [7, 7, 7, 7, 7]
+        },
+        {
+          "key": "W",
+          "name": "Fox-Fire",
+          "nameJa": "フォックスファイア",
+          "maxrank": 5,
+          "cooldown": [9, 8, 7, 6, 5]
+        },
+        {
+          "key": "E",
+          "name": "Charm",
+          "nameJa": "チャーム",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "R",
+          "name": "Spirit Rush",
+          "nameJa": "スピリットラッシュ",
+          "maxrank": 3,
+          "cooldown": [140, 120, 100]
+        }
+      ]
+    },
+    {
+      "id": 84,
+      "ddragonId": "Akali",
+      "slug": "akali",
+      "name": "Akali",
+      "nameJa": "アカリ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Five Point Strike",
+          "nameJa": "五連苦無",
+          "maxrank": 5,
+          "cooldown": [1.5, 1.5, 1.5, 1.5, 1.5]
+        },
+        {
+          "key": "W",
+          "name": "Twilight Shroud",
+          "nameJa": "黄昏の帳",
+          "maxrank": 5,
+          "cooldown": [20, 19, 18, 17, 16]
+        },
+        {
+          "key": "E",
+          "name": "Shuriken Flip",
+          "nameJa": "翻身手裏剣",
+          "maxrank": 5,
+          "cooldown": [16, 14.5, 13, 11.5, 10]
+        },
+        {
+          "key": "R",
+          "name": "Perfect Execution",
+          "nameJa": "完遂",
+          "maxrank": 3,
+          "cooldown": [120, 90, 60]
+        }
+      ]
+    },
+    {
+      "id": 166,
+      "ddragonId": "Akshan",
+      "slug": "akshan",
+      "name": "Akshan",
+      "nameJa": "アクシャン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Avengerang",
+          "nameJa": "報復のブーメラン",
+          "maxrank": 5,
+          "cooldown": [9, 8, 7, 6, 5]
+        },
+        {
+          "key": "W",
+          "name": "Going Rogue",
+          "nameJa": "義賊の流儀",
+          "maxrank": 5,
+          "cooldown": [18, 14, 10, 6, 2]
+        },
+        {
+          "key": "E",
+          "name": "Heroic Swing",
+          "nameJa": "ヒーロースイング",
+          "maxrank": 5,
+          "cooldown": [18, 16.5, 15, 13.5, 12]
+        },
+        {
+          "key": "R",
+          "name": "Comeuppance",
+          "nameJa": "当然の報い",
+          "maxrank": 3,
+          "cooldown": [100, 85, 70]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "ddragonId": "Alistar",
+      "slug": "alistar",
+      "name": "Alistar",
+      "nameJa": "アリスター",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Pulverize",
+          "nameJa": "圧砕",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "W",
+          "name": "Headbutt",
+          "nameJa": "頭突き",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "E",
+          "name": "Trample",
+          "nameJa": "踏破",
+          "maxrank": 5,
+          "cooldown": [12, 11.5, 11, 10.5, 10]
+        },
+        {
+          "key": "R",
+          "name": "Unbreakable Will",
+          "nameJa": "不屈の意志",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 799,
+      "ddragonId": "Ambessa",
+      "slug": "ambessa",
+      "name": "Ambessa",
+      "nameJa": "アンベッサ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Cunning Sweep / Sundering Slam",
+          "nameJa": "カニングスイープ/サンダリングスラム",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "W",
+          "name": "Repudiation",
+          "nameJa": "断交",
+          "maxrank": 5,
+          "cooldown": [18, 17, 16, 15, 14]
+        },
+        {
+          "key": "E",
+          "name": "Lacerate",
+          "nameJa": "ラセレイト",
+          "maxrank": 5,
+          "cooldown": [13, 12, 11, 10, 9]
+        },
+        {
+          "key": "R",
+          "name": "Public Execution",
+          "nameJa": "公開処刑",
+          "maxrank": 3,
+          "cooldown": [130, 115, 100]
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "ddragonId": "Amumu",
+      "slug": "amumu",
+      "name": "Amumu",
+      "nameJa": "アムム",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Bandage Toss",
+          "nameJa": "絡みつく包帯",
+          "maxrank": 5,
+          "cooldown": [3, 3, 3, 3, 3]
+        },
+        {
+          "key": "W",
+          "name": "Despair",
+          "nameJa": "めそめそ",
+          "maxrank": 5,
+          "cooldown": [1, 1, 1, 1, 1]
+        },
+        {
+          "key": "E",
+          "name": "Tantrum",
+          "nameJa": "だだっこ",
+          "maxrank": 5,
+          "cooldown": [9, 8, 7, 6, 5]
+        },
+        {
+          "key": "R",
+          "name": "Curse of the Sad Mummy",
+          "nameJa": "めそめそミイラの呪い",
+          "maxrank": 3,
+          "cooldown": [150, 125, 100]
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "ddragonId": "Anivia",
+      "slug": "anivia",
+      "name": "Anivia",
+      "nameJa": "アニビア",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Flash Frost",
+          "nameJa": "フラッシュフロスト",
+          "maxrank": 5,
+          "cooldown": [11, 10, 9, 8, 7]
+        },
+        {
+          "key": "W",
+          "name": "Crystallize",
+          "nameJa": "アイスウォール",
+          "maxrank": 5,
+          "cooldown": [17, 17, 17, 17, 17]
+        },
+        {
+          "key": "E",
+          "name": "Frostbite",
+          "nameJa": "フロストバイト",
+          "maxrank": 5,
+          "cooldown": [4, 4, 4, 4, 4]
+        },
+        {
+          "key": "R",
+          "name": "Glacial Storm",
+          "nameJa": "ブリザード",
+          "maxrank": 3,
+          "cooldown": [4, 3, 2]
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "ddragonId": "Annie",
+      "slug": "annie",
+      "name": "Annie",
+      "nameJa": "アニー",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Disintegrate",
+          "nameJa": "ファイアボール",
+          "maxrank": 5,
+          "cooldown": [4, 4, 4, 4, 4]
+        },
+        {
+          "key": "W",
+          "name": "Incinerate",
+          "nameJa": "バーニングファイア",
+          "maxrank": 5,
+          "cooldown": [7, 7, 7, 7, 7]
+        },
+        {
+          "key": "E",
+          "name": "Molten Shield",
+          "nameJa": "モルテンシールド",
+          "maxrank": 5,
+          "cooldown": [10, 10, 10, 10, 10]
+        },
+        {
+          "key": "R",
+          "name": "Summon: Tibbers",
+          "nameJa": "やっちゃえ！ティバーズ！",
+          "maxrank": 3,
+          "cooldown": [130, 115, 100]
+        }
+      ]
+    },
+    {
+      "id": 523,
+      "ddragonId": "Aphelios",
+      "slug": "aphelios",
+      "name": "Aphelios",
+      "nameJa": "アフェリオス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Weapon Abilites",
+          "nameJa": "武器ごとのスキル",
+          "maxrank": 6,
+          "cooldown": [9, 9, 9, 9, 9, 9]
+        },
+        {
+          "key": "W",
+          "name": "Phase",
+          "nameJa": "フェーズ",
+          "maxrank": 6,
+          "cooldown": [0.8, 0.8, 0.8, 0.8, 0.8, 0.8]
+        },
+        {
+          "key": "E",
+          "name": "Weapon Queue System",
+          "nameJa": "武器キューシステム",
+          "maxrank": 6,
+          "cooldown": [0, 0, 0, 0, 0, 0]
+        },
+        {
+          "key": "R",
+          "name": "Moonlight Vigil",
+          "nameJa": "月光の祈り",
+          "maxrank": 3,
+          "cooldown": [120, 110, 100]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "ddragonId": "Ashe",
+      "slug": "ashe",
+      "name": "Ashe",
+      "nameJa": "アッシュ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Ranger's Focus",
+          "nameJa": "レンジャーフォーカス",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "W",
+          "name": "Volley",
+          "nameJa": "ボレー",
+          "maxrank": 5,
+          "cooldown": [18, 14.5, 11, 7.5, 4]
+        },
+        {
+          "key": "E",
+          "name": "Hawkshot",
+          "nameJa": "スカウトホーク",
+          "maxrank": 5,
+          "cooldown": [5, 5, 5, 5, 5]
+        },
+        {
+          "key": "R",
+          "name": "Enchanted Crystal Arrow",
+          "nameJa": "クリスタルアロー",
+          "maxrank": 3,
+          "cooldown": [100, 80, 60]
+        }
+      ]
+    },
+    {
+      "id": 136,
+      "ddragonId": "AurelionSol",
+      "slug": "aurelionsol",
+      "name": "Aurelion Sol",
+      "nameJa": "オレリオン・ソル",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Breath of Light",
+          "nameJa": "星炎の息吹",
+          "maxrank": 5,
+          "cooldown": [3, 3, 3, 3, 3]
+        },
+        {
+          "key": "W",
+          "name": "Astral Flight",
+          "nameJa": "天空への飛翔",
+          "maxrank": 5,
+          "cooldown": [22, 20, 18, 16, 14]
+        },
+        {
+          "key": "E",
+          "name": "Singularity",
+          "nameJa": "特異点",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "R",
+          "name": "Falling Star / The Skies Descend",
+          "nameJa": "星の邂逅/崩れ落つ天穹",
+          "maxrank": 3,
+          "cooldown": [120, 110, 100]
+        }
+      ]
+    },
+    {
+      "id": 893,
+      "ddragonId": "Aurora",
+      "slug": "aurora",
+      "name": "Aurora",
+      "nameJa": "オーロラ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Twofold Hex",
+          "nameJa": "折れ重なる魔法",
+          "maxrank": 5,
+          "cooldown": [9, 8.5, 8, 7.5, 7]
+        },
+        {
+          "key": "W",
+          "name": "Across the Veil",
+          "nameJa": "ベールを越えて",
+          "maxrank": 5,
+          "cooldown": [22, 21, 20, 19, 18]
+        },
+        {
+          "key": "E",
+          "name": "The Weirding",
+          "nameJa": "ウィアーディング",
+          "maxrank": 5,
+          "cooldown": [15, 14, 13, 12, 11]
+        },
+        {
+          "key": "R",
+          "name": "Between Worlds",
+          "nameJa": "世界の狭間",
+          "maxrank": 3,
+          "cooldown": [140, 120, 100]
+        }
+      ]
+    },
+    {
+      "id": 268,
+      "ddragonId": "Azir",
+      "slug": "azir",
+      "name": "Azir",
+      "nameJa": "アジール",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Conquering Sands",
+          "nameJa": "征服の勅命",
+          "maxrank": 5,
+          "cooldown": [14, 12, 10, 8, 6]
+        },
+        {
+          "key": "W",
+          "name": "Arise!",
+          "nameJa": "目覚めよ！",
+          "maxrank": 5,
+          "cooldown": [1.5, 1.5, 1.5, 1.5, 1.5]
+        },
+        {
+          "key": "E",
+          "name": "Shifting Sands",
+          "nameJa": "流砂の衝撃",
+          "maxrank": 5,
+          "cooldown": [22, 20.5, 19, 17.5, 16]
+        },
+        {
+          "key": "R",
+          "name": "Emperor's Divide",
+          "nameJa": "皇帝の分砂嶺",
+          "maxrank": 3,
+          "cooldown": [120, 105, 90]
+        }
+      ]
+    },
+    {
+      "id": 432,
+      "ddragonId": "Bard",
+      "slug": "bard",
+      "name": "Bard",
+      "nameJa": "バード",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Cosmic Binding",
+          "nameJa": "宇宙の法則",
+          "maxrank": 5,
+          "cooldown": [11, 10, 9, 8, 7]
+        },
+        {
+          "key": "W",
+          "name": "Caretaker's Shrine",
+          "nameJa": "回復の遺物",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "E",
+          "name": "Magical Journey",
+          "nameJa": "精霊の旅路",
+          "maxrank": 5,
+          "cooldown": [22, 20.5, 19, 17.5, 16]
+        },
+        {
+          "key": "R",
+          "name": "Tempered Fate",
+          "nameJa": "運命の調律",
+          "maxrank": 3,
+          "cooldown": [110, 95, 80]
+        }
+      ]
+    },
+    {
+      "id": 200,
+      "ddragonId": "Belveth",
+      "slug": "belveth",
+      "name": "Bel'Veth",
+      "nameJa": "ベル＝ヴェス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Void Surge",
+          "nameJa": "ヴォイドサージ",
+          "maxrank": 5,
+          "cooldown": [4, 3.25, 2.5, 1.75, 1]
+        },
+        {
+          "key": "W",
+          "name": "Above and Below",
+          "nameJa": "天と地",
+          "maxrank": 5,
+          "cooldown": [12, 11, 10, 9, 8]
+        },
+        {
+          "key": "E",
+          "name": "Royal Maelstrom",
+          "nameJa": "ロイヤルストーム",
+          "maxrank": 5,
+          "cooldown": [24, 21, 18, 15, 12]
+        },
+        {
+          "key": "R",
+          "name": "Endless Banquet",
+          "nameJa": "終わりなき晩餐",
+          "maxrank": 3,
+          "cooldown": [1, 1, 1]
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "ddragonId": "Blitzcrank",
+      "slug": "blitzcrank",
+      "name": "Blitzcrank",
+      "nameJa": "ブリッツクランク",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Rocket Grab",
+          "nameJa": "ロケットグラブ",
+          "maxrank": 5,
+          "cooldown": [20, 19, 18, 17, 16]
+        },
+        {
+          "key": "W",
+          "name": "Overdrive",
+          "nameJa": "オーバードライブ",
+          "maxrank": 5,
+          "cooldown": [15, 15, 15, 15, 15]
+        },
+        {
+          "key": "E",
+          "name": "Power Fist",
+          "nameJa": "パワーフィスト",
+          "maxrank": 5,
+          "cooldown": [7, 6.5, 6, 5.5, 5]
+        },
+        {
+          "key": "R",
+          "name": "Static Field",
+          "nameJa": "イナズマフィールド",
+          "maxrank": 3,
+          "cooldown": [60, 40, 20]
+        }
+      ]
+    },
+    {
+      "id": 63,
+      "ddragonId": "Brand",
+      "slug": "brand",
+      "name": "Brand",
+      "nameJa": "ブランド",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Sear",
+          "nameJa": "焦炎",
+          "maxrank": 5,
+          "cooldown": [8, 7.5, 7, 6.5, 6]
+        },
+        {
+          "key": "W",
+          "name": "Pillar of Flame",
+          "nameJa": "烈火の柱",
+          "maxrank": 5,
+          "cooldown": [10, 9.5, 9, 8.5, 8]
+        },
+        {
+          "key": "E",
+          "name": "Conflagration",
+          "nameJa": "焼灼",
+          "maxrank": 5,
+          "cooldown": [13, 12, 11, 10, 9]
+        },
+        {
+          "key": "R",
+          "name": "Pyroclasm",
+          "nameJa": "業火",
+          "maxrank": 3,
+          "cooldown": [100, 90, 80]
+        }
+      ]
+    },
+    {
+      "id": 201,
+      "ddragonId": "Braum",
+      "slug": "braum",
+      "name": "Braum",
+      "nameJa": "ブラウム",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Winter's Bite",
+          "nameJa": "冬の凍瘡",
+          "maxrank": 5,
+          "cooldown": [8, 7.5, 7, 6.5, 6]
+        },
+        {
+          "key": "W",
+          "name": "Stand Behind Me",
+          "nameJa": "ワシに任せとけ！",
+          "maxrank": 5,
+          "cooldown": [12, 11, 10, 9, 8]
+        },
+        {
+          "key": "E",
+          "name": "Unbreakable",
+          "nameJa": "不破の盾",
+          "maxrank": 5,
+          "cooldown": [16, 14, 12, 10, 8]
+        },
+        {
+          "key": "R",
+          "name": "Glacial Fissure",
+          "nameJa": "氷河の裂溝",
+          "maxrank": 3,
+          "cooldown": [130, 115, 100]
+        }
+      ]
+    },
+    {
+      "id": 233,
+      "ddragonId": "Briar",
+      "slug": "briar",
+      "name": "Briar",
+      "nameJa": "ブライアー",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Head Rush",
+          "nameJa": "ヘッドラッシュ",
+          "maxrank": 5,
+          "cooldown": [13, 12, 11, 10, 9]
+        },
+        {
+          "key": "W",
+          "name": "Blood Frenzy / Snack Attack",
+          "nameJa": "血の狂乱/衝動噛み",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "E",
+          "name": "Chilling Scream",
+          "nameJa": "呪福の叫び",
+          "maxrank": 5,
+          "cooldown": [16, 16, 16, 16, 16]
+        },
+        {
+          "key": "R",
+          "name": "Certain Death",
+          "nameJa": "迫りくる死",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "ddragonId": "Caitlyn",
+      "slug": "caitlyn",
+      "name": "Caitlyn",
+      "nameJa": "ケイトリン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Piltover Peacemaker",
+          "nameJa": "ピースメーカー",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "W",
+          "name": "Yordle Snap Trap",
+          "nameJa": "ヨードルトラップ",
+          "maxrank": 5,
+          "cooldown": [0.5, 0.5, 0.5, 0.5, 0.5]
+        },
+        {
+          "key": "E",
+          "name": "90 Caliber Net",
+          "nameJa": "L-90 カリバーネット",
+          "maxrank": 5,
+          "cooldown": [16, 14, 12, 10, 8]
+        },
+        {
+          "key": "R",
+          "name": "Ace in the Hole",
+          "nameJa": "ブルズアイ",
+          "maxrank": 3,
+          "cooldown": [90, 90, 90]
+        }
+      ]
+    },
+    {
+      "id": 164,
+      "ddragonId": "Camille",
+      "slug": "camille",
+      "name": "Camille",
+      "nameJa": "カミール",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Precision Protocol",
+          "nameJa": "プレシジョンプロトコル",
+          "maxrank": 5,
+          "cooldown": [9, 8, 7, 6, 5]
+        },
+        {
+          "key": "W",
+          "name": "Tactical Sweep",
+          "nameJa": "タクティカルスイープ",
+          "maxrank": 5,
+          "cooldown": [12, 11.5, 11, 10.5, 10]
+        },
+        {
+          "key": "E",
+          "name": "Hookshot",
+          "nameJa": "フックショット",
+          "maxrank": 5,
+          "cooldown": [16, 15, 14, 13, 12]
+        },
+        {
+          "key": "R",
+          "name": "The Hextech Ultimatum",
+          "nameJa": "ヘクステック・アルティメイタム",
+          "maxrank": 3,
+          "cooldown": [140, 115, 90]
+        }
+      ]
+    },
+    {
+      "id": 69,
+      "ddragonId": "Cassiopeia",
+      "slug": "cassiopeia",
+      "name": "Cassiopeia",
+      "nameJa": "カシオペア",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Noxious Blast",
+          "nameJa": "ノクサスブラスト",
+          "maxrank": 5,
+          "cooldown": [3.5, 3.5, 3.5, 3.5, 3.5]
+        },
+        {
+          "key": "W",
+          "name": "Miasma",
+          "nameJa": "ミアズマ",
+          "maxrank": 5,
+          "cooldown": [24, 22, 20, 18, 16]
+        },
+        {
+          "key": "E",
+          "name": "Twin Fang",
+          "nameJa": "ツインファング",
+          "maxrank": 5,
+          "cooldown": [0.75, 0.75, 0.75, 0.75, 0.75]
+        },
+        {
+          "key": "R",
+          "name": "Petrifying Gaze",
+          "nameJa": "石化の魔眼",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "ddragonId": "Chogath",
+      "slug": "chogath",
+      "name": "Cho'Gath",
+      "nameJa": "チョ＝ガス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Rupture",
+          "nameJa": "ラプチャー",
+          "maxrank": 5,
+          "cooldown": [6, 6, 6, 6, 6]
+        },
+        {
+          "key": "W",
+          "name": "Feral Scream",
+          "nameJa": "スクリーム",
+          "maxrank": 5,
+          "cooldown": [11, 10.5, 10, 9.5, 9]
+        },
+        {
+          "key": "E",
+          "name": "Vorpal Spikes",
+          "nameJa": "ヴォーパルスパイク",
+          "maxrank": 5,
+          "cooldown": [8, 7, 6, 5, 4]
+        },
+        {
+          "key": "R",
+          "name": "Feast",
+          "nameJa": "捕食",
+          "maxrank": 3,
+          "cooldown": [80, 70, 60]
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "ddragonId": "Corki",
+      "slug": "corki",
+      "name": "Corki",
+      "nameJa": "コーキ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Phosphorus Bomb",
+          "nameJa": "閃光弾",
+          "maxrank": 5,
+          "cooldown": [9, 8.5, 8, 7.5, 7]
+        },
+        {
+          "key": "W",
+          "name": "Valkyrie",
+          "nameJa": "ワルキューレ機行",
+          "maxrank": 5,
+          "cooldown": [20, 18, 16, 14, 12]
+        },
+        {
+          "key": "E",
+          "name": "Gatling Gun",
+          "nameJa": "ガトリングガン",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "R",
+          "name": "Missile Barrage",
+          "nameJa": "連発ミサイル",
+          "maxrank": 3,
+          "cooldown": [2, 2, 2]
+        }
+      ]
+    },
+    {
+      "id": 122,
+      "ddragonId": "Darius",
+      "slug": "darius",
+      "name": "Darius",
+      "nameJa": "ダリウス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Decimate",
+          "nameJa": "皆殺しの斧",
+          "maxrank": 5,
+          "cooldown": [9, 7.75, 6.5, 5.25, 4]
+        },
+        {
+          "key": "W",
+          "name": "Crippling Strike",
+          "nameJa": "脚削ぎ",
+          "maxrank": 5,
+          "cooldown": [5, 5, 5, 5, 5]
+        },
+        {
+          "key": "E",
+          "name": "Apprehend",
+          "nameJa": "捕縛",
+          "maxrank": 5,
+          "cooldown": [26, 23.5, 21, 18.5, 16]
+        },
+        {
+          "key": "R",
+          "name": "Noxian Guillotine",
+          "nameJa": "ノクサスギロチン",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 131,
+      "ddragonId": "Diana",
+      "slug": "diana",
+      "name": "Diana",
+      "nameJa": "ダイアナ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Crescent Strike",
+          "nameJa": "月影",
+          "maxrank": 5,
+          "cooldown": [8, 7.5, 7, 6.5, 6]
+        },
+        {
+          "key": "W",
+          "name": "Pale Cascade",
+          "nameJa": "朧月の羽衣",
+          "maxrank": 5,
+          "cooldown": [15, 13.5, 12, 10.5, 9]
+        },
+        {
+          "key": "E",
+          "name": "Lunar Rush",
+          "nameJa": "月下美刃",
+          "maxrank": 5,
+          "cooldown": [22, 20, 18, 16, 14]
+        },
+        {
+          "key": "R",
+          "name": "Moonfall",
+          "nameJa": "崩月",
+          "maxrank": 3,
+          "cooldown": [100, 90, 80]
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "ddragonId": "DrMundo",
+      "slug": "drmundo",
+      "name": "Dr. Mundo",
+      "nameJa": "ドクター・ムンド",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Infected Bonesaw",
+          "nameJa": "骨切りノコギリ",
+          "maxrank": 5,
+          "cooldown": [4, 4, 4, 4, 4]
+        },
+        {
+          "key": "W",
+          "name": "Heart Zapper",
+          "nameJa": "心臓ビリビリ",
+          "maxrank": 5,
+          "cooldown": [17, 16.5, 16, 15.5, 15]
+        },
+        {
+          "key": "E",
+          "name": "Blunt Force Trauma",
+          "nameJa": "野蛮な痛み",
+          "maxrank": 5,
+          "cooldown": [9, 8.25, 7.5, 6.75, 6]
+        },
+        {
+          "key": "R",
+          "name": "Maximum Dosage",
+          "nameJa": "マキシマム投与",
+          "maxrank": 3,
+          "cooldown": [120, 120, 120]
+        }
+      ]
+    },
+    {
+      "id": 119,
+      "ddragonId": "Draven",
+      "slug": "draven",
+      "name": "Draven",
+      "nameJa": "ドレイヴン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Spinning Axe",
+          "nameJa": "回転斬斧",
+          "maxrank": 5,
+          "cooldown": [12, 11, 10, 9, 8]
+        },
+        {
+          "key": "W",
+          "name": "Blood Rush",
+          "nameJa": "血の疼き",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "E",
+          "name": "Stand Aside",
+          "nameJa": "薙ぎ払い",
+          "maxrank": 5,
+          "cooldown": [16, 15, 14, 13, 12]
+        },
+        {
+          "key": "R",
+          "name": "Whirling Death",
+          "nameJa": "死の車輪",
+          "maxrank": 3,
+          "cooldown": [100, 90, 80]
+        }
+      ]
+    },
+    {
+      "id": 245,
+      "ddragonId": "Ekko",
+      "slug": "ekko",
+      "name": "Ekko",
+      "nameJa": "エコー",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Timewinder",
+          "nameJa": "タイムワインダー",
+          "maxrank": 5,
+          "cooldown": [9, 8.5, 8, 7.5, 7]
+        },
+        {
+          "key": "W",
+          "name": "Parallel Convergence",
+          "nameJa": "パラレルトラップ",
+          "maxrank": 5,
+          "cooldown": [22, 20, 18, 16, 14]
+        },
+        {
+          "key": "E",
+          "name": "Phase Dive",
+          "nameJa": "フェイズダイブ",
+          "maxrank": 5,
+          "cooldown": [9, 8.5, 8, 7.5, 7]
+        },
+        {
+          "key": "R",
+          "name": "Chronobreak",
+          "nameJa": "クロノブレイク",
+          "maxrank": 3,
+          "cooldown": [110, 80, 50]
+        }
+      ]
+    },
+    {
+      "id": 60,
+      "ddragonId": "Elise",
+      "slug": "elise",
+      "name": "Elise",
+      "nameJa": "エリス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Neurotoxin / Venomous Bite",
+          "nameJa": "神経毒/毒牙",
+          "maxrank": 5,
+          "cooldown": [6, 6, 6, 6, 6]
+        },
+        {
+          "key": "W",
+          "name": "Volatile Spiderling / Skittering Frenzy",
+          "nameJa": "子蜘蛛爆弾/猛食",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "E",
+          "name": "Cocoon / Rappel",
+          "nameJa": "繭化/蜘蛛の糸",
+          "maxrank": 5,
+          "cooldown": [12, 11.5, 11, 10.5, 10]
+        },
+        {
+          "key": "R",
+          "name": "Spider Form",
+          "nameJa": "蜘蛛形態",
+          "maxrank": 4,
+          "cooldown": [3, 3, 3, 3]
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "ddragonId": "Evelynn",
+      "slug": "evelynn",
+      "name": "Evelynn",
+      "nameJa": "イブリン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Hate Spike",
+          "nameJa": "ヘイトスパイク",
+          "maxrank": 5,
+          "cooldown": [4, 4, 4, 4, 4]
+        },
+        {
+          "key": "W",
+          "name": "Allure",
+          "nameJa": "アリュール",
+          "maxrank": 5,
+          "cooldown": [15, 14, 13, 12, 11]
+        },
+        {
+          "key": "E",
+          "name": "Whiplash",
+          "nameJa": "ウィップラッシュ",
+          "maxrank": 5,
+          "cooldown": [8, 8, 8, 8, 8]
+        },
+        {
+          "key": "R",
+          "name": "Last Caress",
+          "nameJa": "ラストカレス",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 81,
+      "ddragonId": "Ezreal",
+      "slug": "ezreal",
+      "name": "Ezreal",
+      "nameJa": "エズリアル",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Mystic Shot",
+          "nameJa": "ミスティックショット",
+          "maxrank": 5,
+          "cooldown": [5.5, 5.25, 5, 4.75, 4.5]
+        },
+        {
+          "key": "W",
+          "name": "Essence Flux",
+          "nameJa": "エッセンスフラックス",
+          "maxrank": 5,
+          "cooldown": [8, 8, 8, 8, 8]
+        },
+        {
+          "key": "E",
+          "name": "Arcane Shift",
+          "nameJa": "アーケインシフト",
+          "maxrank": 5,
+          "cooldown": [26, 23, 20, 17, 14]
+        },
+        {
+          "key": "R",
+          "name": "Trueshot Barrage",
+          "nameJa": "トゥルーショットバラージ",
+          "maxrank": 3,
+          "cooldown": [120, 105, 90]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "ddragonId": "Fiddlesticks",
+      "slug": "fiddlesticks",
+      "name": "Fiddlesticks",
+      "nameJa": "フィドルスティックス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Terrify",
+          "nameJa": "テラー",
+          "maxrank": 5,
+          "cooldown": [15, 14.5, 14, 13.5, 13]
+        },
+        {
+          "key": "W",
+          "name": "Bountiful Harvest",
+          "nameJa": "豊かな収穫",
+          "maxrank": 5,
+          "cooldown": [10, 9.5, 9, 8.5, 8]
+        },
+        {
+          "key": "E",
+          "name": "Reap",
+          "nameJa": "刈り取り",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "R",
+          "name": "Crowstorm",
+          "nameJa": "クロウストーム",
+          "maxrank": 3,
+          "cooldown": [140, 110, 80]
+        }
+      ]
+    },
+    {
+      "id": 114,
+      "ddragonId": "Fiora",
+      "slug": "fiora",
+      "name": "Fiora",
+      "nameJa": "フィオラ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Lunge",
+          "nameJa": "ファント",
+          "maxrank": 5,
+          "cooldown": [13, 11.25, 9.5, 7.75, 6]
+        },
+        {
+          "key": "W",
+          "name": "Riposte",
+          "nameJa": "リポスト",
+          "maxrank": 5,
+          "cooldown": [24, 22, 20, 18, 16]
+        },
+        {
+          "key": "E",
+          "name": "Bladework",
+          "nameJa": "ブレードワーク",
+          "maxrank": 5,
+          "cooldown": [11, 10, 9, 8, 7]
+        },
+        {
+          "key": "R",
+          "name": "Grand Challenge",
+          "nameJa": "グランドチャレンジ",
+          "maxrank": 3,
+          "cooldown": [110, 90, 70]
+        }
+      ]
+    },
+    {
+      "id": 105,
+      "ddragonId": "Fizz",
+      "slug": "fizz",
+      "name": "Fizz",
+      "nameJa": "フィズ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Urchin Strike",
+          "nameJa": "ウニトゲストライク",
+          "maxrank": 5,
+          "cooldown": [8, 7.5, 7, 6.5, 6]
+        },
+        {
+          "key": "W",
+          "name": "Seastone Trident",
+          "nameJa": "シートライデント",
+          "maxrank": 5,
+          "cooldown": [7, 6, 5, 4, 3]
+        },
+        {
+          "key": "E",
+          "name": "Playful / Trickster",
+          "nameJa": "プレイ/トリックスター",
+          "maxrank": 5,
+          "cooldown": [16, 14, 12, 10, 8]
+        },
+        {
+          "key": "R",
+          "name": "Chum the Waters",
+          "nameJa": "フィッシング",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "ddragonId": "Galio",
+      "slug": "galio",
+      "name": "Galio",
+      "nameJa": "ガリオ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Winds of War",
+          "nameJa": "戦の旋風",
+          "maxrank": 5,
+          "cooldown": [11, 10, 9, 8, 7]
+        },
+        {
+          "key": "W",
+          "name": "Shield of Durand",
+          "nameJa": "デュランドの守り",
+          "maxrank": 5,
+          "cooldown": [18, 17, 16, 15, 14]
+        },
+        {
+          "key": "E",
+          "name": "Justice Punch",
+          "nameJa": "正義の鉄拳",
+          "maxrank": 5,
+          "cooldown": [11, 10, 9, 8, 7]
+        },
+        {
+          "key": "R",
+          "name": "Hero's Entrance",
+          "nameJa": "英雄降臨",
+          "maxrank": 3,
+          "cooldown": [180, 160, 140]
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "ddragonId": "Gangplank",
+      "slug": "gangplank",
+      "name": "Gangplank",
+      "nameJa": "ガングプランク",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Parrrley",
+          "nameJa": "偽りの発砲",
+          "maxrank": 5,
+          "cooldown": [4.5, 4.5, 4.5, 4.5, 4.5]
+        },
+        {
+          "key": "W",
+          "name": "Remove Scurvy",
+          "nameJa": "壊血病治癒",
+          "maxrank": 5,
+          "cooldown": [22, 20, 18, 16, 14]
+        },
+        {
+          "key": "E",
+          "name": "Powder Keg",
+          "nameJa": "火薬樽",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "R",
+          "name": "Cannon Barrage",
+          "nameJa": "一斉砲撃",
+          "maxrank": 3,
+          "cooldown": [160, 140, 120]
+        }
+      ]
+    },
+    {
+      "id": 86,
+      "ddragonId": "Garen",
+      "slug": "garen",
+      "name": "Garen",
+      "nameJa": "ガレン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Decisive Strike",
+          "nameJa": "断固たる一撃",
+          "maxrank": 5,
+          "cooldown": [8, 8, 8, 8, 8]
+        },
+        {
+          "key": "W",
+          "name": "Courage",
+          "nameJa": "勇気の護り",
+          "maxrank": 5,
+          "cooldown": [22, 19.5, 17, 14.5, 12]
+        },
+        {
+          "key": "E",
+          "name": "Judgment",
+          "nameJa": "ジャッジメント",
+          "maxrank": 5,
+          "cooldown": [9, 8.25, 7.5, 6.75, 6]
+        },
+        {
+          "key": "R",
+          "name": "Demacian Justice",
+          "nameJa": "デマーシアの正義",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 150,
+      "ddragonId": "Gnar",
+      "slug": "gnar",
+      "name": "Gnar",
+      "nameJa": "ナー",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Boomerang Throw / Boulder Toss",
+          "nameJa": "ブーメラン/ぽいっ",
+          "maxrank": 5,
+          "cooldown": [16, 14.5, 13, 11.5, 10]
+        },
+        {
+          "key": "W",
+          "name": "Hyper / Wallop",
+          "nameJa": "ごきげん/こてんぱん",
+          "maxrank": 5,
+          "cooldown": [7, 7, 7, 7, 7]
+        },
+        {
+          "key": "E",
+          "name": "Hop / Crunch",
+          "nameJa": "ぴょんぴょん/ドーン！",
+          "maxrank": 5,
+          "cooldown": [22, 19.5, 17, 14.5, 12]
+        },
+        {
+          "key": "R",
+          "name": "GNAR!",
+          "nameJa": "ナー！",
+          "maxrank": 3,
+          "cooldown": [90, 60, 30]
+        }
+      ]
+    },
+    {
+      "id": 79,
+      "ddragonId": "Gragas",
+      "slug": "gragas",
+      "name": "Gragas",
+      "nameJa": "グラガス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Barrel Roll",
+          "nameJa": "タル転がし",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "W",
+          "name": "Drunken Rage",
+          "nameJa": "飲みすぎ注意",
+          "maxrank": 5,
+          "cooldown": [5, 5, 5, 5, 5]
+        },
+        {
+          "key": "E",
+          "name": "Body Slam",
+          "nameJa": "ボディスラム",
+          "maxrank": 5,
+          "cooldown": [14, 13.5, 13, 12.5, 12]
+        },
+        {
+          "key": "R",
+          "name": "Explosive Cask",
+          "nameJa": "ワシの奢りじゃ！",
+          "maxrank": 3,
+          "cooldown": [100, 85, 70]
+        }
+      ]
+    },
+    {
+      "id": 104,
+      "ddragonId": "Graves",
+      "slug": "graves",
+      "name": "Graves",
+      "nameJa": "グレイブス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "End of the Line",
+          "nameJa": "エンドライン",
+          "maxrank": 5,
+          "cooldown": [13, 11.25, 9.5, 7.75, 6]
+        },
+        {
+          "key": "W",
+          "name": "Smoke Screen",
+          "nameJa": "スモークスクリーン",
+          "maxrank": 5,
+          "cooldown": [26, 24, 22, 20, 18]
+        },
+        {
+          "key": "E",
+          "name": "Quickdraw",
+          "nameJa": "クイックドロー",
+          "maxrank": 5,
+          "cooldown": [16, 15, 14, 13, 12]
+        },
+        {
+          "key": "R",
+          "name": "Collateral Damage",
+          "nameJa": "コラテラルダメージ",
+          "maxrank": 3,
+          "cooldown": [100, 80, 60]
+        }
+      ]
+    },
+    {
+      "id": 887,
+      "ddragonId": "Gwen",
+      "slug": "gwen",
+      "name": "Gwen",
+      "nameJa": "グウェン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Snip Snip!",
+          "nameJa": "チョキチョキッ！",
+          "maxrank": 5,
+          "cooldown": [6.5, 5.75, 5, 4.25, 3.5]
+        },
+        {
+          "key": "W",
+          "name": "Hallowed Mist",
+          "nameJa": "聖なる霧",
+          "maxrank": 5,
+          "cooldown": [22, 21, 20, 19, 18]
+        },
+        {
+          "key": "E",
+          "name": "Skip 'n Slash",
+          "nameJa": "スキップスラッシュ",
+          "maxrank": 5,
+          "cooldown": [13, 12.5, 12, 11.5, 11]
+        },
+        {
+          "key": "R",
+          "name": "Needlework",
+          "nameJa": "針仕事",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 120,
+      "ddragonId": "Hecarim",
+      "slug": "hecarim",
+      "name": "Hecarim",
+      "nameJa": "ヘカリム",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Rampage",
+          "nameJa": "ランページ",
+          "maxrank": 5,
+          "cooldown": [4, 4, 4, 4, 4]
+        },
+        {
+          "key": "W",
+          "name": "Spirit of Dread",
+          "nameJa": "ソウルドレイン",
+          "maxrank": 5,
+          "cooldown": [14, 14, 14, 14, 14]
+        },
+        {
+          "key": "E",
+          "name": "Devastating Charge",
+          "nameJa": "チャージ",
+          "maxrank": 5,
+          "cooldown": [20, 19, 18, 17, 16]
+        },
+        {
+          "key": "R",
+          "name": "Onslaught of Shadows",
+          "nameJa": "スペクターズ・オンスロート",
+          "maxrank": 3,
+          "cooldown": [140, 120, 100]
+        }
+      ]
+    },
+    {
+      "id": 74,
+      "ddragonId": "Heimerdinger",
+      "slug": "heimerdinger",
+      "name": "Heimerdinger",
+      "nameJa": "ハイマーディンガー",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "H-28 G Evolution Turret",
+          "nameJa": "H-28G革新砲",
+          "maxrank": 5,
+          "cooldown": [1, 1, 1, 1, 1]
+        },
+        {
+          "key": "W",
+          "name": "Hextech Micro-Rockets",
+          "nameJa": "ヘクステック小型ロケット",
+          "maxrank": 5,
+          "cooldown": [11, 10, 9, 8, 7]
+        },
+        {
+          "key": "E",
+          "name": "CH-2 Electron Storm Grenade",
+          "nameJa": "CH-2超電磁グレネード",
+          "maxrank": 5,
+          "cooldown": [11, 11, 11, 11, 11]
+        },
+        {
+          "key": "R",
+          "name": "UPGRADE!!!",
+          "nameJa": "アップグレード！！！",
+          "maxrank": 3,
+          "cooldown": [100, 85, 70]
+        }
+      ]
+    },
+    {
+      "id": 910,
+      "ddragonId": "Hwei",
+      "slug": "hwei",
+      "name": "Hwei",
+      "nameJa": "フェイ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Subject: Disaster",
+          "nameJa": "題材: 厄災",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "W",
+          "name": "Subject: Serenity",
+          "nameJa": "題材: 静謐",
+          "maxrank": 5,
+          "cooldown": [18, 17.5, 17, 16.5, 16]
+        },
+        {
+          "key": "E",
+          "name": "Subject: Torment",
+          "nameJa": "題材: 苦悩",
+          "maxrank": 5,
+          "cooldown": [12, 11.5, 11, 10.5, 10]
+        },
+        {
+          "key": "R",
+          "name": "Spiraling Despair",
+          "nameJa": "絶望の渦",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 420,
+      "ddragonId": "Illaoi",
+      "slug": "illaoi",
+      "name": "Illaoi",
+      "nameJa": "イラオイ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Tentacle Smash",
+          "nameJa": "触手の鉄槌",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "W",
+          "name": "Harsh Lesson",
+          "nameJa": "過酷なる教訓",
+          "maxrank": 5,
+          "cooldown": [4, 4, 4, 4, 4]
+        },
+        {
+          "key": "E",
+          "name": "Test of Spirit",
+          "nameJa": "魂の試練",
+          "maxrank": 5,
+          "cooldown": [16, 15, 14, 13, 12]
+        },
+        {
+          "key": "R",
+          "name": "Leap of Faith",
+          "nameJa": "信仰震",
+          "maxrank": 3,
+          "cooldown": [120, 95, 70]
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "ddragonId": "Irelia",
+      "slug": "irelia",
+      "name": "Irelia",
+      "nameJa": "イレリア",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Bladesurge",
+          "nameJa": "瞬刃",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "W",
+          "name": "Defiant Dance",
+          "nameJa": "不屈の舞",
+          "maxrank": 5,
+          "cooldown": [20, 18, 16, 14, 12]
+        },
+        {
+          "key": "E",
+          "name": "Flawless Duet",
+          "nameJa": "無欠の連舞",
+          "maxrank": 5,
+          "cooldown": [16, 14.5, 13, 11.5, 10]
+        },
+        {
+          "key": "R",
+          "name": "Vanguard's Edge",
+          "nameJa": "先陣の刃",
+          "maxrank": 3,
+          "cooldown": [125, 105, 85]
+        }
+      ]
+    },
+    {
+      "id": 427,
+      "ddragonId": "Ivern",
+      "slug": "ivern",
+      "name": "Ivern",
+      "nameJa": "アイバーン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Rootcaller",
+          "nameJa": "ネッコナゲ",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "W",
+          "name": "Brushmaker",
+          "nameJa": "シゲミヅクリ",
+          "maxrank": 5,
+          "cooldown": [0.5, 0.5, 0.5, 0.5, 0.5]
+        },
+        {
+          "key": "E",
+          "name": "Triggerseed",
+          "nameJa": "タネバクダン",
+          "maxrank": 5,
+          "cooldown": [11, 10, 9, 8, 7]
+        },
+        {
+          "key": "R",
+          "name": "Daisy!",
+          "nameJa": "デイジー！",
+          "maxrank": 3,
+          "cooldown": [140, 130, 120]
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "ddragonId": "Janna",
+      "slug": "janna",
+      "name": "Janna",
+      "nameJa": "ジャンナ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Howling Gale",
+          "nameJa": "ハウリングゲイル",
+          "maxrank": 5,
+          "cooldown": [14, 14, 14, 14, 14]
+        },
+        {
+          "key": "W",
+          "name": "Zephyr",
+          "nameJa": "ゼファー",
+          "maxrank": 5,
+          "cooldown": [8, 7.5, 7, 6.5, 6]
+        },
+        {
+          "key": "E",
+          "name": "Eye Of The Storm",
+          "nameJa": "ストームブレス",
+          "maxrank": 5,
+          "cooldown": [16, 15, 14, 13, 12]
+        },
+        {
+          "key": "R",
+          "name": "Monsoon",
+          "nameJa": "モンスーン",
+          "maxrank": 3,
+          "cooldown": [130, 115, 100]
+        }
+      ]
+    },
+    {
+      "id": 59,
+      "ddragonId": "JarvanIV",
+      "slug": "jarvaniv",
+      "name": "Jarvan IV",
+      "nameJa": "ジャーヴァンⅣ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Dragon Strike",
+          "nameJa": "ドラゴンストライク",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "W",
+          "name": "Golden Aegis",
+          "nameJa": "ゴールデンイージス",
+          "maxrank": 5,
+          "cooldown": [9, 9, 9, 9, 9]
+        },
+        {
+          "key": "E",
+          "name": "Demacian Standard",
+          "nameJa": "デマーシアの旗印",
+          "maxrank": 5,
+          "cooldown": [12, 11.5, 11, 10.5, 10]
+        },
+        {
+          "key": "R",
+          "name": "Cataclysm",
+          "nameJa": "決戦場",
+          "maxrank": 3,
+          "cooldown": [120, 105, 90]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "ddragonId": "Jax",
+      "slug": "jax",
+      "name": "Jax",
+      "nameJa": "ジャックス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Leap Strike",
+          "nameJa": "リープストライク",
+          "maxrank": 5,
+          "cooldown": [8, 7.5, 7, 6.5, 6]
+        },
+        {
+          "key": "W",
+          "name": "Empower",
+          "nameJa": "パワーバッシュ",
+          "maxrank": 5,
+          "cooldown": [7, 6, 5, 4, 3]
+        },
+        {
+          "key": "E",
+          "name": "Counter Strike",
+          "nameJa": "カウンターストライク",
+          "maxrank": 5,
+          "cooldown": [17, 15, 13, 11, 9]
+        },
+        {
+          "key": "R",
+          "name": "Grandmaster-at-Arms",
+          "nameJa": "ウェポングランドマスター",
+          "maxrank": 3,
+          "cooldown": [110, 100, 90]
+        }
+      ]
+    },
+    {
+      "id": 126,
+      "ddragonId": "Jayce",
+      "slug": "jayce",
+      "name": "Jayce",
+      "nameJa": "ジェイス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "To the Skies! / Shock Blast",
+          "nameJa": "スカイバスター/ショックブラスト",
+          "maxrank": 6,
+          "cooldown": [16, 14, 12, 10, 8, 6]
+        },
+        {
+          "key": "W",
+          "name": "Lightning Field / Hyper Charge",
+          "nameJa": "ライトニング/ハイパーチャージ",
+          "maxrank": 6,
+          "cooldown": [10, 10, 10, 10, 10, 10]
+        },
+        {
+          "key": "E",
+          "name": "Thundering Blow / Acceleration Gate",
+          "nameJa": "サンダーブロー/アクセルゲート",
+          "maxrank": 6,
+          "cooldown": [20, 18, 16, 14, 12, 10]
+        },
+        {
+          "key": "R",
+          "name": "Mercury Cannon / Mercury Hammer",
+          "nameJa": "マーキュリーキャノン/マーキュリーハンマー",
+          "maxrank": 1,
+          "cooldown": [6]
+        }
+      ]
+    },
+    {
+      "id": 202,
+      "ddragonId": "Jhin",
+      "slug": "jhin",
+      "name": "Jhin",
+      "nameJa": "ジン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Dancing Grenade",
+          "nameJa": "｢爆ぜ狂う果実｣",
+          "maxrank": 5,
+          "cooldown": [7, 6.5, 6, 5.5, 5]
+        },
+        {
+          "key": "W",
+          "name": "Deadly Flourish",
+          "nameJa": "｢死者への狂奏曲｣",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "E",
+          "name": "Captive Audience",
+          "nameJa": "｢女神の抱擁｣",
+          "maxrank": 5,
+          "cooldown": [2, 2, 2, 2, 2]
+        },
+        {
+          "key": "R",
+          "name": "Curtain Call",
+          "nameJa": "｢終演 -フィナーレ-｣",
+          "maxrank": 3,
+          "cooldown": [120, 105, 90]
+        }
+      ]
+    },
+    {
+      "id": 222,
+      "ddragonId": "Jinx",
+      "slug": "jinx",
+      "name": "Jinx",
+      "nameJa": "ジンクス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Switcheroo!",
+          "nameJa": "スイッチング！",
+          "maxrank": 5,
+          "cooldown": [0.9, 0.9, 0.9, 0.9, 0.9]
+        },
+        {
+          "key": "W",
+          "name": "Zap!",
+          "nameJa": "シビレーザー！",
+          "maxrank": 5,
+          "cooldown": [8, 7, 6, 5, 4]
+        },
+        {
+          "key": "E",
+          "name": "Flame Chompers!",
+          "nameJa": "パックンチョッパー！",
+          "maxrank": 5,
+          "cooldown": [24, 20.5, 17, 13.5, 10]
+        },
+        {
+          "key": "R",
+          "name": "Super Mega Death Rocket!",
+          "nameJa": "スーパーメガデスロケット！",
+          "maxrank": 3,
+          "cooldown": [85, 65, 45]
+        }
+      ]
+    },
+    {
+      "id": 897,
+      "ddragonId": "KSante",
+      "slug": "ksante",
+      "name": "K'Sante",
+      "nameJa": "カ・サンテ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Ntofo Strikes",
+          "nameJa": "破撃のエントーフォ",
+          "maxrank": 5,
+          "cooldown": [3.5, 3.5, 3.5, 3.5, 3.5]
+        },
+        {
+          "key": "W",
+          "name": "Path Maker",
+          "nameJa": "切り開く猛進",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "E",
+          "name": "Footwork",
+          "nameJa": "辰砂の足取り",
+          "maxrank": 5,
+          "cooldown": [10, 9.5, 9, 8.5, 8]
+        },
+        {
+          "key": "R",
+          "name": "All Out",
+          "nameJa": "オールアウト",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 145,
+      "ddragonId": "Kaisa",
+      "slug": "kaisa",
+      "name": "Kai'Sa",
+      "nameJa": "カイ＝サ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Icathian Rain",
+          "nameJa": "イカシアの雨",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "W",
+          "name": "Void Seeker",
+          "nameJa": "ヴォイドシーカー",
+          "maxrank": 5,
+          "cooldown": [20, 18.5, 17, 15.5, 14]
+        },
+        {
+          "key": "E",
+          "name": "Supercharge",
+          "nameJa": "スーパーチャージ",
+          "maxrank": 5,
+          "cooldown": [16, 14.5, 13, 11.5, 10]
+        },
+        {
+          "key": "R",
+          "name": "Killer Instinct",
+          "nameJa": "キラーヴォイド",
+          "maxrank": 3,
+          "cooldown": [130, 100, 70]
+        }
+      ]
+    },
+    {
+      "id": 429,
+      "ddragonId": "Kalista",
+      "slug": "kalista",
+      "name": "Kalista",
+      "nameJa": "カリスタ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Pierce",
+          "nameJa": "貫魂の一投",
+          "maxrank": 5,
+          "cooldown": [9, 9, 9, 9, 9]
+        },
+        {
+          "key": "W",
+          "name": "Sentinel",
+          "nameJa": "執念の霊魂",
+          "maxrank": 5,
+          "cooldown": [30, 30, 30, 30, 30]
+        },
+        {
+          "key": "E",
+          "name": "Rend",
+          "nameJa": "引き裂く遺恨",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "R",
+          "name": "Fate's Call",
+          "nameJa": "宿命の呼び声",
+          "maxrank": 3,
+          "cooldown": [160, 140, 120]
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "ddragonId": "Karma",
+      "slug": "karma",
+      "name": "Karma",
+      "nameJa": "カルマ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Inner Flame",
+          "nameJa": "心炎",
+          "maxrank": 5,
+          "cooldown": [9, 8, 7, 6, 5]
+        },
+        {
+          "key": "W",
+          "name": "Focused Resolve",
+          "nameJa": "魂縛",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "E",
+          "name": "Inspire",
+          "nameJa": "激励",
+          "maxrank": 5,
+          "cooldown": [10, 9.5, 9, 8.5, 8]
+        },
+        {
+          "key": "R",
+          "name": "Mantra",
+          "nameJa": "マントラ",
+          "maxrank": 4,
+          "cooldown": [40, 38, 36, 34]
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "ddragonId": "Karthus",
+      "slug": "karthus",
+      "name": "Karthus",
+      "nameJa": "カーサス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Lay Waste",
+          "nameJa": "根絶やし",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "W",
+          "name": "Wall of Pain",
+          "nameJa": "嘆きの壁",
+          "maxrank": 5,
+          "cooldown": [15, 15, 15, 15, 15]
+        },
+        {
+          "key": "E",
+          "name": "Defile",
+          "nameJa": "冒涜",
+          "maxrank": 5,
+          "cooldown": [0.5, 0.5, 0.5, 0.5, 0.5]
+        },
+        {
+          "key": "R",
+          "name": "Requiem",
+          "nameJa": "鎮魂歌",
+          "maxrank": 3,
+          "cooldown": [200, 180, 160]
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "ddragonId": "Kassadin",
+      "slug": "kassadin",
+      "name": "Kassadin",
+      "nameJa": "カサディン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Null Sphere",
+          "nameJa": "ヴォイドスフィア",
+          "maxrank": 5,
+          "cooldown": [9, 8.5, 8, 7.5, 7]
+        },
+        {
+          "key": "W",
+          "name": "Nether Blade",
+          "nameJa": "ネザーブレード",
+          "maxrank": 5,
+          "cooldown": [7, 7, 7, 7, 7]
+        },
+        {
+          "key": "E",
+          "name": "Force Pulse",
+          "nameJa": "ヴォイドパルス",
+          "maxrank": 5,
+          "cooldown": [21, 20, 19, 18, 17]
+        },
+        {
+          "key": "R",
+          "name": "Riftwalk",
+          "nameJa": "リフトウォーク",
+          "maxrank": 3,
+          "cooldown": [5, 3.5, 2]
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "ddragonId": "Katarina",
+      "slug": "katarina",
+      "name": "Katarina",
+      "nameJa": "カタリナ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Bouncing Blade",
+          "nameJa": "バウンドナイフ",
+          "maxrank": 5,
+          "cooldown": [11, 10, 9, 8, 7]
+        },
+        {
+          "key": "W",
+          "name": "Preparation",
+          "nameJa": "プリペレーション",
+          "maxrank": 5,
+          "cooldown": [15, 14, 13, 12, 11]
+        },
+        {
+          "key": "E",
+          "name": "Shunpo",
+          "nameJa": "瞬歩",
+          "maxrank": 5,
+          "cooldown": [12, 11, 10, 9, 8]
+        },
+        {
+          "key": "R",
+          "name": "Death Lotus",
+          "nameJa": "デスロータス",
+          "maxrank": 3,
+          "cooldown": [75, 60, 45]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "ddragonId": "Kayle",
+      "slug": "kayle",
+      "name": "Kayle",
+      "nameJa": "ケイル",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Radiant Blast",
+          "nameJa": "裁きの射光",
+          "maxrank": 5,
+          "cooldown": [10, 9.5, 9, 8.5, 8]
+        },
+        {
+          "key": "W",
+          "name": "Celestial Blessing",
+          "nameJa": "天の祝福",
+          "maxrank": 5,
+          "cooldown": [15, 15, 15, 15, 15]
+        },
+        {
+          "key": "E",
+          "name": "Starfire Spellblade",
+          "nameJa": "星炎の刃",
+          "maxrank": 5,
+          "cooldown": [8, 7.5, 7, 6.5, 6]
+        },
+        {
+          "key": "R",
+          "name": "Divine Judgment",
+          "nameJa": "聖なる審判",
+          "maxrank": 3,
+          "cooldown": [140, 110, 80]
+        }
+      ]
+    },
+    {
+      "id": 141,
+      "ddragonId": "Kayn",
+      "slug": "kayn",
+      "name": "Kayn",
+      "nameJa": "ケイン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Reaping Slash",
+          "nameJa": "飛影斬",
+          "maxrank": 5,
+          "cooldown": [7, 6.5, 6, 5.5, 5]
+        },
+        {
+          "key": "W",
+          "name": "Blade's Reach",
+          "nameJa": "刃影襲",
+          "maxrank": 5,
+          "cooldown": [13, 12, 11, 10, 9]
+        },
+        {
+          "key": "E",
+          "name": "Shadow Step",
+          "nameJa": "影抜き",
+          "maxrank": 5,
+          "cooldown": [21, 19, 17, 15, 13]
+        },
+        {
+          "key": "R",
+          "name": "Umbral Trespass",
+          "nameJa": "真影侵壊",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 85,
+      "ddragonId": "Kennen",
+      "slug": "kennen",
+      "name": "Kennen",
+      "nameJa": "ケネン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Thundering Shuriken",
+          "nameJa": "雷遁手裏剣",
+          "maxrank": 5,
+          "cooldown": [7, 6.25, 5.5, 4.75, 4]
+        },
+        {
+          "key": "W",
+          "name": "Electrical Surge",
+          "nameJa": "稲妻の奔流",
+          "maxrank": 5,
+          "cooldown": [13, 11.25, 9.5, 7.75, 6]
+        },
+        {
+          "key": "E",
+          "name": "Lightning Rush",
+          "nameJa": "疾風迅雷",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "R",
+          "name": "Slicing Maelstrom",
+          "nameJa": "雷撃の大嵐",
+          "maxrank": 3,
+          "cooldown": [120, 120, 120]
+        }
+      ]
+    },
+    {
+      "id": 121,
+      "ddragonId": "Khazix",
+      "slug": "khazix",
+      "name": "Kha'Zix",
+      "nameJa": "カ＝ジックス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Taste Their Fear",
+          "nameJa": "甘美なる恐怖",
+          "maxrank": 5,
+          "cooldown": [4, 4, 4, 4, 4]
+        },
+        {
+          "key": "W",
+          "name": "Void Spike",
+          "nameJa": "ヴォイドの刺棘",
+          "maxrank": 5,
+          "cooldown": [9, 9, 9, 9, 9]
+        },
+        {
+          "key": "E",
+          "name": "Leap",
+          "nameJa": "リープ",
+          "maxrank": 5,
+          "cooldown": [20, 18, 16, 14, 12]
+        },
+        {
+          "key": "R",
+          "name": "Void Assault",
+          "nameJa": "捕食の本能",
+          "maxrank": 3,
+          "cooldown": [100, 85, 70]
+        }
+      ]
+    },
+    {
+      "id": 203,
+      "ddragonId": "Kindred",
+      "slug": "kindred",
+      "name": "Kindred",
+      "nameJa": "キンドレッド",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Dance of Arrows",
+          "nameJa": "矢の輪舞",
+          "maxrank": 5,
+          "cooldown": [9, 9, 9, 9, 9]
+        },
+        {
+          "key": "W",
+          "name": "Wolf's Frenzy",
+          "nameJa": "狼の激昂",
+          "maxrank": 5,
+          "cooldown": [18, 17, 16, 15, 14]
+        },
+        {
+          "key": "E",
+          "name": "Mounting Dread",
+          "nameJa": "忍び寄る恐怖",
+          "maxrank": 5,
+          "cooldown": [14, 12.5, 11, 9.5, 8]
+        },
+        {
+          "key": "R",
+          "name": "Lamb's Respite",
+          "nameJa": "羊の執行猶予",
+          "maxrank": 3,
+          "cooldown": [160, 140, 120]
+        }
+      ]
+    },
+    {
+      "id": 240,
+      "ddragonId": "Kled",
+      "slug": "kled",
+      "name": "Kled",
+      "nameJa": "クレッド",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Bear Trap on a Rope",
+          "nameJa": "トラバサミロープ",
+          "maxrank": 5,
+          "cooldown": [11, 10, 9, 8, 7]
+        },
+        {
+          "key": "W",
+          "name": "Violent Tendencies",
+          "nameJa": "狂暴の宴",
+          "maxrank": 5,
+          "cooldown": [13, 12, 11, 10, 9]
+        },
+        {
+          "key": "E",
+          "name": "Jousting",
+          "nameJa": "ジャウスト",
+          "maxrank": 5,
+          "cooldown": [13, 12, 11, 10, 9]
+        },
+        {
+          "key": "R",
+          "name": "Chaaaaaaaarge!!!",
+          "nameJa": "チャァァァァァァァジ！！！",
+          "maxrank": 3,
+          "cooldown": [140, 125, 110]
+        }
+      ]
+    },
+    {
+      "id": 96,
+      "ddragonId": "KogMaw",
+      "slug": "kogmaw",
+      "name": "Kog'Maw",
+      "nameJa": "コグ＝マウ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Caustic Spittle",
+          "nameJa": "腐食粘液",
+          "maxrank": 5,
+          "cooldown": [7, 7, 7, 7, 7]
+        },
+        {
+          "key": "W",
+          "name": "Bio-Arcane Barrage",
+          "nameJa": "有機性魔力砲",
+          "maxrank": 5,
+          "cooldown": [17, 17, 17, 17, 17]
+        },
+        {
+          "key": "E",
+          "name": "Void Ooze",
+          "nameJa": "ヴォイド分泌液",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "R",
+          "name": "Living Artillery",
+          "nameJa": "生体空撃砲",
+          "maxrank": 3,
+          "cooldown": [2, 1.5, 1]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "ddragonId": "Leblanc",
+      "slug": "leblanc",
+      "name": "LeBlanc",
+      "nameJa": "ルブラン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Sigil of Malice",
+          "nameJa": "シジルマリス",
+          "maxrank": 5,
+          "cooldown": [6, 6, 6, 6, 6]
+        },
+        {
+          "key": "W",
+          "name": "Distortion",
+          "nameJa": "ディストーション",
+          "maxrank": 5,
+          "cooldown": [15, 13.75, 12.5, 11.25, 10]
+        },
+        {
+          "key": "E",
+          "name": "Ethereal Chains",
+          "nameJa": "エーテルチェイン",
+          "maxrank": 5,
+          "cooldown": [14, 13.25, 12.5, 11.75, 11]
+        },
+        {
+          "key": "R",
+          "name": "Mimic",
+          "nameJa": "再演",
+          "maxrank": 3,
+          "cooldown": [45, 35, 25]
+        }
+      ]
+    },
+    {
+      "id": 64,
+      "ddragonId": "LeeSin",
+      "slug": "leesin",
+      "name": "Lee Sin",
+      "nameJa": "リー・シン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Sonic Wave / Resonating Strike",
+          "nameJa": "響掌/共鳴撃",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "W",
+          "name": "Safeguard / Iron Will",
+          "nameJa": "守りの型/鉄の意志",
+          "maxrank": 5,
+          "cooldown": [8, 8, 8, 8, 8]
+        },
+        {
+          "key": "E",
+          "name": "Tempest / Cripple",
+          "nameJa": "破風/縛脚",
+          "maxrank": 5,
+          "cooldown": [8, 8, 8, 8, 8]
+        },
+        {
+          "key": "R",
+          "name": "Dragon's Rage",
+          "nameJa": "龍の怒り",
+          "maxrank": 3,
+          "cooldown": [110, 85, 60]
+        }
+      ]
+    },
+    {
+      "id": 89,
+      "ddragonId": "Leona",
+      "slug": "leona",
+      "name": "Leona",
+      "nameJa": "レオナ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Shield of Daybreak",
+          "nameJa": "シールド・オブ・デイブレイク",
+          "maxrank": 5,
+          "cooldown": [5, 5, 5, 5, 5]
+        },
+        {
+          "key": "W",
+          "name": "Eclipse",
+          "nameJa": "エクリプス",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "E",
+          "name": "Zenith Blade",
+          "nameJa": "ゼニスブレード",
+          "maxrank": 5,
+          "cooldown": [12, 10.5, 9, 7.5, 6]
+        },
+        {
+          "key": "R",
+          "name": "Solar Flare",
+          "nameJa": "ソーラーフレア",
+          "maxrank": 3,
+          "cooldown": [90, 75, 60]
+        }
+      ]
+    },
+    {
+      "id": 876,
+      "ddragonId": "Lillia",
+      "slug": "lillia",
+      "name": "Lillia",
+      "nameJa": "リリア",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Blooming Blows",
+          "nameJa": "花開く風",
+          "maxrank": 5,
+          "cooldown": [6, 5.5, 5, 4.5, 4]
+        },
+        {
+          "key": "W",
+          "name": "Watch Out! Eep!",
+          "nameJa": "ひゃっ、あぶない！",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "E",
+          "name": "Swirlseed",
+          "nameJa": "コロコロの種",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "R",
+          "name": "Lilting Lullaby",
+          "nameJa": "夢見の子守唄",
+          "maxrank": 3,
+          "cooldown": [150, 130, 110]
+        }
+      ]
+    },
+    {
+      "id": 127,
+      "ddragonId": "Lissandra",
+      "slug": "lissandra",
+      "name": "Lissandra",
+      "nameJa": "リサンドラ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Ice Shard",
+          "nameJa": "アイスシャード",
+          "maxrank": 5,
+          "cooldown": [7, 6, 5, 4, 3]
+        },
+        {
+          "key": "W",
+          "name": "Ring of Frost",
+          "nameJa": "リング・オブ・フロスト",
+          "maxrank": 5,
+          "cooldown": [10, 9.5, 9, 8.5, 8]
+        },
+        {
+          "key": "E",
+          "name": "Glacial Path",
+          "nameJa": "グラシアルパス",
+          "maxrank": 5,
+          "cooldown": [24, 21, 18, 15, 12]
+        },
+        {
+          "key": "R",
+          "name": "Frozen Tomb",
+          "nameJa": "フローズングレイブ",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 805,
+      "ddragonId": "Locke",
+      "slug": "locke",
+      "name": "Locke",
+      "nameJa": "ロック",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Ritual Nails",
+          "nameJa": "リチュアル・ネイル",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "W",
+          "name": "Soul Ignition",
+          "nameJa": "ソウル・イグニッション",
+          "maxrank": 5,
+          "cooldown": [18, 17, 16, 15, 14]
+        },
+        {
+          "key": "E",
+          "name": "Ashen Pursuit",
+          "nameJa": "灰塵の追撃",
+          "maxrank": 5,
+          "cooldown": [10, 10, 10, 10, 10]
+        },
+        {
+          "key": "R",
+          "name": "Purgatory",
+          "nameJa": "煉獄",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 236,
+      "ddragonId": "Lucian",
+      "slug": "lucian",
+      "name": "Lucian",
+      "nameJa": "ルシアン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Piercing Light",
+          "nameJa": "ピアシングライト",
+          "maxrank": 5,
+          "cooldown": [9, 8, 7, 6, 5]
+        },
+        {
+          "key": "W",
+          "name": "Ardent Blaze",
+          "nameJa": "アーデントブレイズ",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "E",
+          "name": "Relentless Pursuit",
+          "nameJa": "スライド",
+          "maxrank": 5,
+          "cooldown": [16, 15.5, 15, 14.5, 14]
+        },
+        {
+          "key": "R",
+          "name": "The Culling",
+          "nameJa": "二挺掃射",
+          "maxrank": 3,
+          "cooldown": [110, 100, 90]
+        }
+      ]
+    },
+    {
+      "id": 117,
+      "ddragonId": "Lulu",
+      "slug": "lulu",
+      "name": "Lulu",
+      "nameJa": "ルル",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Glitterlance",
+          "nameJa": "ぴかぴかビーム",
+          "maxrank": 5,
+          "cooldown": [7, 7, 7, 7, 7]
+        },
+        {
+          "key": "W",
+          "name": "Whimsy",
+          "nameJa": "イタズラ",
+          "maxrank": 5,
+          "cooldown": [18, 18, 18, 18, 18]
+        },
+        {
+          "key": "E",
+          "name": "Help, Pix!",
+          "nameJa": "ピックス、おねがい！",
+          "maxrank": 5,
+          "cooldown": [10, 9.5, 9, 8.5, 8]
+        },
+        {
+          "key": "R",
+          "name": "Wild Growth",
+          "nameJa": "おおきくなぁれ！",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 99,
+      "ddragonId": "Lux",
+      "slug": "lux",
+      "name": "Lux",
+      "nameJa": "ラックス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Light Binding",
+          "nameJa": "ライトバインド",
+          "maxrank": 5,
+          "cooldown": [10, 10, 10, 10, 10]
+        },
+        {
+          "key": "W",
+          "name": "Prismatic Barrier",
+          "nameJa": "プリズムバリア",
+          "maxrank": 5,
+          "cooldown": [12, 11.5, 11, 10.5, 10]
+        },
+        {
+          "key": "E",
+          "name": "Lucent Singularity",
+          "nameJa": "シンギュラリティー",
+          "maxrank": 5,
+          "cooldown": [10, 9.5, 9, 8.5, 8]
+        },
+        {
+          "key": "R",
+          "name": "Final Spark",
+          "nameJa": "ファイナルスパーク",
+          "maxrank": 3,
+          "cooldown": [60, 50, 40]
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "ddragonId": "Malphite",
+      "slug": "malphite",
+      "name": "Malphite",
+      "nameJa": "マルファイト",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Seismic Shard",
+          "nameJa": "サイズミックシャード",
+          "maxrank": 5,
+          "cooldown": [8, 8, 8, 8, 8]
+        },
+        {
+          "key": "W",
+          "name": "Thunderclap",
+          "nameJa": "サンダークラップ",
+          "maxrank": 5,
+          "cooldown": [10, 9.5, 9, 8.5, 8]
+        },
+        {
+          "key": "E",
+          "name": "Ground Slam",
+          "nameJa": "グラウンドスラム",
+          "maxrank": 5,
+          "cooldown": [7, 7, 7, 7, 7]
+        },
+        {
+          "key": "R",
+          "name": "Unstoppable Force",
+          "nameJa": "アンストッパブル・フォース",
+          "maxrank": 3,
+          "cooldown": [130, 115, 100]
+        }
+      ]
+    },
+    {
+      "id": 90,
+      "ddragonId": "Malzahar",
+      "slug": "malzahar",
+      "name": "Malzahar",
+      "nameJa": "マルザハール",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Call of the Void",
+          "nameJa": "ヴォイドコール",
+          "maxrank": 5,
+          "cooldown": [6, 6, 6, 6, 6]
+        },
+        {
+          "key": "W",
+          "name": "Void Swarm",
+          "nameJa": "ヴォイドスワーム",
+          "maxrank": 5,
+          "cooldown": [8, 8, 8, 8, 8]
+        },
+        {
+          "key": "E",
+          "name": "Malefic Visions",
+          "nameJa": "虚性侵蝕",
+          "maxrank": 5,
+          "cooldown": [11, 10, 9, 8, 7]
+        },
+        {
+          "key": "R",
+          "name": "Nether Grasp",
+          "nameJa": "ネザーグラスプ",
+          "maxrank": 3,
+          "cooldown": [140, 110, 80]
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "ddragonId": "Maokai",
+      "slug": "maokai",
+      "name": "Maokai",
+      "nameJa": "マオカイ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Bramble Smash",
+          "nameJa": "茨打ち",
+          "maxrank": 5,
+          "cooldown": [7, 6.5, 6, 5.5, 5]
+        },
+        {
+          "key": "W",
+          "name": "Twisted Advance",
+          "nameJa": "樹人の進撃",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "E",
+          "name": "Sapling Toss",
+          "nameJa": "苗木投げ",
+          "maxrank": 5,
+          "cooldown": [18, 17, 16, 15, 14]
+        },
+        {
+          "key": "R",
+          "name": "Nature's Grasp",
+          "nameJa": "大地の捕縛",
+          "maxrank": 3,
+          "cooldown": [130, 110, 90]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "ddragonId": "MasterYi",
+      "slug": "masteryi",
+      "name": "Master Yi",
+      "nameJa": "マスター・イー",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Alpha Strike",
+          "nameJa": "アルファストライク",
+          "maxrank": 5,
+          "cooldown": [20, 19.5, 19, 18.5, 18]
+        },
+        {
+          "key": "W",
+          "name": "Meditate",
+          "nameJa": "明鏡止水",
+          "maxrank": 5,
+          "cooldown": [10, 10, 10, 10, 10]
+        },
+        {
+          "key": "E",
+          "name": "Wuju Style",
+          "nameJa": "ウージュースタイル",
+          "maxrank": 5,
+          "cooldown": [14, 14, 14, 14, 14]
+        },
+        {
+          "key": "R",
+          "name": "Highlander",
+          "nameJa": "ハイランダー",
+          "maxrank": 3,
+          "cooldown": [85, 85, 85]
+        }
+      ]
+    },
+    {
+      "id": 800,
+      "ddragonId": "Mel",
+      "slug": "mel",
+      "name": "Mel",
+      "nameJa": "メル",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Radiant Barrage",
+          "nameJa": "輝きの斉射",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "W",
+          "name": "Rebuttal",
+          "nameJa": "反駁",
+          "maxrank": 5,
+          "cooldown": [30, 28.5, 27, 25.5, 24]
+        },
+        {
+          "key": "E",
+          "name": "Solar Snare",
+          "nameJa": "陽光の枷",
+          "maxrank": 5,
+          "cooldown": [11, 10.5, 10, 9.5, 9]
+        },
+        {
+          "key": "R",
+          "name": "Golden Eclipse",
+          "nameJa": "黄金蝕",
+          "maxrank": 3,
+          "cooldown": [120, 90, 60]
+        }
+      ]
+    },
+    {
+      "id": 902,
+      "ddragonId": "Milio",
+      "slug": "milio",
+      "name": "Milio",
+      "nameJa": "ミリオ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Ultra Mega Fire Kick",
+          "nameJa": "ウルトラメガファイヤーキック",
+          "maxrank": 5,
+          "cooldown": [10, 10, 10, 10, 10]
+        },
+        {
+          "key": "W",
+          "name": "Cozy Campfire",
+          "nameJa": "癒しの焚き火",
+          "maxrank": 5,
+          "cooldown": [29, 27, 25, 23, 21]
+        },
+        {
+          "key": "E",
+          "name": "Warm Hugs",
+          "nameJa": "抱擁のぬくもり",
+          "maxrank": 5,
+          "cooldown": [0.5, 0.5, 0.5, 0.5, 0.5]
+        },
+        {
+          "key": "R",
+          "name": "Breath of Life",
+          "nameJa": "生命の息吹",
+          "maxrank": 3,
+          "cooldown": [160, 145, 130]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "ddragonId": "MissFortune",
+      "slug": "missfortune",
+      "name": "Miss Fortune",
+      "nameJa": "ミス・フォーチュン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Double Up",
+          "nameJa": "ダブルアップ",
+          "maxrank": 5,
+          "cooldown": [7, 6, 5, 4, 3]
+        },
+        {
+          "key": "W",
+          "name": "Strut",
+          "nameJa": "ストラット",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "E",
+          "name": "Make It Rain",
+          "nameJa": "レイニングバレット",
+          "maxrank": 5,
+          "cooldown": [18, 17, 16, 15, 14]
+        },
+        {
+          "key": "R",
+          "name": "Bullet Time",
+          "nameJa": "バレットタイム",
+          "maxrank": 3,
+          "cooldown": [120, 110, 100]
+        }
+      ]
+    },
+    {
+      "id": 82,
+      "ddragonId": "Mordekaiser",
+      "slug": "mordekaiser",
+      "name": "Mordekaiser",
+      "nameJa": "モルデカイザー",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Obliterate",
+          "nameJa": "滅魂の一撃",
+          "maxrank": 5,
+          "cooldown": [8, 7, 6, 5, 4]
+        },
+        {
+          "key": "W",
+          "name": "Indestructible",
+          "nameJa": "不滅の鎧",
+          "maxrank": 5,
+          "cooldown": [12, 11, 10, 9, 8]
+        },
+        {
+          "key": "E",
+          "name": "Death's Grasp",
+          "nameJa": "死の呪縛",
+          "maxrank": 5,
+          "cooldown": [16, 14, 12, 10, 8]
+        },
+        {
+          "key": "R",
+          "name": "Realm of Death",
+          "nameJa": "死の国",
+          "maxrank": 3,
+          "cooldown": [120, 110, 100]
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "ddragonId": "Morgana",
+      "slug": "morgana",
+      "name": "Morgana",
+      "nameJa": "モルガナ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Dark Binding",
+          "nameJa": "ダークバインド",
+          "maxrank": 5,
+          "cooldown": [10, 10, 10, 10, 10]
+        },
+        {
+          "key": "W",
+          "name": "Tormented Shadow",
+          "nameJa": "苦悶の影",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "E",
+          "name": "Black Shield",
+          "nameJa": "ブラックシールド",
+          "maxrank": 5,
+          "cooldown": [26, 23.5, 21, 18.5, 16]
+        },
+        {
+          "key": "R",
+          "name": "Soul Shackles",
+          "nameJa": "魂の足枷",
+          "maxrank": 3,
+          "cooldown": [120, 110, 100]
+        }
+      ]
+    },
+    {
+      "id": 950,
+      "ddragonId": "Naafiri",
+      "slug": "naafiri",
+      "name": "Naafiri",
+      "nameJa": "ナフィーリ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Darkin Daggers",
+          "nameJa": "ダーキンダガー",
+          "maxrank": 5,
+          "cooldown": [9, 8.5, 8, 7.5, 7]
+        },
+        {
+          "key": "W",
+          "name": "The Call of the Pack",
+          "nameJa": "群れの呼び声",
+          "maxrank": 5,
+          "cooldown": [26, 24, 22, 20, 18]
+        },
+        {
+          "key": "E",
+          "name": "Eviscerate",
+          "nameJa": "獰猛なる刃",
+          "maxrank": 5,
+          "cooldown": [11, 10, 9, 8, 7]
+        },
+        {
+          "key": "R",
+          "name": "Hounds' Pursuit",
+          "nameJa": "猟犬の追跡",
+          "maxrank": 3,
+          "cooldown": [110, 95, 80]
+        }
+      ]
+    },
+    {
+      "id": 267,
+      "ddragonId": "Nami",
+      "slug": "nami",
+      "name": "Nami",
+      "nameJa": "ナミ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Aqua Prison",
+          "nameJa": "水の牢獄",
+          "maxrank": 5,
+          "cooldown": [12, 11, 10, 9, 8]
+        },
+        {
+          "key": "W",
+          "name": "Ebb and Flow",
+          "nameJa": "潮の流れ",
+          "maxrank": 5,
+          "cooldown": [10, 10, 10, 10, 10]
+        },
+        {
+          "key": "E",
+          "name": "Tidecaller's Blessing",
+          "nameJa": "潮使いの祝福",
+          "maxrank": 5,
+          "cooldown": [11, 11, 11, 11, 11]
+        },
+        {
+          "key": "R",
+          "name": "Tidal Wave",
+          "nameJa": "海神の舞",
+          "maxrank": 3,
+          "cooldown": [120, 110, 100]
+        }
+      ]
+    },
+    {
+      "id": 75,
+      "ddragonId": "Nasus",
+      "slug": "nasus",
+      "name": "Nasus",
+      "nameJa": "ナサス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Siphoning Strike",
+          "nameJa": "サイフォンストライク",
+          "maxrank": 5,
+          "cooldown": [7.5, 6.5, 5.5, 4.5, 3.5]
+        },
+        {
+          "key": "W",
+          "name": "Wither",
+          "nameJa": "ウィザー",
+          "maxrank": 5,
+          "cooldown": [15, 14, 13, 12, 11]
+        },
+        {
+          "key": "E",
+          "name": "Spirit Fire",
+          "nameJa": "スピリットファイア",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "R",
+          "name": "Fury of the Sands",
+          "nameJa": "アヌビスの怒り",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 111,
+      "ddragonId": "Nautilus",
+      "slug": "nautilus",
+      "name": "Nautilus",
+      "nameJa": "ノーチラス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Dredge Line",
+          "nameJa": "錨投げ",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "W",
+          "name": "Titan's Wrath",
+          "nameJa": "大海の激憤",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "E",
+          "name": "Riptide",
+          "nameJa": "粉砕水",
+          "maxrank": 5,
+          "cooldown": [7, 6.5, 6, 5.5, 5]
+        },
+        {
+          "key": "R",
+          "name": "Depth Charge",
+          "nameJa": "爆雷発射",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 518,
+      "ddragonId": "Neeko",
+      "slug": "neeko",
+      "name": "Neeko",
+      "nameJa": "ニーコ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Blooming Burst",
+          "nameJa": "弾ける花弁",
+          "maxrank": 5,
+          "cooldown": [9, 8.5, 8, 7.5, 7]
+        },
+        {
+          "key": "W",
+          "name": "Shapesplitter",
+          "nameJa": "シェイプスプリッター",
+          "maxrank": 5,
+          "cooldown": [16, 15, 14, 13, 12]
+        },
+        {
+          "key": "E",
+          "name": "Tangle-Barbs",
+          "nameJa": "からまれ！",
+          "maxrank": 5,
+          "cooldown": [12, 11.5, 11, 10.5, 10]
+        },
+        {
+          "key": "R",
+          "name": "Pop Blossom",
+          "nameJa": "ポップブロッサム",
+          "maxrank": 3,
+          "cooldown": [120, 105, 90]
+        }
+      ]
+    },
+    {
+      "id": 76,
+      "ddragonId": "Nidalee",
+      "slug": "nidalee",
+      "name": "Nidalee",
+      "nameJa": "ニダリー",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Javelin Toss / Takedown",
+          "nameJa": "槍投げ/テイクダウン",
+          "maxrank": 5,
+          "cooldown": [6, 6, 6, 6, 6]
+        },
+        {
+          "key": "W",
+          "name": "Bushwhack / Pounce",
+          "nameJa": "虎挟み/ジャンプ",
+          "maxrank": 5,
+          "cooldown": [13, 12, 11, 10, 9]
+        },
+        {
+          "key": "E",
+          "name": "Primal Surge / Swipe",
+          "nameJa": "高揚/クロウ",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "R",
+          "name": "Aspect Of The Cougar",
+          "nameJa": "クーガーの心",
+          "maxrank": 4,
+          "cooldown": [3, 3, 3, 3]
+        }
+      ]
+    },
+    {
+      "id": 895,
+      "ddragonId": "Nilah",
+      "slug": "nilah",
+      "name": "Nilah",
+      "nameJa": "ニーラ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Formless Blade",
+          "nameJa": "形なき刃",
+          "maxrank": 5,
+          "cooldown": [4, 4, 4, 4, 4]
+        },
+        {
+          "key": "W",
+          "name": "Jubilant Veil",
+          "nameJa": "歓喜のヴェール",
+          "maxrank": 5,
+          "cooldown": [26, 25, 24, 23, 22]
+        },
+        {
+          "key": "E",
+          "name": "Slipstream",
+          "nameJa": "流撃",
+          "maxrank": 5,
+          "cooldown": [0.5, 0.5, 0.5, 0.5, 0.5]
+        },
+        {
+          "key": "R",
+          "name": "Apotheosis",
+          "nameJa": "アポテオシス",
+          "maxrank": 3,
+          "cooldown": [110, 95, 80]
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "ddragonId": "Nocturne",
+      "slug": "nocturne",
+      "name": "Nocturne",
+      "nameJa": "ノクターン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Duskbringer",
+          "nameJa": "闇の手",
+          "maxrank": 5,
+          "cooldown": [8, 8, 8, 8, 8]
+        },
+        {
+          "key": "W",
+          "name": "Shroud of Darkness",
+          "nameJa": "漆黒の帳",
+          "maxrank": 5,
+          "cooldown": [20, 18, 16, 14, 12]
+        },
+        {
+          "key": "E",
+          "name": "Unspeakable Horror",
+          "nameJa": "底知れぬ恐怖",
+          "maxrank": 5,
+          "cooldown": [15, 14, 13, 12, 11]
+        },
+        {
+          "key": "R",
+          "name": "Paranoia",
+          "nameJa": "パラノイア",
+          "maxrank": 3,
+          "cooldown": [160, 130, 100]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "ddragonId": "Nunu",
+      "slug": "nunu",
+      "name": "Nunu & Willump",
+      "nameJa": "ヌヌ＆ウィルンプ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Consume",
+          "nameJa": "丸かじり",
+          "maxrank": 5,
+          "cooldown": [13, 12, 11, 10, 9]
+        },
+        {
+          "key": "W",
+          "name": "Biggest Snowball Ever!",
+          "nameJa": "超特大の雪玉！",
+          "maxrank": 5,
+          "cooldown": [14, 14, 14, 14, 14]
+        },
+        {
+          "key": "E",
+          "name": "Snowball Barrage",
+          "nameJa": "雪玉連射",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "R",
+          "name": "Absolute Zero",
+          "nameJa": "アブソリュート・ゼロ",
+          "maxrank": 3,
+          "cooldown": [110, 100, 90]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "ddragonId": "Olaf",
+      "slug": "olaf",
+      "name": "Olaf",
+      "nameJa": "オラフ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Undertow",
+          "nameJa": "斧投げ",
+          "maxrank": 5,
+          "cooldown": [9, 9, 9, 9, 9]
+        },
+        {
+          "key": "W",
+          "name": "Tough It Out",
+          "nameJa": "根性比べ",
+          "maxrank": 5,
+          "cooldown": [16, 15, 14, 13, 12]
+        },
+        {
+          "key": "E",
+          "name": "Reckless Swing",
+          "nameJa": "捨て身切り",
+          "maxrank": 5,
+          "cooldown": [11, 10, 9, 8, 7]
+        },
+        {
+          "key": "R",
+          "name": "Ragnarok",
+          "nameJa": "ラグナロク",
+          "maxrank": 3,
+          "cooldown": [100, 90, 80]
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "ddragonId": "Orianna",
+      "slug": "orianna",
+      "name": "Orianna",
+      "nameJa": "オリアナ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Command: Attack",
+          "nameJa": "オーダー: 攻撃",
+          "maxrank": 5,
+          "cooldown": [7, 6, 5, 4, 3]
+        },
+        {
+          "key": "W",
+          "name": "Command: Dissonance",
+          "nameJa": "オーダー: 乱磁場",
+          "maxrank": 5,
+          "cooldown": [7, 7, 7, 7, 7]
+        },
+        {
+          "key": "E",
+          "name": "Command: Protect",
+          "nameJa": "オーダー: 防御",
+          "maxrank": 5,
+          "cooldown": [9, 9, 9, 9, 9]
+        },
+        {
+          "key": "R",
+          "name": "Command: Shockwave",
+          "nameJa": "オーダー: ショックウェーブ",
+          "maxrank": 3,
+          "cooldown": [110, 95, 80]
+        }
+      ]
+    },
+    {
+      "id": 516,
+      "ddragonId": "Ornn",
+      "slug": "ornn",
+      "name": "Ornn",
+      "nameJa": "オーン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Volcanic Rupture",
+          "nameJa": "溶岩隆起",
+          "maxrank": 5,
+          "cooldown": [9, 8.5, 8, 7.5, 7]
+        },
+        {
+          "key": "W",
+          "name": "Bellows Breath",
+          "nameJa": "ふいごの息",
+          "maxrank": 5,
+          "cooldown": [12, 11.5, 11, 10.5, 10]
+        },
+        {
+          "key": "E",
+          "name": "Searing Charge",
+          "nameJa": "灼熱の突撃",
+          "maxrank": 5,
+          "cooldown": [14, 13.5, 13, 12.5, 12]
+        },
+        {
+          "key": "R",
+          "name": "Call of the Forge God",
+          "nameJa": "鍛冶神の呼び声",
+          "maxrank": 3,
+          "cooldown": [140, 120, 100]
+        }
+      ]
+    },
+    {
+      "id": 80,
+      "ddragonId": "Pantheon",
+      "slug": "pantheon",
+      "name": "Pantheon",
+      "nameJa": "パンテオン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Comet Spear",
+          "nameJa": "彗星の槍",
+          "maxrank": 5,
+          "cooldown": [11, 10.25, 9.5, 8.75, 8]
+        },
+        {
+          "key": "W",
+          "name": "Shield Vault",
+          "nameJa": "跳撃の盾",
+          "maxrank": 5,
+          "cooldown": [13, 12, 11, 10, 9]
+        },
+        {
+          "key": "E",
+          "name": "Aegis Assault",
+          "nameJa": "イージスの猛攻",
+          "maxrank": 5,
+          "cooldown": [22, 21, 20, 19, 18]
+        },
+        {
+          "key": "R",
+          "name": "Grand Starfall",
+          "nameJa": "偉大なる星路",
+          "maxrank": 3,
+          "cooldown": [180, 165, 150]
+        }
+      ]
+    },
+    {
+      "id": 78,
+      "ddragonId": "Poppy",
+      "slug": "poppy",
+      "name": "Poppy",
+      "nameJa": "ポッピー",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Hammer Shock",
+          "nameJa": "ハンマーショック",
+          "maxrank": 5,
+          "cooldown": [8, 7, 6, 5, 4]
+        },
+        {
+          "key": "W",
+          "name": "Steadfast Presence",
+          "nameJa": "ステッドファスト",
+          "maxrank": 5,
+          "cooldown": [20, 18, 16, 14, 12]
+        },
+        {
+          "key": "E",
+          "name": "Heroic Charge",
+          "nameJa": "ヒロイックチャージ",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "R",
+          "name": "Keeper's Verdict",
+          "nameJa": "守護者の鉄鎚",
+          "maxrank": 3,
+          "cooldown": [140, 120, 100]
+        }
+      ]
+    },
+    {
+      "id": 555,
+      "ddragonId": "Pyke",
+      "slug": "pyke",
+      "name": "Pyke",
+      "nameJa": "パイク",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Bone Skewer",
+          "nameJa": "ボーンスキューア",
+          "maxrank": 5,
+          "cooldown": [10, 9.5, 9, 8.5, 8]
+        },
+        {
+          "key": "W",
+          "name": "Ghostwater Dive",
+          "nameJa": "ゴーストウォーター",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "E",
+          "name": "Phantom Undertow",
+          "nameJa": "亡者の引き波",
+          "maxrank": 5,
+          "cooldown": [15, 14, 13, 12, 11]
+        },
+        {
+          "key": "R",
+          "name": "Death From Below",
+          "nameJa": "水底の急襲",
+          "maxrank": 3,
+          "cooldown": [100, 85, 70]
+        }
+      ]
+    },
+    {
+      "id": 246,
+      "ddragonId": "Qiyana",
+      "slug": "qiyana",
+      "name": "Qiyana",
+      "nameJa": "キヤナ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Elemental Wrath / Edge of Ixtal",
+          "nameJa": "エレメントの怒り/イシュタルの切先",
+          "maxrank": 5,
+          "cooldown": [7, 7, 7, 7, 7]
+        },
+        {
+          "key": "W",
+          "name": "Terrashape",
+          "nameJa": "大地の力",
+          "maxrank": 5,
+          "cooldown": [7, 7, 7, 7, 7]
+        },
+        {
+          "key": "E",
+          "name": "Audacity",
+          "nameJa": "俊烈",
+          "maxrank": 5,
+          "cooldown": [11, 10, 9, 8, 7]
+        },
+        {
+          "key": "R",
+          "name": "Supreme Display of Talent",
+          "nameJa": "天賦絢爛",
+          "maxrank": 3,
+          "cooldown": [120, 120, 120]
+        }
+      ]
+    },
+    {
+      "id": 133,
+      "ddragonId": "Quinn",
+      "slug": "quinn",
+      "name": "Quinn",
+      "nameJa": "クイン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Blinding Assault",
+          "nameJa": "暗闇の強襲",
+          "maxrank": 5,
+          "cooldown": [11, 10.5, 10, 9.5, 9]
+        },
+        {
+          "key": "W",
+          "name": "Heightened Senses",
+          "nameJa": "鷲の眼",
+          "maxrank": 5,
+          "cooldown": [50, 45, 40, 35, 30]
+        },
+        {
+          "key": "E",
+          "name": "Vault",
+          "nameJa": "飛翔撃",
+          "maxrank": 5,
+          "cooldown": [12, 11, 10, 9, 8]
+        },
+        {
+          "key": "R",
+          "name": "Behind Enemy Lines",
+          "nameJa": "相棒",
+          "maxrank": 3,
+          "cooldown": [3, 3, 3]
+        }
+      ]
+    },
+    {
+      "id": 497,
+      "ddragonId": "Rakan",
+      "slug": "rakan",
+      "name": "Rakan",
+      "nameJa": "ラカン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Gleaming Quill",
+          "nameJa": "キラリ羽根",
+          "maxrank": 5,
+          "cooldown": [11, 10, 9, 8, 7]
+        },
+        {
+          "key": "W",
+          "name": "Grand Entrance",
+          "nameJa": "華麗なる登場",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "E",
+          "name": "Battle Dance",
+          "nameJa": "バトルダンス",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "R",
+          "name": "The Quickness",
+          "nameJa": "みんなオレに夢中",
+          "maxrank": 3,
+          "cooldown": [130, 110, 90]
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "ddragonId": "Rammus",
+      "slug": "rammus",
+      "name": "Rammus",
+      "nameJa": "ラムス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Powerball",
+          "nameJa": "ころころ",
+          "maxrank": 5,
+          "cooldown": [12, 10.5, 9, 7.5, 6]
+        },
+        {
+          "key": "W",
+          "name": "Defensive Ball Curl",
+          "nameJa": "かたくなる",
+          "maxrank": 5,
+          "cooldown": [7, 7, 7, 7, 7]
+        },
+        {
+          "key": "E",
+          "name": "Frenzying Taunt",
+          "nameJa": "ぴりぴり",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "R",
+          "name": "Soaring Slam",
+          "nameJa": "どーんどーん",
+          "maxrank": 3,
+          "cooldown": [120, 105, 90]
+        }
+      ]
+    },
+    {
+      "id": 421,
+      "ddragonId": "RekSai",
+      "slug": "reksai",
+      "name": "Rek'Sai",
+      "nameJa": "レク＝サイ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Queen's Wrath / Prey Seeker",
+          "nameJa": "女王の怒り/獲物定め",
+          "maxrank": 5,
+          "cooldown": [4, 3.5, 3, 2.5, 2]
+        },
+        {
+          "key": "W",
+          "name": "Burrow / Un-burrow",
+          "nameJa": "潜伏/襲撃",
+          "maxrank": 5,
+          "cooldown": [4, 4, 4, 4, 4]
+        },
+        {
+          "key": "E",
+          "name": "Furious Bite / Tunnel",
+          "nameJa": "激情の牙/掘削",
+          "maxrank": 5,
+          "cooldown": [6, 6, 6, 6, 6]
+        },
+        {
+          "key": "R",
+          "name": "Void Rush",
+          "nameJa": "ヴォイドラッシュ",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 526,
+      "ddragonId": "Rell",
+      "slug": "rell",
+      "name": "Rell",
+      "nameJa": "レル",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Shattering Strike",
+          "nameJa": "破鋼撃",
+          "maxrank": 5,
+          "cooldown": [11, 10.5, 10, 9.5, 9]
+        },
+        {
+          "key": "W",
+          "name": "Ferromancy: Crash Down",
+          "nameJa": "フェロマンシー: 装着",
+          "maxrank": 5,
+          "cooldown": [10, 10, 10, 10, 10]
+        },
+        {
+          "key": "E",
+          "name": "Full Tilt",
+          "nameJa": "重槍突貫",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "R",
+          "name": "Magnet Storm",
+          "nameJa": "磁気嵐流",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 888,
+      "ddragonId": "Renata",
+      "slug": "renata",
+      "name": "Renata Glasc",
+      "nameJa": "レナータ・グラスク",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Handshake",
+          "nameJa": "手荒い挨拶",
+          "maxrank": 5,
+          "cooldown": [16, 16, 16, 16, 16]
+        },
+        {
+          "key": "W",
+          "name": "Bailout",
+          "nameJa": "緊急支援",
+          "maxrank": 5,
+          "cooldown": [28, 27, 26, 25, 24]
+        },
+        {
+          "key": "E",
+          "name": "Loyalty Program",
+          "nameJa": "ロイヤリティープログラム",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "R",
+          "name": "Hostile Takeover",
+          "nameJa": "敵対的買収",
+          "maxrank": 3,
+          "cooldown": [150, 130, 110]
+        }
+      ]
+    },
+    {
+      "id": 58,
+      "ddragonId": "Renekton",
+      "slug": "renekton",
+      "name": "Renekton",
+      "nameJa": "レネクトン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Cull the Meek",
+          "nameJa": "ミートカット",
+          "maxrank": 5,
+          "cooldown": [7, 7, 7, 7, 7]
+        },
+        {
+          "key": "W",
+          "name": "Ruthless Predator",
+          "nameJa": "メッタ斬り",
+          "maxrank": 5,
+          "cooldown": [16, 14, 12, 10, 8]
+        },
+        {
+          "key": "E",
+          "name": "Slice and Dice",
+          "nameJa": "スライス・アンド・ダイス",
+          "maxrank": 5,
+          "cooldown": [16, 14.5, 13, 11.5, 10]
+        },
+        {
+          "key": "R",
+          "name": "Dominus",
+          "nameJa": "セベクの怒り",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 107,
+      "ddragonId": "Rengar",
+      "slug": "rengar",
+      "name": "Rengar",
+      "nameJa": "レンガー",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Savagery",
+          "nameJa": "逆上",
+          "maxrank": 5,
+          "cooldown": [0.25, 0.25, 0.25, 0.25, 0.25]
+        },
+        {
+          "key": "W",
+          "name": "Battle Roar",
+          "nameJa": "狩りの雄叫び",
+          "maxrank": 5,
+          "cooldown": [0.25, 0.25, 0.25, 0.25, 0.25]
+        },
+        {
+          "key": "E",
+          "name": "Bola Strike",
+          "nameJa": "鉄球の投げ縄",
+          "maxrank": 5,
+          "cooldown": [0.25, 0.25, 0.25, 0.25, 0.25]
+        },
+        {
+          "key": "R",
+          "name": "Thrill of the Hunt",
+          "nameJa": "狩猟本能",
+          "maxrank": 3,
+          "cooldown": [100, 90, 80]
+        }
+      ]
+    },
+    {
+      "id": 92,
+      "ddragonId": "Riven",
+      "slug": "riven",
+      "name": "Riven",
+      "nameJa": "リヴェン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Broken Wings",
+          "nameJa": "折れた翼",
+          "maxrank": 5,
+          "cooldown": [13, 13, 13, 13, 13]
+        },
+        {
+          "key": "W",
+          "name": "Ki Burst",
+          "nameJa": "気功破",
+          "maxrank": 5,
+          "cooldown": [11, 10, 9, 8, 7]
+        },
+        {
+          "key": "E",
+          "name": "Valor",
+          "nameJa": "勇躍",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "R",
+          "name": "Blade of the Exile",
+          "nameJa": "追放者の剣",
+          "maxrank": 3,
+          "cooldown": [120, 90, 60]
+        }
+      ]
+    },
+    {
+      "id": 68,
+      "ddragonId": "Rumble",
+      "slug": "rumble",
+      "name": "Rumble",
+      "nameJa": "ランブル",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Flamespitter",
+          "nameJa": "スピットファイア",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "W",
+          "name": "Scrap Shield",
+          "nameJa": "ジャンクシールド",
+          "maxrank": 5,
+          "cooldown": [6, 6, 6, 6, 6]
+        },
+        {
+          "key": "E",
+          "name": "Electro Harpoon",
+          "nameJa": "エレクトロハープーン",
+          "maxrank": 5,
+          "cooldown": [0.5, 0.5, 0.5, 0.5, 0.5]
+        },
+        {
+          "key": "R",
+          "name": "The Equalizer",
+          "nameJa": "イコライザー",
+          "maxrank": 3,
+          "cooldown": [130, 105, 80]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "ddragonId": "Ryze",
+      "slug": "ryze",
+      "name": "Ryze",
+      "nameJa": "ライズ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Overload",
+          "nameJa": "オーバーロード",
+          "maxrank": 5,
+          "cooldown": [5, 5, 5, 5, 5]
+        },
+        {
+          "key": "W",
+          "name": "Rune Prison",
+          "nameJa": "ルーンプリズン",
+          "maxrank": 5,
+          "cooldown": [11, 10.5, 10, 9.5, 9]
+        },
+        {
+          "key": "E",
+          "name": "Spell Flux",
+          "nameJa": "スペルフラックス",
+          "maxrank": 5,
+          "cooldown": [3.5, 3.25, 3, 2.75, 2.5]
+        },
+        {
+          "key": "R",
+          "name": "Realm Warp",
+          "nameJa": "ポータルワープ",
+          "maxrank": 3,
+          "cooldown": [180, 160, 140]
+        }
+      ]
+    },
+    {
+      "id": 360,
+      "ddragonId": "Samira",
+      "slug": "samira",
+      "name": "Samira",
+      "nameJa": "サミーラ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Flair",
+          "nameJa": "フレア",
+          "maxrank": 5,
+          "cooldown": [6, 5, 4, 3, 2]
+        },
+        {
+          "key": "W",
+          "name": "Blade Whirl",
+          "nameJa": "ブレードワール",
+          "maxrank": 5,
+          "cooldown": [30, 28, 26, 24, 22]
+        },
+        {
+          "key": "E",
+          "name": "Wild Rush",
+          "nameJa": "ワイルドラッシュ",
+          "maxrank": 5,
+          "cooldown": [20, 18, 16, 14, 12]
+        },
+        {
+          "key": "R",
+          "name": "Inferno Trigger",
+          "nameJa": "インフェルノトリガー",
+          "maxrank": 3,
+          "cooldown": [5, 5, 5]
+        }
+      ]
+    },
+    {
+      "id": 113,
+      "ddragonId": "Sejuani",
+      "slug": "sejuani",
+      "name": "Sejuani",
+      "nameJa": "セジュアニ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Arctic Assault",
+          "nameJa": "猪突凍進",
+          "maxrank": 5,
+          "cooldown": [18, 16.5, 15, 13.5, 12]
+        },
+        {
+          "key": "W",
+          "name": "Winter's Wrath",
+          "nameJa": "氷河の怒り",
+          "maxrank": 5,
+          "cooldown": [9, 8, 7, 6, 5]
+        },
+        {
+          "key": "E",
+          "name": "Permafrost",
+          "nameJa": "永久凍土",
+          "maxrank": 5,
+          "cooldown": [1.5, 1.5, 1.5, 1.5, 1.5]
+        },
+        {
+          "key": "R",
+          "name": "Glacial Prison",
+          "nameJa": "グレイシャルプリズン",
+          "maxrank": 3,
+          "cooldown": [120, 105, 90]
+        }
+      ]
+    },
+    {
+      "id": 235,
+      "ddragonId": "Senna",
+      "slug": "senna",
+      "name": "Senna",
+      "nameJa": "セナ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Piercing Darkness",
+          "nameJa": "ピアシングダークネス",
+          "maxrank": 5,
+          "cooldown": [15, 15, 15, 15, 15]
+        },
+        {
+          "key": "W",
+          "name": "Last Embrace",
+          "nameJa": "最期の抱擁",
+          "maxrank": 5,
+          "cooldown": [11, 11, 11, 11, 11]
+        },
+        {
+          "key": "E",
+          "name": "Curse of the Black Mist",
+          "nameJa": "黒き霧の呪い",
+          "maxrank": 5,
+          "cooldown": [26, 24.5, 23, 21.5, 20]
+        },
+        {
+          "key": "R",
+          "name": "Dawning Shadow",
+          "nameJa": "ドーニングシャドウ",
+          "maxrank": 3,
+          "cooldown": [140, 120, 100]
+        }
+      ]
+    },
+    {
+      "id": 147,
+      "ddragonId": "Seraphine",
+      "slug": "seraphine",
+      "name": "Seraphine",
+      "nameJa": "セラフィーン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "High Note",
+          "nameJa": "ハイノート",
+          "maxrank": 5,
+          "cooldown": [8, 7.5, 7, 6.5, 6]
+        },
+        {
+          "key": "W",
+          "name": "Surround Sound",
+          "nameJa": "サラウンドサウンド",
+          "maxrank": 5,
+          "cooldown": [22, 22, 22, 22, 22]
+        },
+        {
+          "key": "E",
+          "name": "Beat Drop",
+          "nameJa": "ビートドロップ",
+          "maxrank": 5,
+          "cooldown": [11, 11, 11, 11, 11]
+        },
+        {
+          "key": "R",
+          "name": "Encore",
+          "nameJa": "アンコール",
+          "maxrank": 3,
+          "cooldown": [160, 140, 120]
+        }
+      ]
+    },
+    {
+      "id": 875,
+      "ddragonId": "Sett",
+      "slug": "sett",
+      "name": "Sett",
+      "nameJa": "セト",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Knuckle Down",
+          "nameJa": "ナックルダウン",
+          "maxrank": 5,
+          "cooldown": [9, 8, 7, 6, 5]
+        },
+        {
+          "key": "W",
+          "name": "Haymaker",
+          "nameJa": "ヘイメイカー",
+          "maxrank": 5,
+          "cooldown": [18, 16.5, 15, 13.5, 12]
+        },
+        {
+          "key": "E",
+          "name": "Facebreaker",
+          "nameJa": "フェイスブレイカー",
+          "maxrank": 5,
+          "cooldown": [16, 14.5, 13, 11.5, 10]
+        },
+        {
+          "key": "R",
+          "name": "The Show Stopper",
+          "nameJa": "ショーストッパー",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "ddragonId": "Shaco",
+      "slug": "shaco",
+      "name": "Shaco",
+      "nameJa": "シャコ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Deceive",
+          "nameJa": "幻惑",
+          "maxrank": 5,
+          "cooldown": [13, 12.5, 12, 11.5, 11]
+        },
+        {
+          "key": "W",
+          "name": "Jack In The Box",
+          "nameJa": "びっくり箱",
+          "maxrank": 5,
+          "cooldown": [15, 15, 15, 15, 15]
+        },
+        {
+          "key": "E",
+          "name": "Two-Shiv Poison",
+          "nameJa": "ポイズンダガー",
+          "maxrank": 5,
+          "cooldown": [8, 8, 8, 8, 8]
+        },
+        {
+          "key": "R",
+          "name": "Hallucinate",
+          "nameJa": "ハルシネイト",
+          "maxrank": 3,
+          "cooldown": [100, 90, 80]
+        }
+      ]
+    },
+    {
+      "id": 98,
+      "ddragonId": "Shen",
+      "slug": "shen",
+      "name": "Shen",
+      "nameJa": "シェン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Twilight Assault",
+          "nameJa": "護刃招来",
+          "maxrank": 5,
+          "cooldown": [8, 7.25, 6.5, 5.75, 5]
+        },
+        {
+          "key": "W",
+          "name": "Spirit's Refuge",
+          "nameJa": "防人の帳",
+          "maxrank": 5,
+          "cooldown": [16, 14.5, 13, 11.5, 10]
+        },
+        {
+          "key": "E",
+          "name": "Shadow Dash",
+          "nameJa": "殺気駆け",
+          "maxrank": 5,
+          "cooldown": [18, 16, 14, 12, 10]
+        },
+        {
+          "key": "R",
+          "name": "Stand United",
+          "nameJa": "瞬身護法",
+          "maxrank": 3,
+          "cooldown": [200, 180, 160]
+        }
+      ]
+    },
+    {
+      "id": 102,
+      "ddragonId": "Shyvana",
+      "slug": "shyvana",
+      "name": "Shyvana",
+      "nameJa": "シヴァーナ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Emberstrike",
+          "nameJa": "エンバーストライク",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "W",
+          "name": "Inferno Aegis",
+          "nameJa": "インフェルノイージス",
+          "maxrank": 5,
+          "cooldown": [13, 12.25, 11.5, 10.75, 10]
+        },
+        {
+          "key": "E",
+          "name": "Molten Burst",
+          "nameJa": "モルテンバースト",
+          "maxrank": 5,
+          "cooldown": [12, 11, 10, 9, 8]
+        },
+        {
+          "key": "R",
+          "name": "Dragon's Descent",
+          "nameJa": "龍の降臨",
+          "maxrank": 3,
+          "cooldown": [0, 0, 0]
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "ddragonId": "Singed",
+      "slug": "singed",
+      "name": "Singed",
+      "nameJa": "シンジド",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Poison Trail",
+          "nameJa": "毒の軌跡",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "W",
+          "name": "Mega Adhesive",
+          "nameJa": "強力粘着剤",
+          "maxrank": 5,
+          "cooldown": [17, 16, 15, 14, 13]
+        },
+        {
+          "key": "E",
+          "name": "Fling",
+          "nameJa": "すくい投げ",
+          "maxrank": 5,
+          "cooldown": [10, 9.5, 9, 8.5, 8]
+        },
+        {
+          "key": "R",
+          "name": "Insanity Potion",
+          "nameJa": "狂人のポーション",
+          "maxrank": 3,
+          "cooldown": [100, 100, 100]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "ddragonId": "Sion",
+      "slug": "sion",
+      "name": "Sion",
+      "nameJa": "サイオン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Decimating Smash",
+          "nameJa": "破滅の斧",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "W",
+          "name": "Soul Furnace",
+          "nameJa": "魂の炉心",
+          "maxrank": 5,
+          "cooldown": [15, 14, 13, 12, 11]
+        },
+        {
+          "key": "E",
+          "name": "Roar of the Slayer",
+          "nameJa": "殺意の雄叫び",
+          "maxrank": 5,
+          "cooldown": [12, 11, 10, 9, 8]
+        },
+        {
+          "key": "R",
+          "name": "Unstoppable Onslaught",
+          "nameJa": "猪突猛進",
+          "maxrank": 3,
+          "cooldown": [140, 100, 60]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "ddragonId": "Sivir",
+      "slug": "sivir",
+      "name": "Sivir",
+      "nameJa": "シヴィア",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Boomerang Blade",
+          "nameJa": "ブーメランブレード",
+          "maxrank": 5,
+          "cooldown": [10, 9.5, 9, 8.5, 8]
+        },
+        {
+          "key": "W",
+          "name": "Ricochet",
+          "nameJa": "跳刃",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "E",
+          "name": "Spell Shield",
+          "nameJa": "スペルシールド",
+          "maxrank": 5,
+          "cooldown": [24, 22.5, 21, 19.5, 18]
+        },
+        {
+          "key": "R",
+          "name": "On The Hunt",
+          "nameJa": "戦姫の号令",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 72,
+      "ddragonId": "Skarner",
+      "slug": "skarner",
+      "name": "Skarner",
+      "nameJa": "スカーナー",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Shattered Earth / Upheaval",
+          "nameJa": "砕けし大地/大地の怒り",
+          "maxrank": 5,
+          "cooldown": [8, 6.75, 5.5, 4.25, 3]
+        },
+        {
+          "key": "W",
+          "name": "Seismic Bastion",
+          "nameJa": "激震の砦",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "E",
+          "name": "Ixtal's Impact",
+          "nameJa": "イシュタルの衝動",
+          "maxrank": 5,
+          "cooldown": [22, 21, 20, 19, 18]
+        },
+        {
+          "key": "R",
+          "name": "Impale",
+          "nameJa": "インペイル",
+          "maxrank": 3,
+          "cooldown": [120, 105, 90]
+        }
+      ]
+    },
+    {
+      "id": 901,
+      "ddragonId": "Smolder",
+      "slug": "smolder",
+      "name": "Smolder",
+      "nameJa": "スモルダー",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Super Scorcher Breath",
+          "nameJa": "スーパーこげこげブレス",
+          "maxrank": 5,
+          "cooldown": [5.5, 5, 4.5, 4, 3.5]
+        },
+        {
+          "key": "W",
+          "name": "Achooo!",
+          "nameJa": "くしゅん！",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "E",
+          "name": "Flap, Flap, Flap",
+          "nameJa": "パタパタパタ",
+          "maxrank": 5,
+          "cooldown": [24, 22, 20, 18, 16]
+        },
+        {
+          "key": "R",
+          "name": "MMOOOMMMM!",
+          "nameJa": "ママーッ！！",
+          "maxrank": 3,
+          "cooldown": [120, 110, 100]
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "ddragonId": "Sona",
+      "slug": "sona",
+      "name": "Sona",
+      "nameJa": "ソナ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Hymn of Valor",
+          "nameJa": "ヒム・オブ・ヴァロー",
+          "maxrank": 5,
+          "cooldown": [8, 8, 8, 8, 8]
+        },
+        {
+          "key": "W",
+          "name": "Aria of Perseverance",
+          "nameJa": "パーセヴァランス",
+          "maxrank": 5,
+          "cooldown": [10, 10, 10, 10, 10]
+        },
+        {
+          "key": "E",
+          "name": "Song of Celerity",
+          "nameJa": "セレリティ",
+          "maxrank": 5,
+          "cooldown": [14, 14, 14, 14, 14]
+        },
+        {
+          "key": "R",
+          "name": "Crescendo",
+          "nameJa": "クレッシェンド",
+          "maxrank": 3,
+          "cooldown": [140, 120, 100]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "ddragonId": "Soraka",
+      "slug": "soraka",
+      "name": "Soraka",
+      "nameJa": "ソラカ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Starcall",
+          "nameJa": "星のささやき",
+          "maxrank": 5,
+          "cooldown": [8, 7, 6, 5, 4]
+        },
+        {
+          "key": "W",
+          "name": "Astral Infusion",
+          "nameJa": "星霊の癒し",
+          "maxrank": 5,
+          "cooldown": [6, 5, 4, 3, 2]
+        },
+        {
+          "key": "E",
+          "name": "Equinox",
+          "nameJa": "星の静寂",
+          "maxrank": 5,
+          "cooldown": [20, 19, 18, 17, 16]
+        },
+        {
+          "key": "R",
+          "name": "Wish",
+          "nameJa": "星に願いを",
+          "maxrank": 3,
+          "cooldown": [150, 135, 120]
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "ddragonId": "Swain",
+      "slug": "swain",
+      "name": "Swain",
+      "nameJa": "スウェイン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Death's Hand",
+          "nameJa": "死の手",
+          "maxrank": 5,
+          "cooldown": [7, 6, 5, 4, 3]
+        },
+        {
+          "key": "W",
+          "name": "Vision of Empire",
+          "nameJa": "帝国の眼",
+          "maxrank": 5,
+          "cooldown": [20, 19, 18, 17, 16]
+        },
+        {
+          "key": "E",
+          "name": "Nevermove",
+          "nameJa": "束縛の爪",
+          "maxrank": 5,
+          "cooldown": [12, 11.5, 11, 10.5, 10]
+        },
+        {
+          "key": "R",
+          "name": "Demonic Ascension",
+          "nameJa": "魔帝戴冠",
+          "maxrank": 3,
+          "cooldown": [120, 120, 120]
+        }
+      ]
+    },
+    {
+      "id": 517,
+      "ddragonId": "Sylas",
+      "slug": "sylas",
+      "name": "Sylas",
+      "nameJa": "サイラス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Chain Lash",
+          "nameJa": "鎖の鞭",
+          "maxrank": 5,
+          "cooldown": [10, 9, 8, 7, 6]
+        },
+        {
+          "key": "W",
+          "name": "Kingslayer",
+          "nameJa": "王殺し",
+          "maxrank": 5,
+          "cooldown": [12, 10.5, 9, 7.5, 6]
+        },
+        {
+          "key": "E",
+          "name": "Abscond / Abduct",
+          "nameJa": "逃亡/拉致",
+          "maxrank": 5,
+          "cooldown": [13, 12, 11, 10, 9]
+        },
+        {
+          "key": "R",
+          "name": "Hijack",
+          "nameJa": "乗っ取り",
+          "maxrank": 3,
+          "cooldown": [80, 55, 30]
+        }
+      ]
+    },
+    {
+      "id": 134,
+      "ddragonId": "Syndra",
+      "slug": "syndra",
+      "name": "Syndra",
+      "nameJa": "シンドラ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Dark Sphere",
+          "nameJa": "ダークスフィア",
+          "maxrank": 5,
+          "cooldown": [7, 7, 7, 7, 7]
+        },
+        {
+          "key": "W",
+          "name": "Force of Will",
+          "nameJa": "ダークフォース",
+          "maxrank": 5,
+          "cooldown": [13, 12, 11, 10, 9]
+        },
+        {
+          "key": "E",
+          "name": "Scatter the Weak",
+          "nameJa": "闇の波導",
+          "maxrank": 5,
+          "cooldown": [17, 16.5, 16, 15.5, 15]
+        },
+        {
+          "key": "R",
+          "name": "Unleashed Power",
+          "nameJa": "魔力の奔流",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 223,
+      "ddragonId": "TahmKench",
+      "slug": "tahmkench",
+      "name": "Tahm Kench",
+      "nameJa": "タム・ケンチ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Tongue Lash",
+          "nameJa": "味見",
+          "maxrank": 5,
+          "cooldown": [7, 6.5, 6, 5.5, 5]
+        },
+        {
+          "key": "W",
+          "name": "Abyssal Dive",
+          "nameJa": "川潜り",
+          "maxrank": 5,
+          "cooldown": [21, 20, 19, 18, 17]
+        },
+        {
+          "key": "E",
+          "name": "Thick Skin",
+          "nameJa": "ゆるゆる皮膜",
+          "maxrank": 5,
+          "cooldown": [3, 3, 3, 3, 3]
+        },
+        {
+          "key": "R",
+          "name": "Devour",
+          "nameJa": "丸呑み",
+          "maxrank": 3,
+          "cooldown": [0, 0, 0]
+        }
+      ]
+    },
+    {
+      "id": 163,
+      "ddragonId": "Taliyah",
+      "slug": "taliyah",
+      "name": "Taliyah",
+      "nameJa": "タリヤ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Threaded Volley",
+          "nameJa": "スレッドボレー",
+          "maxrank": 5,
+          "cooldown": [7, 6, 5, 4, 3]
+        },
+        {
+          "key": "W",
+          "name": "Seismic Shove",
+          "nameJa": "サイズミックシャーブ",
+          "maxrank": 5,
+          "cooldown": [14, 12.5, 11, 9.5, 8]
+        },
+        {
+          "key": "E",
+          "name": "Unraveled Earth",
+          "nameJa": "アンレイベルアース",
+          "maxrank": 5,
+          "cooldown": [14, 14, 14, 14, 14]
+        },
+        {
+          "key": "R",
+          "name": "Weaver's Wall",
+          "nameJa": "ウィーバーウォール",
+          "maxrank": 3,
+          "cooldown": [180, 150, 120]
+        }
+      ]
+    },
+    {
+      "id": 91,
+      "ddragonId": "Talon",
+      "slug": "talon",
+      "name": "Talon",
+      "nameJa": "タロン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Noxian Diplomacy",
+          "nameJa": "ノクサスの刃",
+          "maxrank": 5,
+          "cooldown": [8, 7.5, 7, 6.5, 6]
+        },
+        {
+          "key": "W",
+          "name": "Rake",
+          "nameJa": "飛燕手裏剣",
+          "maxrank": 5,
+          "cooldown": [9, 8.5, 8, 7.5, 7]
+        },
+        {
+          "key": "E",
+          "name": "Assassin's Path",
+          "nameJa": "暗殺者の跳躍",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "R",
+          "name": "Shadow Assault",
+          "nameJa": "シャドウアサルト",
+          "maxrank": 3,
+          "cooldown": [100, 80, 60]
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "ddragonId": "Taric",
+      "slug": "taric",
+      "name": "Taric",
+      "nameJa": "タリック",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Starlight's Touch",
+          "nameJa": "スターライトタッチ",
+          "maxrank": 5,
+          "cooldown": [3, 3, 3, 3, 3]
+        },
+        {
+          "key": "W",
+          "name": "Bastion",
+          "nameJa": "バスティオン",
+          "maxrank": 5,
+          "cooldown": [15, 15, 15, 15, 15]
+        },
+        {
+          "key": "E",
+          "name": "Dazzle",
+          "nameJa": "ダズル",
+          "maxrank": 5,
+          "cooldown": [16, 15, 14, 13, 12]
+        },
+        {
+          "key": "R",
+          "name": "Cosmic Radiance",
+          "nameJa": "コズミックレディアンス",
+          "maxrank": 3,
+          "cooldown": [180, 150, 120]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "ddragonId": "Teemo",
+      "slug": "teemo",
+      "name": "Teemo",
+      "nameJa": "ティーモ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Blinding Dart",
+          "nameJa": "目つぶしダーツ",
+          "maxrank": 5,
+          "cooldown": [7, 7, 7, 7, 7]
+        },
+        {
+          "key": "W",
+          "name": "Move Quick",
+          "nameJa": "駆け足！",
+          "maxrank": 5,
+          "cooldown": [14, 14, 14, 14, 14]
+        },
+        {
+          "key": "E",
+          "name": "Toxic Shot",
+          "nameJa": "毒たっぷり吹き矢",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "R",
+          "name": "Noxious Trap",
+          "nameJa": "毒キノコ",
+          "maxrank": 3,
+          "cooldown": [0.25, 0.25, 0.25]
+        }
+      ]
+    },
+    {
+      "id": 412,
+      "ddragonId": "Thresh",
+      "slug": "thresh",
+      "name": "Thresh",
+      "nameJa": "スレッシュ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Death Sentence",
+          "nameJa": "死の宣告",
+          "maxrank": 5,
+          "cooldown": [19, 16.5, 14, 11.5, 9]
+        },
+        {
+          "key": "W",
+          "name": "Dark Passage",
+          "nameJa": "嘆きの魂灯",
+          "maxrank": 5,
+          "cooldown": [21, 20, 19, 18, 17]
+        },
+        {
+          "key": "E",
+          "name": "Flay",
+          "nameJa": "絶望の鎖",
+          "maxrank": 5,
+          "cooldown": [13, 12.25, 11.5, 10.75, 10]
+        },
+        {
+          "key": "R",
+          "name": "The Box",
+          "nameJa": "魂の牢獄",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "ddragonId": "Tristana",
+      "slug": "tristana",
+      "name": "Tristana",
+      "nameJa": "トリスターナ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Rapid Fire",
+          "nameJa": "ラピッドファイア",
+          "maxrank": 5,
+          "cooldown": [20, 19, 18, 17, 16]
+        },
+        {
+          "key": "W",
+          "name": "Rocket Jump",
+          "nameJa": "ロケットジャンプ",
+          "maxrank": 5,
+          "cooldown": [22, 20, 18, 16, 14]
+        },
+        {
+          "key": "E",
+          "name": "Explosive Charge",
+          "nameJa": "ヨードルグレネード",
+          "maxrank": 5,
+          "cooldown": [16, 15.5, 15, 14.5, 14]
+        },
+        {
+          "key": "R",
+          "name": "Buster Shot",
+          "nameJa": "バスターショット",
+          "maxrank": 3,
+          "cooldown": [100, 100, 100]
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "ddragonId": "Trundle",
+      "slug": "trundle",
+      "name": "Trundle",
+      "nameJa": "トランドル",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Chomp",
+          "nameJa": "咬み付き",
+          "maxrank": 5,
+          "cooldown": [3.5, 3.5, 3.5, 3.5, 3.5]
+        },
+        {
+          "key": "W",
+          "name": "Frozen Domain",
+          "nameJa": "凍てつく大地",
+          "maxrank": 5,
+          "cooldown": [18, 17, 16, 15, 14]
+        },
+        {
+          "key": "E",
+          "name": "Pillar of Ice",
+          "nameJa": "氷冷の柱",
+          "maxrank": 5,
+          "cooldown": [21, 19.5, 18, 16.5, 15]
+        },
+        {
+          "key": "R",
+          "name": "Subjugate",
+          "nameJa": "暴虐なる搾取",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "ddragonId": "Tryndamere",
+      "slug": "tryndamere",
+      "name": "Tryndamere",
+      "nameJa": "トリンダメア",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Bloodlust",
+          "nameJa": "血の欲望",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "W",
+          "name": "Mocking Shout",
+          "nameJa": "嘲りの叫び",
+          "maxrank": 5,
+          "cooldown": [14, 14, 14, 14, 14]
+        },
+        {
+          "key": "E",
+          "name": "Spinning Slash",
+          "nameJa": "スピンスラッシュ",
+          "maxrank": 5,
+          "cooldown": [12, 11, 10, 9, 8]
+        },
+        {
+          "key": "R",
+          "name": "Undying Rage",
+          "nameJa": "不死の憤激",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "ddragonId": "TwistedFate",
+      "slug": "twistedfate",
+      "name": "Twisted Fate",
+      "nameJa": "ツイステッド・フェイト",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Wild Cards",
+          "nameJa": "ワイルドカード",
+          "maxrank": 5,
+          "cooldown": [6, 5.75, 5.5, 5.25, 5]
+        },
+        {
+          "key": "W",
+          "name": "Pick a Card",
+          "nameJa": "ドロー",
+          "maxrank": 5,
+          "cooldown": [6, 6, 6, 6, 6]
+        },
+        {
+          "key": "E",
+          "name": "Stacked Deck",
+          "nameJa": "スタックデッキ",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "R",
+          "name": "Destiny",
+          "nameJa": "デスティニー",
+          "maxrank": 3,
+          "cooldown": [170, 140, 110]
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "ddragonId": "Twitch",
+      "slug": "twitch",
+      "name": "Twitch",
+      "nameJa": "トゥイッチ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Ambush",
+          "nameJa": "オイラだヨ！",
+          "maxrank": 5,
+          "cooldown": [16, 16, 16, 16, 16]
+        },
+        {
+          "key": "W",
+          "name": "Venom Cask",
+          "nameJa": "コイツを食らエ！",
+          "maxrank": 5,
+          "cooldown": [13, 12, 11, 10, 9]
+        },
+        {
+          "key": "E",
+          "name": "Contaminate",
+          "nameJa": "ボーン！",
+          "maxrank": 5,
+          "cooldown": [12, 11, 10, 9, 8]
+        },
+        {
+          "key": "R",
+          "name": "Spray and Pray",
+          "nameJa": "ヒャッハー！",
+          "maxrank": 3,
+          "cooldown": [90, 90, 90]
+        }
+      ]
+    },
+    {
+      "id": 77,
+      "ddragonId": "Udyr",
+      "slug": "udyr",
+      "name": "Udyr",
+      "nameJa": "ウディア",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Wilding Claw",
+          "nameJa": "野性の爪",
+          "maxrank": 6,
+          "cooldown": [6, 6, 6, 6, 6, 6]
+        },
+        {
+          "key": "W",
+          "name": "Iron Mantle",
+          "nameJa": "鉄の外皮",
+          "maxrank": 6,
+          "cooldown": [6, 6, 6, 6, 6, 6]
+        },
+        {
+          "key": "E",
+          "name": "Blazing Stampede",
+          "nameJa": "焔の猛進",
+          "maxrank": 6,
+          "cooldown": [6, 6, 6, 6, 6, 6]
+        },
+        {
+          "key": "R",
+          "name": "Wingborne Storm",
+          "nameJa": "氷翼の嵐",
+          "maxrank": 6,
+          "cooldown": [6, 6, 6, 6, 6, 6]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "ddragonId": "Urgot",
+      "slug": "urgot",
+      "name": "Urgot",
+      "nameJa": "アーゴット",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Corrosive Charge",
+          "nameJa": "コラプトシェル",
+          "maxrank": 5,
+          "cooldown": [10, 9.5, 9, 8.5, 8]
+        },
+        {
+          "key": "W",
+          "name": "Purge",
+          "nameJa": "パージ",
+          "maxrank": 5,
+          "cooldown": [12, 9, 6, 3, 0]
+        },
+        {
+          "key": "E",
+          "name": "Disdain",
+          "nameJa": "ディスデイン",
+          "maxrank": 5,
+          "cooldown": [16, 15.5, 15, 14.5, 14]
+        },
+        {
+          "key": "R",
+          "name": "Fear Beyond Death",
+          "nameJa": "デスグラインダー",
+          "maxrank": 3,
+          "cooldown": [100, 85, 70]
+        }
+      ]
+    },
+    {
+      "id": 110,
+      "ddragonId": "Varus",
+      "slug": "varus",
+      "name": "Varus",
+      "nameJa": "ヴァルス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Piercing Arrow",
+          "nameJa": "乾坤一擲",
+          "maxrank": 5,
+          "cooldown": [16, 15, 14, 13, 12]
+        },
+        {
+          "key": "W",
+          "name": "Blighted Quiver",
+          "nameJa": "枯死の矢筒",
+          "maxrank": 5,
+          "cooldown": [40, 40, 40, 40, 40]
+        },
+        {
+          "key": "E",
+          "name": "Hail of Arrows",
+          "nameJa": "滅びの矢雨",
+          "maxrank": 5,
+          "cooldown": [18, 16, 14, 12, 10]
+        },
+        {
+          "key": "R",
+          "name": "Chain of Corruption",
+          "nameJa": "穢れの連鎖",
+          "maxrank": 3,
+          "cooldown": [100, 80, 60]
+        }
+      ]
+    },
+    {
+      "id": 67,
+      "ddragonId": "Vayne",
+      "slug": "vayne",
+      "name": "Vayne",
+      "nameJa": "ヴェイン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Tumble",
+          "nameJa": "タンブル",
+          "maxrank": 5,
+          "cooldown": [6, 5, 4, 3, 2]
+        },
+        {
+          "key": "W",
+          "name": "Silver Bolts",
+          "nameJa": "シルバーボルト",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "E",
+          "name": "Condemn",
+          "nameJa": "パニッシュメント",
+          "maxrank": 5,
+          "cooldown": [20, 18, 16, 14, 12]
+        },
+        {
+          "key": "R",
+          "name": "Final Hour",
+          "nameJa": "ファイナルアワー",
+          "maxrank": 3,
+          "cooldown": [100, 85, 70]
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "ddragonId": "Veigar",
+      "slug": "veigar",
+      "name": "Veigar",
+      "nameJa": "ベイガー",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Baleful Strike",
+          "nameJa": "イーヴィルストライク",
+          "maxrank": 5,
+          "cooldown": [6, 5.5, 5, 4.5, 4]
+        },
+        {
+          "key": "W",
+          "name": "Dark Matter",
+          "nameJa": "ダークマター",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "E",
+          "name": "Event Horizon",
+          "nameJa": "イベントホライズン",
+          "maxrank": 5,
+          "cooldown": [20, 18.5, 17, 15.5, 14]
+        },
+        {
+          "key": "R",
+          "name": "Primordial Burst",
+          "nameJa": "メテオバースト",
+          "maxrank": 3,
+          "cooldown": [120, 90, 60]
+        }
+      ]
+    },
+    {
+      "id": 161,
+      "ddragonId": "Velkoz",
+      "slug": "velkoz",
+      "name": "Vel'Koz",
+      "nameJa": "ヴェル＝コズ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Plasma Fission",
+          "nameJa": "電離炸裂弾",
+          "maxrank": 5,
+          "cooldown": [7, 7, 7, 7, 7]
+        },
+        {
+          "key": "W",
+          "name": "Void Rift",
+          "nameJa": "ヴォイドの裂谷",
+          "maxrank": 5,
+          "cooldown": [1.5, 1.5, 1.5, 1.5, 1.5]
+        },
+        {
+          "key": "E",
+          "name": "Tectonic Disruption",
+          "nameJa": "地殻砕裂",
+          "maxrank": 5,
+          "cooldown": [12, 11.5, 11, 10.5, 10]
+        },
+        {
+          "key": "R",
+          "name": "Life Form Disintegration Ray",
+          "nameJa": "生体破壊光線",
+          "maxrank": 3,
+          "cooldown": [100, 90, 80]
+        }
+      ]
+    },
+    {
+      "id": 711,
+      "ddragonId": "Vex",
+      "slug": "vex",
+      "name": "Vex",
+      "nameJa": "ヴェックス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Mistral Bolt",
+          "nameJa": "無気力ショット",
+          "maxrank": 5,
+          "cooldown": [8, 7, 6, 5, 4]
+        },
+        {
+          "key": "W",
+          "name": "Personal Space",
+          "nameJa": "パーソナルスペース",
+          "maxrank": 5,
+          "cooldown": [16, 15, 14, 13, 12]
+        },
+        {
+          "key": "E",
+          "name": "Looming Darkness",
+          "nameJa": "ヤミとばし",
+          "maxrank": 5,
+          "cooldown": [12, 12, 12, 12, 12]
+        },
+        {
+          "key": "R",
+          "name": "Shadow Surge",
+          "nameJa": "影法師",
+          "maxrank": 3,
+          "cooldown": [140, 120, 100]
+        }
+      ]
+    },
+    {
+      "id": 254,
+      "ddragonId": "Vi",
+      "slug": "vi",
+      "name": "Vi",
+      "nameJa": "ヴァイ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Vault Breaker",
+          "nameJa": "真っすぐいってぶっとばす",
+          "maxrank": 5,
+          "cooldown": [12, 10.5, 9, 7.5, 6]
+        },
+        {
+          "key": "W",
+          "name": "Denting Blows",
+          "nameJa": "メッタ打ち",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "E",
+          "name": "Relentless Force",
+          "nameJa": "無慈悲な連撃",
+          "maxrank": 5,
+          "cooldown": [1, 1, 1, 1, 1]
+        },
+        {
+          "key": "R",
+          "name": "Cease and Desist",
+          "nameJa": "突入捜査",
+          "maxrank": 3,
+          "cooldown": [140, 115, 90]
+        }
+      ]
+    },
+    {
+      "id": 234,
+      "ddragonId": "Viego",
+      "slug": "viego",
+      "name": "Viego",
+      "nameJa": "ヴィエゴ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Blade of the Ruined King",
+          "nameJa": "滅びの王剣",
+          "maxrank": 5,
+          "cooldown": [5, 4.5, 4, 3.5, 3]
+        },
+        {
+          "key": "W",
+          "name": "Spectral Maw",
+          "nameJa": "亡霊の嘆き",
+          "maxrank": 5,
+          "cooldown": [8, 8, 8, 8, 8]
+        },
+        {
+          "key": "E",
+          "name": "Harrowed Path",
+          "nameJa": "彷徨える苦悶",
+          "maxrank": 5,
+          "cooldown": [14, 12, 10, 8, 6]
+        },
+        {
+          "key": "R",
+          "name": "Heartbreaker",
+          "nameJa": "ハートブレイカー",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 112,
+      "ddragonId": "Viktor",
+      "slug": "viktor",
+      "name": "Viktor",
+      "nameJa": "ビクター",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Siphon Power",
+          "nameJa": "パワーブラスト",
+          "maxrank": 5,
+          "cooldown": [9, 8, 7, 6, 5]
+        },
+        {
+          "key": "W",
+          "name": "Gravity Field",
+          "nameJa": "グラビティフィールド",
+          "maxrank": 5,
+          "cooldown": [17, 16, 15, 14, 13]
+        },
+        {
+          "key": "E",
+          "name": "Hextech Ray",
+          "nameJa": "ヘクステック レイ",
+          "maxrank": 5,
+          "cooldown": [12, 11, 10, 9, 8]
+        },
+        {
+          "key": "R",
+          "name": "Arcane Storm",
+          "nameJa": "アーケインストーム",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "ddragonId": "Vladimir",
+      "slug": "vladimir",
+      "name": "Vladimir",
+      "nameJa": "ブラッドミア",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Transfusion",
+          "nameJa": "吸血",
+          "maxrank": 5,
+          "cooldown": [9, 7.9, 6.8, 5.7, 4.6]
+        },
+        {
+          "key": "W",
+          "name": "Sanguine Pool",
+          "nameJa": "紅血の沼",
+          "maxrank": 5,
+          "cooldown": [28, 25, 22, 19, 16]
+        },
+        {
+          "key": "E",
+          "name": "Tides of Blood",
+          "nameJa": "血液奔流",
+          "maxrank": 5,
+          "cooldown": [13, 11, 9, 7, 5]
+        },
+        {
+          "key": "R",
+          "name": "Hemoplague",
+          "nameJa": "呪血の渦",
+          "maxrank": 3,
+          "cooldown": [120, 120, 120]
+        }
+      ]
+    },
+    {
+      "id": 106,
+      "ddragonId": "Volibear",
+      "slug": "volibear",
+      "name": "Volibear",
+      "nameJa": "ボリベア",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Thundering Smash",
+          "nameJa": "稲妻の猛攻",
+          "maxrank": 5,
+          "cooldown": [12, 11.5, 11, 10.5, 10]
+        },
+        {
+          "key": "W",
+          "name": "Frenzied Maul",
+          "nameJa": "激昂の斬撃",
+          "maxrank": 5,
+          "cooldown": [5, 5, 5, 5, 5]
+        },
+        {
+          "key": "E",
+          "name": "Sky Splitter",
+          "nameJa": "天破の一撃",
+          "maxrank": 5,
+          "cooldown": [16, 16, 16, 16, 16]
+        },
+        {
+          "key": "R",
+          "name": "Stormbringer",
+          "nameJa": "嵐を起こす者",
+          "maxrank": 3,
+          "cooldown": [160, 135, 110]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "ddragonId": "Warwick",
+      "slug": "warwick",
+      "name": "Warwick",
+      "nameJa": "ワーウィック",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Jaws of the Beast",
+          "nameJa": "野獣の牙",
+          "maxrank": 5,
+          "cooldown": [8, 7.5, 7, 6.5, 6]
+        },
+        {
+          "key": "W",
+          "name": "Blood Hunt",
+          "nameJa": "血の追跡",
+          "maxrank": 5,
+          "cooldown": [80, 70, 60, 50, 40]
+        },
+        {
+          "key": "E",
+          "name": "Primal Howl",
+          "nameJa": "怒りの咆哮",
+          "maxrank": 5,
+          "cooldown": [15, 14, 13, 12, 11]
+        },
+        {
+          "key": "R",
+          "name": "Infinite Duress",
+          "nameJa": "絶狼牙連撃",
+          "maxrank": 3,
+          "cooldown": [110, 90, 70]
+        }
+      ]
+    },
+    {
+      "id": 62,
+      "ddragonId": "MonkeyKing",
+      "slug": "wukong",
+      "name": "Wukong",
+      "nameJa": "ウーコン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Crushing Blow",
+          "nameJa": "強棒打",
+          "maxrank": 5,
+          "cooldown": [8, 7.5, 7, 6.5, 6]
+        },
+        {
+          "key": "W",
+          "name": "Warrior Trickster",
+          "nameJa": "戦士の幻惑",
+          "maxrank": 5,
+          "cooldown": [22, 21, 20, 19, 18]
+        },
+        {
+          "key": "E",
+          "name": "Nimbus Strike",
+          "nameJa": "乱像猿技",
+          "maxrank": 5,
+          "cooldown": [10, 9.25, 8.5, 7.75, 7]
+        },
+        {
+          "key": "R",
+          "name": "Cyclone",
+          "nameJa": "旋風猿舞",
+          "maxrank": 3,
+          "cooldown": [130, 110, 90]
+        }
+      ]
+    },
+    {
+      "id": 498,
+      "ddragonId": "Xayah",
+      "slug": "xayah",
+      "name": "Xayah",
+      "nameJa": "ザヤ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Double Daggers",
+          "nameJa": "ダブルダガー",
+          "maxrank": 5,
+          "cooldown": [10, 9.5, 9, 8.5, 8]
+        },
+        {
+          "key": "W",
+          "name": "Deadly Plumage",
+          "nameJa": "デッドリープルーム",
+          "maxrank": 5,
+          "cooldown": [18, 17, 16, 15, 14]
+        },
+        {
+          "key": "E",
+          "name": "Bladecaller",
+          "nameJa": "ブレードコーラー",
+          "maxrank": 5,
+          "cooldown": [12, 11, 10, 9, 8]
+        },
+        {
+          "key": "R",
+          "name": "Featherstorm",
+          "nameJa": "フェザーストーム",
+          "maxrank": 3,
+          "cooldown": [140, 120, 100]
+        }
+      ]
+    },
+    {
+      "id": 101,
+      "ddragonId": "Xerath",
+      "slug": "xerath",
+      "name": "Xerath",
+      "nameJa": "ゼラス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Arcanopulse",
+          "nameJa": "アルカノパルス",
+          "maxrank": 5,
+          "cooldown": [9, 8, 7, 6, 5]
+        },
+        {
+          "key": "W",
+          "name": "Eye of Destruction",
+          "nameJa": "デストラクションアイ",
+          "maxrank": 5,
+          "cooldown": [14, 13, 12, 11, 10]
+        },
+        {
+          "key": "E",
+          "name": "Shocking Orb",
+          "nameJa": "ショックオーブ",
+          "maxrank": 5,
+          "cooldown": [13, 12.5, 12, 11.5, 11]
+        },
+        {
+          "key": "R",
+          "name": "Rite of the Arcane",
+          "nameJa": "アーケーンライト",
+          "maxrank": 3,
+          "cooldown": [130, 115, 100]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "ddragonId": "XinZhao",
+      "slug": "xinzhao",
+      "name": "Xin Zhao",
+      "nameJa": "シン・ジャオ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Three Talon Strike",
+          "nameJa": "三槍撃",
+          "maxrank": 5,
+          "cooldown": [7, 6.5, 6, 5.5, 5]
+        },
+        {
+          "key": "W",
+          "name": "Wind Becomes Lightning",
+          "nameJa": "風成雷鳴",
+          "maxrank": 5,
+          "cooldown": [12, 11, 10, 9, 8]
+        },
+        {
+          "key": "E",
+          "name": "Audacious Charge",
+          "nameJa": "兵貴神速",
+          "maxrank": 5,
+          "cooldown": [11, 11, 11, 11, 11]
+        },
+        {
+          "key": "R",
+          "name": "Crescent Guard",
+          "nameJa": "三日月槍守",
+          "maxrank": 3,
+          "cooldown": [120, 110, 100]
+        }
+      ]
+    },
+    {
+      "id": 157,
+      "ddragonId": "Yasuo",
+      "slug": "yasuo",
+      "name": "Yasuo",
+      "nameJa": "ヤスオ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Steel Tempest",
+          "nameJa": "抜刀",
+          "maxrank": 5,
+          "cooldown": [4, 4, 4, 4, 4]
+        },
+        {
+          "key": "W",
+          "name": "Wind Wall",
+          "nameJa": "風殺の壁",
+          "maxrank": 5,
+          "cooldown": [25, 23, 21, 19, 17]
+        },
+        {
+          "key": "E",
+          "name": "Sweeping Blade",
+          "nameJa": "風薙ぎ",
+          "maxrank": 5,
+          "cooldown": [0.5, 0.4, 0.3, 0.2, 0.1]
+        },
+        {
+          "key": "R",
+          "name": "Last Breath",
+          "nameJa": "鬼哭啾々",
+          "maxrank": 3,
+          "cooldown": [70, 50, 30]
+        }
+      ]
+    },
+    {
+      "id": 777,
+      "ddragonId": "Yone",
+      "slug": "yone",
+      "name": "Yone",
+      "nameJa": "ヨネ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Mortal Steel",
+          "nameJa": "斬命刀",
+          "maxrank": 5,
+          "cooldown": [4, 4, 4, 4, 4]
+        },
+        {
+          "key": "W",
+          "name": "Spirit Cleave",
+          "nameJa": "霊断刀",
+          "maxrank": 5,
+          "cooldown": [14, 14, 14, 14, 14]
+        },
+        {
+          "key": "E",
+          "name": "Soul Unbound",
+          "nameJa": "縛魂の解放",
+          "maxrank": 5,
+          "cooldown": [22, 19, 16, 13, 10]
+        },
+        {
+          "key": "R",
+          "name": "Fate Sealed",
+          "nameJa": "冥封一閃",
+          "maxrank": 3,
+          "cooldown": [120, 100, 80]
+        }
+      ]
+    },
+    {
+      "id": 83,
+      "ddragonId": "Yorick",
+      "slug": "yorick",
+      "name": "Yorick",
+      "nameJa": "ヨリック",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Last Rites",
+          "nameJa": "葬送",
+          "maxrank": 5,
+          "cooldown": [6, 5.5, 5, 4.5, 4]
+        },
+        {
+          "key": "W",
+          "name": "Dark Procession",
+          "nameJa": "屍の列",
+          "maxrank": 5,
+          "cooldown": [20, 18, 16, 14, 12]
+        },
+        {
+          "key": "E",
+          "name": "Mourning Mist",
+          "nameJa": "悲嘆の霧",
+          "maxrank": 5,
+          "cooldown": [12, 11, 10, 9, 8]
+        },
+        {
+          "key": "R",
+          "name": "Eulogy of the Isles",
+          "nameJa": "嘆きの墓標",
+          "maxrank": 3,
+          "cooldown": [160, 130, 100]
+        }
+      ]
+    },
+    {
+      "id": 804,
+      "ddragonId": "Yunara",
+      "slug": "yunara",
+      "name": "Yunara",
+      "nameJa": "ユナラ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Cultivation of Spirit",
+          "nameJa": "精神修養",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "W",
+          "name": "Arc of Judgment | Arc of Ruin",
+          "nameJa": "裁きの弧/滅びの弧",
+          "maxrank": 5,
+          "cooldown": [10, 10, 10, 10, 10]
+        },
+        {
+          "key": "E",
+          "name": "Kanmei's Steps | Untouchable Shadow",
+          "nameJa": "カンメイの歩み/触れ得ぬ影",
+          "maxrank": 5,
+          "cooldown": [9, 9, 9, 9, 9]
+        },
+        {
+          "key": "R",
+          "name": "Transcend One's Self",
+          "nameJa": "自己超越",
+          "maxrank": 3,
+          "cooldown": [100, 90, 80]
+        }
+      ]
+    },
+    {
+      "id": 350,
+      "ddragonId": "Yuumi",
+      "slug": "yuumi",
+      "name": "Yuumi",
+      "nameJa": "ユーミ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Prowling Projectile",
+          "nameJa": "きまぐれミサイル",
+          "maxrank": 6,
+          "cooldown": [6.5, 6.5, 6.5, 6.5, 6.5, 6.5]
+        },
+        {
+          "key": "W",
+          "name": "You and Me!",
+          "nameJa": "ユー＆ミー！",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "E",
+          "name": "Zoomies",
+          "nameJa": "バビューン！",
+          "maxrank": 5,
+          "cooldown": [10, 10, 10, 10, 10]
+        },
+        {
+          "key": "R",
+          "name": "Final Chapter",
+          "nameJa": "ファイナルチャプター",
+          "maxrank": 3,
+          "cooldown": [120, 110, 100]
+        }
+      ]
+    },
+    {
+      "id": 904,
+      "ddragonId": "Zaahen",
+      "slug": "zaahen",
+      "name": "Zaahen",
+      "nameJa": "ザーヘン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "The Darkin Glaive",
+          "nameJa": "ダーキングレイヴ",
+          "maxrank": 5,
+          "cooldown": [8, 7.5, 7, 6.5, 6]
+        },
+        {
+          "key": "W",
+          "name": "Dreaded Return",
+          "nameJa": "戦慄の再臨",
+          "maxrank": 5,
+          "cooldown": [14, 13.5, 13, 12.5, 12]
+        },
+        {
+          "key": "E",
+          "name": "Aureate Rush",
+          "nameJa": "絢爛たる進撃",
+          "maxrank": 5,
+          "cooldown": [10, 9.5, 9, 8.5, 8]
+        },
+        {
+          "key": "R",
+          "name": "Grim Deliverance",
+          "nameJa": "無慈悲なる裁き",
+          "maxrank": 3,
+          "cooldown": [110, 95, 80]
+        }
+      ]
+    },
+    {
+      "id": 154,
+      "ddragonId": "Zac",
+      "slug": "zac",
+      "name": "Zac",
+      "nameJa": "ザック",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Stretching Strikes",
+          "nameJa": "スライムパンチ",
+          "maxrank": 5,
+          "cooldown": [14, 12.5, 11, 9.5, 8]
+        },
+        {
+          "key": "W",
+          "name": "Unstable Matter",
+          "nameJa": "スライムクラッシュ",
+          "maxrank": 5,
+          "cooldown": [5, 5, 5, 5, 5]
+        },
+        {
+          "key": "E",
+          "name": "Elastic Slingshot",
+          "nameJa": "ブッ飛びスライム",
+          "maxrank": 5,
+          "cooldown": [21, 18, 15, 12, 9]
+        },
+        {
+          "key": "R",
+          "name": "Let's Bounce!",
+          "nameJa": "レッツバウンス！",
+          "maxrank": 3,
+          "cooldown": [120, 105, 90]
+        }
+      ]
+    },
+    {
+      "id": 238,
+      "ddragonId": "Zed",
+      "slug": "zed",
+      "name": "Zed",
+      "nameJa": "ゼド",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Razor Shuriken",
+          "nameJa": "風魔手裏剣",
+          "maxrank": 5,
+          "cooldown": [6, 6, 6, 6, 6]
+        },
+        {
+          "key": "W",
+          "name": "Living Shadow",
+          "nameJa": "影分身",
+          "maxrank": 5,
+          "cooldown": [20, 19, 18, 17, 16]
+        },
+        {
+          "key": "E",
+          "name": "Shadow Slash",
+          "nameJa": "影薙ぎ",
+          "maxrank": 5,
+          "cooldown": [5, 4.5, 4, 3.5, 3]
+        },
+        {
+          "key": "R",
+          "name": "Death Mark",
+          "nameJa": "死の刻印",
+          "maxrank": 3,
+          "cooldown": [120, 110, 100]
+        }
+      ]
+    },
+    {
+      "id": 221,
+      "ddragonId": "Zeri",
+      "slug": "zeri",
+      "name": "Zeri",
+      "nameJa": "ゼリ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Burst Fire",
+          "nameJa": "バーストファイア",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "W",
+          "name": "Ultrashock Laser",
+          "nameJa": "ウルトラショックレーザー",
+          "maxrank": 5,
+          "cooldown": [12, 11, 10, 9, 8]
+        },
+        {
+          "key": "E",
+          "name": "Spark Surge",
+          "nameJa": "スパークサージ",
+          "maxrank": 5,
+          "cooldown": [24, 22.5, 21, 19.5, 18]
+        },
+        {
+          "key": "R",
+          "name": "Lightning Crash",
+          "nameJa": "ライトニングクラッシュ",
+          "maxrank": 3,
+          "cooldown": [80, 75, 70]
+        }
+      ]
+    },
+    {
+      "id": 115,
+      "ddragonId": "Ziggs",
+      "slug": "ziggs",
+      "name": "Ziggs",
+      "nameJa": "ジグス",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Bouncing Bomb",
+          "nameJa": "バウンドボム",
+          "maxrank": 5,
+          "cooldown": [6, 5.5, 5, 4.5, 4]
+        },
+        {
+          "key": "W",
+          "name": "Satchel Charge",
+          "nameJa": "エンジニアボム",
+          "maxrank": 5,
+          "cooldown": [20, 18, 16, 14, 12]
+        },
+        {
+          "key": "E",
+          "name": "Hexplosive Minefield",
+          "nameJa": "ヘクステックマイン",
+          "maxrank": 5,
+          "cooldown": [16, 16, 16, 16, 16]
+        },
+        {
+          "key": "R",
+          "name": "Mega Inferno Bomb",
+          "nameJa": "メガインフェルノボム",
+          "maxrank": 3,
+          "cooldown": [120, 95, 70]
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "ddragonId": "Zilean",
+      "slug": "zilean",
+      "name": "Zilean",
+      "nameJa": "ジリアン",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Time Bomb",
+          "nameJa": "タイムボム",
+          "maxrank": 5,
+          "cooldown": [10, 9.5, 9, 8.5, 8]
+        },
+        {
+          "key": "W",
+          "name": "Rewind",
+          "nameJa": "リワインド",
+          "maxrank": 5,
+          "cooldown": [14, 12, 10, 8, 6]
+        },
+        {
+          "key": "E",
+          "name": "Time Warp",
+          "nameJa": "タイムワープ",
+          "maxrank": 5,
+          "cooldown": [15, 15, 15, 15, 15]
+        },
+        {
+          "key": "R",
+          "name": "Chronoshift",
+          "nameJa": "クロノシフト",
+          "maxrank": 3,
+          "cooldown": [120, 90, 60]
+        }
+      ]
+    },
+    {
+      "id": 142,
+      "ddragonId": "Zoe",
+      "slug": "zoe",
+      "name": "Zoe",
+      "nameJa": "ゾーイ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Paddle Star!",
+          "nameJa": "パドルスター",
+          "maxrank": 5,
+          "cooldown": [8.5, 8, 7.5, 7, 6.5]
+        },
+        {
+          "key": "W",
+          "name": "Spell Thief",
+          "nameJa": "スペルシーフ",
+          "maxrank": 5,
+          "cooldown": [0.25, 0.25, 0.25, 0.25, 0.25]
+        },
+        {
+          "key": "E",
+          "name": "Sleepy Trouble Bubble",
+          "nameJa": "スリープバブル",
+          "maxrank": 5,
+          "cooldown": [18, 17, 16, 15, 14]
+        },
+        {
+          "key": "R",
+          "name": "Portal Jump",
+          "nameJa": "ポータルジャンプ",
+          "maxrank": 3,
+          "cooldown": [11, 8, 5]
+        }
+      ]
+    },
+    {
+      "id": 143,
+      "ddragonId": "Zyra",
+      "slug": "zyra",
+      "name": "Zyra",
+      "nameJa": "ザイラ",
+      "spells": [
+        {
+          "key": "Q",
+          "name": "Deadly Spines",
+          "nameJa": "死華の棘",
+          "maxrank": 5,
+          "cooldown": [7, 6.5, 6, 5.5, 5]
+        },
+        {
+          "key": "W",
+          "name": "Rampant Growth",
+          "nameJa": "狂い咲き",
+          "maxrank": 5,
+          "cooldown": [0, 0, 0, 0, 0]
+        },
+        {
+          "key": "E",
+          "name": "Grasping Roots",
+          "nameJa": "捕縛の根",
+          "maxrank": 5,
+          "cooldown": [11, 11, 11, 11, 11]
+        },
+        {
+          "key": "R",
+          "name": "Stranglethorns",
+          "nameJa": "茨のゆりかご",
+          "maxrank": 3,
+          "cooldown": [110, 100, 90]
+        }
+      ]
+    }
+  ]
+}

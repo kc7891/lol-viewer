@@ -1,0 +1,10 @@
+{
+  "name": "@lol-viewer/champion-data",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@lol-viewer/protocol": "workspace:*"
+  }
+}

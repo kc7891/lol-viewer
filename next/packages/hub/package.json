@@ -1,0 +1,19 @@
+{
+  "name": "@lol-viewer/hub",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@lol-viewer/protocol": "workspace:*",
+    "@lol-viewer/core": "workspace:*",
+    "ws": "8.22.1"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.2",
+    "@lol-viewer/lcu": "workspace:*",
+    "@lol-viewer/fake-lcu": "workspace:*"
+  }
+}

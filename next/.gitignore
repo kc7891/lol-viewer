@@ -1,0 +1,10 @@
+storybook-static/
+test-results/
+playwright-report/
+e2e/screenshots/
+apps/desktop/out/
+apps/desktop/release/
+
+# The root .gitignore ignores anything named "core" (core dumps);
+# re-include the core package.
+!/packages/core/

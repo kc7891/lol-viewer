@@ -1,0 +1,21 @@
+appId: io.github.kc7891.lolviewer.next
+productName: LoL Viewer Next
+executableName: lol-viewer-next
+directories:
+  output: release
+files:
+  - out/**
+  - package.json
+asar: true
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  artifactName: lol-viewer-next-setup-${version}.exe
+linux:
+  target: [dir]
+publish: null

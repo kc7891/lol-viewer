@@ -3,8 +3,14 @@ name: Python Tests
 on:
   pull_request:
     branches: ["main"]
+    paths-ignore:
+      # next/ is the Electron PoC; it has its own workflow (next-ci.yml).
+      - 'next/**'
   push:
     branches: ["main"]
+    paths-ignore:
+      # next/ is the Electron PoC; it has its own workflow (next-ci.yml).
+      - 'next/**'
   # Weekly run so newly published advisories are caught even in weeks with no
   # commits -- the audit step below is only useful if it runs on a clock.
   schedule:

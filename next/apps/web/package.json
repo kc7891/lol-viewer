@@ -1,0 +1,27 @@
+{
+  "name": "@lol-viewer/web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "storybook": "storybook dev -p 6006 --no-open",
+    "build-storybook": "storybook build -o storybook-static --quiet"
+  },
+  "dependencies": {
+    "@lol-viewer/core": "workspace:*",
+    "@lol-viewer/protocol": "workspace:*",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@storybook/react-vite": "10.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.2.1",
+    "storybook": "10.6.5",
+    "vite": "8.3.5"
+  }
+}
