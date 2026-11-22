@@ -1,0 +1,32 @@
+appId: io.github.kc7891.lolviewer.next
+productName: LoL Viewer Next
+executableName: lol-viewer-next
+# The workspace package is "@lol-viewer/desktop"; without this the install
+# folder and userData folder become "@lol-viewerdesktop".
+extraMetadata:
+  name: lol-viewer-next
+directories:
+  output: release
+files:
+  - out/**
+  - package.json
+asar: true
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  # One-click, per-user install into %LOCALAPPDATA%\Programs\lol-viewer-next.
+  # No admin rights and no folder choice: the previous assisted installer let a
+  # non-elevated (per-user) install target protected folders such as
+  # "D:\Program Files", where every file write failed mid-install.
+  oneClick: true
+  perMachine: false
+  runAfterFinish: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  deleteAppDataOnUninstall: false
+  artifactName: lol-viewer-next-setup-${version}.exe
+linux:
+  target: [dir]
+publish: null

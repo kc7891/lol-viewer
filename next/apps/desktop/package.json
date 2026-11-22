@@ -1,0 +1,23 @@
+{
+  "name": "@lol-viewer/desktop",
+  "private": true,
+  "version": "0.0.1",
+  "description": "LoL Viewer Next (PoC desktop shell)",
+  "main": "out/main.cjs",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "electron .",
+    "dist": "electron-builder --config electron-builder.yml"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@lol-viewer/core": "workspace:*",
+    "@lol-viewer/hub": "workspace:*",
+    "@lol-viewer/lcu": "workspace:*",
+    "@lol-viewer/protocol": "workspace:*",
+    "electron": "45.2.2",
+    "electron-builder": "26.18.1",
+    "esbuild": "0.28.2",
+    "@lol-viewer/recorder": "workspace:*"
+  }
+}

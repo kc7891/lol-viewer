@@ -1,0 +1,744 @@
+/* Design tokens: the palette from ../../../docs/architecture.md (issue #75). */
+:root {
+  --background: #0d1117;
+  --foreground: #e2e8f0;
+  --card: #141b24;
+  --primary: #00d6a1;
+  --primary-foreground: #0d1117;
+  --secondary: #1c2330;
+  --secondary-foreground: #c1c9d4;
+  --muted: #181f29;
+  --muted-foreground: #6d7a8a;
+  --border: #222a35;
+  --sidebar-background: #090e14;
+  --sidebar-accent: #171e28;
+  --sidebar-border: #1c2330;
+  --ally: #0078f5;
+  --enemy: #e0342c;
+  --destructive: #e0342c;
+  --radius: 6px;
+  --font: "Segoe UI", system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font: 13px/1.4 var(--font);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* ── App shell ── */
+.app {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  height: 100%;
+}
+
+.sidebar {
+  background: var(--sidebar-background);
+  border-right: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px 6px 12px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+}
+
+.viewer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.viewer-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: none;
+  text-align: left;
+}
+
+.viewer-item:hover {
+  background: var(--sidebar-accent);
+}
+
+.viewer-item[aria-pressed="true"] {
+  background: var(--sidebar-accent);
+  border-left-color: var(--primary);
+}
+
+.viewer-item .name {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.viewer-item .kind {
+  font-size: 9px;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.toolbar .spacer {
+  flex: 1;
+}
+
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.seg button {
+  background: none;
+  border: 0;
+  padding: 4px 10px;
+  color: var(--secondary-foreground);
+}
+
+.seg button[aria-pressed="true"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.btn {
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 10px;
+}
+
+/* ── Status ── */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 12px;
+  border-top: 1px solid var(--sidebar-border);
+  font-size: 12px;
+}
+
+.status .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status[data-status="connecting"] {
+  color: var(--muted-foreground);
+}
+.status[data-status="connected"] {
+  color: var(--primary);
+}
+.status[data-status="disconnected"] {
+  color: var(--destructive);
+}
+
+/* ── Champion icon ── */
+.champ-icon {
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--secondary);
+  display: inline-grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--secondary-foreground);
+  flex-shrink: 0;
+}
+
+/* ── Matchup list ── */
+.matchup {
+  background: var(--sidebar-background);
+  border-bottom: 1px solid var(--border);
+  padding: 4px 12px 6px;
+  flex-shrink: 0;
+}
+
+.matchup-title {
+  display: flex;
+  justify-content: space-between;
+  height: 24px;
+  align-items: center;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+}
+
+.matchup-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 28px 1fr;
+  align-items: center;
+  height: 33px;
+  border-top: 1px solid rgba(34, 39, 47, 0.5);
+}
+
+.matchup-row .lane {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.side.enemy {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.side .label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side.ally .label {
+  border-left: 2px solid var(--ally);
+  padding-left: 6px;
+}
+
+.side.enemy .label {
+  border-right: 2px solid var(--enemy);
+  padding-right: 6px;
+}
+
+.side .empty {
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+
+.vs {
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 10px;
+}
+
+.self-badge {
+  font-size: 9px;
+  color: var(--primary-foreground);
+  background: var(--primary);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+/* ── Viewer grid ── */
+.viewer-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: 6px;
+  padding: 6px;
+}
+
+.viewer-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--card);
+}
+
+.viewer-pane header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.viewer-pane header .title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewer-pane header .kind {
+  font-size: 10px;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+}
+
+/* ── External view slot ── */
+.slot {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.slot-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--muted-foreground);
+  background: repeating-linear-gradient(135deg, var(--card) 0 12px, var(--muted) 12px 24px);
+}
+
+.slot-placeholder code {
+  color: var(--secondary-foreground);
+  font-size: 11px;
+  word-break: break-all;
+  padding: 0 16px;
+}
+
+.slot-placeholder a {
+  color: var(--primary);
+}
+
+.empty-state {
+  flex: 1;
+  display: grid;
+  place-content: center;
+  color: var(--muted-foreground);
+}
+
+/* ── Modal (demonstrates hiding native views under HTML overlays) ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid;
+  place-items: center;
+}
+
+.modal {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  width: min(360px, calc(100vw - 32px));
+}
+
+/* ── Mock playback bar (browser / preview mode only) ── */
+.mockbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+
+/* ── Top area: matchup list + cooldowns side by side ── */
+.top-area {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  background: var(--sidebar-background);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.top-area .matchup {
+  border-bottom: 0;
+}
+
+button.side {
+  width: fit-content;
+  max-width: 100%;
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  margin: 0 -4px;
+  border-radius: 4px;
+  font: inherit;
+  font-weight: 600;
+  min-width: 0;
+}
+
+button.side.enemy {
+  justify-self: end;
+}
+
+button.side:hover {
+  background: var(--sidebar-accent);
+}
+
+button.side[aria-pressed="true"] {
+  background: var(--secondary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+/* ── Cooldowns ── */
+.cooldowns {
+  border-left: 1px solid var(--border);
+  padding: 4px 12px 6px;
+  min-width: 0;
+}
+
+.cooldowns-title {
+  display: flex;
+  justify-content: space-between;
+  height: 24px;
+  align-items: center;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+}
+
+.cooldowns-empty {
+  color: var(--muted-foreground);
+  padding: 24px 0;
+  text-align: center;
+  font-size: 12px;
+}
+
+.cooldowns-champ {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  font-weight: 600;
+  border-top: 1px solid rgba(34, 39, 47, 0.5);
+}
+
+.cooldowns-champ .ja {
+  color: var(--muted-foreground);
+  font-weight: 400;
+  font-size: 11px;
+}
+
+.cooldowns-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cooldowns-table tr {
+  height: 30px;
+  border-top: 1px solid rgba(34, 39, 47, 0.5);
+}
+
+.cooldowns-table th {
+  width: 28px;
+  min-width: 28px;
+  padding: 0;
+  text-align: left;
+}
+
+.spell-key {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--secondary);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.spell-name {
+  /* shrinks first so the numbers never get cut */
+  max-width: 0;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--secondary-foreground);
+  font-size: 12px;
+}
+
+.spell-cd {
+  padding-left: 8px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.spell-cd .unit,
+.spell-cd .none {
+  color: var(--muted-foreground);
+}
+
+/* ── Manual viewers ── */
+.icon-btn {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--secondary);
+  color: var(--primary);
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+}
+
+.icon-btn:hover {
+  border-color: var(--primary);
+}
+
+.viewer-li {
+  position: relative;
+}
+
+.viewer-close {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: none;
+  color: var(--muted-foreground);
+  font-size: 16px;
+  opacity: 0;
+}
+
+.viewer-li:hover .viewer-close,
+.viewer-close:focus-visible {
+  opacity: 1;
+}
+
+.viewer-close:hover {
+  color: var(--destructive);
+}
+
+.empty-state {
+  gap: 12px;
+  justify-items: center;
+}
+
+.modal h3 {
+  margin: 0 0 12px;
+}
+
+.add-viewer {
+  width: min(440px, calc(100vw - 32px));
+  display: grid;
+  gap: 12px;
+}
+
+.add-viewer .seg {
+  justify-self: start;
+}
+
+.picker {
+  display: grid;
+  gap: 6px;
+}
+
+.picker-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+}
+
+.picker-input {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--foreground);
+  font: inherit;
+  padding: 6px 8px;
+}
+
+.picker-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.picker-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.picker-option,
+.picker-chosen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.picker-option:hover,
+.picker-option:focus-visible {
+  background: var(--sidebar-accent);
+  outline: none;
+}
+
+.picker-chosen {
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+}
+
+.picker-option .name,
+.picker-chosen .name {
+  font-weight: 600;
+}
+
+.picker-option .ja,
+.picker-chosen .ja {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.picker-chosen .link {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  color: var(--primary);
+  font-size: 12px;
+}
+
+.picker-empty {
+  padding: 8px;
+  color: var(--muted-foreground);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Settings / recorder ── */
+.modal[aria-label="Settings"] {
+  width: min(480px, calc(100vw - 32px));
+}
+
+.settings-section {
+  border-top: 1px solid var(--border);
+  padding: 12px 0;
+  display: grid;
+  gap: 8px;
+}
+
+.settings-section h4 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.settings-desc {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.recorder-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--destructive);
+  animation: rec-blink 1.2s infinite;
+}
+
+@keyframes rec-blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-dot {
+    animation: none;
+  }
+}
+
+code.path {
+  color: var(--secondary-foreground);
+  word-break: break-all;
+}
+
+.link-btn {
+  justify-self: start;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--primary);
+  font-size: 12px;
+}

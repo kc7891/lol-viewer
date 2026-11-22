@@ -4,9 +4,14 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      # Pushes that only touch the next/ PoC must not cut a Python release.
+      - 'next/**'
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - 'next/**'
   workflow_dispatch:
     inputs:
       version_type:
@@ -143,11 +148,10 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add constants.py
           if git diff --cached --quiet; then
-            # constants.py already holds the new version: an earlier run pushed the
-            # bump commit but failed before the tag was pushed (e.g. a transient
-            # GitHub error). Skip the commit and tag the current HEAD, which
-            # contains that bump, instead of failing on "nothing to commit".
-            echo "constants.py already at ${{ steps.version.outputs.new }}; skipping bump commit"
+            # constants.py already has the target version (e.g. a bump commit
+            # landed without a matching tag). Nothing to commit; HEAD is the
+            # version commit, so continue to tag + release.
+            echo "constants.py already at ${{ steps.version.outputs.new }}, skipping version bump commit"
           else
             git commit -m "chore: bump version to ${{ steps.version.outputs.new }}"
             git push

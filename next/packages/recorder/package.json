@@ -1,0 +1,16 @@
+{
+  "name": "@lol-viewer/recorder",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@lol-viewer/lcu": "workspace:*"
+  },
+  "devDependencies": {
+    "@lol-viewer/core": "workspace:*",
+    "@lol-viewer/fake-lcu": "workspace:*"
+  }
+}

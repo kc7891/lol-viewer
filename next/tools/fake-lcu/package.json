@@ -1,0 +1,15 @@
+{
+  "name": "@lol-viewer/fake-lcu",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "ws": "8.22.1"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.2"
+  }
+}
