@@ -56,16 +56,30 @@ function grabScreen(name: string) {
   }
 }
 
-/** Rectangles of the slots that are laid out (the Live Game slot is display:none on the Viewers page). */
-async function slotRects(): Promise<Record<string, Bounds>> {
-  return page.evaluate(() =>
-    Object.fromEntries(
-      [...document.querySelectorAll<HTMLElement>("[data-view-id]")]
-        .map((el) => [el.dataset.viewId!, el.getBoundingClientRect()] as const)
-        .filter(([, r]) => r.width > 0 && r.height > 0)
-        .map(([id, r]) => [id, { x: Math.round(r.left), y: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) }]),
-    ),
-  );
+/**
+ * Rectangles of the slots that are laid out (the Live Game slot is display:none on the Viewers page).
+ * With `clip`, each rectangle is cut to its `[data-view-clip]` ancestor (the scrolling pane strip),
+ * which is where the app puts the native view. On a small screen (the Windows CI runner is 1024x768)
+ * the panes overflow the strip and the last one is only partly visible.
+ */
+async function slotRects({ clip = false } = {}): Promise<Record<string, Bounds>> {
+  return page.evaluate((clip) => {
+    const out: [string, { x: number; y: number; width: number; height: number }][] = [];
+    for (const el of document.querySelectorAll<HTMLElement>("[data-view-id]")) {
+      const r = el.getBoundingClientRect();
+      let left = r.left, top = r.top, right = r.right, bottom = r.bottom;
+      const c = clip ? el.closest<HTMLElement>("[data-view-clip]")?.getBoundingClientRect() : undefined;
+      if (c) {
+        left = Math.max(left, c.left);
+        top = Math.max(top, c.top);
+        right = Math.min(right, c.right);
+        bottom = Math.min(bottom, c.bottom);
+      }
+      if (right - left <= 0 || bottom - top <= 0) continue;
+      out.push([el.dataset.viewId!, { x: Math.round(left), y: Math.round(top), width: Math.round(right - left), height: Math.round(bottom - top) }]);
+    }
+    return Object.fromEntries(out);
+  }, clip);
 }
 
 /** `count` native views are on screen, each exactly on its slot, side by side. */
@@ -73,7 +87,7 @@ async function expectViewsMatchSlots(count: number) {
   await expect.poll(async () => (await shown()).length, { timeout: 10_000 }).toBe(count);
   const sorted = (o: Record<string, Bounds>) => JSON.stringify(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)));
   await expect
-    .poll(async () => sorted(Object.fromEntries((await shown()).map((v) => [v.viewId, v.bounds]))) === sorted(await slotRects()), { timeout: 8_000 })
+    .poll(async () => sorted(Object.fromEntries((await shown()).map((v) => [v.viewId, v.bounds]))) === sorted(await slotRects({ clip: true })), { timeout: 8_000 })
     .toBe(true);
   const rects = Object.values(await slotRects()).sort((a, b) => a.x - b.x);
   for (let i = 1; i < rects.length; i++) {
@@ -153,6 +167,12 @@ test("native external views follow the viewer panes through a whole session", as
   // ---- window resize: the views follow ---------------------------------------------------
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.setSize(1280, 760));
   await expectViewsMatchSlots(total);
+  // Narrower than sidebar + 3 x 300px panes (like the 1024x768 Windows CI screen): the strip
+  // scrolls and the last view is cut to the visible part of the strip, never over the sidebar.
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.setSize(1000, 700));
+  await expectViewsMatchSlots(total);
+  const strip = await page.locator("[data-view-clip]").first().boundingBox();
+  for (const v of await shown()) expect(v.bounds.x).toBeGreaterThanOrEqual(Math.floor(strip!.x));
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.setSize(1600, 900));
   await expectViewsMatchSlots(total);
 
