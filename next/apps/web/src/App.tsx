@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { canAddViewer, defaultCooldownChampion, liveGameUrl, MAX_VIEWERS, type Side, type UrlTemplateKey, type UrlTemplates, type Workspace } from "@lol-viewer/core";
-import { SuppressViews, useBridge, useMatchState } from "./bridge/context.tsx";
+import { SuppressViews, useBridge, useMatchState, useUpdateStatus } from "./bridge/context.tsx";
 import { CooldownPanel } from "./components/CooldownPanel.tsx";
 import { LivePage } from "./components/LivePage.tsx";
 import { MatchupSection } from "./components/MatchupSection.tsx";
@@ -46,6 +46,8 @@ export function App({
 }: AppProps) {
   const bridge = useBridge();
   const match = useMatchState();
+  const updateStatus = useUpdateStatus();
+  const updateDot = updateAvailable ?? (updateStatus?.state === "available" || updateStatus?.state === "downloaded");
   const { settings, update } = useSettings();
   const [ws, dispatch] = useWorkspace(match, initialWs);
   const { toasts, push: notify, dismiss } = useToasts(initialToasts, autoDismissToasts);
@@ -113,7 +115,7 @@ export function App({
         onPage={setPage}
         connection={match.connection}
         phase={match.phase}
-        updateAvailable={updateAvailable}
+        updateAvailable={updateDot}
         onConnectionClick={goSettings}
         extra={toolbarExtra}
       />

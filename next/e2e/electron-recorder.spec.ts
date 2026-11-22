@@ -56,6 +56,7 @@ test("records a session from Settings, masked and replayable", async () => {
   await expect(page.locator(".conn")).toHaveAttribute("data-status", "connected", { timeout: 15_000 });
 
   await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(page.getByTestId("update-status")).toHaveText("Update checks are off in this build."); // LOL_VIEWER_E2E=1
   const settings = page.getByRole("region", { name: "Record session" });
   await settings.getByRole("button", { name: "Start recording" }).click();
   await expect(settings.getByRole("status")).toContainText("Recording");

@@ -10,6 +10,8 @@
  *   LOL_VIEWER_E2E=1      expose diagnostics on globalThis for Playwright (also skips the single-instance lock)
  *   LOL_VIEWER_DEBUG=1    debug mode (also: --debug, or an executable name containing "debug"): log to a file under app.getPath("logs")
  *   LOL_VIEWER_RECORDINGS_DIR  where session recordings go (default Documents/LoL Viewer Next/recordings)
+ *   LOL_VIEWER_UPDATE_URL        update feed base URL (default: the app-latest GitHub Release); tests point it at a local server
+ *   LOL_VIEWER_DISABLE_UPDATES=1 never check for updates (also off when not packaged or LOL_VIEWER_E2E=1)
  *   LOL_LIVE_CLIENT_URL   Live Client Data API base URL (fake in tests)
  */
 import { join } from "node:path";
@@ -20,6 +22,7 @@ import { startLcuConnector } from "@lol-viewer/lcu";
 import { ViewCommandSchema } from "@lol-viewer/protocol";
 import { ExternalViewManager } from "./external-views.ts";
 import { RecordingController } from "./recording.ts";
+import { createUpdater } from "./updater.ts";
 import { attachRendererLogging, initLogging, installProcessHandlers, log } from "./log.ts";
 
 initLogging();
@@ -97,6 +100,21 @@ if (gotLock) void app.whenReady().then(async () => {
   });
 
   ipcMain.handle("app:info", (e) => (fromApp(e) ? { version: app.getVersion(), platform: process.platform } : null));
+
+  const updater = createUpdater();
+  updater.subscribe((s) => {
+    if (!win.isDestroyed()) win.webContents.send("updates:status", s);
+  });
+  ipcMain.handle("updates:status", (e) => (fromApp(e) ? updater.status : null));
+  ipcMain.on("updates:check", (e) => {
+    if (fromApp(e)) void updater.check();
+  });
+  ipcMain.on("updates:download", (e) => {
+    if (fromApp(e)) void updater.download();
+  });
+  ipcMain.on("updates:install", (e) => {
+    if (fromApp(e)) updater.install();
+  });
 
   hub.subscribe((state) => {
     if (!win.isDestroyed()) win.webContents.send("hub:state", state);

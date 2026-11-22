@@ -4,7 +4,7 @@
  * It has no `views` (ExternalViewSlot shows a placeholder) and no `app` (Settings shows "dev").
  */
 import { initialDetectorState, initialMatchState, parseScenario, reduce, toLcuEvent, type DetectorState, type ScenarioLine } from "@lol-viewer/core";
-import type { AppApi, LcuControlApi, LolViewerBridge, MatchState } from "@lol-viewer/protocol";
+import type { AppApi, LcuControlApi, LolViewerBridge, MatchState, UpdateStatus, UpdatesApi } from "@lol-viewer/protocol";
 import scenarioText from "../../../../scenarios/ranked-two-matches.jsonl?raw";
 
 export type MockPlayer = LolViewerBridge & {
@@ -77,14 +77,49 @@ export function createMockBridge(lines: ScenarioLine[] = parseScenario(scenarioT
   };
 }
 
+/**
+ * An UpdatesApi pinned to `initial`. With `simulate`, Check / Download / Restart play out a fake
+ * "0.2.0 is available" flow (for the Storybook e2e); without it the buttons do nothing.
+ */
+export function mockUpdates(initial: UpdateStatus, simulate = false): UpdatesApi {
+  let status = initial;
+  const listeners = new Set<(s: UpdateStatus) => void>();
+  const set = (patch: Partial<UpdateStatus>) => {
+    status = { ...status, ...patch };
+    listeners.forEach((l) => l(status));
+  };
+  return {
+    status: async () => status,
+    onStatus(cb) {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+    check() {
+      if (!simulate) return;
+      set({ state: "checking", error: null });
+      setTimeout(() => set({ state: "available", latestVersion: "0.2.0" }), 300);
+    },
+    download() {
+      if (!simulate) return;
+      set({ state: "downloading", percent: 0 });
+      [25, 60, 100].forEach((p, i) => setTimeout(() => set(p === 100 ? { state: "downloaded", percent: 100 } : { percent: p }), 200 * (i + 1)));
+    },
+    install() {
+      if (simulate) set({ state: "idle", currentVersion: status.latestVersion ?? status.currentVersion, latestVersion: null, percent: null });
+    },
+  };
+}
+
 export type StaticBridgeOptions = {
   /** Give the bridge a League Client control API (Settings -> Reconnect). */
   lcu?: LcuControlApi | true;
   app?: AppApi;
+  /** Give the bridge the desktop update API (Settings > Version). */
+  updates?: UpdatesApi;
 };
 
 /** A bridge pinned to one state — for stories and screenshots. */
 export function staticBridge(state: MatchState, opts: StaticBridgeOptions = {}): LolViewerBridge {
   const lcu = opts.lcu === true ? { reconnect() {}, resync() {} } : opts.lcu;
-  return { kind: "mock", onState: (cb) => (cb(state), () => {}), ...(lcu ? { lcu } : {}), ...(opts.app ? { app: opts.app } : {}) };
+  return { kind: "mock", onState: (cb) => (cb(state), () => {}), ...(lcu ? { lcu } : {}), ...(opts.app ? { app: opts.app } : {}), ...(opts.updates ? { updates: opts.updates } : {}) };
 }

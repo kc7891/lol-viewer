@@ -17,7 +17,7 @@ import {
   type Workspace,
   type WorkspaceAction,
 } from "@lol-viewer/core";
-import type { LcuEvent, MatchState } from "@lol-viewer/protocol";
+import type { LcuEvent, MatchState, UpdateStatus } from "@lol-viewer/protocol";
 import scenarioText from "../../../scenarios/ranked-two-matches.jsonl?raw";
 
 /** What the app holds at one moment: the League Client's facts and the user's workspace. */
@@ -102,3 +102,25 @@ export const viewerLimit: Scene = act(
 
 /** The first viewer of a scene (for single-pane component stories). */
 export const firstViewer = (s: Scene) => s.ws.viewers[0]!;
+
+// ── Desktop update states (Settings > Version, Top bar dot) ──
+
+const upd = (patch: Partial<UpdateStatus>): UpdateStatus => ({
+  state: "idle",
+  currentVersion: "0.1.0",
+  latestVersion: null,
+  percent: null,
+  error: null,
+  ...patch,
+});
+
+export const updateStatuses = {
+  unsupported: upd({ state: "unsupported" }),
+  idle: upd({}),
+  checking: upd({ state: "checking" }),
+  notAvailable: upd({ state: "not-available", latestVersion: "0.1.0" }),
+  available: upd({ state: "available", latestVersion: "0.2.0" }),
+  downloading: upd({ state: "downloading", latestVersion: "0.2.0", percent: 42 }),
+  downloaded: upd({ state: "downloaded", latestVersion: "0.2.0", percent: 100 }),
+  error: upd({ state: "error", error: "Could not reach the update server." }),
+} satisfies Record<string, UpdateStatus>;

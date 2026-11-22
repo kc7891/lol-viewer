@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DEFAULT_URL_TEMPLATES } from "@lol-viewer/core";
-import { scenes } from "../fixtures.ts";
+import { mockUpdates } from "../bridge/mock.ts";
+import { scenes, updateStatuses } from "../fixtures.ts";
 import { Harness } from "../storyHelpers.tsx";
 import { DisplayCard, LcuCard, UrlsCard, VersionCard } from "./SettingsPage.tsx";
 
@@ -52,3 +53,23 @@ export const VersionDesktop: Story = {
     </Wrap>
   ),
 };
+
+const desktop = { info: async () => ({ version: "0.1.0", platform: "win32" }) };
+const withUpdates = (status: keyof typeof updateStatuses, simulate = false): Story => ({
+  render: () => (
+    <Wrap options={{ app: desktop, updates: mockUpdates(updateStatuses[status], simulate) }}>
+      <VersionCard />
+    </Wrap>
+  ),
+});
+/** Dev / packaged-less runs: the desktop bridge exists but updates are off. */
+export const VersionUpdatesOff: Story = withUpdates("unsupported");
+export const VersionNotChecked: Story = withUpdates("idle");
+export const VersionChecking: Story = withUpdates("checking");
+export const VersionUpToDate: Story = withUpdates("notAvailable");
+export const VersionUpdateAvailable: Story = withUpdates("available");
+export const VersionDownloading: Story = withUpdates("downloading");
+export const VersionReadyToInstall: Story = withUpdates("downloaded");
+export const VersionUpdateError: Story = withUpdates("error");
+/** Buttons play out a fake update (used by the Storybook e2e). */
+export const VersionUpdateFlow: Story = withUpdates("idle", true);

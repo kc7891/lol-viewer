@@ -1,11 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DEFAULT_SETTINGS, DEFAULT_URL_TEMPLATES, type Settings } from "@lol-viewer/core";
 import { App, type AppProps } from "./App.tsx";
-import { emptyViewer, firstViewer, manualViewers, scenes, threeViewers, viewerLimit, withHidden, type Scene } from "./fixtures.ts";
+import { mockUpdates } from "./bridge/mock.ts";
+import { emptyViewer, firstViewer, manualViewers, scenes, threeViewers, updateStatuses, viewerLimit, withHidden, type Scene } from "./fixtures.ts";
 import { Harness } from "./storyHelpers.tsx";
 import type { Toast } from "./state/toasts.tsx";
 
-type Args = { scene: Scene; settings?: Settings; app?: AppProps };
+type Args = { scene: Scene; settings?: Settings; app?: AppProps; updates?: keyof typeof updateStatuses };
 
 const meta = {
   title: "Screens/App",
@@ -15,9 +16,13 @@ export default meta;
 type Story = StoryObj<Args>;
 
 /** Stories render from closures (not args): Storybook would clone and re-serialize big Scene objects. */
-const story = ({ scene, settings, app }: Args): Story => ({
+const story = ({ scene, settings, app, updates }: Args): Story => ({
   render: () => (
-    <Harness match={scene.match} settings={settings} bridgeOptions={{ lcu: true }}>
+    <Harness
+      match={scene.match}
+      settings={settings}
+      bridgeOptions={{ lcu: true, ...(updates ? { updates: mockUpdates(updateStatuses[updates]) } : {}) }}
+    >
       <App initialWorkspace={scene.ws} autoDismissToasts={false} {...app} />
     </Harness>
   ),
@@ -62,6 +67,11 @@ export const SettingsUrlErrors: Story = story({
   },
 });
 export const SettingsUpdateBadge: Story = story({ scene: scenes.idle, app: { updateAvailable: true } });
+/** Desktop app: a newer version was found at startup. The dot comes from the bridge, not from a prop. */
+export const SettingsUpdateAvailable: Story = story({ scene: scenes.idle, updates: "available", app: { initialPage: "settings" } });
+export const SettingsUpdateDownloaded: Story = story({ scene: scenes.idle, updates: "downloaded", app: { initialPage: "settings" } });
+export const ViewersUpdateAvailable: Story = story({ scene: scenes.idle, updates: "available" });
+export const ViewersUpToDate: Story = story({ scene: scenes.idle, updates: "notAvailable" });
 
 export const UiSizeSmall: Story = story({ scene: threeViewers, settings: { ...DEFAULT_SETTINGS, uiSize: "small" } });
 export const UiSizeLarge: Story = story({ scene: threeViewers, settings: { ...DEFAULT_SETTINGS, uiSize: "large" } });

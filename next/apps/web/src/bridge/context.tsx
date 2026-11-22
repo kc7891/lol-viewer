@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { initialMatchState } from "@lol-viewer/core";
-import type { LolViewerBridge, MatchState, ViewStatus } from "@lol-viewer/protocol";
+import type { LolViewerBridge, MatchState, UpdateStatus, ViewStatus } from "@lol-viewer/protocol";
 
 declare global {
   interface Window {
@@ -64,4 +64,25 @@ export function ViewStatusProvider({ children }: { children: ReactNode }) {
 
 export function useViewStatus(viewId: string): ViewStatus | undefined {
   return useContext(ViewStatusContext).get(viewId);
+}
+
+/** Latest UpdateStatus from the desktop app; null until the first answer, and always null where the bridge has no `updates` (browser, Storybook). */
+export function useUpdateStatus(): UpdateStatus | null {
+  const updates = useBridge().updates;
+  const [status, setStatus] = useState<UpdateStatus | null>(null);
+  useEffect(() => {
+    if (!updates) return setStatus(null);
+    let live = true;
+    const off = updates.onStatus((s) => live && setStatus(s));
+    void updates.status().then(
+      // A push that arrived while the first request was in flight is newer: keep it.
+      (s) => live && setStatus((cur) => cur ?? s),
+      () => {},
+    );
+    return () => {
+      live = false;
+      off();
+    };
+  }, [updates]);
+  return status;
 }

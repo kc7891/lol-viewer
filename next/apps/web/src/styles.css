@@ -1317,6 +1317,32 @@ code {
 .setting-row + .setting-row {
   border-top: 1px solid var(--line);
 }
+.update-row {
+  align-items: flex-start;
+  padding: 0.35rem 0;
+}
+.update-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+  padding-top: 0.3rem;
+}
+.update-text[data-state="available"],
+.update-text[data-state="downloaded"] {
+  color: var(--accent);
+  font-weight: 600;
+}
+.update-text[data-state="error"] {
+  color: var(--danger);
+}
+.update-progress {
+  width: 100%;
+  max-width: 18rem;
+  height: 0.4rem;
+  accent-color: var(--accent);
+}
 .conn-pill {
   display: inline-flex;
   align-items: center;

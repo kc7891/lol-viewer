@@ -247,6 +247,54 @@ test("Settings: Reconnect shows Connecting… for a moment; Version says dev in 
   await expect(page.getByTestId("version")).toHaveText("dev");
 });
 
+test("Settings > Version: browser says updates are in the desktop app; states show the right text and button", async ({ page }) => {
+  await open(page, "components-settingscards--version-dev");
+  await expect(page.getByText("Updates are available in the desktop app.")).toBeVisible();
+  await expect(page.getByRole("button", { name: /update/i })).toHaveCount(0);
+
+  const cases: [string, string, string | null][] = [
+    ["version-updates-off", "Update checks are off in this build.", null],
+    ["version-not-checked", "Not checked yet.", "Check for updates"],
+    ["version-up-to-date", "You have the latest version.", "Check for updates"],
+    ["version-update-available", "A new version is available.", "Download"],
+    ["version-downloading", "Downloading… 42%", "Download"],
+    ["version-ready-to-install", "Ready to install. The app restarts.", "Restart and update"],
+    ["version-update-error", "Could not reach the update server.", "Check for updates"],
+  ];
+  for (const [id, text, button] of cases) {
+    await open(page, `components-settingscards--${id}`);
+    await expect(page.getByTestId("update-status")).toHaveText(text);
+    if (button) await expect(page.getByRole("button", { name: button })).toBeVisible();
+    else await expect(page.getByRole("button", { name: /update|download/i })).toHaveCount(0);
+  }
+  await open(page, "components-settingscards--version-downloading");
+  await expect(page.getByRole("button", { name: "Download" })).toBeDisabled();
+  await expect(page.getByRole("progressbar", { name: "Download progress" })).toHaveAttribute("value", "42");
+});
+
+test("Settings > Version: Check -> Download -> Restart and update (simulated)", async ({ page }) => {
+  await open(page, "components-settingscards--version-update-flow");
+  await page.getByRole("button", { name: "Check for updates" }).click();
+  await expect(page.getByTestId("update-status")).toHaveText("A new version is available.");
+  await expect(page.getByTestId("latest-version")).toHaveText("0.2.0");
+  await page.getByRole("button", { name: "Download" }).click();
+  await expect(page.getByTestId("update-status")).toHaveText("Ready to install. The app restarts.", { timeout: 4000 });
+  await page.getByRole("button", { name: "Restart and update" }).click();
+  await expect(page.getByTestId("update-status")).toHaveText("Not checked yet.");
+});
+
+test("Top bar: Settings gets a dot only when an update is available or downloaded", async ({ page }) => {
+  const dot = page.getByRole("img", { name: "Update available" });
+  await open(page, "screens-app--viewers-update-available");
+  await expect(dot).toBeVisible();
+  await open(page, "screens-app--settings-update-downloaded");
+  await expect(dot).toBeVisible();
+  await open(page, "screens-app--viewers-up-to-date");
+  await expect(dot).toHaveCount(0);
+  await open(page, "screens-app--waiting-for-champ-select");
+  await expect(dot).toHaveCount(0);
+});
+
 test("Settings: Debug adds an ally to the first empty row, and says when full", async ({ page }) => {
   await open(page, "screens-app--settings");
   const debug = page.getByRole("region", { name: "Debug" });

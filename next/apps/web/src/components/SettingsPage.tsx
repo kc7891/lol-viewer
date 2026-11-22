@@ -5,6 +5,7 @@ import {
   getChampion,
   searchChampions,
   trimUrlTemplates,
+  urlTemplateProblem,
   validateUrlTemplates,
   type Side,
   type UiSize,
@@ -13,8 +14,8 @@ import {
   type Workspace,
   type WorkspaceAction,
 } from "@lol-viewer/core";
-import { LANES, type ConnectionStatus } from "@lol-viewer/protocol";
-import { useBridge } from "../bridge/context.tsx";
+import { LANES, type ConnectionStatus, type UpdateStatus } from "@lol-viewer/protocol";
+import { useBridge, useUpdateStatus } from "../bridge/context.tsx";
 import { useSettings } from "../state/settings.tsx";
 import type { ToastKind } from "../state/toasts.tsx";
 import { LANE_SHORT } from "../ui/labels.ts";
@@ -49,7 +50,7 @@ export function UrlsCard({ onSaved, notify, initialDraft, initialErrors = [] }: 
     const bad = validateUrlTemplates(draft);
     setErrors(bad);
     if (bad.length) {
-      notify(`Not saved: ${bad.length} URL${bad.length > 1 ? "s are" : " is"} empty.`, "warn");
+      notify(`Not saved: ${bad.length} URL${bad.length > 1 ? "s need" : " needs"} fixing.`, "warn");
       return;
     }
     const clean = trimUrlTemplates(draft);
@@ -89,7 +90,11 @@ export function UrlsCard({ onSaved, notify, initialDraft, initialErrors = [] }: 
                 }}
               />
               <span id={`url-${f.key}-hint`} className={bad ? "hint error" : "hint"}>
-                {bad ? "Required. Enter a URL." : f.hint}
+                {bad
+                  ? urlTemplateProblem(draft[f.key]) === "empty"
+                    ? "Required. Enter a URL."
+                    : "Must be an https URL on lolalytics.com or u.gg."
+                  : f.hint}
               </span>
             </div>
           );
@@ -174,8 +179,56 @@ export function DisplayCard() {
   );
 }
 
+const UPDATE_TEXT: Record<UpdateStatus["state"], string> = {
+  unsupported: "Update checks are off in this build.",
+  idle: "Not checked yet.",
+  checking: "Checking…",
+  "not-available": "You have the latest version.",
+  available: "A new version is available.",
+  downloading: "Downloading…",
+  downloaded: "Ready to install. The app restarts.",
+  error: "Could not check for updates.",
+};
+
+function UpdateRows({ status }: { status: UpdateStatus }) {
+  const updates = useBridge().updates!;
+  const { state } = status;
+  const latest = state === "checking" ? "Checking…" : (status.latestVersion ?? "—");
+  const text = state === "downloading" ? `Downloading… ${status.percent ?? 0}%` : state === "error" ? (status.error ?? UPDATE_TEXT.error) : UPDATE_TEXT[state];
+  return (
+    <>
+      <div className="setting-row">
+        <span className="setting-label">Latest version</span>
+        <code data-testid="latest-version">{latest}</code>
+      </div>
+      <div className="setting-row update-row">
+        <div className="update-info">
+          <span className="update-text" role="status" data-state={state} data-testid="update-status">
+            {text}
+          </span>
+          {state === "downloading" && <progress className="update-progress" max={100} value={status.percent ?? 0} aria-label="Download progress" />}
+        </div>
+        {state === "available" || state === "downloading" ? (
+          <button type="button" className="btn primary" disabled={state === "downloading"} onClick={() => updates.download()}>
+            Download
+          </button>
+        ) : state === "downloaded" ? (
+          <button type="button" className="btn primary" onClick={() => updates.install()}>
+            Restart and update
+          </button>
+        ) : state !== "unsupported" ? (
+          <button type="button" className="btn" disabled={state === "checking"} onClick={() => updates.check()}>
+            Check for updates
+          </button>
+        ) : null}
+      </div>
+    </>
+  );
+}
+
 export function VersionCard() {
-  const app = useBridge().app;
+  const { app, updates } = useBridge();
+  const status = useUpdateStatus();
   const [text, setText] = useState<string>(app ? "…" : "dev");
   useEffect(() => {
     if (!app) return setText("dev");
@@ -195,7 +248,8 @@ export function VersionCard() {
         <span className="setting-label">LoL Viewer</span>
         <code data-testid="version">{text}</code>
       </div>
-      <p className="desc muted">Update checks arrive together with the installer.</p>
+      {status && <UpdateRows status={status} />}
+      {!updates && <p className="desc muted">Updates are available in the desktop app.</p>}
     </section>
   );
 }

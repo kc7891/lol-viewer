@@ -34,4 +34,9 @@ nsis:
   artifactName: lol-viewer-next-setup-${version}.exe
 linux:
   target: [dir]
-publish: null
+# Generic provider: electron-builder writes latest.yml next to the installer and embeds this feed in
+# app-update.yml. The release workflow uploads both to the fixed "app-latest" release (design §6).
+# The build version comes from the CLI (-c.extraMetadata.version=X.Y.Z); package.json's is a dev default.
+publish:
+  provider: generic
+  url: https://github.com/kc7891/lol-viewer/releases/download/app-latest/
