@@ -115,17 +115,38 @@ class ChampionData:
         Returns:
             Champion data dictionary or None if not found
         """
+        key = self.get_champion_key(name_or_id)
+        return self.champions[key] if key is not None else None
+
+    def get_champion_key(self, name_or_id: str) -> Optional[str]:
+        """
+        Resolve a champion name or ID to its champions.json key.
+
+        The key is the app's internal identifier and the one used in analytics
+        URLs (e.g. "wukong"). It can differ from the Data Dragon ``id`` field
+        (e.g. "MonkeyKing"), so callers that build URLs or compare champions
+        must use this instead of ``get_champion(...)["id"]``.
+
+        Args:
+            name_or_id: champions.json key, English/Japanese name, or Data Dragon id
+
+        Returns:
+            The champions.json key, or None if not found
+        """
         name_lower = name_or_id.lower()
 
-        # Try direct ID match first
+        # Try direct key match first
         if name_lower in self.champions:
-            return self.champions[name_lower]
+            return name_lower
 
-        # Try name match
-        for champ_id, data in self.champions.items():
+        # Try name match, then the Data Dragon id (e.g. "MonkeyKing")
+        for champ_key, data in self.champions.items():
             if (data.get('english_name', '').lower() == name_lower or
                 data.get('japanese_name', '').lower() == name_lower):
-                return data
+                return champ_key
+        for champ_key, data in self.champions.items():
+            if data.get('id', '').lower() == name_lower:
+                return champ_key
 
         return None
 

@@ -48,6 +48,15 @@ class _DummyMainWindow:
         self._matchup_data = matchup_data
 
 
+def _use_release_style_wukong(champion_data):
+    """Re-key Wukong as release builds do (scripts/fetch_champions.py): key "wukong", id "MonkeyKing"."""
+    champions = dict(champion_data.champions)
+    entry = champions.pop("monkeyking", None) or champions.pop("wukong")
+    assert entry["id"] == "MonkeyKing"
+    champions["wukong"] = entry
+    champion_data.champions = champions
+
+
 def _make_bare_widget(main_window):
     """Build a ChampionViewerWidget without running Qt construction (init_ui)."""
     widget = ChampionViewerWidget.__new__(ChampionViewerWidget)
@@ -98,11 +107,24 @@ class TestGetMatchupEnemyChampionIds:
         assert ids == ["ahri", "zed", "yasuo", "garen", "lux"]
         assert len(ids) == widget.QUICK_OPPONENT_MAX
 
-    def test_wukong_resolves_to_monkeyking(self):
-        """Riot's English name 'Wukong' must resolve to the champions.json id 'monkeyking'."""
-        widget = _make_bare_widget(_DummyMainWindow([("", "Wukong")]))
+    def test_wukong_resolves_to_champions_json_key(self):
+        """'Wukong' must resolve to the champions.json key, not the Data Dragon id.
+
+        Release builds regenerate champions.json with the key "wukong" while the
+        Data Dragon ``id`` field stays "MonkeyKing". The quick-pick id goes into the
+        lolalytics URL, which 404s on "monkeyking".
+        """
+        widget = _make_bare_widget(_DummyMainWindow([("", "Wukong"), ("", "MonkeyKing")]))
+        _use_release_style_wukong(widget.champion_data)
         ids = widget._get_matchup_enemy_champion_ids()
-        assert ids == ["monkeyking"]
+        assert ids == ["wukong"]
+
+    def test_quick_pick_id_matches_selector_key_for_every_champion(self):
+        """Quick-pick ids must equal the champions.json keys the selector list uses."""
+        widget = _make_bare_widget(None)
+        for key, info in widget.champion_data.champions.items():
+            assert widget._resolve_champion_id(info["english_name"]) == key
+            assert widget._resolve_champion_id(info["id"]) == key
 
     def test_returns_empty_list_when_main_window_is_none(self):
         """No main_window reference -> no matchup data source -> empty list."""
@@ -308,13 +330,13 @@ class TestQuickPickHidesSelectedOpponent:
         assert viewer.opponent_champion_input.text() == "lux"
         assert clicked_btn.isHidden()
 
-    def test_wukong_opponent_hides_monkeyking_button(self, qapp):
-        """5. Regression: "Wukong" (LCU name) must hide the "monkeyking" button.
+    def test_wukong_opponent_hides_wukong_button(self, qapp):
+        """5. Regression: "Wukong" (LCU name) as the Opponent must hide the Wukong button.
 
-        A naive `.lower()` comparison leaves "wukong", which never matches the
-        champions.json id "monkeyking" -- this only passes via _resolve_champion_id().
+        The comparison only works because both sides go through _resolve_champion_id().
         """
         window = MainWindow()
+        _use_release_style_wukong(window.champion_data)
         viewer = window.add_viewer()
         window._matchup_data[0] = ("", "Wukong")
         window._matchup_data[1] = ("", "Ahri")
@@ -323,8 +345,24 @@ class TestQuickPickHidesSelectedOpponent:
         viewer.opponent_champion_input.setText("Wukong")
         viewer.refresh_opponent_quick_picks()
 
-        assert "monkeyking" not in viewer._quick_opponent_ids
+        assert "wukong" not in viewer._quick_opponent_ids
         assert _visible_quick_pick_texts(viewer) == {"Ahri"}
+
+    def test_wukong_quick_pick_opens_wukong_matchup_url(self, qapp):
+        """Regression: clicking the Wukong quick-pick must open .../vs/wukong/..., not monkeyking."""
+        window = MainWindow()
+        _use_release_style_wukong(window.champion_data)
+        viewer = window.add_viewer()
+        viewer.champion_input.setText("ahri")
+        window._matchup_data[0] = ("", "Wukong")
+        window.update_matchup_list()
+        assert viewer._quick_opponent_ids == ["wukong"]
+
+        viewer._on_quick_opponent_clicked(0)
+
+        assert viewer.opponent_champion_input.text() == "wukong"
+        assert "/ahri/vs/wukong/" in viewer.current_url
+        assert "monkeyking" not in viewer.current_url
 
     def test_button_index_still_matches_champion_after_exclusion(self, qapp):
         """6. `_quick_opponent_ids` stays index-aligned with the buttons after exclusion."""

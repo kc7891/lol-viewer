@@ -1104,19 +1104,6 @@
       "sup": 0
     }
   },
-  "monkeyking": {
-    "english_name": "Wukong",
-    "japanese_name": "ウーコン",
-    "image_url": "https://ddragon.leagueoflegends.com/cdn/16.21.1/img/champion/MonkeyKing.png",
-    "id": "MonkeyKing",
-    "lanes": {
-      "top": 0,
-      "jg": 0,
-      "mid": 0,
-      "bot": 0,
-      "sup": 0
-    }
-  },
   "mordekaiser": {
     "english_name": "Mordekaiser",
     "japanese_name": "モルデカイザー",
@@ -2035,6 +2022,19 @@
     "lanes": {
       "top": 0,
       "jg": 5,
+      "mid": 0,
+      "bot": 0,
+      "sup": 0
+    }
+  },
+  "wukong": {
+    "english_name": "Wukong",
+    "japanese_name": "ウーコン",
+    "image_url": "https://ddragon.leagueoflegends.com/cdn/16.21.1/img/champion/MonkeyKing.png",
+    "id": "MonkeyKing",
+    "lanes": {
+      "top": 5,
+      "jg": 0,
       "mid": 0,
       "bot": 0,
       "sup": 0
