@@ -11,6 +11,7 @@
 | M-003 | 旧版のユーザーデータや環境は引き継がない | 新版の方針 | README §4 / 04 §4.4 |
 | M-004 | Wukong の内部表現は `wukong` に統一する。`MonkeyKing` は Riot 公式 API とのやり取りでだけ使う | 新版の方針（旧版の意図を明文化） | README §5.2 B2/B3 / 03 §9-11 |
 | M-005 | 対面表の ↑↓ 並べ替えボタンは移植しない（ドラッグ&ドロップだけ） | 旧仕様を維持（事実確認済み） | README §5.1 D4 |
+| M-006 | サイドバーの行には、非表示状態や対面（`vs X`）を表示しない（旧版の見た目どおり、チャンピオン名と種別だけ） | 旧仕様を維持 | README §5.2 B1 / 02 §0-4 |
 
 ---
 
@@ -40,19 +41,30 @@
   - Data Dragon: `champion.json` のキーと `id` が `MonkeyKing`（数値 key は `62`）。アイコンの URL も `.../img/champion/MonkeyKing.png` でなければならない。
   - LCU: `championId` は数値の `62`。旧版は Data Dragon の対応表で ID を `MonkeyKing` に変換し、そのあと `Wukong` に読み替えている（`lcu_detector.py:283-289`）。
 
-### 旧版の実際の挙動（2026-11-22 に確認）
-旧版の**意図**は上の方針と同じだった。LCU 側の正規化（PR #108）と、`fetch_champions.py` でキーを `wukong` に変えている処理（`scripts/fetch_champions.py:240-242`）がその証拠になる。ただし実装は、経路によって `monkeyking` が漏れている。
+### 旧版の実際の挙動（2026-11-22 に、旧コードをヘッドレスで実行して確認）
+旧版の意図は上の方針と同じで、**リリースビルドでは、通常の経路は正しく `wukong` で lolalytics を開いている**。確認に使った手順は次のとおり。
+- リリースビルドと同じ手順で `scripts/fetch_champions.py` を実行して `champions.json` を作った。キーは `wukong`、`id` は `MonkeyKing`、lanes は top=5 になった。
+- 旧版の `MainWindow` をヘッドレスで起動し、各経路で実際に開かれる URL を記録した。
 
-| 経路 | 入る値 | 結果 |
+| 経路 | リリースビルド（json を作り直したもの） | リポジトリにコミットされた json（開発時に `python main.py` で起動した場合） |
 |---|---|---|
-| LCU で検知（自分・味方・敵） | `MonkeyKing` を `Wukong` に読み替え | URL は `wukong`（正しい） |
-| アイコン | `champions.json` の `image_url`（`MonkeyKing.png`） | 正しい |
-| チャンピオンセレクターで選ぶ | `champions.json` のキー | リポジトリの json（週次の workflow が生成）はキーが `monkeyking` なので、URL が `monkeyking` になる（誤り）。リリースビルドは `fetch_champions.py` が json を作り直すのでキーが `wukong` になる（スクレイピング経路を使わなかった場合） |
-| クイックピックで選ぶ | `_resolve_champion_id()` が `id` フィールド（`MonkeyKing`）を小文字にした値 | **どのビルドでも** URL が `monkeyking` になる（誤り）。`widgets/viewer_widget.py:472-477` |
-| レーン適性で配置 | `champions.json` の `lanes` | リポジトリの json ではキーが CSV の `wukong` と一致せず、全部 0（誤り）。リリースビルドでは正しい |
-| テスト | `tests/test_viewer_quick_opponent.py:101-105, 311-326` | 誤った `"Wukong"` → `"monkeyking"` の挙動を正として固定している |
+| LCU で自分のピックを検知 | `/lol/wukong/build/?lane=top`（正しい） | 正しい |
+| セレクターでチャンピオンを選ぶ | `/lol/wukong/build/`（正しい） | `/lol/monkeyking/build/`（404） |
+| セレクターで Opponent を選ぶ | `/lol/ahri/vs/wukong/build/`（正しい） | `monkeyking`（404） |
+| **クイックピックで Opponent を選ぶ** | **`/lol/ahri/vs/monkeyking/build/`（404）** | `monkeyking`（404） |
+| アイコン | `MonkeyKing.png`（正しい） | 正しい |
+| レーン適性 | top=5（正しい） | 全部 0（CSV のキー `wukong` と一致しない） |
 
-lolalytics での確認（curl、2026-11-22）: `/lol/wukong/build/`、`/lol/ahri/vs/wukong/build/`、`/lol/wukong/counters/` はいずれも 200。`monkeyking` に置き換えた URL はいずれも 404。u.gg は bot 判定で 403 になり、確認できなかった（要確認）。
+lolalytics を実際のブラウザ（Playwright）で開いた結果: `/lol/ahri/vs/wukong/build/` は 200 で正しく表示された。`monkeyking` を使った URL は「404 Resource Not Found」になった。
+
+### 注意点（新版で同じ問題を作り込まないために）
+1. **旧版の通常の経路は正しい**: リリースビルドでは、LCU で検知した場合もセレクターで選んだ場合も `wukong` になる。
+2. **旧版にもバグが 1 つ残っている**: CURRENT MATCHUP のクイックピックで Wukong を Opponent に設定すると、URL が `monkeyking` になり 404 になる（リリースビルドでも発生する）。
+   - 原因: `_resolve_champion_id()`（`widgets/viewer_widget.py:472-477`）が、`champions.json` のキーではなく `id` フィールド（Data Dragon の ID の `MonkeyKing`）を小文字にして返している。
+   - キーと `id` を小文字にしたものが異なるのは Wukong だけなので、他のチャンピオンでは表面化しない。
+3. **json が 2 種類ある**: リポジトリの `champions.json`（週次の workflow が作る）はキーが `monkeyking` のまま。正しくなるのは、リリースビルドの直前に `fetch_champions.py` が作り直しているからにすぎない。開発時に起動すると、セレクターとレーン適性も壊れる。
+4. **テストが誤った値を固定している**: `tests/test_viewer_quick_opponent.py:101-105, 311-326` は `"Wukong"` → `"monkeyking"` を正としている。新版のテストには持ち込まない。
+5. 移植のときは「`id`（Data Dragon の ID）」と「内部キー」を取り違えないこと。URL には必ず内部キー（`wukong`）を使う。
 
 ### 新版での要件
 - チャンピオンデータを生成する処理は 1 つにする。キーは `wukong` に変え、Data Dragon の ID（`MonkeyKing`）は境界の変換用の別フィールドとして持つ。アイコン URL は Data Dragon の ID で組み立てる。
@@ -66,17 +78,17 @@ lolalytics での確認（curl、2026-11-22）: `/lol/wukong/build/`、`/lol/ahr
 
 ---
 
-## 未決事項
-
-| ID | 内容 | 背景 |
-|---|---|---|
-| Q-001 | サイドバーの各行に、非表示状態や対面（`vs X`）を表示するか | 下記 |
-
-### Q-001 サイドバー行の表示内容
+## M-006 サイドバーの行に非表示状態や対面を表示しない（旧 Q-001）
 - 旧版では `ChampionViewerWidget.get_display_name()` が `"Ahri | build | picked | vs Zed"` のような文字列を作る。非表示のビューアには、さらに `main_window` が `"[Hidden] "` を前に付けて、サイドバーの行ウィジェットに渡している（`main_window.py:2209-2211`）。
 - しかし行ウィジェット（`ViewerListItemWidget`）はこの文字列を**使わず**、`current_champion.title()`（例 `Ahri`）と種別（`BUILD` など）の 2 行だけを表示している（`widgets/viewer_list_item.py:29-80`）。
 - PR #114（2026-03-01）は `get_display_name()` に `vs <対面>` を追加した。ところが、行ウィジェットはその前のサイドバー再デザイン（#72 系）の時点で既にこの文字列を無視していた（#116 の差分に、無視したままのコードが前後の文脈として写っている）。そのため `vs X` は**画面に出たことがない可能性が高い**。
 - その結果、旧版では次のことがサイドバーから分からない。
   - ビューアが非表示になっていること。ホバーしたときに出る −/+ のグリフでしか判別できない。
   - Build ビューアの対面が誰か。
-- 新版でこれらを表示するかを決める必要がある。
+- **決定（2026-11-22）: 表示しない。** 旧版の画面どおり、チャンピオン名と種別（BUILD/COUNTER/ARAM）の 2 行にする。`get_display_name()` 相当の文字列（`picked`、`vs X`、`[Hidden]`）は移植しない。
+
+---
+
+## 未決事項
+
+現在なし。

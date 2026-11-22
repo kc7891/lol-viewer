@@ -295,7 +295,7 @@
 8. ARAM の ChampSelect では敵が見えない（theirTeam が空）ため 10 体揃わず、ウォッチモードに入らない。試合中も 2 秒ごとのポーリングと `matchup_data_updated` が続く（要確認：ARAM の theirTeam の実際の中身）。
 9. 200 以外の応答は切断にならない。例外だけが切断になる。JSON デコード失敗も切断扱い（要確認）。
 10. `get_current_queue_id/game_mode` は、キャッシュがないと `update_phase()` を呼ぶ副作用がある。
-11. （→ 方針は [decisions.md](../decisions.md) M-004）Wukong: LCU 側の名前は `Wukong` に正規化されるが、champions.json のキーは `monkeyking` で、`lanes` は**全部 0**（CSV のキーは `wukong` で一致しないため）。`get_champion("Wukong")` は english_name の一致でヒットするが、レーン適性による配置は「最初の空き行」にフォールバックする（§11.3）。
+11. （→ 方針と、旧コードを実際に動かして確認した経路別の結果は [decisions.md](../decisions.md) M-004。リリースビルドでは fetch_champions.py が json を作り直すため、以下はリポジトリの json で起動した場合の話）Wukong: LCU 側の名前は `Wukong` に正規化されるが、champions.json のキーは `monkeyking` で、`lanes` は**全部 0**（CSV のキーは `wukong` で一致しないため）。`get_champion("Wukong")` は english_name の一致でヒットするが、レーン適性による配置は「最初の空き行」にフォールバックする（§11.3）。
 12. `ChampionData` の既定パス `"champions.json"` は **カレントディレクトリからの相対パス**（スクリプト実行時。`champion_data.py:41-43`）。PyInstaller では `sys._MEIPASS` を使う（`:38-40`）。ファイルがなければ警告を出して空の dict。JSON が壊れていれば traceback を出して空の dict（`:53-70`）。
 13. アイコンのダウンロードに失敗したときは、待っていたコールバックを呼ばずに破棄する（UI はアイコンなしのまま。再要求すれば再ダウンロードする）。
 
