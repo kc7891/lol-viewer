@@ -873,14 +873,14 @@ code {
   align-items: center;
   margin-left: auto;
 }
-.quick-row {
+.foot-row {
   flex-wrap: nowrap;
 }
-.quick-label {
+.quick-vs {
   flex: none;
+  align-self: center;
+  margin-right: 2px;
   font-size: 0.64rem;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
   color: var(--text-3);
 }
 .pane-row .vs {
@@ -927,13 +927,14 @@ code {
 }
 .quick-picks {
   display: flex;
-  gap: 2px;
+  flex: 1 1 0;
+  gap: 1px;
   min-width: 0;
   overflow: hidden;
 }
 .quick-pick {
   flex: none;
-  padding: 2px;
+  padding: 1px;
   background: var(--enemy-soft);
   border: 1px solid transparent;
   border-radius: var(--radius-s);

@@ -48,7 +48,7 @@ export function ViewersSection({ ws, onAdd, onCloseAll, onClose, onToggleHidden,
           <p className="hint">No viewers.</p>
         ) : (
           <ul className="row-list">
-            {ws.viewers.map((v) => (
+            {[...ws.viewers.filter((v) => v.picked), ...ws.viewers.filter((v) => !v.picked)].map((v) => (
               <li key={v.id} className="row" data-viewer-id={v.id}>
                 <button
                   type="button"

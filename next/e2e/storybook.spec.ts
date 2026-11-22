@@ -166,6 +166,16 @@ test("close one viewer, hide with double-click, close all", async ({ page }) => 
   await expect(page.getByText("No viewers yet")).toBeVisible();
 });
 
+test("sidebar lists picked viewers first, then the others", async ({ page }) => {
+  await open(page, "screens-app--three-viewers");
+  const rows = page.locator(".viewers .row");
+  await expect(rows).toHaveCount(3);
+  await expect(rows.first().locator(".name")).toHaveText("Ahri");
+  // the picked viewer comes before every non-picked one
+  const picked = await page.locator(".viewers .row").evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.viewerId));
+  expect(picked[0]).toBe("1");
+});
+
 test("viewer limit: the add button refuses with a notice", async ({ page }) => {
   await open(page, "screens-app--viewer-limit");
   await expect(page.getByText("20/20")).toBeVisible();

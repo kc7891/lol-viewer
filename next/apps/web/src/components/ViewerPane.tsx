@@ -134,29 +134,6 @@ export function ViewerPane({ viewer, ws, dispatch, templates, qrEnabled, highlig
             <IconClose />
           </button>
         </div>
-        {picks.length > 0 && (
-          <div className="pane-row quick-row">
-            <span className="quick-label">Quick pick</span>
-            <div className="quick-picks" role="group" aria-label="Quick opponents">
-              {picks.map((id) => {
-                const c = getChampion(id);
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    className="quick-pick"
-                    title={`Set ${c?.name ?? "?"} as opponent`}
-                    aria-label={`Set ${c?.name ?? "?"} as opponent`}
-                    disabled={aram}
-                    onClick={() => pickOpponent(id)}
-                  >
-                    <ChampionIcon id={id} size={22} />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
         <div className="pane-row">
           <div className="seg" role="group" aria-label="Page type">
             {MODES.map((m: ViewerMode) => (
@@ -177,6 +154,27 @@ export function ViewerPane({ viewer, ws, dispatch, templates, qrEnabled, highlig
             <span className={viewer.lane ? "label" : "label placeholder"}>{viewer.lane ? LANE_LABEL[viewer.lane] : "Any lane"}</span>
             <IconChevron size={12} />
           </button>
+        </div>
+        <div className="pane-row foot-row">
+          <div className="quick-picks" role="group" aria-label="Quick opponents" data-empty={picks.length === 0 ? "true" : undefined}>
+            {picks.length > 0 && <span className="quick-vs" aria-hidden="true">vs</span>}
+            {picks.map((id) => {
+              const c = getChampion(id);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className="quick-pick"
+                  title={`Set ${c?.name ?? "?"} as opponent`}
+                  aria-label={`Set ${c?.name ?? "?"} as opponent`}
+                  disabled={aram}
+                  onClick={() => pickOpponent(id)}
+                >
+                  <ChampionIcon id={id} size={20} />
+                </button>
+              );
+            })}
+          </div>
           <div className="nav-group">
           <button type="button" className="icon-btn" aria-label="Back" title="Back" disabled={!status?.canGoBack} onClick={() => navigate("back")}>
             <IconBack />

@@ -13,7 +13,7 @@
  *   LOL_LIVE_CLIENT_URL   Live Client Data API base URL (fake in tests)
  */
 import { join } from "node:path";
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, shell } from "electron";
 import { toLcuEvent } from "@lol-viewer/core";
 import { Hub, startHubServer } from "@lol-viewer/hub";
 import { startLcuConnector } from "@lol-viewer/lcu";
@@ -42,6 +42,10 @@ if (!gotLock) {
 }
 
 const hub = new Hub();
+
+// No application menu (the old app had none). The default menu's Reload (Ctrl+R) would
+// reload the UI and drop every open viewer; text editing shortcuts still work in inputs.
+Menu.setApplicationMenu(null);
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
