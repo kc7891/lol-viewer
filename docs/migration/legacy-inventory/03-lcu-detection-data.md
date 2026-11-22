@@ -290,12 +290,12 @@
 3. **非 Windows の扱いが不一致**: 資格情報の取得は `LeagueClientUx` も対象だが、`is_client_running` は `.exe` だけを見る（`:81` と `:104`）。
 4. プロセス列挙の途中で 1 回でも例外が起きるとスキャン全体が失敗する（`:95-98`, `:106-107`）。
 5. **gameId の変化による新セッション**（ドッジ → 即再マッチなど、Lobby を通らない場合）で、`detected_enemy_champions` と `current_champion_name` がクリアされない。その結果、前の試合の自分のチャンピオンで `champion_detected` が再度出る可能性がある（Service が `last_champion=None` にするため）。また、新しい試合で前と同じ敵チャンピオンが出ても `enemy_champion_detected` が出ない（`:337-342`）。（要確認・潜在バグ）
-6. ホバーとロックを区別しないので、ホバーを変えるたびに `champion_detected` → 新しいビューアが作られる可能性がある（要確認）。レーンだけ変わった場合も再度 emit される。
+6. （→ 仕様として維持、M-002）ホバーとロックを区別しないので、ホバーを変えるたびに `champion_detected` → 新しいビューアが作られる可能性がある（要確認）。レーンだけ変わった場合も再度 emit される。
 7. 試合中に起動したり、試合中に再接続したりした場合、自分のチャンピオンは検知されない（InProgress はキャッシュだけを返す）。味方/敵の一覧は gameData から取れる。summonerId を取れないと teamOne を味方と仮定するので、敵味方が逆になりうる。
 8. ARAM の ChampSelect では敵が見えない（theirTeam が空）ため 10 体揃わず、ウォッチモードに入らない。試合中も 2 秒ごとのポーリングと `matchup_data_updated` が続く（要確認：ARAM の theirTeam の実際の中身）。
 9. 200 以外の応答は切断にならない。例外だけが切断になる。JSON デコード失敗も切断扱い（要確認）。
 10. `get_current_queue_id/game_mode` は、キャッシュがないと `update_phase()` を呼ぶ副作用がある。
-11. Wukong: LCU 側の名前は `Wukong` に正規化されるが、champions.json のキーは `monkeyking` で、`lanes` は**全部 0**（CSV のキーは `wukong` で一致しないため）。`get_champion("Wukong")` は english_name の一致でヒットするが、レーン適性による配置は「最初の空き行」にフォールバックする（§11.3）。
+11. （→ 方針は [decisions.md](../decisions.md) M-004）Wukong: LCU 側の名前は `Wukong` に正規化されるが、champions.json のキーは `monkeyking` で、`lanes` は**全部 0**（CSV のキーは `wukong` で一致しないため）。`get_champion("Wukong")` は english_name の一致でヒットするが、レーン適性による配置は「最初の空き行」にフォールバックする（§11.3）。
 12. `ChampionData` の既定パス `"champions.json"` は **カレントディレクトリからの相対パス**（スクリプト実行時。`champion_data.py:41-43`）。PyInstaller では `sys._MEIPASS` を使う（`:38-40`）。ファイルがなければ警告を出して空の dict。JSON が壊れていれば traceback を出して空の dict（`:53-70`）。
 13. アイコンのダウンロードに失敗したときは、待っていたコールバックを呼ばずに破棄する（UI はアイコンなしのまま。再要求すれば再ダウンロードする）。
 
@@ -471,7 +471,7 @@
 - [ ] 起動時に `versions.json[0]` → `cdn/{ver}/data/en_US/champion.json` を取得し、`int(key) → id` のマップを作る（timeout 10 秒）
 - [ ] 名前のエイリアス `MonkeyKing → Wukong`
 - [ ] 失敗したら空のマップになる（リトライなし）。改善として、ローカルへのフォールバックやリトライを検討する
-- [ ] アプリ内のチャンピオン名は DDragon ID 形式（Wukong を除く）であることを維持する
+- [ ] アプリ内のチャンピオン名は DDragon ID の小文字形式にする。ただし Wukong は `wukong`（M-004）
 
 ### ゲームフェーズ
 - [ ] `/lol-gameflow/v1/session` で `phase` を取得する（なければ "None"）。レスポンス全体をキャッシュする
@@ -487,7 +487,7 @@
 - [ ] 自分の特定: `myTeam` の中で `cellId == localPlayerCellId` の行。`championId > 0` なら検知
 - [ ] 自分の行から `summonerId` をキャッシュする（試合中のチーム判定用）
 - [ ] レーン: `assignedPosition.lower()`、`utility → support`、なければ ""
-- [ ] ホバーとロックを区別しない現在の挙動を維持するか判断する（要確認）
+- [ ] ホバーとロックを区別しない現在の挙動を維持する（仕様 → M-002）
 - [ ] 一度検知した自分のチャンピオンは、championId が 0 になっても保持する
 - [ ] 敵の新規ピック: `theirTeam` の順に `championId > 0` のものを見て、ID 単位で重複排除して通知する
 - [ ] 味方一覧 `(name, lane)`（ピック済みのみ、myTeam 順）
@@ -564,7 +564,7 @@
 ### アイコンキャッシュ
 - [ ] アイコンの URL は champions.json の `image_url`（DDragon の CDN、バージョン付き）をそのまま使う
 - [ ] 保存先: `LOL_VIEWER_ICON_CACHE_DIR` → `%LOCALAPPDATA%` → OS の汎用キャッシュ → 一時ディレクトリ、の下の `LoLViewer/cache/champion_icons`。自動で作成する
-- [ ] アプリ名の設定によって WebView のプロファイル（Cookie・ログイン）の場所が変わらないようにする
+- [x] ~~アプリ名の設定によって WebView のプロファイル（Cookie・ログイン）の場所が変わらないようにする~~ 旧データを引き継がないので不要（M-003）
 - [ ] メモリキャッシュ（URL → 画像、プロセスの間ずっと保持）
 - [ ] ディスクキャッシュ: ファイル名は `sha256(url).png`。ディスクにあれば同期で即座に返す
 - [ ] 壊れたキャッシュファイルは削除して再ダウンロードに回す
@@ -581,7 +581,7 @@
 - [ ] 週 1 回の自動更新（GitHub Actions: DDragon の最新版、en_US と ja_JP、CSV のレーンをマージ、PR を作成）
 - [ ] 日本語名がなければ英語名で代用する
 - [ ] champion_lane.csv（name,top,jg,mid,bot,sup、0〜5 のスコア）を生成時にマージする。CSV にないチャンピオンは全部 0
-- [ ] Wukong のキーの不一致（CSV は `wukong`、JSON は `monkeyking`）を修正する（現在は lanes が全部 0）
+- [ ] Wukong のキーを `wukong` に統一する。`MonkeyKing` は Data Dragon（ID、アイコン URL）と LCU の対応付けだけで使う（M-004）
 - [ ] 2 つの生成器（workflow と scripts/fetch_champions.py）の差異を解消する
 - [ ] レーン適性スコアを使った対戦行への配置（敵 / レーンのない味方は最高スコアの空き行、同点は上の行、データがなければ最初の空き行）。行とキーの対応は `top,jg,mid,bot,sup`。LCU のレーン名（top/jungle/middle/bottom/support）と行の対応
 - [ ] champions.json をアプリのパッケージに同梱する。ビルド前に存在を確認する

@@ -206,7 +206,7 @@ URL テンプレートは MainWindow の属性（`build_url`, `counter_url`, `ma
 ### 6.5 ユーザー操作
 - **Refresh ボタン** `_refresh_matchup_list`（main_window.py:1496-1502）: `clear_matchup_list()`（データと pending 敵ピックを消去）→ `champion_detector.resume_polling()`（全10体検出後の一時停止を解除）→ `champion_detector._check_champion(force=True)` で即時再取得。ビューアは閉じない。
 - **D&D スワップ** `_matchup_dnd_drop(source, target, side)`（main_window.py:1646-1662）: 名前ラベルを別の行へドロップ → 同じ側（ally or enemy）の値のみ入れ替え。同一行・範囲外・不正 side は無視。MIME 形式 `"{row}:{side}"`（matchup_widgets.py:93-106）。ドラッグ中ハイライト等は widgets 側（要確認: matchup_widgets.py）。
-- **↑↓ 並べ替え**: `_matchup_swap_enemies(index)`（行 index と index+1 の敵のみ交換、末尾行は無視）が存在するが **UI からの呼び出しは無い**（テストのみ使用、main_window.py:1632-1644）。docstring の「Arrows: small vertically-stacked arrows」（main_window.py:1275）も実装に存在しない。移植時に扱いを決める必要あり（要確認）。
+- **↑↓ 並べ替え**（**PR #114 で意図的に削除済み。移植しない → M-005**）: `_matchup_swap_enemies(index)`（行 index と index+1 の敵のみ交換、末尾行は無視）が存在するが **UI からの呼び出しは無い**（テストのみ使用、main_window.py:1632-1644）。docstring の「Arrows: small vertically-stacked arrows」（main_window.py:1275）も実装に存在しない。移植時に扱いを決める必要あり（要確認）。
 - `set_matchup_entry(index, ally, enemy)` 公開 API（未使用）（main_window.py:1479-1483）。
 - **Open ボタン ⧉** `_open_matchup_viewer(index)`（main_window.py:1699-1743）:
   - 味方が空なら何もしない。
@@ -380,7 +380,7 @@ QScrollArea（枠なし）内、VBox spacing 20、margin 40。タイトル "Sett
 - Matchup URL は lane が空でも `?lane=&vslane=` の形で残る（テンプレート既定時）。
 - `_extract_px(css_value, default_px)`（main_window.py:2411-2416）は未使用ユーティリティ。
 - 敵が既に materialize 済みでも detector が同名を再 emit すれば再び pending に入る可能性（detector 側は `detected_enemy_champions` で重複抑止、lcu_detector.py:254）（要確認）。
-- 新マッチ時 `close_all_viewers` は手動ビューアも閉じる点に注意（ユーザーが開いた任意のタブも消える）。
+- 新マッチ時 `close_all_viewers` は手動ビューアも閉じる（ユーザーが開いた任意のタブも消える）。これは仕様（M-001）。
 
 ---
 
@@ -434,7 +434,7 @@ QScrollArea（枠なし）内、VBox spacing 20、margin 40。タイトル "Sett
 - [ ] 追加時に全ビューア幅を均等再分配
 - [ ] ビューアクローズ（シグナル切断・破棄・hidden から除去）
 - [ ] ビューア非表示/表示（サイドバー行ダブルクリック、ホバー時の −/+ ボタン）
-- [ ] 非表示ビューアであることの表示（現状は `[Hidden] ` を付けた名前を渡しているが、行ウィジェットが無視するため画面に出ない。移植時に仕様を決める）
+- [ ] 非表示ビューアであることの表示（現状は `[Hidden] ` を付けた名前を渡しているが、行ウィジェットが無視するため画面に出ない。未決 Q-001）
 - [ ] サイドバー一覧順: picked ビューア → 通常ビューア → pending 敵ピック
 - [ ] 一覧行: アイコン・チャンピオン名（title case）・種別ラベル（BUILD/COUNTER/ARAM）・ホバーで操作ボタン（`get_display_name()` の "Champion | type | picked | vs Opponent" は現状未表示）
 - [ ] ビューアのチャンピオン変更でサイドバー更新
@@ -461,19 +461,19 @@ QScrollArea（枠なし）内、VBox spacing 20、margin 40。タイトル "Sett
 - [ ] Refresh: データと pending クリア → ポーリング再開 → 強制即時チェック（ビューアは閉じない）
 - [ ] 名前ラベルのドラッグ&ドロップで同じ側（味方同士/敵同士）の行入れ替え
 - [ ] ⧉: 行の味方（+敵）+ 行レーンで新規ビューア作成し Build/Matchup を開く（味方空なら無効、重複排除なし）
-- [ ] （未配線）敵の隣接行スワップ `_matchup_swap_enemies` — ↑↓ UI は現状なし、移植可否を判断
+- [x] ~~（未配線）敵の隣接行スワップ `_matchup_swap_enemies`~~ 移植しない（M-005）
 - [ ] Debug: 名前入力（オートコンプリート）+ Add Ally / Add Enemy で最初の空き行に追加、結果メッセージ、成功時入力クリア
 
 ### 自動検出連携
 - [ ] シグナル起点のビューア生成は次イベントループへ遅延（Chromium クラッシュ回避）
 - [ ] setUrl と hide を同一 tick で行わない（hide を遅延）
-- [ ] 自チャンプ検出（変化時）→ 最左に picked ビューア新規作成（既存重複排除なし）
+- [ ] 自チャンプ検出（変化時）→ 最左に picked ビューア新規作成（既存重複排除なし。仕様 → M-002）
 - [ ] 自チャンプ: ARAM/ARAM Mayhem（queueId 450,65,100,720 / 2400,2401,2403,2405,3240,3270 または gameMode "ARAM"）なら ARAM ページ、それ以外は lane 設定して Build
 - [ ] 自動作成時の上限超過はログのみ
 - [ ] 敵チャンプ検出 → ビューアは作らず pending リストに追加（重複排除）
 - [ ] pending の "+"/ダブルクリックで Counter ビューアを生成（picked があれば位置1、無ければ0）
 - [ ] pending の "×" で削除
-- [ ] 新マッチ開始 → 全ビューア（手動含む）を閉じ、マッチアップと pending をクリア
+- [ ] 新マッチ開始 → 全ビューア（手動含む）を閉じ、マッチアップと pending をクリア（仕様 → M-001）
 - [ ] 手動 LCU 再接続ボタン（"Connecting..." 表示・1.5秒無効化）
 
 ### Settings

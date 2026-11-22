@@ -161,7 +161,7 @@ check → 更新なしなら False → prompt で No なら False → URL を取
 
 ### 4.4 Inno Setup（`lol-viewer.iss`）
 - AppName「LoL Viewer」、Publisher「kc7891」、URL は GitHub リポジトリ、ExeName `lol-viewer.exe`（`iss:4-8`）。
-- **AppId `{8F7A2B3C-4D5E-6F7A-8B9C-0D1E2F3A4B5C}`**（`iss:13`）。アップグレードの同一性判定に使われるので、移行時の扱いは要判断。
+- **AppId `{8F7A2B3C-4D5E-6F7A-8B9C-0D1E2F3A4B5C}`**（`iss:13`）。アップグレードの同一性判定に使われる。新版では引き継がない（M-003）。
 - `DefaultDirName={autopf}\LoL Viewer`、ディレクトリ選択ページを表示（`DisableDirPage=no`）、グループ名は「LoL Viewer」、グループ選択ページは非表示（`iss:20-23`）。
 - 権限は **`PrivilegesRequired=lowest` ＋ `PrivilegesRequiredOverridesAllowed=dialog`**（`iss:32-33`）。既定は非管理者のユーザー単位インストールで、`{autopf}` は `%LOCALAPPDATA%\Programs\LoL Viewer` になる。ダイアログで全ユーザー向けも選べる。
 - x64 のみ（`ArchitecturesAllowed/InstallIn64BitMode=x64`）。
@@ -374,13 +374,13 @@ check → 更新なしなら False → prompt で No なら False → URL を取
 - [ ] 終了時に LCU 検出サービスを止める
 - [ ] 設定は QSettings("LoLViewer","LoLViewer")、Windows ではレジストリ。アンインストール後も残す
 - [ ] アイコンのディスクキャッシュ `%LOCALAPPDATA%\LoLViewer\cache\champion_icons`（アンインストール時に削除）
-- [ ] app/org 名を設定していない現状の保存パスとの互換（移行時のデータ引き継ぎを要判断）
+- [x] ~~app/org 名を設定していない現状の保存パスとの互換~~ 旧データを引き継がないので不要（M-003）
 - [ ] 多重起動の防止、AppUserModelID、High-DPI の明示設定、WebEngine フラグはいずれも現状なし（新スタックで要判断）
 - [ ] リリースビルド: onedir、windowed、UPX なし、app_icon.ico、champions.json とアイコン PNG を同梱、VC++ ランタイム不要
 - [ ] デバッグビルド: onefile、コンソール付き、UPX あり、exe 名 `lol-viewer-debug`
 - [ ] ビルド前チェック（必須ファイルの存在と champions.json の妥当性）
 - [ ] ビルド成果物を消すスクリプト（build/ と dist/）
-- [ ] Windows インストーラ: AppId `{8F7A2B3C-4D5E-6F7A-8B9C-0D1E2F3A4B5C}` を引き継ぐか要判断（既存ユーザーのアップグレードやアンインストールに影響）
+- [x] ~~Windows インストーラ: AppId の引き継ぎ~~ 新しい AppId を使う。旧版からのアップグレードは考えない（M-003）
 - [ ] インストーラ: 既定は非管理者のユーザー単位インストール（`{autopf}\LoL Viewer`）。ダイアログで全ユーザー向けに昇格できる。ディレクトリは選べる。x64 のみ
 - [ ] インストーラ: 英語と日本語の UI、スタートメニューのショートカットとアンインストールのショートカット、任意のデスクトップアイコン（既定はオフ）
 - [ ] インストーラ: インストール後に起動（サイレント時も）。CloseApplications=no、RestartApplications は使わない
@@ -402,7 +402,7 @@ check → 更新なしなら False → prompt で No なら False → URL を取
 - [ ] リリース時にチャンピオンデータを取得し直してから同梱する（現状は fetch_champions.py）
 - [ ] 週次（月曜 09:00 UTC）のチャンピオンデータ自動更新: Data Dragon の最新パッチから en_US と ja_JP を取得し、champion_lane.csv の lanes をマージ → champions.json → PR（automated/update-champions、ラベル automated と data-update）
 - [ ] champions.json の形式: key は小文字の id、値は `{english_name, japanese_name, image_url（ddragon の版付き URL）, id, lanes{top,jg,mid,bot,sup}}`
-- [ ] Wukong と MonkeyKing の key の扱いを統一する（現状は monkeyking と wukong が混在。要確認・要修正）
+- [ ] Wukong と MonkeyKing の key を統一する: 内部は `wukong`、生成処理は 1 つにする（M-004）
 - [ ] 公式サイトのスクレイピング経路（fetch_champions.py）を残すか捨てるか判断（lanes が欠落するリスクあり）
 - [ ] 週次（月曜 06:00 UTC）のロック再生成: upgrade で再コンパイル → Qt の整合チェック → バージョン差分を本文に載せて PR（automated/refresh-locks）
 - [ ] Dependabot: pip は security update だけ（バージョン更新 PR は 0 件）、グループは pyqt と tooling。github-actions は週次で全体を 1 グループ

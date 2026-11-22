@@ -14,7 +14,7 @@
 2. **戻る/進む/ズーム/リロードのボタンは UI に無い。** リロード用の `refresh_button` はあるが非表示で（`viewer_widget.py:295-299`）、`refresh_page()` を外から呼ぶ箇所も無い。テストからは呼ばれる。
 3. **自動補完付きの QLineEdit（EN/JP の QCompleter）は非表示ウィジェット。** `champion_input` と `opponent_champion_input` は `setVisible(False)`（`viewer_widget.py:270, 278`）。ユーザーが実際に触る検索は、セレクターパネルの前方一致フィルタ（§2.6）の方。QCompleter は初めてセレクターを開いたときに遅延初期化されるが、入力欄が見えないため UI からは事実上使われない（要確認）。
 4. **サイドバー項目は渡された `display_name` を無視する。** `ViewerListItemWidget.__init__(display_name, ...)` は `init_ui(display_name)` に渡すものの、中では使っていない（`viewer_list_item.py:29-80`）。そのため main_window が付ける `[Hidden] ` 接頭辞（`main_window.py:2210-2211`）や、`get_display_name()` の `| picked` / `| vs X` は画面に出ない。表示されるのは `current_champion.title()` と `current_page_type.upper()` だけ。
-5. **チャンピオン名の表記揺れ。** セレクターで選ぶと champions.json のキー（例 `leesin`, `monkeyking`）が入る。LCU 検出からは Data Dragon の id（例 `LeeSin`、`MonkeyKing` は `Wukong` に置換、`lcu_detector.py:285`）が入る。このためサイドバー名は `Leesin` のように `.title()` した形になり、`Lee Sin` にはならない（`viewer_list_item.py:56`）。Wukong は経路によって URL が `wukong` にも `monkeyking` にもなる（要確認: lolalytics / u.gg が `monkeyking` を受け付けるか）。
+5. **チャンピオン名の表記揺れ。** セレクターで選ぶと champions.json のキー（例 `leesin`, `monkeyking`）が入る。LCU 検出からは Data Dragon の id（例 `LeeSin`、`MonkeyKing` は `Wukong` に置換、`lcu_detector.py:285`）が入る。このためサイドバー名は `Leesin` のように `.title()` した形になり、`Lee Sin` にはならない（`viewer_list_item.py:56`）。Wukong は経路によって URL が `wukong` にも `monkeyking` にもなるlolalytics は `monkeyking` に 404 を返す（2026-11-22 に curl で確認）。u.gg は未確認。→ 方針と経路ごとの整理は [decisions.md](../decisions.md) M-004。
 6. **`get_ui_sizes()` の docstring と実装が食い違う。** docstring は既定が `"small"` と書くが、引数の既定値は `"medium"`（`constants.py:198-200`）。未知の名前を渡したときのフォールバックは `"small"`。
 
 ---
@@ -509,7 +509,7 @@ URL の規則:
 - [ ] ページを開くたびに現在の URL を保存し、QR を更新し、サイドバーを更新する
 - [ ] リフレッシュは保存した元の URL を開き直す（無ければ reload）。UI に出すかは要判断（現状は非表示）
 - [ ] URL エンコードをせず、単純な置換で組み立てる（互換性の観点で要確認）
-- [ ] Wukong / MonkeyKing などチャンピオン名の正規化（移植時に統一する、要確認）
+- [ ] Wukong / MonkeyKing の正規化: 内部では `wukong`、`MonkeyKing` は Riot API との境界だけで使う（M-004）。現状はクイックピックとセレクターで `monkeyking` が URL に入り、lolalytics が 404 を返す
 
 ### ChampionViewerWidget: 自動補完・キー操作・その他
 - [ ] バイリンガル自動補完（"English - Japanese" 表示、部分一致、大小無視、最大 10 件、選ぶとキーが入る、英語名順）
@@ -541,7 +541,7 @@ URL の規則:
 - [ ] 選択行は左に 3px #00d6a1 のボーダー＋背景 #141b24、hover は #171e28
 - [ ] ダブルクリックで表示/非表示を切り替える
 - [ ] is_picked のビューアを上に並べる
-- [ ] 非表示のビューアを示す表示（現状は [Hidden] 接頭辞が渡されているのに表示されない。移植で直すか要判断）
+- [ ] 非表示のビューアを示す表示（現状は [Hidden] 接頭辞が渡されているのに表示されない。未決 Q-001）
 - [ ] 保留中の敵ピック行（種別は "COUNTER"、ホバーで + "Open viewer"・× "Remove"）
 
 ### マッチアップ
@@ -549,7 +549,7 @@ URL の規則:
 - [ ] ドラッグ中は hover した行をハイライトする（rgba(0,214,161,.12) の地、.35 の枠）。ドラッグ元の行には出さない
 - [ ] 一定距離動かしたらドラッグ開始、ドラッグ画像はラベルのスナップショット、カーソルは OpenHand
 - [ ] 行: レーン名、味方アイコン、名前、VS、敵名、敵アイコン、⧉（このマッチアップでビューアを開く）
-- [ ] ↑↓ ボタンでの並べ替え（設計書にあるが現行 UI には無い。要判断）
+- [x] ~~↑↓ ボタンでの並べ替え~~ PR #114 で意図的に削除済み。移植しない（M-005）
 
 ### LCU ステータス
 - [ ] "Riot API: Connecting…"（ドットが 500ms ごとに 1→3 で循環、色 #6d7a8a）
