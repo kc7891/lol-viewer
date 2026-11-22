@@ -7,7 +7,8 @@
  *   LOL_LCU_LOCKFILE      lockfile path (fake LCU in tests / dev)
  *   LOL_VIEWER_WEB_URL    load the renderer from a dev server instead of the bundled build
  *   LOL_VIEWER_HUB_PORT   also serve the Hub on 127.0.0.1:<port> (0 = random)
- *   LOL_VIEWER_E2E=1      expose diagnostics on globalThis for Playwright
+ *   LOL_VIEWER_E2E=1      expose diagnostics on globalThis for Playwright (also skips the single-instance lock)
+ *   LOL_VIEWER_DEBUG=1    debug mode (also: --debug, or an executable name containing "debug"): log to a file under app.getPath("logs")
  *   LOL_VIEWER_RECORDINGS_DIR  where session recordings go (default Documents/LoL Viewer Next/recordings)
  *   LOL_LIVE_CLIENT_URL   Live Client Data API base URL (fake in tests)
  */
@@ -19,6 +20,26 @@ import { startLcuConnector } from "@lol-viewer/lcu";
 import { ViewCommandSchema } from "@lol-viewer/protocol";
 import { ExternalViewManager } from "./external-views.ts";
 import { RecordingController } from "./recording.ts";
+import { attachRendererLogging, initLogging, installProcessHandlers, log } from "./log.ts";
+
+initLogging();
+installProcessHandlers();
+
+// Single instance. The lock is per userData directory and the E2E tests launch several app
+// instances (some concurrently, with the default userData), so the lock would make them quit
+// each other; skip it when LOL_VIEWER_E2E=1.
+const gotLock = process.env.LOL_VIEWER_E2E === "1" || app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    const win = BrowserWindow.getAllWindows()[0];
+    if (!win) return;
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+  });
+}
 
 const hub = new Hub();
 
@@ -38,6 +59,7 @@ function createWindow(): BrowserWindow {
     },
   });
 
+  attachRendererLogging(win.webContents);
   // The app window never navigates away from our UI.
   win.webContents.on("will-navigate", (ev) => ev.preventDefault());
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -51,7 +73,8 @@ function createWindow(): BrowserWindow {
   return win;
 }
 
-app.whenReady().then(async () => {
+if (gotLock) void app.whenReady().then(async () => {
+  log.info("main", `LoL Viewer ${app.getVersion()} starting`);
   const win = createWindow();
   const views = new ExternalViewManager(win, (s) => {
     if (!win.isDestroyed()) win.webContents.send("views:status", s);
@@ -66,7 +89,7 @@ app.whenReady().then(async () => {
     if (!fromApp(e)) return;
     const cmd = ViewCommandSchema.safeParse(raw);
     if (cmd.success) views.handle(cmd.data);
-    else console.warn("[views] rejected command", cmd.error.issues[0]?.message);
+    else log.warn("views", "rejected command", cmd.error.issues[0]?.message);
   });
 
   ipcMain.handle("app:info", (e) => (fromApp(e) ? { version: app.getVersion(), platform: process.platform } : null));
@@ -104,7 +127,7 @@ app.whenReady().then(async () => {
   let hubServer: Awaited<ReturnType<typeof startHubServer>> | null = null;
   if (process.env.LOL_VIEWER_HUB_PORT !== undefined) {
     hubServer = await startHubServer(hub, { port: Number(process.env.LOL_VIEWER_HUB_PORT) });
-    console.log(`[hub] ${hubServer.url}/api/stream?token=${hubServer.token}`);
+    console.log(`[hub] ${hubServer.url}/api/stream?token=${hubServer.token}`) // stdout only (dev/test): the token must not go to the log file;
   }
 
   if (process.env.LOL_VIEWER_E2E === "1") {
