@@ -28,13 +28,13 @@ describe("generated champion data", () => {
     for (const id of ids) expect(getChampion(id), `champion ${id}`).toBeDefined();
   });
 
-  it("uses the same URL names as the Python app's champions.json (except the Wukong fix)", () => {
+  it("uses the same URL names as the Python app's champions.json", () => {
     const py = JSON.parse(readFileSync(new URL("../../../../champions.json", import.meta.url), "utf8")) as Record<string, { id: string }>;
     const pySlugs = new Map(Object.entries(py).map(([slug, v]) => [v.id, slug]));
     const mismatches = CHAMPIONS.filter((c) => pySlugs.has(c.ddragonId) && pySlugs.get(c.ddragonId) !== c.slug).map(
       (c) => `${c.ddragonId}: ${pySlugs.get(c.ddragonId)} -> ${c.slug}`,
     );
-    // lolalytics serves /lol/wukong/ (200) but not /lol/monkeyking/ (404), checked 2026-11.
-    expect(mismatches).toEqual(["MonkeyKing: monkeyking -> wukong"]);
+    // Both apps key Wukong as "wukong" (lolalytics serves /lol/wukong/, not /lol/monkeyking/).
+    expect(mismatches).toEqual([]);
   });
 });
