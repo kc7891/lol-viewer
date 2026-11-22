@@ -3,11 +3,13 @@
   (non-admin) local user, the way most players run it.
   Usage: pwsh -File install-as-user.ps1 -Setup <setup.exe> -UserName <name>
 
-  Note: starting a process with other credentials (CreateProcessWithLogonW via
-  .NET) copies the CALLER's environment block, so USERPROFILE / LOCALAPPDATA /
-  TEMP would still point at the runner admin's profile. We therefore load the
-  user's profile first, then pass that user's own folders explicitly, which is
-  what a real logon gives the process.
+  How the user is driven: the profile is created first by a trivial logon
+  (cmd.exe), the setup is staged in a folder the user can write, and every
+  process gets that user's own profile folders explicitly. An earlier version
+  that launched the installer directly with Start-Process -Credential got
+  "exit code 0 but nothing installed"; the exact cause was not isolated (the
+  environment-inheritance guess turned out wrong: a plain launch already sees
+  the user's own USERPROFILE), so keep this sequence as is.
 #>
 param(
   [Parameter(Mandatory)] [string] $Setup,
@@ -67,7 +69,7 @@ try {
   # 1) First logon: creates the profile (and shows what env a naive launch gets).
   $envDump = Join-Path $stage "env-$([guid]::NewGuid().ToString('N')).txt"
   $p = Invoke-AsUser 'cmd.exe' "/d /c (set USERPROFILE & set LOCALAPPDATA & set TEMP & whoami) > `"$envDump`" 2>&1"
-  Write-Host "naive launch environment (inherited from the runner):"
+  Write-Host "environment seen by a plain launch as the user:"
   if (Test-Path -LiteralPath $envDump) { Get-Content -LiteralPath $envDump | ForEach-Object { Write-Host "  $_" } }
 
   $script:ProfileDir = (Get-CimInstance Win32_UserProfile | Where-Object { (Split-Path $_.LocalPath -Leaf) -eq $UserName } | Select-Object -First 1).LocalPath
