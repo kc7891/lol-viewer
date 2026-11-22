@@ -1,0 +1,9 @@
+packages:
+  - "packages/*"
+  - "tools/*"
+  - "apps/*"
+
+# pnpm 10 blocks dependency install scripts by default; allow only these.
+# (Electron >= 45 downloads its binary lazily on first launch, not in postinstall.)
+onlyBuiltDependencies:
+  - esbuild

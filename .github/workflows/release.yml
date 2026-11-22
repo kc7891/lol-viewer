@@ -4,9 +4,14 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      # Pushes that only touch the next/ PoC must not cut a Python release.
+      - 'next/**'
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - 'next/**'
   workflow_dispatch:
     inputs:
       version_type:

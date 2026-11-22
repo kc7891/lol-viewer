@@ -249,3 +249,4 @@ LCUConnectionStatusWidget (48px)
 |----------|------|
 | [design/build-detect.md](../design/build-detect.md) | チャンピオン自動検知機能の設計 |
 | [docs/design/matchup-list.md](./design/matchup-list.md) | マッチアップリストのデザイン仕様 (#73) |
+| [docs/design/next-architecture.md](./design/next-architecture.md) | 次世代構成（Electron + Web UI + ローカルデータHub）の設計案 |

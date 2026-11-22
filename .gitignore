@@ -47,3 +47,7 @@ release/
 *.zip
 *.zip.part*
 *.part[a-z][a-z]
+
+# Node (next/ PoC)
+node_modules/
+.pnpm-store/
