@@ -16,12 +16,14 @@ win:
     - target: nsis
       arch: [x64]
 nsis:
-  # One-click, per-user install into %LOCALAPPDATA%\Programs\lol-viewer-next.
-  # No admin rights and no folder choice: the previous assisted installer let a
-  # non-elevated (per-user) install target protected folders such as
-  # "D:\Program Files", where every file write failed mid-install.
-  oneClick: true
-  perMachine: false
+  # Assisted, per-machine installer: UAC prompt, and the install folder can be
+  # chosen (default: C:\Program Files\LoL Viewer Next). Per-machine is what
+  # makes any folder writable. The earlier assisted installer was per-user, so
+  # a non-elevated install into "D:\Program Files" failed mid-install.
+  oneClick: false
+  perMachine: true
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
   runAfterFinish: true
   createDesktopShortcut: true
   createStartMenuShortcut: true

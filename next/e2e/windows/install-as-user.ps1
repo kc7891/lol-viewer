@@ -1,6 +1,8 @@
 <#
-  Installs, launches and uninstalls the app as a freshly created STANDARD
-  (non-admin) local user, the way most players run it.
+  Installs (as this admin account, per-machine) and uninstalls the app, but
+  LAUNCHES it as a freshly created STANDARD (non-admin) local user, the way
+  most players run it. The installer is per-machine and needs elevation, so it
+  cannot be run silently as a standard user.
   Usage: pwsh -File install-as-user.ps1 -Setup <setup.exe> -UserName <name>
 
   How the user is driven: the profile is created first by a trivial logon
@@ -77,11 +79,12 @@ try {
   Write-Host "profile: $script:ProfileDir"
   $p = Invoke-AsUser 'cmd.exe' "/d /c if not exist `"%TEMP%`" mkdir `"%TEMP%`""
 
-  # 2) Install exactly like a user double-clicking would (silently here).
-  $p = Invoke-AsUser (Join-Path $stage 'setup.exe') '/S'
+  # 2) Install per-machine as this (admin) account into a folder the user can read.
+  $dir = Join-Path $env:ProgramFiles "lol-viewer-next-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+  $p = Start-Process (Join-Path $stage 'setup.exe') -ArgumentList "/S /D=$dir" -Wait -PassThru
   Write-Host "installer exit code: $($p.ExitCode)"
   if ($p.ExitCode -ne 0) { throw "installer exited with $($p.ExitCode)" }
-  $exe = Join-Path $script:ProfileDir 'AppData\Local\Programs\lol-viewer-next\lol-viewer-next.exe'
+  $exe = Join-Path $dir 'lol-viewer-next.exe'
   if (-not (Test-Path -LiteralPath $exe)) { throw "app not installed at $exe" }
   Write-Host "installed at $exe"
 
@@ -95,11 +98,11 @@ try {
 
   # 4) Uninstall.
   $un = (Get-ChildItem -LiteralPath (Split-Path $exe) -Filter 'Uninstall*.exe' | Select-Object -First 1).FullName
-  $p = Invoke-AsUser $un '/S'
+  $p = Start-Process $un -ArgumentList '/S' -Wait -PassThru
   if ($p.ExitCode -ne 0) { throw "uninstaller exited with $($p.ExitCode)" }
   for ($i = 0; $i -lt 20 -and (Test-Path -LiteralPath $exe); $i++) { Start-Sleep -Seconds 1 }
   if (Test-Path -LiteralPath $exe) { throw "app still present after uninstall" }
-  Write-Host "OK: install / launch / uninstall as standard user '$UserName'"
+  Write-Host "OK: install (admin) / launch / uninstall as standard user '$UserName'"
 }
 catch {
   Show-Diagnostics

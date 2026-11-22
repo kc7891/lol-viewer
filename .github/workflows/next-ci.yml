@@ -106,15 +106,17 @@ jobs:
         run: pnpm desktop:dist --win --publish never
 
       # Exercise the installer itself the way users do (not just win-unpacked/).
-      - name: Install with the setup exe (silent, per-user)
+      - name: Install with the setup exe (silent, per-machine, custom folder)
         shell: pwsh
         run: |
           $setup = (Get-ChildItem apps/desktop/release/lol-viewer-next-setup-*.exe | Select-Object -First 1).FullName
-          $p = Start-Process $setup -ArgumentList '/S' -Wait -PassThru
+          # /D= (must be last, unquoted) picks the install folder, like the dialog does.
+          $dir = Join-Path $env:ProgramFiles 'lol-viewer-next-ci'
+          $p = Start-Process $setup -ArgumentList "/S /D=$dir" -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "installer exited with $($p.ExitCode)" }
-          $exe = Join-Path $env:LOCALAPPDATA 'Programs\lol-viewer-next\lol-viewer-next.exe'
+          $exe = Join-Path $dir 'lol-viewer-next.exe'
           if (-not (Test-Path $exe)) {
-            Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Programs') -Depth 1 | Out-Host
+            Get-ChildItem $env:ProgramFiles -Depth 1 | Out-Host
             throw "app not found at $exe"
           }
           "LOL_VIEWER_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
@@ -128,7 +130,7 @@ jobs:
           $app = Start-Process $env:LOL_VIEWER_EXE -PassThru
           Start-Sleep -Seconds 8
           $setup = (Get-ChildItem apps/desktop/release/lol-viewer-next-setup-*.exe | Select-Object -First 1).FullName
-          $p = Start-Process $setup -ArgumentList '/S' -Wait -PassThru
+          $p = Start-Process $setup -ArgumentList "/S /D=$(Split-Path $env:LOL_VIEWER_EXE)" -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "reinstall exited with $($p.ExitCode)" }
           if (-not (Test-Path $env:LOL_VIEWER_EXE)) { throw "app missing after reinstall" }
           Get-Process lol-viewer-next -ErrorAction SilentlyContinue | Stop-Process -Force
@@ -144,15 +146,16 @@ jobs:
           if (Test-Path $env:LOL_VIEWER_EXE) { throw "app still present after uninstall" }
 
       # The runner account is an administrator; real users usually are not, and
-      # many have non-ASCII profile paths. Repeat install/launch/uninstall as
-      # fresh standard users (ASCII and Japanese names) to tell the two apart.
-      - name: Install, launch and uninstall as a standard user (ASCII name)
+      # many have non-ASCII profile paths. The installer is per-machine (needs
+      # elevation), so install/uninstall as admin and launch as fresh standard
+      # users (ASCII and Japanese names).
+      - name: Launch the installed app as a standard user (ASCII name)
         shell: pwsh
         run: |
           $setup = (Get-ChildItem apps/desktop/release/lol-viewer-next-setup-*.exe | Select-Object -First 1).FullName
           ./e2e/windows/install-as-user.ps1 -Setup $setup -UserName 'lvtest'
 
-      - name: Install, launch and uninstall as a standard user (Japanese name)
+      - name: Launch the installed app as a standard user (Japanese name)
         if: always()
         shell: pwsh
         run: |
