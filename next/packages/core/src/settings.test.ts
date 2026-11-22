@@ -7,6 +7,7 @@ import {
   UI_SCALE,
   parseSettings,
   trimUrlTemplates,
+  urlTemplateProblem,
   validateUrlTemplates,
 } from "./settings.ts";
 
@@ -69,6 +70,15 @@ describe("validateUrlTemplates", () => {
   it("returns the empty (after trim) items and accepts a full set", () => {
     expect(validateUrlTemplates(DEFAULT_SETTINGS.urls)).toEqual([]);
     expect(validateUrlTemplates({ ...DEFAULT_SETTINGS.urls, build: "", aram: "   ", liveGame: "\t" })).toEqual(["build", "aram", "liveGame"]);
+  });
+  it("rejects templates that would not load in the app (http, other hosts)", () => {
+    expect(urlTemplateProblem("https://lolalytics.com/lol/{name}/build/")).toBeNull();
+    expect(urlTemplateProblem("https://www.u.gg/lol/{name}")).toBeNull();
+    expect(urlTemplateProblem("http://lolalytics.com/lol/{name}/build/")).toBe("host");
+    expect(urlTemplateProblem("https://op.gg/champions/{name}")).toBe("host");
+    expect(urlTemplateProblem("lolalytics.com/{name}")).toBe("host");
+    expect(urlTemplateProblem("  ")).toBe("empty");
+    expect(validateUrlTemplates({ ...DEFAULT_SETTINGS.urls, counter: "https://op.gg/{name}" })).toEqual(["counter"]);
   });
   it("trims on save", () => {
     expect(trimUrlTemplates({ ...DEFAULT_SETTINGS.urls, build: "  https://a/{name}  " }).build).toBe("https://a/{name}");

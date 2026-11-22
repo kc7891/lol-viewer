@@ -3,6 +3,7 @@
  * Stored by the renderer (localStorage, M-014); a broken value only resets that one item.
  */
 import { z } from "zod";
+import { isAllowedViewUrl } from "@lol-viewer/protocol";
 
 /** Same defaults as the Python app (constants.py DEFAULT_*_URL). */
 export const DEFAULT_URL_TEMPLATES = {
@@ -88,8 +89,27 @@ export function parseSettings(input: unknown): Settings {
 }
 
 /** All five templates are required after trimming. Returns the names of the empty ones (empty array = valid). */
+export type UrlTemplateProblem = "empty" | "host";
+
+/**
+ * What is wrong with one template: empty, or (with sample values substituted) not an https URL
+ * on an allow-listed host. Pages outside the allow-list are refused by the desktop app, so
+ * saving one would leave every viewer blank (M-016).
+ */
+export function urlTemplateProblem(template: string): UrlTemplateProblem | null {
+  const t = (template ?? "").trim();
+  if (t === "") return "empty";
+  const sample = t
+    .replaceAll("{champion_name1}", "ahri")
+    .replaceAll("{champion_name2}", "zed")
+    .replaceAll("{name}", "ahri")
+    .replaceAll("{lane_name}", "middle");
+  return isAllowedViewUrl(sample) ? null : "host";
+}
+
+/** Keys whose template has a problem (see urlTemplateProblem). Empty list = savable. */
 export function validateUrlTemplates(urls: UrlTemplates): UrlTemplateKey[] {
-  return URL_TEMPLATE_KEYS.filter((k) => (urls[k] ?? "").trim() === "");
+  return URL_TEMPLATE_KEYS.filter((k) => urlTemplateProblem(urls[k]) != null);
 }
 
 /** Trim every template (what gets saved after validateUrlTemplates passes). */

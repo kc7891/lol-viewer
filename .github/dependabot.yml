@@ -58,3 +58,15 @@ updates:
       actions:
         patterns:
           - "*"
+
+  # The new app (next/, pnpm workspace). Security updates only, like pip above:
+  # routine version movement is done by hand with the full next/ check suite
+  # (typecheck, unit, Storybook and Electron E2E, Windows install test).
+  - package-ecosystem: "npm"
+    directory: "/next"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "chore(deps)"

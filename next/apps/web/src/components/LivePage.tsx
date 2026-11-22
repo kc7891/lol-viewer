@@ -27,10 +27,9 @@ export function LivePage({ url, nav, active, qrEnabled, notify, initialQr = fals
   const [localNav, setLocalNav] = useState(0);
   const current = status?.url || url;
 
-  const refresh = () => {
-    if (bridge.views) bridge.views.command({ type: "navigate", viewId: LIVE_VIEW_ID, action: "reload" });
-    else setLocalNav((n) => n + 1);
-  };
+  // Refresh re-opens the configured Live Game URL (as the old app did), not the page the
+  // user may have navigated to inside u.gg.
+  const refresh = () => setLocalNav((n) => n + 1);
   const openExternal = () => {
     if (bridge.views) bridge.views.command({ type: "navigate", viewId: LIVE_VIEW_ID, action: "openExternal" });
     else window.open(current, "_blank", "noopener,noreferrer");
