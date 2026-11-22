@@ -52,8 +52,8 @@
 |---|---|---|
 | インストーラ（ユーザー単位、ワンクリック） | ✅ | PoC で Windows CI まで確認済み（`next-ci.yml`） |
 | バージョン表示 | ✅ | `app.getVersion()`（Settings > Version） |
-| 更新確認・自動更新 | 🔶 | 実装済み（`apps/desktop/src/updater.ts`、`update-core.ts`、Settings > Version、Top bar の点）。Windows CI（`next-windows.yml` の 0.0.1 → 0.0.2 の更新）で確認中 |
-| リリースの自動化（Conventional Commits → タグ → Release → インストーラ） | 🔶 | 実装済み（`next-release.yml`、`next-windows.yml`、`tools/release`。タグ `app-vX.Y.Z`、prerelease、固定の `app-latest`。旧版 `release.yml` は `v[0-9]*` だけを見る）。Windows CI で確認中 |
+| 更新確認・自動更新 | ✅ | `apps/desktop/src/updater.ts`、`update-core.ts`、Settings > Version、Top bar の点。Windows CI で 0.0.1 → 0.0.2 の更新（確認 → ダウンロード → サイレントで入れ替え → 再起動）を確認済み |
+| リリースの自動化（Conventional Commits → タグ → Release → インストーラ） | 🔶 | 実装済み（`next-release.yml`、`next-windows.yml`、`tools/release`。タグ `app-vX.Y.Z`、prerelease、固定の `app-latest`。旧版 `release.yml` は `v[0-9]*` だけを見る）。ビルドと検証は Windows CI で確認済み。公開ジョブ（タグ、Release、`app-latest`）は main で初回実行するまで未確認 |
 | ログ（デバッグ時のファイル出力） | ✅ | `--debug` / `LOL_VIEWER_DEBUG=1` / 実行ファイル名に debug。起動ごとに 1 ファイル、最新 10 個を残す |
 | 多重起動の防止 | ✅ | 2 つ目の起動は既存のウィンドウを前面に出して終了する |
 | メニューバー | ✅ | 出さない（旧版と同じ。既定メニューの Reload で UI が再読み込みされるのを防ぐ） |

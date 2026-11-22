@@ -5,7 +5,7 @@
 - 根拠はコード（`next/packages/core`、`next/apps/web`、`next/apps/desktop`、`next/packages/lcu`）とテスト（`*.test.ts`、`next/e2e/*.spec.ts`）。設計書（[new-app-design.md](./new-app-design.md)）と実装が食い違うときは実装を書き、§9.2 に差異として挙げた。
 - 見た目（色、px、ボタンの文言、ツールチップ）は M-008 により仕様の対象外。ここに書く文言は、操作を説明するための目安。
 - §8 の移植チェック表が、旧インベントリ（`legacy-inventory/01`〜`04` 末尾のチェックリスト）の全項目との対応表。
-- 最終確認: 2026-11-22（更新とリリースの実装を反映）。更新とリリースの Windows CI での確認は進行中（§7）。
+- 最終確認: 2026-11-22（更新とリリースの実装を反映）。更新は Windows CI で確認済み（0.0.1 → 0.0.2、§7.3）。リリースの公開ジョブは main でしか動かないので未実行（§7.2）。
 
 ---
 
@@ -338,7 +338,7 @@ MatchState が届くたびに、次の順に処理する。
 
 ## 7. 更新とリリース
 
-M-018〜M-020、M-022 に基づく実装。**Windows CI（`next-windows.yml`）での確認は進行中**で、結果は別途追記する。
+M-018〜M-020、M-022 に基づく実装。**Windows CI（`next-windows.yml`）で確認済み**: インストールした 0.0.1 が、手元のフィードから 0.0.2 を見つけ、ダウンロードし、サイレントで入れ替えて 0.0.2 で起動し直す（2026-11-22、`next-ci.yml` の run #40）。リリースの公開（`publish` ジョブ）は main への push でしか動かないため、まだ一度も実行していない。
 
 ### 7.1 アプリ内の更新（electron-updater、generic provider）
 - **フィード**: `https://github.com/kc7891/lol-viewer/releases/download/app-latest/`（その下の `latest.yml`）。環境変数 `LOL_VIEWER_UPDATE_URL` で差し替えられる（末尾に `/` を足す。テストでは手元の HTTP サーバーを指す）。
@@ -842,7 +842,7 @@ NSIS、ワンクリック、ユーザー単位（`%LOCALAPPDATA%\Programs\lol-vi
 | 進捗ダイアログ（キャンセル不可、MB と %）、ダウンロード失敗のダイアログ | ✨ | Settings の進行バー（`Downloading… n%`）と、失敗時の `error` | `update-core.test.ts` |
 | zip から setup exe を展開、失敗時のダイアログ | ➖ | zip 経由ではない | M-020 |
 | スクリプト実行時は自動適用せず、手動実行を案内 | ✨ | パッケージされていない実行では確認しない（`unsupported`） | `update-core.test.ts` |
-| 「Update Ready」の案内 → `/NORESTART /DIR=` でインストーラ起動 → アプリ終了 → 再起動 | ✨ | `Ready to install. The app restarts.` → `Restart and update` → `quitAndInstall`（サイレント、起動し直す） | `electron-update.spec.ts`、`next-windows.yml`（"In-app update from 0.0.1 to 0.0.2"）。Windows CI で確認中 |
+| 「Update Ready」の案内 → `/NORESTART /DIR=` でインストーラ起動 → アプリ終了 → 再起動 | ✨ | `Ready to install. The app restarts.` → `Restart and update` → `quitAndInstall`（サイレント、起動し直す） | `electron-update.spec.ts`、`next-windows.yml`（"In-app update from 0.0.1 to 0.0.2"）。Windows CI で確認済み |
 | `/CLOSEAPPLICATIONS` を付けない（Vanguard 対策）、League / Vanguard の実行中チェック（旧版も未実装） | ✅ | `quitAndInstall` で自アプリだけを閉じて入れ替える。League / Vanguard のプロセスは閉じない。実機（Vanguard 稼働中）の確認は §9.1 | `updater.ts`、M-020 |
 | 前回のインストール言語を引き継ぐ（UsePreviousLanguage） | ➖ | ワンクリックのインストーラには言語選択が無い | `electron-builder.yml`（`oneClick`）、M-022 |
 | 起動失敗時の「Update Failed」ダイアログ | ✨ | Settings の状態 `error`（短い理由） | `update-core.test.ts`（"a failed download goes to error with the version kept; a check recovers"） |
@@ -899,7 +899,7 @@ NSIS、ワンクリック、ユーザー単位（`%LOCALAPPDATA%\Programs\lol-vi
 | CI: PR ごとの Windows ビルド（スモーク、ビルド、インストーラ、artifact） | ✅ | `next-ci.yml` の windows ジョブ（インストール、E2E、入れ直し、標準ユーザーでの確認、artifact） | `next-ci.yml` |
 | リリース: Conventional Commits で bump 種別、手動実行、PR で dry-run、タグがあればスキップ | ✅ | `next-release.yml` の `version` ジョブ、`tools/release`（§7.2） | M-018、`version.test.ts`（"bumpFromMessages"） |
 | リリース: バージョンの書き換えと bot コミット → 注釈付きタグ → リリースノート → Release | ✨ | bot コミットは作らない。タグと Release（リリースノートは前の `app-v*` からのコミット一覧） | M-018 |
-| リリース: Windows ビルド → 版の照合 → インストーラ zip を Release へ → nightly.link 用 artifact | ✨ | `build`（`next-windows.yml`）→ `publish`: インストーラ、`.blockmap`、`latest.yml` を Release `app-vX.Y.Z`（prerelease）と固定の `app-latest` へ。zip と nightly.link は使わない。Windows CI で確認中 | M-018〜M-020 |
+| リリース: Windows ビルド → 版の照合 → インストーラ zip を Release へ → nightly.link 用 artifact | ✨ | `build`（`next-windows.yml`）→ `publish`: インストーラ、`.blockmap`、`latest.yml` を Release `app-vX.Y.Z`（prerelease）と固定の `app-latest` へ。zip と nightly.link は使わない。ビルドと検証は Windows CI で確認済み、公開ジョブは main で初回実行するまで未確認 | M-018〜M-020 |
 | リリース時にチャンピオンデータを取得し直してから同梱 | ➖ | 週次の PR で `champions.json` を更新し、それをリポジトリに置いて使う | `next-champion-data.yml` |
 | 週次のチャンピオンデータ自動更新（Data Dragon + CSV → PR、ラベル） | ✅ | `next-champion-data.yml`（PR 本文に変更表） | `champion-data/index.test.ts`（"diff"） |
 | `champions.json` の形式（キーは小文字の id など） | ✨ | 新しい形（上記） | `champions.test.ts` |
@@ -934,7 +934,7 @@ NSIS、ワンクリック、ユーザー単位（`%LOCALAPPDATA%\Programs\lol-vi
 - **依存の脆弱性監査**（旧: 毎週月曜の `pip-audit` 相当）。`next/` 向けの定期ジョブは無い。Dependabot のセキュリティ更新（npm）だけが代わりになっている。
 - **新版の README の配布案内**（Releases からのインストール手順）。
 
-なお、更新・リリース関連の行は ✅ / ✨ にしたが、Windows CI（`next-windows.yml` の 0.0.1 → 0.0.2 の更新を含む）での確認は進行中で、結果は別途追記する（§7）。
+なお、更新は Windows CI（`next-windows.yml` の 0.0.1 → 0.0.2）で確認済み。リリースの公開ジョブだけは main で初回実行するまで未確認（§7.2）。
 
 
 ---
@@ -968,9 +968,9 @@ CI（Linux の Xvfb と偽の LCU）では確かめられないもの。Windows 
 
 **不具合・懸念（実装を読んで）**
 7. **Live Game ページではトースト（通知）が出ない**: `Copy URL` の `Copied to clipboard` や、コピー失敗の警告が見えない。Viewers ページでは Sidebar の下部、Settings では右下に出るが、Live Game にはその置き場が無い。
-9. **隠したビューアの外部ページは 4 つまで**: 外した（非表示などの）ビューは直近 4 つまで読み込み済みで保持する。5 つ目以降は破棄されるので、再表示するとページを読み込み直し、ページ内の移動は失われる。
-10. **非表示のビューアの行をクリックしても何も起きない**: ペインが列に無いので、スクロール先が無い。目のボタンかダブルクリックで先に表示する必要がある。
-11. **`uiSize` の未知の値は `medium`**: 旧版は `small`。変更だが、決定番号は無い（既定が `medium` なので自然）。
-12. **接続を試みて失敗したときも `disconnected`**: 旧版は「プロセスはあるが未接続」を `connecting` と表示した。新版は、プロセスの有無に関わらず、つなげなければ `disconnected` → 再試行のたびに `connecting`。
-13. **新しいチャンピオンの検知**: ID と名前の対応を `champions.json` に持つので、新チャンピオンが出てからデータ更新の PR（毎週木曜）を取り込んでアプリを更新するまでは、その子は一覧に入らない（`known()` で除かれる）。旧版は実行時に Data Dragon から ID を取っていたが、`champions.json` 自体にも同じ制約があった。
-15. **依存の監査**: `next/` 向けの定期的な脆弱性監査（旧版の `pip-audit` 相当）が無い。Dependabot のセキュリティ更新だけが頼り。
+8. **隠したビューアの外部ページは 4 つまで**: 外した（非表示などの）ビューは直近 4 つまで読み込み済みで保持する。5 つ目以降は破棄されるので、再表示するとページを読み込み直し、ページ内の移動は失われる。
+9. **非表示のビューアの行をクリックしても何も起きない**: ペインが列に無いので、スクロール先が無い。目のボタンかダブルクリックで先に表示する必要がある。
+10. **`uiSize` の未知の値は `medium`**: 旧版は `small`。変更だが、決定番号は無い（既定が `medium` なので自然）。
+11. **接続を試みて失敗したときも `disconnected`**: 旧版は「プロセスはあるが未接続」を `connecting` と表示した。新版は、プロセスの有無に関わらず、つなげなければ `disconnected` → 再試行のたびに `connecting`。
+12. **新しいチャンピオンの検知**: ID と名前の対応を `champions.json` に持つので、新チャンピオンが出てからデータ更新の PR（毎週木曜）を取り込んでアプリを更新するまでは、その子は一覧に入らない（`known()` で除かれる）。旧版は実行時に Data Dragon から ID を取っていたが、`champions.json` 自体にも同じ制約があった。
+13. **依存の監査**: `next/` 向けの定期的な脆弱性監査（旧版の `pip-audit` 相当）が無い。Dependabot のセキュリティ更新だけが頼り。
