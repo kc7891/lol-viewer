@@ -23,6 +23,9 @@
 | M-015 | レーン適性データ（`champion_lane.csv`）は `next/tools/champion-data/` に移し、新版のチャンピオンデータ生成処理（1 つ）でマージする | 新版の方針（M-004 の生成処理の一本化） | 03 §11 |
 | M-016 | 旧版の不具合 B4・B5・B13・B19 は再現しない（保存に失敗したら値を変えない、URL を保存したら Live Game を開き直す、UI サイズはどこにも同じに効かせる、Feature Flag の掃除で保存値を消さない） | 改善 | README §5.2 |
 | M-017 | チャンピオンアイコンの独自のディスクキャッシュは移植しない。Data Dragon の URL を `<img>` で読み、Chromium の HTTP キャッシュに任せる | 新版の方針 | 03 §10.4 |
+| M-018 | 新版のリリースは `app-vX.Y.Z` のタグで、旧版と同じリポジトリの GitHub Releases に出す。旧版の `release.yml` は `v[0-9]*` のタグだけを見るようにする | 新版の方針 | 04 §1, §5 |
+| M-019 | 新版の Release は旧版から乗り換えるまで prerelease にする（旧版の更新確認 `/releases/latest` に出さない） | 新版の方針 | 04 §1.2 |
+| M-020 | 新版の自動更新は electron-updater の generic provider で、固定の Release `app-latest` の `latest.yml` を見る。起動時は確認だけ、ダウンロードと適用はユーザーの操作で行う | 新版の方針（旧版の UX を維持） | 04 §1 |
 
 ---
 

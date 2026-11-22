@@ -217,6 +217,8 @@ export interface LolViewerBridge {
   readonly lcu?: LcuControlApi;
   /** Present only in the desktop app. */
   readonly app?: AppApi;
+  /** Present only in the desktop app. */
+  readonly updates?: UpdatesApi;
 }
 
 export interface LcuControlApi {
@@ -234,6 +236,39 @@ export type AppInfo = z.infer<typeof AppInfoSchema>;
 
 export interface AppApi {
   info(): Promise<AppInfo>;
+}
+
+// ── Updates (desktop only; electron-updater, see docs/spec/new-app-design.md §6) ──
+
+export const UpdateStatusSchema = z.object({
+  state: z.enum([
+    /** Not packaged, E2E, or LOL_VIEWER_DISABLE_UPDATES: updates are never checked. */
+    "unsupported",
+    "idle",
+    "checking",
+    "not-available",
+    "available",
+    "downloading",
+    "downloaded",
+    "error",
+  ]),
+  currentVersion: z.string(),
+  /** Known once a check succeeded. */
+  latestVersion: z.string().nullable(),
+  /** 0-100 while downloading. */
+  percent: z.number().min(0).max(100).nullable(),
+  /** Short, plain-text message for "error". */
+  error: z.string().nullable(),
+});
+export type UpdateStatus = z.infer<typeof UpdateStatusSchema>;
+
+export interface UpdatesApi {
+  status(): Promise<UpdateStatus>;
+  onStatus(cb: (s: UpdateStatus) => void): () => void;
+  check(): void;
+  download(): void;
+  /** Quit, run the installer and restart. Only meaningful in "downloaded". */
+  install(): void;
 }
 
 // ── Static champion data (generated from Data Dragon; see tools/champion-data) ──

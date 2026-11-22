@@ -183,3 +183,26 @@ type Workspace = {
 - 接続が切れたら指数バックオフ（2 秒から倍々、上限 60 秒）で再試行する。`lcu.reconnect()` は今の接続を閉じ、バックオフを戻してすぐ試す。`lcu.resync()` は購読中の全パスを GET し直して流す。
 - 読む LCU のパス: `/lol-gameflow/v1/gameflow-phase`、`/lol-gameflow/v1/session`、`/lol-champ-select/v1/session`、`/lol-summoner/v1/current-summoner`（GET と購読だけ）。
 - ウィンドウ: タイトル「LoL Viewer」、1600×900、アイコンは旧版の `assets/icons` を流用する。
+
+## 6. 更新とリリース（M-018〜M-020）
+
+### 6.1 リリース（`.github/workflows/next-release.yml`）
+- **タグ**: 新版は `app-vX.Y.Z`。旧版の `vX.Y.Z` と分ける。旧版の `release.yml` は `git describe --tags` で最新タグを取るので、`--match 'v[0-9]*'` を付けて新版のタグを無視させる（旧版のワークフローへの変更はこれだけ）。
+- **バージョンの正**: git タグ。ビルド時に electron-builder の `extraMetadata.version` で埋め込む。バージョンを書き換える bot コミットは作らない。
+- **起動条件**:
+  - main への push のうち `next/**` を変更したもの。前回の `app-v*` タグ以降で `next/` を変更したコミットのメッセージから bump を決める（`BREAKING CHANGE` / `!:` → major、`feat` → minor、それ以外 → patch。旧版と同じ規則）。
+  - 手動実行（patch / minor / major を選ぶ）。
+  - PR ではバージョンの計算だけを行う（dry-run）。
+  - タグが既にあれば何もしない。
+- **成果物**:
+  - バージョンごとの Release `app-vX.Y.Z`（**prerelease**。旧版の `/releases/latest` に出ないようにする。M-019）。インストーラ、`latest.yml`、blockmap を添付する。リリースノートは前の `app-v*` からの `next/` のコミット一覧。
+  - 更新用の固定の Release `app-latest`（prerelease）。中身を毎回差し替え、タグも新しいコミットへ動かす。アプリはここを見る。
+- Windows でビルドし、`next-ci.yml` の windows ジョブと同じインストールの確認を通ったものだけを公開する。
+
+### 6.2 アプリ内の更新（electron-updater、generic provider）
+- フィード: `https://github.com/kc7891/lol-viewer/releases/download/app-latest/`（`latest.yml`）。テスト用に環境変数 `LOL_VIEWER_UPDATE_URL` で差し替えられる。
+- 起動の少しあとに 1 回確認する（プロンプトは出さない）。新しい版があれば Top bar の Settings に点を付ける。`autoDownload` はしない。
+- Settings > Version: 現在の版、最新の版、状態（確認中 / 最新です / 新しい版があります / ダウンロード中 n% / 再起動して更新 / 確認できませんでした）。ボタンは「Check for updates」→「Download」→「Restart and update」。
+- 更新の適用は `quitAndInstall`。インストーラはワンクリック・ユーザー単位なので、ウィザードは出ずにアプリが再起動する。League / Vanguard のプロセスは閉じない（旧版と同じ配慮）。
+- パッケージされていない実行（開発時）と E2E（`LOL_VIEWER_E2E=1`）、`LOL_VIEWER_DISABLE_UPDATES=1` では確認しない（状態は「unsupported」）。
+- IPC: `updates:status`（main → renderer の push）、`updates:check` / `updates:download` / `updates:install`（renderer → main）。Bridge に `updates?: UpdatesApi` を追加する。
