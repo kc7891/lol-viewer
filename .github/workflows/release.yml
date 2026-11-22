@@ -142,8 +142,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add constants.py
-          git commit -m "chore: bump version to ${{ steps.version.outputs.new }}"
-          git push
+          if git diff --cached --quiet; then
+            # constants.py already holds the new version: an earlier run pushed the
+            # bump commit but failed before the tag was pushed (e.g. a transient
+            # GitHub error). Skip the commit and tag the current HEAD, which
+            # contains that bump, instead of failing on "nothing to commit".
+            echo "constants.py already at ${{ steps.version.outputs.new }}; skipping bump commit"
+          else
+            git commit -m "chore: bump version to ${{ steps.version.outputs.new }}"
+            git push
+          fi
 
       - name: Get version commit SHA
         if: steps.check_tag.outputs.exists == 'false' && env.DRY_RUN != 'true'
