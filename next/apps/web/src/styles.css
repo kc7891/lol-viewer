@@ -861,8 +861,15 @@ code {
   gap: 0.3rem;
   min-width: 0;
 }
+/* Rows never wrap: every pane's header has the same height, so the external pages of
+   side-by-side panes start at the same y even at the 300px minimum width. Labels shrink
+   with an ellipsis instead. */
 .pane-row {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+.pane-row > .select-btn.lane {
+  flex: 0 1 auto;
 }
 .pane-row > .select-btn:not(.lane) {
   flex: 0 1 auto;
