@@ -42,6 +42,7 @@ test.beforeAll(async () => {
       LOL_LIVE_CLIENT_URL: `http://127.0.0.1:${fake.port}`,
       LOL_VIEWER_RECORDINGS_DIR: recordings,
       LOL_VIEWER_E2E: "1",
+      LOL_VIEWER_USER_DATA_DIR: mkdtempSync(join(tmpdir(), "lol-viewer-e2e-")),
     },
   });
   page = await app.firstWindow();

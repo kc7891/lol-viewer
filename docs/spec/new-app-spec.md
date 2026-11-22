@@ -5,7 +5,7 @@
 - 根拠はコード（`next/packages/core`、`next/apps/web`、`next/apps/desktop`、`next/packages/lcu`）とテスト（`*.test.ts`、`next/e2e/*.spec.ts`）。設計書（[new-app-design.md](./new-app-design.md)）と実装が食い違うときは実装を書き、§9.2 に差異として挙げた。
 - 見た目（色、px、ボタンの文言、ツールチップ）は M-008 により仕様の対象外。ここに書く文言は、操作を説明するための目安。
 - §8 の移植チェック表が、旧インベントリ（`legacy-inventory/01`〜`04` 末尾のチェックリスト）の全項目との対応表。
-- 最終確認: 2026-11-22。更新とリリース（§7）は別担当が実装中で、この文書は設計の要約だけを載せる。
+- 最終確認: 2026-11-22（更新とリリースの実装を反映）。更新とリリースの Windows CI での確認は進行中（§7）。
 
 ---
 
@@ -32,7 +32,7 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 ```
 
 - ページは 3 つ: **Viewers**（既定）、**Live Game**、**Settings**。Sidebar とペイン列があるのは Viewers だけ。
-- Settings の `●` は「新しいバージョンあり」の印。表示の部品はあるが、まだ更新確認につながっていない（§7）。
+- Settings の `●` は「新しいバージョンあり（またはダウンロード済みで再起動待ち）」の印（§2.1、§7）。
 
 ### 1.2 状態の持ち方
 
@@ -53,7 +53,7 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 | `Viewers` / `Live Game` / `Settings` を押す | そのページに切り替える。選択中のタブは強調される |
 | 右端の接続表示 | `Connecting…`（点が脈動）/ `Connected` / `Disconnected` を出す。押すと Settings ページを開き、League Client カードまでスクロールする |
 | フェーズ表示 | 接続中（`Connected`）のときだけ、接続表示の左に出す。`None`→Idle、`Lobby`→Lobby、`Matchmaking`、`ReadyCheck`→Ready check、`ChampSelect`→Champ Select、`GameStart`→Game starting、`InProgress`→In Game、`Reconnect`、`WaitingForStats`→Waiting for stats、`PreEndOfGame` と `EndOfGame`→Game over。それ以外は生の文字列 |
-| Settings の赤い点 | `updateAvailable` が真のときに出る。現状、renderer の入口（`main.tsx`）はこの値を渡していない（§7、§9.2） |
+| Settings の赤い点 | 更新の状態が `available`（新しい版あり）か `downloaded`（再起動待ち）のとき出る。状態は main の更新処理から届く（§7）。デスクトップ版以外（ブラウザ、Storybook）では出ない |
 
 ### 2.2 Viewers ページ
 
@@ -153,7 +153,7 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 ### 2.3 Live Game ページ
 - 上部に細いバー: 現在の URL、`Refresh`、`QR`（設定でオンのとき）、`Open in browser`。その下が全面の外部ページ。
 - 起動時に Live Game の URL（既定 `https://u.gg/lol/lg-splash`）を読み込む。他のページを見ている間は隠すだけで、読み込み済みを保つ。
-- `Refresh` は、今表示しているページを再読み込みする（ページ内で移動していたら、その移動先。§9.2）。
+- `Refresh` は、**設定した Live Game の URL を開き直す**（ページ内で移動していても、設定の URL に戻る。旧版と同じ）。外部ページ内の右クリックの Reload は、今のページを再読み込みする。
 - `QR` は外部ページの代わりに QR パネルを出す（Viewer pane と同じ）。
 - `Open in browser` は現在のページを既定のブラウザで開く。
 - Settings で URL を保存（またはリセット）すると、Live Game を新しい URL で開き直す。
@@ -163,14 +163,14 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 
 | カード | 内容と操作 |
 |---|---|
-| Analytics URLs | Build / Matchup / Counter / ARAM / Live Game の 5 つの入力欄。各欄に使えるプレースホルダーの説明。**Save**: 前後の空白を除いて保存。5 つとも必須で、空欄があると保存せず、その欄を赤く示し `Not saved: N URL(s) are empty.` を通知（保存済みの値は変わらない）。成功すると Live Game を開き直し `URLs saved. Live Game reloaded.` を通知。変更が無く、エラーも無いとき Save は押せない。**Reset to defaults**: 確認なしで 5 つとも既定に戻して保存し、Live Game を開き直す。説明文に「アプリ内で開けるのは lolalytics.com と u.gg だけ」と書いてある |
+| Analytics URLs | Build / Matchup / Counter / ARAM / Live Game の 5 つの入力欄。各欄に使えるプレースホルダーの説明。**Save**: 前後の空白を除いて保存。5 つとも、空でなく、プレースホルダーに例の値を入れたときに `https` かつ `lolalytics.com` / `u.gg`（サブドメイン含む）の URL になることが必要（M-023）。満たさない欄があると保存せず、その欄を赤く示し（`Required. Enter a URL.` または `Must be an https URL on lolalytics.com or u.gg.`）、`Not saved: N URL(s) are empty.` を通知する（保存済みの値は変わらない。通知の文言は「empty」のままで、ホストの誤りでも同じ）。成功すると Live Game を開き直し `URLs saved. Live Game reloaded.` を通知。変更が無く、エラーも無いとき Save は押せない。**Reset to defaults**: 確認なしで 5 つとも既定に戻して保存し、Live Game を開き直す |
 | League Client | 接続状態と、`Reconnect`。押すと現在の接続を閉じ、再試行の待ち時間を戻して今すぐ試す。押してから 1.5 秒は `Connecting…` を出してボタンを無効にする。デスクトップ版以外では押せない |
 | Display | UI size（Small / Medium / Large）。**押した瞬間に反映**（再起動不要。M-012）。`Show the QR button on viewers`（既定オン）。オフにすると Viewer pane と Live Game の QR ボタンが消える |
-| Version | 現在のバージョンとプラットフォーム（例 `0.0.0 (win32)`）。ブラウザ（モック）では `dev`。更新確認はまだ無い（§7） |
+| Version | 現在のバージョンとプラットフォーム（例 `0.0.1 (win32)`）。ブラウザ（モック）では `dev` と「Updates are available in the desktop app.」。デスクトップ版では、`Latest version`（確認中は `Checking…`、未確認は `—`）、状態の文、ボタンを出す。状態の文: `Not checked yet.` / `Checking…` / `You have the latest version.` / `A new version is available.` / `Downloading… n%`（進行バー付き）/ `Ready to install. The app restarts.` / 失敗時は短い理由（下記）/ `Update checks are off in this build.`。ボタン: 未確認・最新・失敗のとき `Check for updates`（確認中は無効）、新しい版があるとき `Download`（ダウンロード中は無効）、ダウンロード済みのとき `Restart and update`、無効なビルドでは出さない。詳細は §7 |
 | Debug | チャンピオンを検索して選び、`Add ally` / `Add enemy`。対面表の**その側の最初の空き行**に入れる（レーン適性も重複も見ない）。成功すると結果を表示して入力を消す。その側が埋まっていれば「full」と表示 |
 | Record session | `Start recording` / `Stop` / `Open recordings folder`。LCU のイベントをファイルへ保存する（他のプレイヤーの名前と ID は伏せる）。記録中は経過時間とイベント数を表示。デスクトップ版だけ（PoC で追加した機能） |
 
-- Feature Flag の仕組み（保存、既定値）は `core/settings.ts` にあるが、定義が空なので画面には出さない。
+- Feature Flag の仕組み（保存、既定値）は `core/settings.ts` にあるが、定義が空なので画面には出さない（旧版も、定義が空の間は出さなかった）。
 - 保存先と既定値は §5。
 
 ---
@@ -271,9 +271,9 @@ MatchState が届くたびに、次の順に処理する。
 | Wukong、ARAM | `https://u.gg/lol/champions/aram/wukong-aram` |
 
 ### 4.4 いつ URL が使われるか
-- ビューアの URL は**テンプレートから毎回求める**。Settings で URL を保存すると、URL が変わる開いているビューアは、その場で新しい URL を開き直す（§9.2）。
+- ビューアの URL は**テンプレートから毎回求める**。Settings で URL を保存すると、URL が変わる開いているビューアは、その場で新しい URL を開き直す（M-021。旧版は「開く時点」の値で、開いているものは変わらなかった）。
 - チャンピオン、対面、レーン、モードを変えると、チャンピオンがあれば**すぐ開き直す**。同じ URL でも、`nav` を進めて強制的に読み込み直す。
-- アプリが開ける URL は `https` で、ホストが `lolalytics.com` か `u.gg`（サブドメイン含む）のものだけ。それ以外の URL は表示されない（§6.1、§9.2）。
+- アプリが開ける URL は `https` で、ホストが `lolalytics.com` か `u.gg`（サブドメイン含む）のものだけ。Settings は、それ以外の URL を保存させない（M-023）。保存済みの値が（古い設定などで）許可外だった場合は、main が読み込みを拒否してペインが空になる（§6.1）。
 
 ---
 
@@ -336,26 +336,53 @@ MatchState が届くたびに、次の順に処理する。
 
 ---
 
-## 7. 更新とリリース（実装中）
+## 7. 更新とリリース
 
-> **別担当が実装中。**この節は [new-app-design.md](./new-app-design.md) §6（M-018〜M-020）の要約で、実装の確認は済んでいない。完成後に、実装に基づいて書き直す。
+M-018〜M-020、M-022 に基づく実装。**Windows CI（`next-windows.yml`）での確認は進行中**で、結果は別途追記する。
 
-**リリース**
-- タグは `app-vX.Y.Z`（旧版の `vX.Y.Z` と分ける）。旧版の `release.yml` は `v[0-9]*` のタグだけを見るようにする。
-- バージョンの正は git タグ。ビルド時に埋め込み、バージョンを書き換える bot コミットは作らない。
-- 起動条件: main への push のうち `next/**` を変えたもの（前回の `app-v*` 以降のコミットから Conventional Commits で bump を決める。`BREAKING CHANGE` / `!:` は major、`feat` は minor、他は patch）、手動実行（patch / minor / major）。PR では計算だけ（dry-run）。タグが既にあれば何もしない。
-- 成果物: バージョンごとの Release `app-vX.Y.Z`（**prerelease**。旧版の更新確認に出さない。M-019）にインストーラ、`latest.yml`、blockmap。更新用の固定 Release `app-latest`（prerelease）を毎回差し替える。Windows でビルドし、インストールの確認を通ったものだけ公開する。
+### 7.1 アプリ内の更新（electron-updater、generic provider）
+- **フィード**: `https://github.com/kc7891/lol-viewer/releases/download/app-latest/`（その下の `latest.yml`）。環境変数 `LOL_VIEWER_UPDATE_URL` で差し替えられる（末尾に `/` を足す。テストでは手元の HTTP サーバーを指す）。
+- **起動時の確認**: 更新が有効なとき、起動の 5 秒後に 1 回だけ確認する。プロンプトもダイアログも出さない。自動ダウンロードも、終了時の自動インストールもしない。
+- **無効になる条件**: パッケージされていない実行（開発時）、`LOL_VIEWER_E2E=1`、`LOL_VIEWER_DISABLE_UPDATES=1`。無効のときは状態が `unsupported` で、確認は一切せず、Settings にボタンを出さない（「Update checks are off in this build.」）。
+- **状態**（`UpdateStatus.state`）: `unsupported`、`idle`（未確認）、`checking`、`not-available`、`available`、`downloading`（`percent` 0〜100）、`downloaded`、`error`。状態の遷移は純粋関数（`update-core.ts` の `reduceUpdate`）で、当てはまらない操作は無視する。
+  - `Check for updates`: `idle` / `not-available` / `error` のときだけ有効。確認が終わると `available`（最新版の番号を持つ）か `not-available`。確認中の再押下は無視。
+  - `Download`: `available` のときだけ。進捗を `downloading` で流し、終わると `downloaded`。
+  - `Restart and update`: `downloaded` のときだけ。`quitAndInstall` でサイレントにインストールし、新しい版を起動する。ワンクリック・ユーザー単位のインストーラなので、ウィザードは出ない。League / Vanguard のプロセスは閉じない。
+  - 失敗（確認、ダウンロード）: `error` になり、最新版の番号は保つ。再度 `Check for updates` で回復できる。理由は短い文にする: `Could not reach the update server.`（接続できない、タイムアウト）、`No update information was found.`（404 や `latest.yml` が無い）、`The downloaded update is corrupted. Try again.`（チェックサム）、`The update server refused the request.`（401 / 403 / 429）、それ以外は `Could not check for updates.`。詳しいエラーはログに出す。
+  - electron-updater が「この環境では動かない」（`app-update.yml` が無いなど）と返したときも `error` にする。
+- **表示**: Top bar の Settings の赤い点は、`available` と `downloaded` のときに出る。Settings > Version の表示は §2.4。
+- **IPC**: `updates:status`（main → renderer の通知、および問い合わせ）、`updates:check` / `updates:download` / `updates:install`（renderer → main）。アプリ自身のウィンドウからの呼び出しだけ受け付ける。
 
-**アプリ内の更新**（electron-updater、generic provider。M-020）
-- 確認先: `https://github.com/kc7891/lol-viewer/releases/download/app-latest/`（`latest.yml`）。`LOL_VIEWER_UPDATE_URL` で差し替えられる。
-- 起動の少しあとに 1 回確認する（プロンプトは出さない）。新しい版があれば Top bar の Settings に点を付ける。自動ダウンロードはしない。
-- Settings > Version に、現在の版、最新の版、状態（確認中 / 最新です / 新しい版があります / ダウンロード中 n% / 再起動して更新 / 確認できませんでした）。ボタンは `Check for updates` → `Download` → `Restart and update`。
-- 適用はワンクリック・ユーザー単位のインストーラ（ウィザードなし）。League / Vanguard のプロセスは閉じない。
-- パッケージされていない実行、E2E、`LOL_VIEWER_DISABLE_UPDATES=1` では確認しない。
+### 7.2 リリース（`.github/workflows/next-release.yml`、`next/tools/release`）
+- **タグ**: `app-vX.Y.Z`。旧版の `release.yml` は、最新タグの取得と差分の取得で `v[0-9]*` だけを見るので、新版のタグの影響を受けない。
+- **バージョン**: 最新の `app-v*` タグ（版の大小で選ぶ。なければ `0.0.0`）から、**その後に `next/` を変えたコミット**のメッセージで bump を決める。`BREAKING CHANGE` / `!:` は major、`feat:`（scope 付きも）は minor、それ以外は patch（旧版と同じ規則）。手動実行では patch / minor / major を選ぶ（選んだものが優先）。git タグが唯一の正で、バージョンを書き換える bot コミットは作らない。ビルド時に `extraMetadata.version` で埋め込む。
+- **起動条件**:
+  - main への push のうち `next/**` を変更したもの。
+  - 手動実行（`workflow_dispatch`、bump を選ぶ）。公開するのは main 上だけ。他のブランチでは、バージョンの計算で止まる。
+  - プルリクエスト（`next/**` と、次の 2 つのワークフローの変更）: **dry-run**。バージョンの計算と要約だけで、ビルドも公開もしない。
+  - 計算したタグが既にあれば、何もしない。リリースは 1 本ずつ順番に処理する（キューに積む。PR の古い実行だけは取り消してよい）。
+- **ジョブ**: `version`（計算）→ `build`（`next-windows.yml` を呼ぶ。読み取り専用の権限）→ `publish`。`build` が全部通ったときだけ `publish` が走る。
+- **公開するもの**（`publish`）:
+  - ビルドの成果物から、インストーラ `lol-viewer-next-setup-<版>.exe`、`.blockmap`、`latest.yml` を取り出す。ファイルが無い、または `latest.yml` の `version` が計算した版と違えば失敗する。
+  - Release `app-vX.Y.Z`（題名 `LoL Viewer Next X.Y.Z`）に 3 つを添付する。**prerelease で、`latest` にしない**（旧版の更新確認 `/releases/latest` に出さない。M-019）。リリースノートは「前の `app-v*` タグ以降の `next/` のコミット一覧（件名と短い SHA）」と、前のタグとの比較リンク。
+  - 固定の Release `app-latest`（prerelease、`latest` にしない）を、毎回作り直さずに更新する（無ければ作る）: 新しいインストーラと blockmap を先に上げ、**最後に `latest.yml`**（フィードが、まだ無いインストーラを指さないように）。その後、他のアセットを消し、`app-latest` のタグを今のコミットへ動かす。アプリはここの `latest.yml` だけを見る。
+- チャンピオンデータの更新（`next-champion-data.yml`、木曜 10:23 UTC）は、`next/` だけを変える PR で、旧版のリリースを起動しない。
 
-**インストーラ**（現状、`next-ci.yml` の windows ジョブで確認済み。`electron-builder.yml`）
-- NSIS、ワンクリック、ユーザー単位（`%LOCALAPPDATA%\Programs\lol-viewer-next`）、フォルダ選択なし、管理者権限なし。インストール後に起動。スタートメニューとデスクトップにショートカット（名前は `LoL Viewer`）。アンインストールでユーザーデータは残す。
-- CI: 入れる → 偽 LCU で E2E → 起動中に入れ直す → アンインストール → 標準ユーザー（ASCII と日本語のユーザー名）で入れて起動して消す。
+### 7.3 Windows での検証（`next-windows.yml`。`next-ci.yml` とリリースが共通で使う）
+無署名のインストーラをビルドし、次を順に確認する。1 つでも落ちれば、リリースは公開されない。
+1. インストーラの生成（ファイル名、`latest.yml`、blockmap の存在。版を指定したときは名前も照合）。
+2. サイレント・ユーザー単位でインストール。
+3. インストールされたアプリに対する Electron の E2E（偽の LCU、ネイティブの外部ビュー）。
+4. アプリの起動中に入れ直す。
+5. アンインストールで、アプリが消える。
+6. 同じソースを `0.0.1` と `0.0.2` でビルドし、古い版をインストールして、手元のフィード（`LOL_VIEWER_UPDATE_URL`）から Settings の `Check for updates` → `Download` → `Restart and update` を実行する。インストーラが新しい版（`0.0.2`）で、アプリを再起動したことを確認する（`e2e/windows/update-flow.ps1`、`e2e/electron-update.spec.ts`）。
+7. 標準ユーザー（ASCII と日本語のユーザー名）で、インストール、起動、アンインストール。
+8. インストーラ、`latest.yml`、blockmap（とスクリーンショット）を成果物として保存する。
+
+関連する単体テスト: `update-core.test.ts`（状態遷移、フィード、エラー文）、`tools/release/src/version.test.ts`（タグの選択、bump、リリースノート）。Settings > Version の表示は Storybook の E2E（`storybook.spec.ts`）で確認する。
+
+### 7.4 インストーラ（`electron-builder.yml`、M-022）
+NSIS、ワンクリック、ユーザー単位（`%LOCALAPPDATA%\Programs\lol-viewer-next`）。言語の選択、全ユーザーへの昇格、インストール先の選択は出さない。インストール後に起動する。スタートメニューとデスクトップにショートカット（名前は `LoL Viewer`）。アンインストールでユーザーデータは残す。依存の更新は、`next/` の npm も Dependabot のセキュリティ更新だけが対象（通常の更新は手動）。
 
 ---
 
@@ -363,7 +390,7 @@ MatchState が届くたびに、次の順に処理する。
 
 旧インベントリの各チェックリストの項目を、機能単位にまとめて対応づけた。
 
-- 状態: ✅ 同等 / ✨ 改善・変更（挙動が変わった、または設計として置き換えた）/ ➖ 移植しない / ⏳ 未実装（実装中を含む）
+- 状態: ✅ 同等 / ✨ 改善・変更（挙動が変わった、または設計として置き換えた）/ ➖ 移植しない / ⏳ 未実装
 - 「旧版の機能」の列の `（n 項目）` は、そのチェックリストの項目数。各見出し（01 起動・環境、など）は旧チェックリストの小見出しと同じ。
 - 見た目の指定（色、px、文言、ツールチップ、角丸、ホバーの色）は M-008 により対象外。各節の末尾にまとめて 1 行にした。
 - 根拠: 決定番号（M-xxx）、テスト名、E2E 名、ファイル名。
@@ -383,7 +410,7 @@ MatchState が届くたびに、次の順に処理する。
 | 起動時ビューア 0 個 | ✅ | `initialWorkspace` | `electron.spec.ts`（"No viewers yet"） |
 | 既定タブ = Viewers | ✅ | `App` の `initialPage` | `storybook.spec.ts` |
 | 初回表示後に一覧を再描画（`[Hidden]` 誤表示の回避） | ➖ | React が状態から描くので不要。`[Hidden]` 自体を出さない | M-006 |
-| 起動 100ms 後に最新バージョンを確認 | ⏳ | 設計は「起動の少しあとに 1 回」（§7） | new-app-design §6.2 |
+| 起動 100ms 後に最新バージョンを確認 | ✨ | 起動の 5 秒後に 1 回（更新が有効なときだけ）。`apps/desktop/src/update-core.ts`、`updater.ts` | M-020、`update-core.test.ts`（"is supported only when packaged, not E2E and not disabled"） |
 
 #### ウィンドウ / レイアウト
 
@@ -401,7 +428,7 @@ MatchState が届くたびに、次の順に処理する。
 | 旧版の機能（4 項目） | 状態 | 新版での場所 | 根拠 |
 |---|---|---|---|
 | 起動時に Live Game URL を読み込む | ✅ | `LivePage`。非表示でも読み込み済みを保つ | `electron.spec.ts`（"Live Game page: its view shows…"） |
-| タブの右クリック → Refresh | ✨ | ページ上部の `Refresh` ボタン（現在のページを再読み込み）。外部ページ内の右クリックにも Reload | M-008、`LivePage.tsx`。差異 §9.2 |
+| タブの右クリック → Refresh | ✨ | ページ上部の `Refresh` ボタン。**設定した URL を開き直す**（旧版と同じ）。外部ページ内の右クリックの Reload は今のページの再読み込み | M-008、`LivePage.tsx` |
 | Live Game にも QR | ✅ | `QR` ボタン（パネルで入れ替え） | M-009 |
 | URL の保存 / リセットで即再読み込み | ✅ | `onUrlsSaved` で開き直す | M-016（B5） |
 
@@ -429,7 +456,7 @@ MatchState が届くたびに、次の順に処理する。
 | Build / Counter / Matchup / ARAM の置換とレーン | ✅ | `core/urls.ts` の `viewerUrl`（§4） | `urls.test.ts`（"viewerUrl"） |
 | Build で対面ありなら Matchup | ✅ | 同上 | `storybook.spec.ts`（"opponent: quick pick gives the Matchup URL, None goes back to Build"） |
 | レーン値と表示名（Top / Jungle / Mid / Bot / Support） | ✅ | `LANE_LABEL`。未選択は `Any lane` | M-008（`▾` などの記号は対象外） |
-| テンプレートは「開く時点」の設定値 | ✨ | URL は常にテンプレートから求める。保存すると、開いているビューアのうち URL が変わるものは開き直す | `ViewerPane.tsx`、差異 §9.2 |
+| テンプレートは「開く時点」の設定値 | ✨ | URL は常にテンプレートから求める。保存すると、開いているビューアのうち URL が変わるものは開き直す | M-021、`ViewerPane.tsx` |
 
 #### CURRENT MATCHUP
 
@@ -468,26 +495,26 @@ MatchState が届くたびに、次の順に処理する。
 | 旧版の機能（9 項目） | 状態 | 新版での場所 | 根拠 |
 |---|---|---|---|
 | 5 つの URL 入力欄と説明（placeholder の例つき） | ✅ | `UrlsCard`（欄ごとの説明） | M-008（文言は対象外） |
-| Save: trim、全欄必須、エラー表示、成功表示 | ✅ | `UrlsCard`（赤表示、通知） | `settings.test.ts`（"validateUrlTemplates"）、`storybook.spec.ts`（"Settings: URL validation blocks saving, saving works…"） |
+| Save: trim、全欄必須、エラー表示、成功表示 | ✨ | `UrlsCard`（赤表示、通知）。空欄に加えて、https で lolalytics.com / u.gg 以外も保存させない | M-023、`settings.test.ts`（"validateUrlTemplates"、"urlTemplateProblem"）、`storybook.spec.ts`（"Settings: URL validation blocks saving, saving works…"） |
 | Reset to Defaults（確認なし） | ✅ | 同上 | M-016 |
 | Version Information のうち、現在のバージョン | ✅ | `VersionCard`（`app.getVersion()` とプラットフォーム） | `storybook.spec.ts`（"Version says dev in the browser"） |
-| Version Information のうち、最新バージョン、ステータス | ⏳ | 更新確認と一緒に実装中（§7） | progress.md §2 |
-| Check for Updates（手動のフロー全体） | ⏳ | 同上（`Check for updates` → `Download` → `Restart and update`） | new-app-design §6.2 |
+| Version Information のうち、最新バージョン、ステータス | ✅ | Settings > Version の `Latest version` と状態の文（§2.4） | `storybook.spec.ts`（"Settings > Version: …states show the right text and button"） |
+| Check for Updates（手動のフロー全体） | ✨ | `Check for updates` → `Download` → `Restart and update`（ダイアログや zip の取得ではなく、Settings 内で完結。§7.1） | M-020、`update-core.test.ts`（"runs the whole flow and pushes every status"）、`electron-update.spec.ts` |
 | UI Size（Small / Medium / Large） | ✨ | Display カード。**すぐ反映**（再起動不要） | M-012、`storybook.spec.ts`（"…UI size applies at once"） |
 | QR Code Overlay（既定オン、即時反映） | ✨ | `Show the QR button on viewers`。ボタンの表示 / 非表示 | M-009、`storybook.spec.ts`（"QR button can be switched off in Settings"） |
 | Feature Flags の仕組み（定義、既定値、`featureFlags` への保存） | ✅ | `core/settings.ts`（`FEATURE_FLAGS`、`parseSettings`） | `settings.test.ts`（"repairs each broken item on its own"） |
-| Feature Flags の画面（定義があるときだけ表示、トグル即保存、Reset Flags） | ⏳ | 定義が空なので画面のコードが無い。最初のフラグを定義するときに作る | §9.2 |
+| Feature Flags の画面（定義があるときだけ表示、トグル即保存、Reset Flags） | ✅ | 定義が空なので出さない（旧版も、定義が空の間は出さなかった）。最初のフラグを定義するときに作る | `core/settings.ts`（`FEATURE_FLAGS` が空） |
 | Debug セクションは常時表示 | ✅ | `DebugCard` | — |
 
 #### 更新チェック
 
 | 旧版の機能（5 項目） | 状態 | 新版での場所 | 根拠 |
 |---|---|---|---|
-| 起動時 1 回、重複防止。Settings タブ選択でも要求 | ⏳ | 起動の少しあとに 1 回（設計） | new-app-design §6.2 |
-| 新しい版があれば Settings に赤い `●`、ステータス | ⏳ | Top bar に赤い点の部品はあるが未接続（`updateAvailable`） | `TopBar.tsx`、`main.tsx` |
-| 最新 / 接続不可 / 例外の文言 | ⏳ | 状態は設計済み（確認中 / 最新です / 新しい版があります / … / 確認できませんでした） | new-app-design §6.2 |
-| タグ名の先頭 `v` を除去して表示 | ⏳ | 版の表示は electron-updater の値 | 同上 |
-| テスト / ヘッドレスでは確認しない | ⏳ | `unsupported` 状態（開発時、E2E、`LOL_VIEWER_DISABLE_UPDATES=1`） | 同上 |
+| 起動時 1 回、重複防止。Settings タブ選択でも要求 | ✨ | 起動 5 秒後に 1 回。確認中の再押下は無視。Settings タブを開いても確認しない（旧版も実質 no-op） | `update-core.test.ts`（"ignores a second check while one is running"）、B6 |
+| 新しい版があれば Settings に赤い `●`、ステータス | ✅ | Top bar の点（`available` と `downloaded` のとき）と、Version の状態の文 | `App.tsx`、`TopBar.tsx`、`storybook.spec.ts`（"Settings > Version…"） |
+| 最新 / 接続不可 / 例外の文言 | ✨ | `You have the latest version.`、短い理由（`Could not reach the update server.` など。§7.1） | `update-core.test.ts`（"turns noisy errors into one short sentence"） |
+| タグ名の先頭 `v` を除去して表示 | ✅ | 版は `latest.yml` の数値だけ（`v` が付かない） | `update-core.ts` |
+| テスト / ヘッドレスでは確認しない | ✅ | `unsupported`（開発時、`LOL_VIEWER_E2E=1`、`LOL_VIEWER_DISABLE_UPDATES=1`） | `update-core.test.ts`（"does nothing when unsupported"） |
 
 #### 永続化・終了、スタイル、既知の不整合
 
@@ -500,8 +527,8 @@ MatchState が届くたびに、次の順に処理する。
 | 不整合: Save 失敗でメモリ上の URL が空のまま | ✨ | 保存に失敗したら値を変えない | M-016（B4） |
 | 不整合: URL を保存しても Live Game の QR が古いまま | ✨ | 保存で Live Game を開き直し、QR は現在の URL を使う | M-016（B5） |
 | 不整合: 説明文の `{lane}` が置換されない | ✅ | 同じく置換しない（説明文にも載せない） | `settings` の `URL_FIELDS` |
-| 不整合: `_latest_version_check_force` は未使用 | ⏳ | 更新確認の実装の中で決まる | §7 |
-| 不整合: 更新確認が GUI スレッドで同期実行 | ✨ | 更新は main の非同期処理（実装中） | M-020（予定） |
+| 不整合: `_latest_version_check_force` は未使用 | ➖ | 該当する仕組みが無い（確認は起動時と手動だけ） | B6 |
+| 不整合: 更新確認が GUI スレッドで同期実行 | ✨ | main の非同期処理（electron-updater） | M-020、B7 |
 
 ### 8.2 旧 02: ウィジェットと定数（02-widgets-constants.md）
 
@@ -509,11 +536,11 @@ MatchState が届くたびに、次の順に処理する。
 
 | 旧版の機能（15 項目） | 状態 | 新版での場所 | 根拠 |
 |---|---|---|---|
-| バージョン文字列を単一の箇所で管理（設定画面の表示、アップデータ、リリース時の書き換え） | ⏳ | 設計は「git タグを正とし、ビルド時に埋め込む」。現状 `package.json` は `0.0.0` で、表示は `app.getVersion()` | new-app-design §6.1 |
+| バージョン文字列を単一の箇所で管理（設定画面の表示、アップデータ、リリース時の書き換え） | ✨ | git タグを正とし、ビルド時に `extraMetadata.version` で埋め込む。表示は `app.getVersion()`。コミットで書き換えない | M-018、`tools/release/src/version.test.ts`（"planRelease"） |
 | 既定の Build / Counter / Matchup / ARAM / Live Game の URL（5 項目） | ✅ | `DEFAULT_URL_TEMPLATES` | `settings.test.ts`（"defaults match the schema defaults and the Python app"） |
 | 5 つのテンプレートを上書き、既定に戻す（キー名は新しい） | ✅ | Settings の Analytics URLs | `storybook.spec.ts` |
 | 閉じるグリフ `×` の統一 | ➖ | 見た目 | M-008 |
-| 機能フラグの仕組み（定義辞書、既定値、保存、掃除しない）。画面とリセットは 01 の Feature Flags の画面の行 | ✅ | `core/settings.ts` | M-016（B19）、`settings.test.ts` |
+| 機能フラグの仕組み（定義辞書、既定値、保存、掃除しない）。画面は 01 の Feature Flags の画面の行（定義が空なので出さない） | ✅ | `core/settings.ts` | M-016（B19）、`settings.test.ts` |
 | ARAM のキュー ID {450, 65, 100, 720} | ✅ | `ARAM_QUEUE_IDS` | `reducer.test.ts`（"queue and ARAM"） |
 | Mayhem のキュー ID {2400, 2401, 2403, 2405, 3240, 3270} | ✅ | 同上 | 同上 |
 | ARAM 系のとき、自分のピックで ARAM ページを開く | ✅ | `applyMatch` 3 | `workspace.test.ts`（"is an ARAM viewer without a lane in ARAM"） |
@@ -802,24 +829,24 @@ MatchState が届くたびに、次の順に処理する。
 
 | 旧版の機能 | 状態 | 新版での場所 | 根拠 |
 |---|---|---|---|
-| 単一のバージョン値をアプリに埋め込み、Settings に「Current version」として表示 | ✅ | 表示は `app.getVersion()`（Settings > Version）。値の出所（git タグ）は上の `git タグを正とする` の行 | `VersionCard`、`storybook.spec.ts`（"Version says dev in the browser"） |
-| git タグを正とするセマンティックバージョニング | ⏳ | `app-vX.Y.Z` | M-018 |
-| 起動 100ms 後に非同期で最新版を確認（プロンプトなし）。Settings タブを開いたときにも確認 | ⏳ | 起動の少しあとに 1 回 | M-020 |
+| 単一のバージョン値をアプリに埋め込み、Settings に「Current version」として表示 | ✅ | `app.getVersion()`（Settings > Version）。値の出所は git タグ | M-018、`storybook.spec.ts`（"Version says dev in the browser"） |
+| git タグを正とするセマンティックバージョニング | ✅ | `app-vX.Y.Z`。`tools/release` が計算 | M-018、`version.test.ts`（"latestAppTag"、"planRelease"） |
+| 起動 100ms 後に非同期で最新版を確認（プロンプトなし）。Settings タブを開いたときにも確認 | ✨ | 起動 5 秒後に 1 回（プロンプトなし）。Settings タブを開いても確認しない | M-020、`updater.ts` |
 | 確認先は GitHub Releases の `/releases/latest`（5 秒タイムアウト） | ✨ | 固定 Release `app-latest` の `latest.yml`（electron-updater の generic provider） | M-019、M-020 |
 | PEP 440 互換の比較、確認成功時は最新でも情報を返す | ✨ | electron-updater の比較 | M-020 |
-| 失敗時の文言、最新 / 新しい版の色分け表示 | ⏳ | Settings > Version の状態表示（設計済み） | new-app-design §6.2 |
-| 新しい版があれば Settings タブに赤い `●` | ⏳ | 部品はあるが未接続 | `TopBar.tsx`、`main.tsx` |
-| 手動の `Check for Updates`（実行中は無効化） | ⏳ | `Check for updates` | new-app-design §6.2 |
-| 更新プロンプト（バージョン、リリースノート先頭 200 文字、Yes/No）、拒否したら何もしない | ✨ | ダイアログは使わず、Settings 内の `Download` → `Restart and update`。拒否 = 押さない | M-020、M-008 |
+| 失敗時の文言、最新 / 新しい版の色分け表示 | ✨ | Settings > Version の状態の文（短い理由。色分けは M-008 により対象外） | `update-core.test.ts`（"turns noisy errors into one short sentence"） |
+| 新しい版があれば Settings タブに赤い `●` | ✅ | Top bar の点 | `App.tsx` |
+| 手動の `Check for Updates`（実行中は無効化） | ✅ | `Check for updates`（確認中は無効） | `storybook.spec.ts`（"Settings > Version…"） |
+| 更新プロンプト（バージョン、リリースノート先頭 200 文字、Yes/No）、拒否したら何もしない | ✨ | ダイアログは使わず、Settings 内の `Download` → `Restart and update`。拒否 = 押さない。リリースノートは出さない | M-020、M-008 |
 | ダウンロード元は nightly.link（環境変数で Release アセットに切り替え）。ずれのリスク | ➖ | electron-updater の generic provider。nightly.link は使わない | M-020 |
-| 進捗ダイアログ（キャンセル不可、MB と %）、ダウンロード失敗のダイアログ | ✨ | Settings の状態表示（ダウンロード中 n%、確認できませんでした） | new-app-design §6.2 |
+| 進捗ダイアログ（キャンセル不可、MB と %）、ダウンロード失敗のダイアログ | ✨ | Settings の進行バー（`Downloading… n%`）と、失敗時の `error` | `update-core.test.ts` |
 | zip から setup exe を展開、失敗時のダイアログ | ➖ | zip 経由ではない | M-020 |
-| スクリプト実行時は自動適用せず、手動実行を案内 | ✨ | パッケージされていない実行では確認しない（`unsupported`） | new-app-design §6.2 |
-| 「Update Ready」の案内 → `/NORESTART /DIR=` でインストーラ起動 → アプリ終了 → 再起動 | ✨ | `quitAndInstall`（ワンクリックのインストーラ） | new-app-design §6.2 |
-| `/CLOSEAPPLICATIONS` を付けない（Vanguard 対策）、League / Vanguard の実行中チェック（旧版も未実装） | ⏳ | 設計は「League / Vanguard のプロセスは閉じない」。実装の確認は更新の完成後 | new-app-design §6.2 |
-| 前回のインストール言語を引き継ぐ（UsePreviousLanguage） | ➖ | ワンクリックのインストーラには言語選択が無い | `electron-builder.yml`（`oneClick`）、§9.2 |
-| 起動失敗時の「Update Failed」ダイアログ | ⏳ | 状態表示の `error` | new-app-design §6.2 |
-| テスト、ヘッドレス、ダイアログ無効の環境では確認しない | ⏳ | `unsupported`（開発時、E2E、`LOL_VIEWER_DISABLE_UPDATES=1`） | new-app-design §6.2 |
+| スクリプト実行時は自動適用せず、手動実行を案内 | ✨ | パッケージされていない実行では確認しない（`unsupported`） | `update-core.test.ts` |
+| 「Update Ready」の案内 → `/NORESTART /DIR=` でインストーラ起動 → アプリ終了 → 再起動 | ✨ | `Ready to install. The app restarts.` → `Restart and update` → `quitAndInstall`（サイレント、起動し直す） | `electron-update.spec.ts`、`next-windows.yml`（"In-app update from 0.0.1 to 0.0.2"）。Windows CI で確認中 |
+| `/CLOSEAPPLICATIONS` を付けない（Vanguard 対策）、League / Vanguard の実行中チェック（旧版も未実装） | ✅ | `quitAndInstall` で自アプリだけを閉じて入れ替える。League / Vanguard のプロセスは閉じない。実機（Vanguard 稼働中）の確認は §9.1 | `updater.ts`、M-020 |
+| 前回のインストール言語を引き継ぐ（UsePreviousLanguage） | ➖ | ワンクリックのインストーラには言語選択が無い | `electron-builder.yml`（`oneClick`）、M-022 |
+| 起動失敗時の「Update Failed」ダイアログ | ✨ | Settings の状態 `error`（短い理由） | `update-core.test.ts`（"a failed download goes to error with the version kept; a check recovers"） |
+| テスト、ヘッドレス、ダイアログ無効の環境では確認しない | ✅ | `unsupported` | `update-core.test.ts` |
 
 #### ログ、エントリポイント、環境変数
 
@@ -852,13 +879,13 @@ MatchState が届くたびに、次の順に処理する。
 | デバッグビルド（onefile、コンソール付き、exe 名 `lol-viewer-debug`） | ✨ | 同じ実行ファイルを `--debug`、環境変数、または名前に `debug` を含めて起動 | `log-core.ts` |
 | ビルド前チェック（必須ファイル、`champions.json` の妥当性）、ビルド成果物を消すスクリプト | ✨ | `champions.json` は zod で検証（テストと起動）。型検査とテストが CI で通る | `champions.test.ts`、`next-ci.yml` |
 | 新しい AppId を使う（旧版からのアップグレードは考えない） | ✅ | `io.github.kc7891.lolviewer.next` | M-003 |
-| インストーラ: 既定はユーザー単位。全ユーザーへの昇格、フォルダ選択、x64 のみ | ✨ | ユーザー単位のみ、昇格なし、フォルダ選択なし、x64 のみ | `electron-builder.yml` のコメント、§9.2 |
-| インストーラ: 英語と日本語の UI、スタートメニュー、アンインストールのショートカット、任意のデスクトップアイコン（既定オフ） | ✨ | ワンクリックなので言語選択なし。スタートメニューとデスクトップのショートカット（デスクトップは作る） | `electron-builder.yml`、§9.2 |
+| インストーラ: 既定はユーザー単位。全ユーザーへの昇格、フォルダ選択、x64 のみ | ✨ | ユーザー単位のみ、昇格なし、フォルダ選択なし、x64 のみ | `electron-builder.yml` のコメント、M-022 |
+| インストーラ: 英語と日本語の UI、スタートメニュー、アンインストールのショートカット、任意のデスクトップアイコン（既定オフ） | ✨ | ワンクリックなので言語選択なし。スタートメニューとデスクトップのショートカット（デスクトップは作る） | `electron-builder.yml`、M-022 |
 | インストール後に起動（サイレント時も） | ✅ | `runAfterFinish: true` | `electron-builder.yml`、`next-ci.yml`（"Install with the setup exe"） |
-| `CloseApplications=no`、`RestartApplications` は使わない（Vanguard 対策） | ⏳ | 起動中に入れ直す確認（CI）はあるが、Vanguard が動く実機での確認と、更新時の設計（プロセスを閉じない）は未完 | `next-ci.yml`（"Reinstall while the app is running (update path)"）、§9.1 |
+| `CloseApplications=no`、`RestartApplications` は使わない（Vanguard 対策） | ✅ | 入れ替えは `quitAndInstall` の 1 つだけ。起動中に入れ直す確認は CI にある。Vanguard 稼働中の実機確認は §9.1 | `next-windows.yml`（"Reinstall while the app is running (update path)"） |
 | アンインストール: `{app}` とキャッシュを削除し、設定は残す | ✅ | アプリを削除し、ユーザーデータは残す | `next-ci.yml`（"Uninstall (silent) removes the app"） |
 | 出力名 `lol-viewer-setup.exe` を zip に包んで配布（Release アセット、nightly.link 用 artifact） | ➖ | 出力名 `lol-viewer-next-setup-<版>.exe`。zip と nightly.link は使わない | M-018、M-020 |
-| インストーラのバージョンをビルド時に上書きし、不一致なら失敗 | ⏳ | リリースのワークフロー（`extraMetadata.version`）の中 | M-018 |
+| インストーラのバージョンをビルド時に上書きし、不一致なら失敗 | ✅ | `extraMetadata.version`。インストーラ名と `latest.yml` の版を照合し、違えば失敗 | `next-windows.yml`（"Build installer"）、`next-release.yml`（"Collect release files"） |
 
 #### 依存関係と CI
 
@@ -866,27 +893,27 @@ MatchState が届くたびに、次の順に処理する。
 |---|---|---|---|
 | 直接依存と、ハッシュ固定のロックの 2 層 | ✨ | `package.json` + `pnpm-lock.yaml`（`--frozen-lockfile`） | `next-ci.yml` |
 | Qt と WebEngine のバージョンをそろえる | ➖ | Python / Qt 固有 | M-007 |
-| セキュリティ上の下限バージョンの考え方（requests、urllib3、pytest） | ⏳ | 新版の依存には、対応する定期的な脆弱性の確認が無い（§9.2） | `.github/dependabot.yml`（pip と github-actions だけ） |
+| セキュリティ上の下限バージョンの考え方（requests、urllib3、pytest） | ✨ | `next/` の npm も Dependabot のセキュリティ更新が対象（通常の更新は手動）。下限の個別指定は無い | `.github/dependabot.yml` |
 | CI: PR と main の push でヘッドレスのテスト | ✅ | `next-ci.yml` の linux ジョブ（型検査、Vitest、Storybook の E2E、Electron の E2E） | `next-ci.yml` |
-| CI: 依存の脆弱性監査（テストとは別ジョブ、毎週月曜） | ⏳ | `next/` 向けの監査は無い | §9.2 |
+| CI: 依存の脆弱性監査（テストとは別ジョブ、毎週月曜） | ⏳ | `next/` 向けの定期的な監査ジョブは無い（Dependabot のセキュリティ更新だけ） | §9.2 |
 | CI: PR ごとの Windows ビルド（スモーク、ビルド、インストーラ、artifact） | ✅ | `next-ci.yml` の windows ジョブ（インストール、E2E、入れ直し、標準ユーザーでの確認、artifact） | `next-ci.yml` |
-| リリース: Conventional Commits で bump 種別、手動実行、PR で dry-run、タグがあればスキップ | ⏳ | `next-release.yml`（実装中） | M-018、new-app-design §6.1 |
-| リリース: バージョンの書き換えと bot コミット → 注釈付きタグ → リリースノート → Release | ✨ | bot コミットは作らない。タグと Release（リリースノートは前の `app-v*` からのコミット一覧）。実装中 | M-018 |
-| リリース: Windows ビルド → 版の照合 → インストーラ zip を Release へ → nightly.link 用 artifact | ⏳ | 設計は、インストーラ、`latest.yml`、blockmap を Release に載せ、`app-latest` を差し替える。nightly.link は使わない。実装中 | M-018〜M-020 |
+| リリース: Conventional Commits で bump 種別、手動実行、PR で dry-run、タグがあればスキップ | ✅ | `next-release.yml` の `version` ジョブ、`tools/release`（§7.2） | M-018、`version.test.ts`（"bumpFromMessages"） |
+| リリース: バージョンの書き換えと bot コミット → 注釈付きタグ → リリースノート → Release | ✨ | bot コミットは作らない。タグと Release（リリースノートは前の `app-v*` からのコミット一覧） | M-018 |
+| リリース: Windows ビルド → 版の照合 → インストーラ zip を Release へ → nightly.link 用 artifact | ✨ | `build`（`next-windows.yml`）→ `publish`: インストーラ、`.blockmap`、`latest.yml` を Release `app-vX.Y.Z`（prerelease）と固定の `app-latest` へ。zip と nightly.link は使わない。Windows CI で確認中 | M-018〜M-020 |
 | リリース時にチャンピオンデータを取得し直してから同梱 | ➖ | 週次の PR で `champions.json` を更新し、それをリポジトリに置いて使う | `next-champion-data.yml` |
 | 週次のチャンピオンデータ自動更新（Data Dragon + CSV → PR、ラベル） | ✅ | `next-champion-data.yml`（PR 本文に変更表） | `champion-data/index.test.ts`（"diff"） |
 | `champions.json` の形式（キーは小文字の id など） | ✨ | 新しい形（上記） | `champions.test.ts` |
 | Wukong と MonkeyKing の統一、生成処理は 1 つ | ✅ | 同上 | M-004 |
 | 公式サイトのスクレイピング経路を残すか捨てるか | ➖ | 捨てた。Data Dragon だけ | M-004、M-015 |
-| 週次のロック再生成（`automated/refresh-locks`） | ⏳ | `next/` 向けに相当する仕組みが無い | §9.2 |
-| Dependabot（pip は security だけ、actions は週次） | ⏳ | `next/` の npm は対象に入っていない。actions は共通 | `.github/dependabot.yml` |
+| 週次のロック再生成（`automated/refresh-locks`） | ➖ | 作らない。通常の依存更新は手動（`next/` の全チェックを通して） | `.github/dependabot.yml` のコメント |
+| Dependabot（pip は security だけ、actions は週次） | ✅ | `next/` の npm も、セキュリティ更新だけ対象（バージョン更新の PR は 0 件）。actions は共通 | `.github/dependabot.yml` |
 | 全 GitHub Action を SHA で固定 | ✅ | `next-ci.yml`、`next-champion-data.yml` とも SHA 固定 | ワークフローのコメント |
 | `GITHUB_TOKEN` で作った PR では checks が起動しない（案内） | ✅ | 週次の PR にも同じ制約がある。運用は同じ | `next-champion-data.yml` |
 | commit-msg フック（Conventional Commits）とセットアップスクリプト | ✅ | リポジトリ共通のものを使う | progress.md、`.githooks/commit-msg` |
-| Feature Flag の運用（定義を一か所に集める、設定に保存する、既定は OFF） | ✅ | `core/settings.ts` の `FEATURE_FLAGS`。運用ルールの文書は未整備 | §9.2 |
+| Feature Flag の運用（定義を一か所に集める、設定に保存する、既定は OFF） | ✅ | `core/settings.ts` の `FEATURE_FLAGS`。運用ルールの文書は未整備 | — |
 | README の配布案内（Fast Download、インストール手順） | ⏳ | 新版の配布案内は未整備（リリースと一緒に） | — |
 | `.gitignore` の方針 | ✅ | `next/.gitignore`（成果物、テスト結果、記録、スクショ） | `next/.gitignore` |
-| 更新確認用の手動スクリプト（quick_test_update 相当） | ⏳ | 設計は `LOL_VIEWER_UPDATE_URL` で差し替え | new-app-design §6.2 |
+| 更新確認用の手動スクリプト（quick_test_update 相当） | ✅ | `LOL_VIEWER_UPDATE_URL` で手元のフィードに差し替えられる（`e2e/windows/serve-feed.mjs`、`update-flow.ps1`） | `update-core.test.ts`（"defaults to the app-latest release and lets the environment override it"） |
 | テストで利用者の実データに触れないよう分離（conftest 相当） | ➖ | アイコンキャッシュが無いので該当しない。E2E の設定の分離は §9.2 | M-017 |
 | §7 のテスト仕様を新しいスタックで書き直す | ✅ | Vitest（core、lcu、hub、desktop のログ、champion-data）、Storybook の E2E、Electron の E2E（偽 LCU） | 本表の「根拠」の各テスト |
 | ドキュメントと実装のずれを解消する | ✅ | `docs/spec/` を基準にした | docs/spec/README.md |
@@ -897,27 +924,18 @@ MatchState が届くたびに、次の順に処理する。
 
 | 区分 | ✅ 同等 | ✨ 改善・変更 | ➖ 移植しない | ⏳ 未実装 | 計 |
 |---|---|---|---|---|---|
-| 8.1 旧 01 メインウィンドウ | 46 | 17 | 10 | 10 | 83 |
-| 8.2 旧 02 ウィジェットと定数 | 52 | 23 | 18 | 1 | 94 |
+| 8.1 旧 01 メインウィンドウ | 50 | 22 | 11 | 0 | 83 |
+| 8.2 旧 02 ウィジェットと定数 | 52 | 24 | 18 | 0 | 94 |
 | 8.3 旧 03 LCU、検知、データ | 56 | 27 | 17 | 0 | 100 |
-| 8.4 旧 04 更新、ログ、配布、CI | 19 | 18 | 12 | 18 | 67 |
-| **合計** | **173** | **85** | **57** | **29** | **344** |
+| 8.4 旧 04 更新、ログ、配布、CI | 29 | 23 | 13 | 2 | 67 |
+| **合計** | **187** | **96** | **59** | **2** | **344** |
 
 ### 8.6 ⏳（未実装）の一覧
+- **依存の脆弱性監査**（旧: 毎週月曜の `pip-audit` 相当）。`next/` 向けの定期ジョブは無い。Dependabot のセキュリティ更新（npm）だけが代わりになっている。
+- **新版の README の配布案内**（Releases からのインストール手順）。
 
-**更新の確認と適用（別担当が実装中。§7）**
-- 旧 01: 起動後の最新バージョン確認、Version の最新バージョンとステータス、手動の Check for Updates、起動時 1 回と Settings タブでの要求、赤い `●` とステータスの文言、先頭 `v` の除去、テスト / ヘッドレスでの抑止、`_latest_version_check_force`。
-- 旧 04: 起動時と手動の確認の全体、赤い `●`、失敗時の文言と色分け、「Update Failed」相当、抑止、`/CLOSEAPPLICATIONS` を付けない（Vanguard への配慮）、`CloseApplications=no` 相当の実機確認。
+なお、更新・リリース関連の行は ✅ / ✨ にしたが、Windows CI（`next-windows.yml` の 0.0.1 → 0.0.2 の更新を含む）での確認は進行中で、結果は別途追記する（§7）。
 
-**バージョンとリリースの自動化（別担当が実装中。§7）**
-- バージョン値の単一の出所（git タグ → ビルドで埋め込む）、`app-vX.Y.Z` のセマンティックバージョニング。
-- リリースのワークフロー（bump の決定、手動実行、PR の dry-run、タグがあればスキップ）、Windows ビルドからインストーラ、`latest.yml`、blockmap の Release への添付とバージョンの照合。
-- 更新確認の手動テスト用の入口（`LOL_VIEWER_UPDATE_URL`。設計済み）。
-
-**更新・リリースとは別の未実装**
-- Feature Flags の画面（トグルと Reset）。定義が空の間は不要だが、最初のフラグを足すときに必要。
-- 依存関係の定期的な更新と脆弱性の確認（`next/` の npm は Dependabot の対象外、`pnpm audit` 相当のジョブが無い、`lock-refresh` 相当が無い、セキュリティ下限の考え方）。
-- 新版の README の配布案内（Releases からのインストール手順）。
 
 ---
 
@@ -931,11 +949,14 @@ CI（Linux の Xvfb と偽の LCU）では確かめられないもの。Windows 
 - **u.gg の表示**: 検証環境（データセンターの IP）では Cloudflare に弾かれる。Live Game と ARAM ページの見た目はまだ見ていない。lolalytics は Electron の E2E で実ページまで確認済み。
 - **ダウンロード**: ページからのダウンロードには専用の処理が無い。Electron の既定の動作になるはず（旧版は未対応）。
 - **インストーラと Vanguard**: 起動中にインストーラを実行したときの挙動、League や Vanguard が動いている状態での入れ替え。
+- **更新の実機確認**: 本物の GitHub Release（`app-latest`）からの確認、ダウンロード、再起動後の動作。CI は手元のフィードで確認する（§7.3）。
 - **AppUserModelID、High-DPI**: 明示的な設定はしていない。タスクバーや通知、高 DPI での表示は未確認。
 - 表示、操作の確認は Storybook の全 story のスクリーンショットと E2E で済んでいる。
 
 ### 9.2 設計との差異、見つけた不具合・懸念
 設計書（[new-app-design.md](./new-app-design.md)）と実装の食い違い、および実装を読んで気づいた点。コードは変えていない。
+
+**対応済み（前の版で挙げ、直ったもの）**: 許可ホスト外の URL を無言で保存できた（M-023 で保存させない）、保存時に開いているビューアが開き直る（M-021 で仕様にした）、Live Game の Refresh が現在のページを再読み込みした（設定した URL を開き直す）、更新の赤い点が未接続だった、Settings > Version に更新の表示が無かった、Feature Flags の画面が無い（旧版も定義が空の間は出さないので同じ挙動）、`next/` の npm が Dependabot の対象外だった（セキュリティ更新だけ対象）、インストーラの変更に決定番号が無かった（M-022）、ホストの誤りでも通知が「empty」と言っていた（`needs fixing` に変更）、E2E が既定のユーザーデータを使っていた（`LOL_VIEWER_USER_DATA_DIR` で一時フォルダに分ける）。
 
 **設計と実装の食い違い**
 1. **ペインのヘッダー**: 設計は 2 段（1 段目 Champion / Opponent / クイックピック、2 段目 モード / Lane / 操作）。実装は 3 段（クイックピックと ◀ ▶ ⟳ QR ↗ を 3 段目に移した）。progress.md の「three-row pane header」と同じ。見た目なので M-008 の範囲。
@@ -943,20 +964,13 @@ CI（Linux の Xvfb と偽の LCU）では確かめられないもの。Windows 
 3. **切断時の MatchState**: 設計は「`phase = None` にする」。実装はこれに加えて summonerId と puuid も消す。`self` は残るので、切断中も `YOU` と picked ビューアは消えない。
 4. **`DetectorState`**: 設計は 4 つのフィールド。実装は `gameflowTeams`（試合中の一覧を作り直すための、直近の gameflow のチーム）を加えた 5 つ。
 5. **右クリックメニュー**: 設計は 5 項目。実装の `Copy link address` は、リンクの上で右クリックしたときだけ出る。
-6. **Settings > Version**: 設計は更新の状態を出すが、現状は版と「Update checks arrive together with the installer.」の注記だけ（§7）。
-7. **更新の赤い点**: `TopBar` は `updateAvailable` を受け取るが、`main.tsx` の `App` はこの値を渡していない。
+6. **更新の確認のタイミング**: 設計は「起動の少しあとに 1 回」。実装は起動の 5 秒後。
 
 **不具合・懸念（実装を読んで）**
-8. **許可ホスト外の URL が無言で表示されない**: Settings は、5 つの URL が空でないことしか検査しない。`lolalytics.com` と `u.gg` 以外、または `http://` を保存すると、main の検証で読み込み命令が拒否され（警告をログに出すだけ）、ペインは空のままか前のページのままになる。説明文には書いてあるが、保存時の警告は出ない。旧版には制限が無かった。
-9. **URL を保存すると、開いているビューアも開き直す**: ビューアの URL はテンプレートから毎回求めるため、保存すると、URL が変わるビューアは全部開き直される。旧版は「開く時点」の設定値を使っていた（チェックリスト 01「テンプレートはビューアを開く時点の設定値を使用」）。設計書は触れていない。
-10. **Live Game の `Refresh` は現在のページを再読み込みする**: ページ内で別の URL へ移動していると、設定した URL ではなくその移動先が再読み込みされる。旧版は設定済みの URL を開き直した。Viewer pane の ⟳ は、設定どおりの URL を開き直す（挙動が違う）。
-11. **Live Game ページではトースト（通知）が出ない**: `Copy URL` の `Copied to clipboard` や、コピー失敗の警告が見えない。Viewers ページでは Sidebar の下部、Settings では右下に出るが、Live Game にはその置き場が無い。
-12. **隠したビューアの外部ページは 4 つまで**: 外した（非表示などの）ビューは直近 4 つまで読み込み済みで保持する。5 つ目以降は破棄されるので、再表示するとページを読み込み直し、ページ内の移動は失われる。
-13. **非表示のビューアの行をクリックしても何も起きない**: ペインが列に無いので、スクロール先が無い。目のボタンかダブルクリックで先に表示する必要がある。
-14. **Feature Flags の画面が無い**: 仕組みは `core` にあるが、トグルと Reset の画面のコードは無い。定義が空の間は影響しない。
-15. **`uiSize` の未知の値は `medium`**: 旧版は `small`。変更だが、決定番号は無い（既定が `medium` なので自然）。
-16. **接続を試みて失敗したときも `disconnected`**: 旧版は「プロセスはあるが未接続」を `connecting` と表示した。新版は、プロセスの有無に関わらず、つなげなければ `disconnected` → 再試行のたびに `connecting`。
-17. **新しいチャンピオンの検知**: ID と名前の対応を `champions.json` に持つので、新チャンピオンが出てからデータ更新の PR（毎週木曜）を取り込んでアプリを更新するまでは、その子は一覧に入らない（`known()` で除かれる）。旧版は実行時に Data Dragon から ID を取っていたが、`champions.json` 自体にも同じ制約があった。
-18. **E2E が既定のユーザーデータを使う**: `e2e/electron.spec.ts` は `userData` を指定せず、`main.ts` のコメントにも「既定の `userData` で複数起動する」とある。開発機では、実際の設定（`localStorage`）に触れうる。
-19. **依存の更新と監査**: `.github/dependabot.yml` は pip と github-actions だけで、`next/` の npm は対象外。`next/` 向けの脆弱性監査（旧版の `pip-audit` 相当）も無い。
-20. **インストーラの変更**: 旧版は英語と日本語の UI、全ユーザー向けの昇格、フォルダ選択、デスクトップアイコンは任意（既定オフ）。新版はワンクリック、ユーザー単位だけ、フォルダ選択なし、デスクトップのショートカットを作る。決定番号は無く、`electron-builder.yml` のコメントに理由（保護されたフォルダへの書き込み失敗）がある。
+7. **Live Game ページではトースト（通知）が出ない**: `Copy URL` の `Copied to clipboard` や、コピー失敗の警告が見えない。Viewers ページでは Sidebar の下部、Settings では右下に出るが、Live Game にはその置き場が無い。
+9. **隠したビューアの外部ページは 4 つまで**: 外した（非表示などの）ビューは直近 4 つまで読み込み済みで保持する。5 つ目以降は破棄されるので、再表示するとページを読み込み直し、ページ内の移動は失われる。
+10. **非表示のビューアの行をクリックしても何も起きない**: ペインが列に無いので、スクロール先が無い。目のボタンかダブルクリックで先に表示する必要がある。
+11. **`uiSize` の未知の値は `medium`**: 旧版は `small`。変更だが、決定番号は無い（既定が `medium` なので自然）。
+12. **接続を試みて失敗したときも `disconnected`**: 旧版は「プロセスはあるが未接続」を `connecting` と表示した。新版は、プロセスの有無に関わらず、つなげなければ `disconnected` → 再試行のたびに `connecting`。
+13. **新しいチャンピオンの検知**: ID と名前の対応を `champions.json` に持つので、新チャンピオンが出てからデータ更新の PR（毎週木曜）を取り込んでアプリを更新するまでは、その子は一覧に入らない（`known()` で除かれる）。旧版は実行時に Data Dragon から ID を取っていたが、`champions.json` 自体にも同じ制約があった。
+15. **依存の監査**: `next/` 向けの定期的な脆弱性監査（旧版の `pip-audit` 相当）が無い。Dependabot のセキュリティ更新だけが頼り。

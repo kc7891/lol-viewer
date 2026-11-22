@@ -17,7 +17,7 @@
 | ページ切り替え（Viewers 既定 / Live Game / Settings） | ✅ | Top bar | 旧版のサイドバーのタブを置き換え（M-008） |
 | サイドバー幅の保存 | ✅ | Settings `sidebarWidth` | |
 | LCU 接続状態の表示 | ✅ | Top bar | |
-| Live Game（起動時に読み込む、Refresh、QR） | ✅ | Live Game ページ | 右クリックメニューではなくバーのボタン |
+| Live Game（起動時に読み込む、Refresh、QR） | ✅ | Live Game ページ | 右クリックメニューではなくバーのボタン。Refresh は設定した URL を開き直す（旧版と同じ） |
 | ビューアの追加 / 全部閉じる / 上限 20 / ID 単調増加 | ✅ | `core/workspace.ts` | |
 | 追加時の幅の均等割り、幅の変更 | ✅ | ペイン列 | |
 | ビューアの表示 / 非表示、閉じる | ✅ | Workspace `toggleHidden` | 行に状態は出さない（M-006） |
@@ -36,7 +36,7 @@
 | 自分のピック → picked ビューア（左端、変化のたびに追加） | ✅ | Workspace | M-002 |
 | 敵ピック → 保留リスト → Counter ビューア | ✅ | Workspace | |
 | 新しい試合で全ビューアを閉じる | ✅ | Workspace | M-001 |
-| Settings: URL 5 つ（保存・検証・リセット） | ✅ | Settings ページ | 保存失敗で値を変えない（M-016） |
+| Settings: URL 5 つ（保存・検証・リセット） | ✅ | Settings ページ | 保存失敗で値を変えない（M-016）。https で lolalytics.com / u.gg 以外は保存させない（M-023）。保存すると開いているビューアも開き直す（M-021） |
 | Settings: UI サイズ（すぐ反映）、QR | ✅ | | M-012、M-009 |
 | Settings: Feature Flag の仕組み | ✅ | `core/settings.ts` | 定義が空なので画面には出さない |
 | Settings: Debug（対面表へ手動追加） | ✅ | | |
@@ -52,12 +52,12 @@
 |---|---|---|
 | インストーラ（ユーザー単位、ワンクリック） | ✅ | PoC で Windows CI まで確認済み（`next-ci.yml`） |
 | バージョン表示 | ✅ | `app.getVersion()`（Settings > Version） |
-| 更新確認・自動更新 | ⏳ | 新版のリリース経路（タグ、Release、electron-updater）と一緒に決めて実装する |
-| リリースの自動化（Conventional Commits → タグ → Release → インストーラ） | ⏳ | 旧版の `release.yml` と衝突しない形が必要 |
+| 更新確認・自動更新 | 🔶 | 実装済み（`apps/desktop/src/updater.ts`、`update-core.ts`、Settings > Version、Top bar の点）。Windows CI（`next-windows.yml` の 0.0.1 → 0.0.2 の更新）で確認中 |
+| リリースの自動化（Conventional Commits → タグ → Release → インストーラ） | 🔶 | 実装済み（`next-release.yml`、`next-windows.yml`、`tools/release`。タグ `app-vX.Y.Z`、prerelease、固定の `app-latest`。旧版 `release.yml` は `v[0-9]*` だけを見る）。Windows CI で確認中 |
 | ログ（デバッグ時のファイル出力） | ✅ | `--debug` / `LOL_VIEWER_DEBUG=1` / 実行ファイル名に debug。起動ごとに 1 ファイル、最新 10 個を残す |
 | 多重起動の防止 | ✅ | 2 つ目の起動は既存のウィンドウを前面に出して終了する |
 | メニューバー | ✅ | 出さない（旧版と同じ。既定メニューの Reload で UI が再読み込みされるのを防ぐ） |
-| commit-msg フック、Dependabot、Actions の SHA 固定 | 🔶 | リポジトリ共通のものをそのまま使う |
+| commit-msg フック、Dependabot、Actions の SHA 固定 | ✅ | リポジトリ共通のものを使う。Dependabot は `next/` の npm もセキュリティ更新だけ対象（通常の更新は手動）。`next/` 向けの定期的な脆弱性監査は無い |
 
 ## 3. 実機で確認が必要なこと
 

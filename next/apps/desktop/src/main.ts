@@ -13,6 +13,7 @@
  *   LOL_VIEWER_UPDATE_URL        update feed base URL (default: the app-latest GitHub Release); tests point it at a local server
  *   LOL_VIEWER_DISABLE_UPDATES=1 never check for updates (also off when not packaged or LOL_VIEWER_E2E=1)
  *   LOL_LIVE_CLIENT_URL   Live Client Data API base URL (fake in tests)
+ *   LOL_VIEWER_USER_DATA_DIR  use this folder instead of the user's profile data (E2E: never touch real settings)
  */
 import { join } from "node:path";
 import { app, BrowserWindow, ipcMain, Menu, shell } from "electron";
@@ -24,6 +25,9 @@ import { ExternalViewManager } from "./external-views.ts";
 import { RecordingController } from "./recording.ts";
 import { createUpdater } from "./updater.ts";
 import { attachRendererLogging, initLogging, installProcessHandlers, log } from "./log.ts";
+
+// Before anything reads app paths (logs, single-instance lock, localStorage, sessions).
+if (process.env.LOL_VIEWER_USER_DATA_DIR) app.setPath("userData", process.env.LOL_VIEWER_USER_DATA_DIR);
 
 initLogging();
 installProcessHandlers();

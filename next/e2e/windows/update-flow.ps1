@@ -15,7 +15,11 @@ $exe = Join-Path $env:LOCALAPPDATA 'Programs\lol-viewer-next\lol-viewer-next.exe
 $port = 8123
 $server = $null
 
-function Get-ExeVersion { (Get-Item $exe).VersionInfo.ProductVersion }
+# Windows stores a 4-part file version (0.0.2.0); compare it as the 3-part app version (0.0.2).
+function Get-ExeVersion {
+  $v = (Get-Item $exe -ErrorAction SilentlyContinue).VersionInfo.ProductVersion
+  if ($v -match '^(\d+\.\d+\.\d+)\.0$') { $Matches[1] } else { $v }
+}
 
 try {
   if (-not (Test-Path (Join-Path $FeedDir 'latest.yml'))) { throw "no latest.yml in $FeedDir" }

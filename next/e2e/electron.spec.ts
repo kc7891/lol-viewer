@@ -9,7 +9,9 @@
  */
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getChampion, scenarioEvents, reduceAll } from "../packages/core/src/index.ts";
 import { startFakeLcu, type FakeLcu, type ScenarioLine } from "../tools/fake-lcu/src/server.ts";
@@ -107,7 +109,7 @@ test.beforeAll(async () => {
   const sandboxArgs = process.platform === "linux" ? ["--no-sandbox"] : [];
   app = await electron.launch({
     ...(exe ? { executablePath: exe, args: sandboxArgs } : { args: [...sandboxArgs, `${root}/apps/desktop`] }),
-    env: { ...process.env, LOL_LCU_LOCKFILE: fake.lockfilePath, LOL_VIEWER_E2E: "1" },
+    env: { ...process.env, LOL_LCU_LOCKFILE: fake.lockfilePath, LOL_VIEWER_E2E: "1", LOL_VIEWER_USER_DATA_DIR: mkdtempSync(join(tmpdir(), "lol-viewer-e2e-")) },
   });
   page = await app.firstWindow();
   await page.waitForLoadState("domcontentloaded");
