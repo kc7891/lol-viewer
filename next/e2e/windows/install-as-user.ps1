@@ -2,65 +2,98 @@
   Installs, launches and uninstalls the app as a freshly created STANDARD
   (non-admin) local user, the way most players run it.
   Usage: pwsh -File install-as-user.ps1 -Setup <setup.exe> -UserName <name>
-  On failure, prints where the installer actually put files.
+
+  Note: starting a process with other credentials (CreateProcessWithLogonW via
+  .NET) copies the CALLER's environment block, so USERPROFILE / LOCALAPPDATA /
+  TEMP would still point at the runner admin's profile. We therefore load the
+  user's profile first, then pass that user's own folders explicitly, which is
+  what a real logon gives the process.
 #>
 param(
   [Parameter(Mandatory)] [string] $Setup,
   [Parameter(Mandatory)] [string] $UserName
 )
 $ErrorActionPreference = 'Stop'
-
-function Show-Diagnostics {
-  Write-Host "---- diagnostics for '$UserName' ----"
-  Write-Host "profiles:"
-  Get-CimInstance Win32_UserProfile | Where-Object { -not $_.Special } | ForEach-Object { Write-Host "  $($_.LocalPath)" }
-  Write-Host "lol-viewer-next.exe anywhere under C:\Users:"
-  Get-ChildItem -LiteralPath 'C:\Users' -Directory -Force -ErrorAction SilentlyContinue | ForEach-Object {
-    $progs = Join-Path $_.FullName 'AppData\Local\Programs'
-    if (Test-Path -LiteralPath $progs) {
-      Get-ChildItem -LiteralPath $progs -Recurse -Depth 2 -Filter 'lol-viewer-next.exe' -ErrorAction SilentlyContinue |
-        ForEach-Object { Write-Host "  $($_.FullName)" }
-    }
-  }
-  Write-Host "installer temp leftovers:"
-  Get-ChildItem -LiteralPath 'C:\Users' -Directory -Force -ErrorAction SilentlyContinue | ForEach-Object {
-    $t = Join-Path $_.FullName 'AppData\Local\Temp'
-    if (Test-Path -LiteralPath $t) { Get-ChildItem -LiteralPath $t -Filter 'ns*.tmp' -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $($_.FullName)" } }
-  }
-}
+$stage = 'C:\Users\Public\lv-setup'
 
 $plain = 'Lv!' + [guid]::NewGuid().ToString('N').Substring(0, 16)
 $pw = ConvertTo-SecureString $plain -AsPlainText -Force
 New-LocalUser -Name $UserName -Password $pw -PasswordNeverExpires | Out-Null
 Add-LocalGroupMember -Group 'Users' -Member $UserName
 if ((Get-LocalGroupMember -Group 'Administrators').Name -match [regex]::Escape($UserName)) { throw "test user must not be an admin" }
-$cred = New-Object System.Management.Automation.PSCredential(".\$UserName", $pw)
 
-# Other users cannot read the runner's checkout; stage the setup in a shared folder.
-$stage = 'C:\Users\Public\lv-setup'
 New-Item -ItemType Directory -Force $stage | Out-Null
 Copy-Item -LiteralPath $Setup (Join-Path $stage 'setup.exe') -Force
+icacls $stage /grant "${UserName}:(OI)(CI)M" | Out-Null
+
+$script:ProfileDir = $null
+
+function Invoke-AsUser([string] $File, [string] $Arguments, [switch] $NoWait) {
+  $psi = [System.Diagnostics.ProcessStartInfo]::new($File, $Arguments)
+  $psi.UserName = $UserName
+  $psi.Domain = $env:COMPUTERNAME
+  $psi.Password = $pw
+  $psi.LoadUserProfile = $true
+  $psi.UseShellExecute = $false
+  $psi.WorkingDirectory = $stage
+  if ($script:ProfileDir) {
+    $p = $script:ProfileDir
+    $psi.Environment['USERPROFILE'] = $p
+    $psi.Environment['HOMEDRIVE'] = $p.Substring(0, 2)
+    $psi.Environment['HOMEPATH'] = $p.Substring(2)
+    $psi.Environment['USERNAME'] = $UserName
+    $psi.Environment['APPDATA'] = Join-Path $p 'AppData\Roaming'
+    $psi.Environment['LOCALAPPDATA'] = Join-Path $p 'AppData\Local'
+    $psi.Environment['TEMP'] = Join-Path $p 'AppData\Local\Temp'
+    $psi.Environment['TMP'] = Join-Path $p 'AppData\Local\Temp'
+  }
+  $proc = [System.Diagnostics.Process]::Start($psi)
+  if (-not $NoWait) { $proc.WaitForExit() }
+  return $proc
+}
+
+function Show-Diagnostics {
+  Write-Host "---- diagnostics for '$UserName' ----"
+  Get-CimInstance Win32_UserProfile | Where-Object { -not $_.Special } | ForEach-Object { Write-Host "profile: $($_.LocalPath)" }
+  Get-ChildItem -LiteralPath 'C:\Users' -Directory -Force -ErrorAction SilentlyContinue | ForEach-Object {
+    $progs = Join-Path $_.FullName 'AppData\Local\Programs'
+    if (Test-Path -LiteralPath $progs) {
+      Get-ChildItem -LiteralPath $progs -Force -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "programs entry: $($_.FullName)" }
+    }
+  }
+}
 
 try {
-  $p = Start-Process (Join-Path $stage 'setup.exe') -ArgumentList '/S' -Credential $cred -LoadUserProfile -WorkingDirectory $stage -Wait -PassThru
+  # 1) First logon: creates the profile (and shows what env a naive launch gets).
+  $envDump = Join-Path $stage "env-$([guid]::NewGuid().ToString('N')).txt"
+  $p = Invoke-AsUser 'cmd.exe' "/d /c (set USERPROFILE & set LOCALAPPDATA & set TEMP & whoami) > `"$envDump`" 2>&1"
+  Write-Host "naive launch environment (inherited from the runner):"
+  if (Test-Path -LiteralPath $envDump) { Get-Content -LiteralPath $envDump | ForEach-Object { Write-Host "  $_" } }
+
+  $script:ProfileDir = (Get-CimInstance Win32_UserProfile | Where-Object { (Split-Path $_.LocalPath -Leaf) -eq $UserName } | Select-Object -First 1).LocalPath
+  if (-not $script:ProfileDir) { throw "profile for $UserName was not created" }
+  Write-Host "profile: $script:ProfileDir"
+  $p = Invoke-AsUser 'cmd.exe' "/d /c if not exist `"%TEMP%`" mkdir `"%TEMP%`""
+
+  # 2) Install exactly like a user double-clicking would (silently here).
+  $p = Invoke-AsUser (Join-Path $stage 'setup.exe') '/S'
   Write-Host "installer exit code: $($p.ExitCode)"
   if ($p.ExitCode -ne 0) { throw "installer exited with $($p.ExitCode)" }
-
-  $profileDir = (Get-CimInstance Win32_UserProfile | Where-Object { (Split-Path $_.LocalPath -Leaf) -eq $UserName } | Select-Object -First 1).LocalPath
-  if (-not $profileDir) { throw "profile for $UserName not found" }
-  $exe = Join-Path $profileDir 'AppData\Local\Programs\lol-viewer-next\lol-viewer-next.exe'
+  $exe = Join-Path $script:ProfileDir 'AppData\Local\Programs\lol-viewer-next\lol-viewer-next.exe'
   if (-not (Test-Path -LiteralPath $exe)) { throw "app not installed at $exe" }
   Write-Host "installed at $exe"
 
-  $app = Start-Process -FilePath $exe -Credential $cred -LoadUserProfile -WorkingDirectory (Split-Path $exe) -PassThru
+  # 3) Launch as the user and make sure it stays up.
+  $app = Invoke-AsUser $exe '' -NoWait
   Start-Sleep -Seconds 10
-  if (-not (Get-Process -Id $app.Id -ErrorAction SilentlyContinue)) { throw "app exited right after launch (exit code $($app.ExitCode))" }
-  Write-Host "app is running as $UserName"
+  if ($app.HasExited) { throw "app exited right after launch (exit code $($app.ExitCode))" }
+  Write-Host "app is running as $UserName (pid $($app.Id))"
   Get-Process lol-viewer-next -ErrorAction SilentlyContinue | Stop-Process -Force
   Start-Sleep -Seconds 2
 
+  # 4) Uninstall.
   $un = (Get-ChildItem -LiteralPath (Split-Path $exe) -Filter 'Uninstall*.exe' | Select-Object -First 1).FullName
-  $p = Start-Process -FilePath $un -ArgumentList '/S' -Credential $cred -LoadUserProfile -WorkingDirectory $stage -Wait -PassThru
+  $p = Invoke-AsUser $un '/S'
   if ($p.ExitCode -ne 0) { throw "uninstaller exited with $($p.ExitCode)" }
   for ($i = 0; $i -lt 20 -and (Test-Path -LiteralPath $exe); $i++) { Start-Sleep -Seconds 1 }
   if (Test-Path -LiteralPath $exe) { throw "app still present after uninstall" }
