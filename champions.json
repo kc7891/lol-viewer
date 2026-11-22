@@ -1110,8 +1110,8 @@
     "image_url": "https://ddragon.leagueoflegends.com/cdn/16.23.1/img/champion/MonkeyKing.png",
     "id": "MonkeyKing",
     "lanes": {
-      "top": 5,
-      "jg": 0,
+      "top": 0,
+      "jg": 5,
       "mid": 0,
       "bot": 0,
       "sup": 0
