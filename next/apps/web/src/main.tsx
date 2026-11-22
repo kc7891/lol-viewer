@@ -2,10 +2,11 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import type { LolViewerBridge } from "@lol-viewer/protocol";
 import { App } from "./App.tsx";
-import { BridgeProvider } from "./bridge/context.tsx";
+import { BridgeProvider, ViewStatusProvider } from "./bridge/context.tsx";
 import { createHubBridge } from "./bridge/hub.ts";
 import { createMockBridge, type MockPlayer } from "./bridge/mock.ts";
 import { MockBar } from "./MockBar.tsx";
+import { SettingsProvider } from "./state/settings.tsx";
 import "./styles.css";
 
 /**
@@ -28,7 +29,11 @@ const { bridge, mock } = pickBridge();
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BridgeProvider bridge={bridge}>
-      <App toolbarExtra={mock ? <MockBar player={mock} /> : undefined} />
+      <ViewStatusProvider>
+        <SettingsProvider>
+          <App toolbarExtra={mock ? <MockBar player={mock} /> : undefined} />
+        </SettingsProvider>
+      </ViewStatusProvider>
     </BridgeProvider>
   </StrictMode>,
 );

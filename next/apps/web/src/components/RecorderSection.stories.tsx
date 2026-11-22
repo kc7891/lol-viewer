@@ -14,7 +14,7 @@ const fake = (s: RecorderStatus): RecorderApi => ({
 const meta = {
   title: "Components/RecorderSection",
   component: RecorderSection,
-  decorators: [(S) => <div className="modal" style={{ margin: 24 }}><S /></div>],
+  decorators: [(S) => <div className="settings-inner" style={{ margin: 24, maxWidth: 640 }}><S /></div>],
 } satisfies Meta<typeof RecorderSection>;
 export default meta;
 type Story = StoryObj<typeof meta>;

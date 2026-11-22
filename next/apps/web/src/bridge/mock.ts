@@ -1,9 +1,10 @@
 /**
  * Browser-only bridge: replays a scenario through the real core reducer.
  * Used by `pnpm web:dev`, PR previews and Storybook — no LCU, no Electron.
+ * It has no `views` (ExternalViewSlot shows a placeholder) and no `app` (Settings shows "dev").
  */
-import { initialMatchState, parseScenario, reduce, toLcuEvent, type ScenarioLine } from "@lol-viewer/core";
-import type { LolViewerBridge, MatchState } from "@lol-viewer/protocol";
+import { initialDetectorState, initialMatchState, parseScenario, reduce, toLcuEvent, type DetectorState, type ScenarioLine } from "@lol-viewer/core";
+import type { AppApi, LcuControlApi, LolViewerBridge, MatchState } from "@lol-viewer/protocol";
 import scenarioText from "../../../../scenarios/ranked-two-matches.jsonl?raw";
 
 export type MockPlayer = LolViewerBridge & {
@@ -14,22 +15,38 @@ export type MockPlayer = LolViewerBridge & {
 };
 
 export function createMockBridge(lines: ScenarioLine[] = parseScenario(scenarioText)): MockPlayer {
-  let state: MatchState = { ...initialMatchState(), connection: "connected" };
+  const fresh = (): DetectorState => {
+    const d = initialDetectorState();
+    return { ...d, match: { ...d.match, connection: "connected" } };
+  };
+  let detector = fresh();
   const listeners = new Set<(s: MatchState) => void>();
   let timers: ReturnType<typeof setTimeout>[] = [];
   let playing = false;
 
-  const set = (s: MatchState) => {
-    if (s === state) return;
-    state = s;
-    listeners.forEach((l) => l(s));
+  const emit = () => listeners.forEach((l) => l(detector.match));
+  const setDetector = (d: DetectorState) => {
+    if (d === detector) return;
+    detector = d;
+    emit();
+  };
+  const setConnection = (connection: MatchState["connection"]) =>
+    setDetector({ ...detector, match: { ...detector.match, connection } });
+
+  const lcu: LcuControlApi = {
+    reconnect() {
+      setConnection("connecting");
+      timers.push(setTimeout(() => setConnection("connected"), 1000));
+    },
+    resync() {},
   };
 
   return {
     kind: "mock",
+    lcu,
     onState(cb) {
       listeners.add(cb);
-      cb(state);
+      cb(detector.match);
       return () => listeners.delete(cb);
     },
     get playing() {
@@ -42,7 +59,7 @@ export function createMockBridge(lines: ScenarioLine[] = parseScenario(scenarioT
         timers.push(
           setTimeout(() => {
             const e = toLcuEvent(line);
-            if (e) set(reduce(state, e));
+            if (e) setDetector(reduce(detector, e));
             if (i === lines.length - 1) playing = false;
           }, line.t / speed),
         ),
@@ -55,12 +72,19 @@ export function createMockBridge(lines: ScenarioLine[] = parseScenario(scenarioT
     },
     reset() {
       this.pause();
-      set({ ...initialMatchState(), connection: "connected" });
+      setDetector(fresh());
     },
   };
 }
 
+export type StaticBridgeOptions = {
+  /** Give the bridge a League Client control API (Settings -> Reconnect). */
+  lcu?: LcuControlApi | true;
+  app?: AppApi;
+};
+
 /** A bridge pinned to one state — for stories and screenshots. */
-export function staticBridge(state: MatchState): LolViewerBridge {
-  return { kind: "mock", onState: (cb) => (cb(state), () => {}) };
+export function staticBridge(state: MatchState, opts: StaticBridgeOptions = {}): LolViewerBridge {
+  const lcu = opts.lcu === true ? { reconnect() {}, resync() {} } : opts.lcu;
+  return { kind: "mock", onState: (cb) => (cb(state), () => {}), ...(lcu ? { lcu } : {}), ...(opts.app ? { app: opts.app } : {}) };
 }

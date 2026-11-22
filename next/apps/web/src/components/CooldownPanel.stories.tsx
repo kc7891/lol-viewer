@@ -4,7 +4,7 @@ import { CooldownPanel } from "./CooldownPanel.tsx";
 const meta = {
   title: "Components/CooldownPanel",
   component: CooldownPanel,
-  decorators: [(S) => <div style={{ width: 340, background: "var(--sidebar-background)" }}><S /></div>],
+  decorators: [(S) => <div style={{ width: 320, background: "var(--bg-1)" }}><S /></div>],
 } satisfies Meta<typeof CooldownPanel>;
 export default meta;
 type Story = StoryObj<typeof meta>;
