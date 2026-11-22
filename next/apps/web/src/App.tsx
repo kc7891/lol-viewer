@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { autoViewers, defaultCooldownChampion, viewerId, type ViewerTarget } from "@lol-viewer/core";
-import { SuppressViewsProvider, useMatchState } from "./bridge/context.tsx";
+import { SuppressViewsProvider, useBridge, useMatchState } from "./bridge/context.tsx";
 import { AddViewerDialog } from "./components/AddViewerDialog.tsx";
 import { ChampionIcon } from "./components/ChampionIcon.tsx";
 import { ConnectionStatus } from "./components/ConnectionStatus.tsx";
 import { CooldownPanel } from "./components/CooldownPanel.tsx";
 import { MatchupList } from "./components/MatchupList.tsx";
+import { RecorderSection } from "./components/RecorderSection.tsx";
 import { ViewerPane, viewerTitle } from "./components/ViewerPane.tsx";
 import type { ReactNode } from "react";
 
@@ -29,6 +30,7 @@ export function App({
   initialManualViewers = [],
 }: AppProps) {
   const state = useMatchState();
+  const bridge = useBridge();
   const [manual, setManual] = useState<ViewerTarget[]>(initialManualViewers);
   /** Auto viewers the user closed during this match. */
   const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
@@ -165,13 +167,13 @@ export function App({
       {settingsOpen && (
         <div className="modal-backdrop" onClick={() => setSettingsOpen(false)}>
           <div className="modal" role="dialog" aria-label="Settings" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginTop: 0 }}>Settings</h3>
-            <p style={{ color: "var(--muted-foreground)" }}>
-              While this dialog is open, native external views are hidden so the HTML overlay stays visible.
-            </p>
-            <button className="btn" onClick={() => setSettingsOpen(false)}>
-              Close
-            </button>
+            <h3>Settings</h3>
+            <RecorderSection recorder={bridge.recorder} />
+            <div className="modal-actions">
+              <button className="btn" onClick={() => setSettingsOpen(false)}>
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

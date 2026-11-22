@@ -168,6 +168,8 @@ export interface LolViewerBridge {
   onState(cb: (s: MatchState) => void): () => void;
   /** Present only where native external views exist (Electron). */
   readonly views?: ViewsApi;
+  /** Present only in the desktop app. */
+  readonly recorder?: RecorderApi;
 }
 
 // ── Static champion data (generated from Data Dragon; see tools/champion-data) ──
@@ -205,3 +207,23 @@ export const ChampionDataSchema = z.object({
   champions: z.array(ChampionEntrySchema).min(1),
 });
 export type ChampionData = z.infer<typeof ChampionDataSchema>;
+
+// ── Session recorder (desktop only) ────────────────────────────────
+
+export const RecorderStatusSchema = z.object({
+  recording: z.boolean(),
+  /** File being written (while recording) or the last finished file. */
+  file: z.string().nullable(),
+  lines: z.number().int().nonnegative(),
+  startedAt: z.number().nullable(),
+  folder: z.string(),
+});
+export type RecorderStatus = z.infer<typeof RecorderStatusSchema>;
+
+export interface RecorderApi {
+  start(): Promise<RecorderStatus>;
+  stop(): Promise<RecorderStatus>;
+  status(): Promise<RecorderStatus>;
+  openFolder(): void;
+  onStatus(cb: (s: RecorderStatus) => void): () => void;
+}

@@ -21,7 +21,8 @@
     "e2e:storybook": "playwright test -c e2e/playwright.storybook.config.ts",
     "e2e:electron": "playwright test -c e2e/playwright.electron.config.ts",
     "check": "pnpm typecheck && pnpm test && pnpm storybook:build && pnpm e2e:storybook",
-    "champion-data": "tsx tools/champion-data/src/cli.ts"
+    "champion-data": "tsx tools/champion-data/src/cli.ts",
+    "record": "tsx packages/recorder/src/cli.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

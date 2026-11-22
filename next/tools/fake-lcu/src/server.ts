@@ -58,7 +58,8 @@ export async function startFakeLcu(opts: FakeLcuOptions): Promise<FakeLcu> {
       res.writeHead(204).end();
       return;
     }
-    if (req.headers.authorization !== auth) {
+    const isLiveClient = (req.url ?? "").startsWith("/liveclientdata/");
+    if (!isLiveClient && req.headers.authorization !== auth) {
       res.writeHead(401).end();
       return;
     }

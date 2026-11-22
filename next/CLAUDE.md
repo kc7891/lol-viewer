@@ -12,6 +12,7 @@
 
 ## データ
 
+- `scenarios/*.jsonl` に入れてよいのは、記録ツールで伏せたデータか合成データだけ。`pnpm test` の個人情報検査（packages/recorder の committed scenarios テスト）が通らないファイルはコミットしない。記録ツールの伏せ方（`packages/recorder/src/mask.ts`）を緩める変更は 🔴 扱い。
 - `packages/core/data/champions.json` は生成物。手で編集せず `pnpm champion-data` で作り直す（週次ワークフローも同じコマンドを使う）。
 
 ## 完了の定義

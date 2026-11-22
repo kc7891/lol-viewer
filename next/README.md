@@ -41,6 +41,7 @@ packages/lcu        🔴 読み取り専用の LCU クライアント（GET + WA
 packages/hub        状態ストア + 購読用サーバ（127.0.0.1 / トークン / Origin・Host 検証）
 tools/fake-lcu      シナリオを LCU と同じプロトコルで再生する偽サーバ
 tools/champion-data Data Dragon からチャンピオン表（ID・名前・URL 名・スキルのクールダウン）を生成
+packages/recorder   実際の League Client の試合データを記録（個人情報は保存前に伏せる）
 scenarios/          試合のイベント列（JSONL）。テスト・Storybook・E2E で共用
 apps/web            React UI。Electron・ブラウザ・Storybook で同じものが動く
 apps/desktop        🔴 Electron main / preload / ExternalViewManager / electron-builder
@@ -94,6 +95,25 @@ pnpm champion-data --version 16.22.1    # パッチを指定
 - マッチアップの右に、選んだチャンピオンの Q/W/E/R のランク別の基本クールダウンを表示する（デフォルトは自分のレーンの対面。マッチアップのチャンピオンをクリックで切り替え）。
 - Wiki と同じ静的な参考情報。タイマーではなく、試合中のレベルとも連動しない。スキルヘイストは反映しない。
 - Data Dragon にクールダウンがないスキル（パッシブ、チャージ式など。例: Gangplank E）は「—」と表示する。変身チャンピオン（Jayce など）はランク数が 6 や 1 になるが、Data Dragon の値をそのまま出している。
+
+## 試合データの記録
+
+推測ではなく実際の League Client のデータでテストするための仕組み。
+
+**アプリから（おすすめ）**: Settings → 「試合を記録」→「記録を開始」→ プレイ（プラクティスツール、通常の試合など）→「記録を停止」。
+保存先は `ドキュメント\LoL Viewer Next\recordings\session-YYYYMMDD-HHMMSS.jsonl`（「記録フォルダを開く」で開ける）。
+
+**コマンドから**: LoL を起動している PC で `pnpm record`（Ctrl+C で停止。`recordings/` に保存）。
+
+- 記録するもの: ゲームフローのフェーズ、ゲームフローのセッション、チャンプセレクトのセッション（LCU。読み取りと購読のみ）、試合中のプレイヤー一覧（公式の Live Client Data API、3 秒ごと、変化したときだけ）。記録を始めた時点の状態も最初に記録するので、チャンプセレクトの途中から始めても再生できる。
+- 個人情報: PUUID、サモナー ID・名、Riot ID（ゲーム名・タグ）、プロフィールアイコンなどは、**ファイルに書く前に** `player-1` のような仮名に置き換える（1 つの記録の中では同じ人は同じ仮名）。
+- 形式: `scenarios/*.jsonl` と同じ。そのまま偽の LCU で再生でき、テストや Storybook に使える。
+
+記録をテストに取り込む手順:
+
+1. ファイルを `scenarios/` にコピーする（例: `scenarios/practice-tool.jsonl`）。
+2. `pnpm test` を実行する。`scenarios/` の全ファイルに個人情報が残っていないかを自動で検査する（残っていると失敗する）。
+3. そのシナリオを使うテスト（reducer の期待値、Storybook の fixture、E2E）を足す。
 
 ## インストーラ
 

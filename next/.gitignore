@@ -8,3 +8,6 @@ apps/desktop/release/
 # The root .gitignore ignores anything named "core" (core dumps);
 # re-include the core package.
 !/packages/core/
+
+# Raw recordings from `pnpm record` (review, then copy into scenarios/)
+recordings/

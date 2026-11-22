@@ -38,6 +38,9 @@ importers:
       '@lol-viewer/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
+      '@lol-viewer/recorder':
+        specifier: workspace:*
+        version: link:../../packages/recorder
       electron:
         specifier: 45.2.2
         version: 45.2.2
@@ -131,6 +134,19 @@ importers:
       zod:
         specifier: 4.6.7
         version: 4.6.7
+
+  packages/recorder:
+    dependencies:
+      '@lol-viewer/lcu':
+        specifier: workspace:*
+        version: link:../lcu
+    devDependencies:
+      '@lol-viewer/core':
+        specifier: workspace:*
+        version: link:../core
+      '@lol-viewer/fake-lcu':
+        specifier: workspace:*
+        version: link:../../tools/fake-lcu
 
   tools/champion-data:
     dependencies:

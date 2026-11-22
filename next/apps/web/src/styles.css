@@ -679,3 +679,66 @@ button.side[aria-pressed="true"] {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* ── Settings / recorder ── */
+.modal[aria-label="Settings"] {
+  width: min(480px, calc(100vw - 32px));
+}
+
+.settings-section {
+  border-top: 1px solid var(--border);
+  padding: 12px 0;
+  display: grid;
+  gap: 8px;
+}
+
+.settings-section h4 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.settings-desc {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.recorder-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--destructive);
+  animation: rec-blink 1.2s infinite;
+}
+
+@keyframes rec-blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-dot {
+    animation: none;
+  }
+}
+
+code.path {
+  color: var(--secondary-foreground);
+  word-break: break-all;
+}
+
+.link-btn {
+  justify-self: start;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--primary);
+  font-size: 12px;
+}

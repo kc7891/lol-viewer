@@ -8,6 +8,8 @@
  *   LOL_VIEWER_WEB_URL    load the renderer from a dev server instead of the bundled build
  *   LOL_VIEWER_HUB_PORT   also serve the Hub on 127.0.0.1:<port> (0 = random)
  *   LOL_VIEWER_E2E=1      expose diagnostics on globalThis for Playwright
+ *   LOL_VIEWER_RECORDINGS_DIR  where session recordings go (default Documents/LoL Viewer Next/recordings)
+ *   LOL_LIVE_CLIENT_URL   Live Client Data API base URL (fake in tests)
  */
 import { join } from "node:path";
 import { app, BrowserWindow, ipcMain, shell } from "electron";
@@ -16,6 +18,7 @@ import { Hub, startHubServer } from "@lol-viewer/hub";
 import { startLcuConnector } from "@lol-viewer/lcu";
 import { ViewCommandSchema } from "@lol-viewer/protocol";
 import { ExternalViewManager } from "./external-views.ts";
+import { RecordingController } from "./recording.ts";
 
 const hub = new Hub();
 
@@ -69,12 +72,24 @@ app.whenReady().then(async () => {
     if (!win.isDestroyed()) win.webContents.send("hub:state", state);
   });
 
+  let recording: RecordingController | null = null;
   const connector = startLcuConnector({
     onEvent: (raw) => {
+      recording?.onLcuEvent(raw);
       const e = toLcuEvent(raw);
       if (e) hub.dispatch(e);
     },
     onStatus: (status) => hub.dispatch({ type: "connection", status }),
+  });
+  recording = new RecordingController(connector, (s) => {
+    if (!win.isDestroyed()) win.webContents.send("recorder:status", s);
+  });
+  const rec = recording;
+  ipcMain.handle("recorder:status", (e) => (fromApp(e) ? rec.status() : null));
+  ipcMain.handle("recorder:start", (e) => (fromApp(e) ? rec.start() : null));
+  ipcMain.handle("recorder:stop", (e) => (fromApp(e) ? rec.stop() : null));
+  ipcMain.on("recorder:open-folder", (e) => {
+    if (fromApp(e)) rec.openFolder();
   });
 
   let hubServer: Awaited<ReturnType<typeof startHubServer>> | null = null;
@@ -84,10 +99,18 @@ app.whenReady().then(async () => {
   }
 
   if (process.env.LOL_VIEWER_E2E === "1") {
-    (globalThis as Record<string, unknown>).__lolViewer = { hub, views };
+    (globalThis as Record<string, unknown>).__lolViewer = { hub, views, recording: rec };
   }
 
-  app.on("before-quit", () => {
+  // Finish (flush and close) an active recording before quitting.
+  let finishing = false;
+  app.on("before-quit", (ev) => {
+    if (!finishing && rec.status().recording) {
+      ev.preventDefault();
+      finishing = true;
+      void rec.stop().finally(() => app.quit());
+      return;
+    }
     connector.stop();
     void hubServer?.close();
   });

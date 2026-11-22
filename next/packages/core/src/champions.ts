@@ -6,7 +6,7 @@
  * ../data/champions.json by hand.
  */
 import { ChampionDataSchema, type ChampionEntry } from "@lol-viewer/protocol";
-import raw from "../data/champions.json";
+import raw from "../data/champions.json" with { type: "json" };
 
 export type Champion = ChampionEntry;
 

@@ -17,6 +17,7 @@
     "@lol-viewer/protocol": "workspace:*",
     "electron": "45.2.2",
     "electron-builder": "26.18.1",
-    "esbuild": "0.28.2"
+    "esbuild": "0.28.2",
+    "@lol-viewer/recorder": "workspace:*"
   }
 }

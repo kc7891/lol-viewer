@@ -177,8 +177,14 @@ export type LcuConnectorOptions = LcuClientOptions & {
   maxRetryMs?: number;
 };
 
+export type LcuConnector = {
+  stop: () => void;
+  /** Current value of every read-only path (GET), e.g. to seed a recording started mid-session. */
+  snapshot: () => Promise<RawLcuEvent[]>;
+};
+
 /** Keeps an LcuClient connected: discover credentials, connect, back off on failure. */
-export function startLcuConnector(opts: LcuConnectorOptions): { stop: () => void } {
+export function startLcuConnector(opts: LcuConnectorOptions): LcuConnector {
   const find = opts.findCredentials ?? (() => findCredentials());
   const base = opts.retryMs ?? 2000;
   const max = opts.maxRetryMs ?? 30000;
@@ -222,6 +228,77 @@ export function startLcuConnector(opts: LcuConnectorOptions): { stop: () => void
       stopped = true;
       if (timer) clearTimeout(timer);
       client?.close();
+    },
+    snapshot: async () => {
+      const c = client;
+      if (!c) return [];
+      const out: RawLcuEvent[] = [];
+      for (const p of READ_ONLY_PATHS) {
+        const data = await c.get(p);
+        if (data != null) out.push({ uri: p, eventType: "Update", data });
+      }
+      return out;
+    },
+  };
+}
+
+// ── Live Client Data API (official, in-game, 127.0.0.1:2999, no auth) ──
+
+export const LIVE_CLIENT_PATHS = ["/liveclientdata/playerlist"] as const;
+export type LiveClientPath = (typeof LIVE_CLIENT_PATHS)[number];
+
+export type LiveClientPollerOptions = {
+  onData: (e: RawLcuEvent) => void;
+  intervalMs?: number;
+  /** Default https://127.0.0.1:2999 (env LOL_LIVE_CLIENT_URL overrides, for tests). */
+  baseUrl?: string;
+};
+
+/**
+ * Polls the in-game Live Client Data API (GET only, loopback only) and emits
+ * an Update whenever a response changes. Silent while no game is running.
+ */
+export function startLiveClientPoller(opts: LiveClientPollerOptions): { stop: () => void } {
+  const base = new URL(opts.baseUrl ?? process.env.LOL_LIVE_CLIENT_URL ?? "https://127.0.0.1:2999");
+  if (base.hostname !== "127.0.0.1") throw new Error("live client API must be on 127.0.0.1");
+  const req = base.protocol === "https:" ? httpsRequest : httpRequest;
+  const last = new Map<string, string>();
+  let stopped = false;
+
+  const fetchOnce = (path: LiveClientPath) =>
+    new Promise<string | null>((resolve) => {
+      const r = req(
+        { host: "127.0.0.1", port: base.port, path, method: "GET", rejectUnauthorized: false, timeout: 2000 },
+        (res) => {
+          let body = "";
+          res.setEncoding("utf8");
+          res.on("data", (c) => (body += c));
+          res.on("end", () => resolve(res.statusCode === 200 ? body : null));
+        },
+      );
+      r.on("error", () => resolve(null));
+      r.on("timeout", () => r.destroy());
+      r.end();
+    });
+
+  const tick = async () => {
+    for (const path of LIVE_CLIENT_PATHS) {
+      const body = await fetchOnce(path);
+      if (stopped || body == null || last.get(path) === body) continue;
+      last.set(path, body);
+      try {
+        opts.onData({ uri: path, eventType: "Update", data: JSON.parse(body) });
+      } catch {
+        /* not JSON: ignore */
+      }
+    }
+  };
+  void tick();
+  const timer = setInterval(() => void tick(), opts.intervalMs ?? 3000);
+  return {
+    stop: () => {
+      stopped = true;
+      clearInterval(timer);
     },
   };
 }
