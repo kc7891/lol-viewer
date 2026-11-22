@@ -147,8 +147,15 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add constants.py
-          git commit -m "chore: bump version to ${{ steps.version.outputs.new }}"
-          git push
+          if git diff --cached --quiet; then
+            # constants.py already has the target version (e.g. a bump commit
+            # landed without a matching tag). Nothing to commit; HEAD is the
+            # version commit, so continue to tag + release.
+            echo "constants.py already at ${{ steps.version.outputs.new }}, skipping version bump commit"
+          else
+            git commit -m "chore: bump version to ${{ steps.version.outputs.new }}"
+            git push
+          fi
 
       - name: Get version commit SHA
         if: steps.check_tag.outputs.exists == 'false' && env.DRY_RUN != 'true'
