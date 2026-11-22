@@ -143,6 +143,47 @@ jobs:
           for ($i = 0; $i -lt 20 -and (Test-Path $env:LOL_VIEWER_EXE); $i++) { Start-Sleep -Seconds 1 }
           if (Test-Path $env:LOL_VIEWER_EXE) { throw "app still present after uninstall" }
 
+      # The runner account is an administrator; real users usually are not, and
+      # many have non-ASCII profile paths. Repeat install/launch/uninstall as a
+      # fresh standard user with a Japanese name.
+      - name: Install, launch and uninstall as a standard (non-admin) user with a Japanese name
+        shell: pwsh
+        run: |
+          $name = 'テスト利用者'
+          $plain = 'Lv!' + [guid]::NewGuid().ToString('N').Substring(0, 16)
+          $pw = ConvertTo-SecureString $plain -AsPlainText -Force
+          New-LocalUser -Name $name -Password $pw -PasswordNeverExpires | Out-Null
+          Add-LocalGroupMember -Group 'Users' -Member $name
+          if ((Get-LocalGroupMember -Group 'Administrators').Name -match [regex]::Escape($name)) { throw "test user must not be an admin" }
+          $cred = New-Object System.Management.Automation.PSCredential(".\$name", $pw)
+
+          # The checkout folder may not be readable by other users; stage the setup in a shared folder.
+          $setup = (Get-ChildItem apps/desktop/release/lol-viewer-next-setup-*.exe | Select-Object -First 1).FullName
+          New-Item -ItemType Directory -Force C:\Users\Public\lv-setup | Out-Null
+          Copy-Item $setup C:\Users\Public\lv-setup\setup.exe
+          $p = Start-Process C:\Users\Public\lv-setup\setup.exe -ArgumentList '/S' -Credential $cred -LoadUserProfile -WorkingDirectory C:\Users\Public\lv-setup -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "installer (standard user) exited with $($p.ExitCode)" }
+
+          $profileDir = (Get-CimInstance Win32_UserProfile | Where-Object { $_.LocalPath -like "*\$name*" } | Select-Object -First 1).LocalPath
+          if (-not $profileDir) { throw "profile for $name not found" }
+          $exe = Join-Path $profileDir 'AppData\Local\Programs\lol-viewer-next\lol-viewer-next.exe'
+          if (-not (Test-Path -LiteralPath $exe)) { throw "app not installed for standard user at $exe" }
+          Write-Host "installed for standard user at $exe"
+
+          # Launch as that user and make sure it stays up.
+          $app = Start-Process -FilePath $exe -Credential $cred -LoadUserProfile -WorkingDirectory (Split-Path $exe) -PassThru
+          Start-Sleep -Seconds 10
+          $alive = Get-Process -Id $app.Id -ErrorAction SilentlyContinue
+          if (-not $alive) { throw "app exited right after launch as standard user (exit code $($app.ExitCode))" }
+          Get-Process lol-viewer-next -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep -Seconds 2
+
+          $un = (Get-ChildItem -LiteralPath (Split-Path $exe) -Filter 'Uninstall*.exe' | Select-Object -First 1).FullName
+          $p = Start-Process -FilePath $un -ArgumentList '/S' -Credential $cred -LoadUserProfile -WorkingDirectory C:\Users\Public\lv-setup -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "uninstaller (standard user) exited with $($p.ExitCode)" }
+          for ($i = 0; $i -lt 20 -and (Test-Path -LiteralPath $exe); $i++) { Start-Sleep -Seconds 1 }
+          if (Test-Path -LiteralPath $exe) { throw "app still present after uninstall (standard user)" }
+
       - name: Upload installer + screenshots
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
