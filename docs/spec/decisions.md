@@ -59,11 +59,12 @@ lolalytics を実際のブラウザ（Playwright）で開いた結果: `/lol/ahr
 
 ### 注意点（新版で同じ問題を作り込まないために）
 1. **旧版の通常の経路は正しい**: リリースビルドでは、LCU で検知した場合もセレクターで選んだ場合も `wukong` になる。
-2. **旧版にもバグが 1 つ残っている**: CURRENT MATCHUP のクイックピックで Wukong を Opponent に設定すると、URL が `monkeyking` になり 404 になる（リリースビルドでも発生する）。
+2. **旧版に残っていたバグ（PR #162 で修正済み）**: CURRENT MATCHUP のクイックピックで Wukong を Opponent に設定すると、URL が `monkeyking` になり 404 になっていた（リリースビルドでも発生）。
    - 原因: `_resolve_champion_id()`（`widgets/viewer_widget.py:472-477`）が、`champions.json` のキーではなく `id` フィールド（Data Dragon の ID の `MonkeyKing`）を小文字にして返している。
    - キーと `id` を小文字にしたものが異なるのは Wukong だけなので、他のチャンピオンでは表面化しない。
+   - 修正: `ChampionData.get_champion_key()` を追加し、`_resolve_champion_id()` が champions.json のキーを返すようにした。テスト `test_wukong_quick_pick_opens_wukong_matchup_url` と `test_quick_pick_id_matches_selector_key_for_every_champion` を追加した。
 3. **json が 2 種類ある**: リポジトリの `champions.json`（週次の workflow が作る）はキーが `monkeyking` のまま。正しくなるのは、リリースビルドの直前に `fetch_champions.py` が作り直しているからにすぎない。開発時に起動すると、セレクターとレーン適性も壊れる。
-4. **テストが誤った値を固定している**: `tests/test_viewer_quick_opponent.py:101-105, 311-326` は `"Wukong"` → `"monkeyking"` を正としている。新版のテストには持ち込まない。
+4. **テストが誤った値を固定していた**: `tests/test_viewer_quick_opponent.py` は `"Wukong"` → `"monkeyking"` を正としていた。PR #162 で、リリースビルドと同じ形（キー `wukong`）の json を使って `wukong` を期待するテストに直した。
 5. 移植のときは「`id`（Data Dragon の ID）」と「内部キー」を取り違えないこと。URL には必ず内部キー（`wukong`）を使う。
 
 ### 新版での要件

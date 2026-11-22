@@ -509,7 +509,7 @@ URL の規則:
 - [ ] ページを開くたびに現在の URL を保存し、QR を更新し、サイドバーを更新する
 - [ ] リフレッシュは保存した元の URL を開き直す（無ければ reload）。UI に出すかは要判断（現状は非表示）
 - [ ] URL エンコードをせず、単純な置換で組み立てる（互換性の観点で要確認）
-- [ ] Wukong / MonkeyKing の正規化: 内部では `wukong`、`MonkeyKing` は Riot API との境界だけで使う（M-004）。リリースビルドの旧版では、クイックピックで Opponent にしたときだけ `monkeyking` が URL に入り 404 になる（M-004 の注意点）
+- [ ] Wukong / MonkeyKing の正規化: 内部では `wukong`、`MonkeyKing` は Riot API との境界だけで使う（M-004）。リリースビルドの旧版では、クイックピックで Opponent にしたときだけ `monkeyking` が URL に入り 404 になっていた（PR #162 で修正済み。M-004 の注意点）
 
 ### ChampionViewerWidget: 自動補完・キー操作・その他
 - [ ] バイリンガル自動補完（"English - Japanese" 表示、部分一致、大小無視、最大 10 件、選ぶとキーが入る、英語名順）

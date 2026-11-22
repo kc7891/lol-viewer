@@ -470,11 +470,15 @@ class ChampionViewerWidget(QWidget):
         return {s.lower() for s in suggestions if s}
 
     def _resolve_champion_id(self, name: str) -> str:
-        """Normalize a champion name (LCU English name, id, or JP name) to its champions.json key."""
+        """Normalize a champion name (LCU English name, id, or JP name) to its champions.json key.
+
+        Must return the key (e.g. "wukong"), not the Data Dragon ``id`` field
+        (e.g. "MonkeyKing"): the result is put into analytics URLs, and
+        lolalytics 404s on "monkeyking".
+        """
         if not name or not self.champion_data:
             return ""
-        info = self.champion_data.get_champion(name.strip())
-        return (info or {}).get("id", "").lower()
+        return self.champion_data.get_champion_key(name.strip()) or ""
 
     def _get_matchup_enemy_champion_ids(self) -> list[str]:
         """Return enemy champion ids shown in CURRENT MATCHUP, in row order (max 5)."""
