@@ -63,7 +63,10 @@ lolalytics を実際のブラウザ（Playwright）で開いた結果: `/lol/ahr
    - 原因: `_resolve_champion_id()`（`widgets/viewer_widget.py:472-477`）が、`champions.json` のキーではなく `id` フィールド（Data Dragon の ID の `MonkeyKing`）を小文字にして返している。
    - キーと `id` を小文字にしたものが異なるのは Wukong だけなので、他のチャンピオンでは表面化しない。
    - 修正: `ChampionData.get_champion_key()` を追加し、`_resolve_champion_id()` が champions.json のキーを返すようにした。テスト `test_wukong_quick_pick_opens_wukong_matchup_url` と `test_quick_pick_id_matches_selector_key_for_every_champion` を追加した。
-3. **json が 2 種類ある**: リポジトリの `champions.json`（週次の workflow が作る）はキーが `monkeyking` のまま。正しくなるのは、リリースビルドの直前に `fetch_champions.py` が作り直しているからにすぎない。開発時に起動すると、セレクターとレーン適性も壊れる。
+3. **json が 2 種類あった（PR #162 で修正済み）**: リポジトリの `champions.json`（週次の workflow が作る）はキーが `monkeyking` のままだった。正しくなっていたのは、リリースビルドの直前に `fetch_champions.py` が作り直していたからにすぎず、開発時に起動するとセレクターとレーン適性も壊れていた。
+   - 修正: `update-champions.yml` の生成処理にも `monkeyking` → `wukong` の改名を入れ、コミット済みの `champions.json` のキーを `wukong`（lanes は CSV どおり top=5）に直した。データの形を固定するテスト `test_wukong_uses_wukong_key_and_monkeyking_only_for_data_dragon` を追加した。
+   - 修正後、旧コードをヘッドレスで再実行し、上の表のすべての経路が `wukong` になることを確認した。
+   - 生成処理が 2 つある状態（B3）自体は残っている。新版では 1 つにする。
 4. **テストが誤った値を固定していた**: `tests/test_viewer_quick_opponent.py` は `"Wukong"` → `"monkeyking"` を正としていた。PR #162 で、リリースビルドと同じ形（キー `wukong`）の json を使って `wukong` を期待するテストに直した。
 5. 移植のときは「`id`（Data Dragon の ID）」と「内部キー」を取り違えないこと。URL には必ず内部キー（`wukong`）を使う。
 

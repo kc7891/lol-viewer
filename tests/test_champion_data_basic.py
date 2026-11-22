@@ -71,5 +71,22 @@ def test_champion_data_module():
     print("\n[OK] All basic tests passed!")
 
 
+def test_wukong_uses_wukong_key_and_monkeyking_only_for_data_dragon():
+    """Wukong is keyed "wukong" (app/URLs/CSV); "MonkeyKing" stays only as the Data Dragon id.
+
+    The weekly update-champions workflow and scripts/fetch_champions.py must both
+    rename the key, otherwise lolalytics URLs 404 and the CSV lane scores don't match.
+    """
+    with open(os.path.join(_ROOT, 'champions.json'), 'r', encoding='utf-8') as f:
+        champions = json.load(f)
+
+    assert 'monkeyking' not in champions
+    wukong = champions['wukong']
+    assert wukong['english_name'] == 'Wukong'
+    assert wukong['id'] == 'MonkeyKing'
+    assert wukong['image_url'].endswith('/img/champion/MonkeyKing.png')
+    assert wukong['lanes']['top'] == 5
+
+
 if __name__ == "__main__":
     test_champion_data_module()

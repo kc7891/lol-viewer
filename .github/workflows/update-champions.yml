@@ -56,6 +56,10 @@ jobs:
               ja_name = ja_data['data'].get(champ_id, {}).get('name', en_name)
               image_url = f'https://ddragon.leagueoflegends.com/cdn/{latest_version}/img/champion/{champ_id}.png'
               key = champ_id.lower()
+              # The app uses 'wukong' internally (analytics URLs, champion_lane.csv);
+              # 'MonkeyKing' is only Data Dragon's id. Same rule as scripts/fetch_champions.py.
+              if key == 'monkeyking':
+                  key = 'wukong'
               champion_dict[key] = {
                   'english_name': en_name,
                   'japanese_name': ja_name,
