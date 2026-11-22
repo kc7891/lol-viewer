@@ -30,7 +30,7 @@ LOL_LCU_LOCKFILE=<表示されたパス> pnpm desktop:start
 | `pnpm test` | core の reducer、URL、偽 LCU → 接続部 → Hub の結合テスト、Hub サーバのセキュリティ |
 | `pnpm storybook:build && pnpm e2e:storybook` | 全 story を Chromium で描画し `e2e/screenshots/storybook/*.png` に保存 |
 | `pnpm desktop:build && xvfb-run -a pnpm e2e:electron` | Electron 本体を偽 LCU で動かす。外部 WebView の位置・表示を検証し、画面全体のスクショとメモリを `e2e/screenshots/electron/` に保存 |
-| `LOL_VIEWER_EXE=<exe> pnpm e2e:electron` | パッケージ済みの exe で同じ E2E を回す（Windows CI で使用） |
+| `LOL_VIEWER_EXE=<exe> pnpm e2e:electron` | パッケージ済みの exe で同じ E2E を回す。Windows CI ではインストーラで実際にインストールしたアプリに対して実行し、起動中の上書きインストールとアンインストールも確認する |
 
 ## 構成
 
@@ -94,6 +94,12 @@ pnpm champion-data --version 16.22.1    # パッチを指定
 - マッチアップの右に、選んだチャンピオンの Q/W/E/R のランク別の基本クールダウンを表示する（デフォルトは自分のレーンの対面。マッチアップのチャンピオンをクリックで切り替え）。
 - Wiki と同じ静的な参考情報。タイマーではなく、試合中のレベルとも連動しない。スキルヘイストは反映しない。
 - Data Dragon にクールダウンがないスキル（パッシブ、チャージ式など。例: Gangplank E）は「—」と表示する。変身チャンピオン（Jayce など）はランク数が 6 や 1 になるが、Data Dragon の値をそのまま出している。
+
+## インストーラ
+
+- ワンクリック・ユーザー単位のインストール（`%LOCALAPPDATA%\Programs\lol-viewer-next`）。管理者権限は不要で、インストール先は選べない。
+- 以前の「インストール先を選べる」形式では、管理者権限なしのまま `D:\Program Files` のような保護されたフォルダを選べてしまい、ファイルの書き込みに失敗していた（「終了できません」「初期ファイルの作成エラー」）。
+- 未署名のため、初回起動時に SmartScreen の警告が出る。
 
 ## まだやっていないこと
 

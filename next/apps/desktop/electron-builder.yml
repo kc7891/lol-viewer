@@ -12,9 +12,16 @@ win:
     - target: nsis
       arch: [x64]
 nsis:
-  oneClick: false
+  # One-click, per-user install into %LOCALAPPDATA%\Programs\lol-viewer-next.
+  # No admin rights and no folder choice: the previous assisted installer let a
+  # non-elevated (per-user) install target protected folders such as
+  # "D:\Program Files", where every file write failed mid-install.
+  oneClick: true
   perMachine: false
-  allowToChangeInstallationDirectory: true
+  runAfterFinish: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  deleteAppDataOnUninstall: false
   artifactName: lol-viewer-next-setup-${version}.exe
 linux:
   target: [dir]
