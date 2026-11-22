@@ -65,3 +65,45 @@ test("CooldownPanel: numbers per rank, dash when Data Dragon has none", async ({
   await page.goto("/iframe.html?id=components-cooldownpanel--gangplank&viewMode=story");
   await expect(page.locator('tr[data-spell="E"] .spell-cd')).toHaveText("—");
 });
+
+test("App: open a window by hand (hiragana search, Build) and close it", async ({ page }) => {
+  await page.goto("/iframe.html?id=screens-app--waiting-for-champ-select&viewMode=story");
+  await page.getByRole("button", { name: "Add window" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add window" });
+  await expect(dialog.getByRole("button", { name: "開く", exact: true })).toBeDisabled();
+  await dialog.getByLabel("Champion", { exact: true }).fill("あーり");
+  await dialog.getByLabel("Champion", { exact: true }).press("Enter");
+  await expect(dialog.locator(".picker-chosen")).toContainText("Ahri");
+  await dialog.getByRole("button", { name: "開く", exact: true }).click();
+
+  await expect(dialog).toBeHidden();
+  await expect(page.locator(".viewer-item .name")).toHaveText(["Ahri"]);
+  await expect(page.locator(".viewer-pane")).toHaveCount(1);
+  await expect(page.locator(".slot-placeholder code")).toHaveText("https://lolalytics.com/lol/ahri/build/");
+
+  await page.locator(".viewer-li").first().hover();
+  await page.getByRole("button", { name: "Close Ahri build" }).click();
+  await expect(page.locator(".viewer-item")).toHaveCount(0);
+});
+
+test("App: open a matchup window by hand", async ({ page }) => {
+  await page.goto("/iframe.html?id=screens-app--waiting-for-champ-select&viewMode=story");
+  await page.getByRole("button", { name: "Add window" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add window" });
+  await dialog.getByRole("button", { name: "Matchup" }).click();
+  await dialog.getByLabel("Champion", { exact: true }).fill("darius");
+  await dialog.getByRole("listbox", { name: "Champion results" }).getByRole("option", { name: /Darius/ }).click();
+  await dialog.getByLabel("Opponent", { exact: true }).fill("ガレン");
+  await dialog.getByRole("listbox", { name: "Opponent results" }).getByRole("option", { name: /Garen/ }).click();
+  await dialog.getByLabel("Lane", { exact: true }).selectOption("top");
+  await dialog.getByRole("button", { name: "開く", exact: true }).click();
+  await expect(page.locator(".slot-placeholder code")).toHaveText("https://lolalytics.com/lol/darius/vs/garen/build/?lane=top&vslane=top");
+});
+
+test("App: closing an auto-opened window hides it until the next match", async ({ page }) => {
+  await page.goto("/iframe.html?id=screens-app--champ-select-complete&viewMode=story");
+  await expect(page.locator(".viewer-item")).toHaveCount(7);
+  await page.locator(".viewer-li").nth(2).hover();
+  await page.getByRole("button", { name: "Close Garen counter" }).click();
+  await expect(page.locator(".viewer-item")).toHaveCount(6);
+});

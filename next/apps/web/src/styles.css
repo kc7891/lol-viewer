@@ -60,7 +60,10 @@ button {
 }
 
 .sidebar-header {
-  padding: 14px 12px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px 6px 12px;
   font-size: 10px;
   letter-spacing: 0.08em;
   color: var(--muted-foreground);
@@ -509,4 +512,170 @@ button.side[aria-pressed="true"] {
 .spell-cd .unit,
 .spell-cd .none {
   color: var(--muted-foreground);
+}
+
+/* ── Manual viewers ── */
+.icon-btn {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--secondary);
+  color: var(--primary);
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+}
+
+.icon-btn:hover {
+  border-color: var(--primary);
+}
+
+.viewer-li {
+  position: relative;
+}
+
+.viewer-close {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: none;
+  color: var(--muted-foreground);
+  font-size: 16px;
+  opacity: 0;
+}
+
+.viewer-li:hover .viewer-close,
+.viewer-close:focus-visible {
+  opacity: 1;
+}
+
+.viewer-close:hover {
+  color: var(--destructive);
+}
+
+.empty-state {
+  gap: 12px;
+  justify-items: center;
+}
+
+.modal h3 {
+  margin: 0 0 12px;
+}
+
+.add-viewer {
+  width: min(440px, calc(100vw - 32px));
+  display: grid;
+  gap: 12px;
+}
+
+.add-viewer .seg {
+  justify-self: start;
+}
+
+.picker {
+  display: grid;
+  gap: 6px;
+}
+
+.picker-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+}
+
+.picker-input {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--foreground);
+  font: inherit;
+  padding: 6px 8px;
+}
+
+.picker-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.picker-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.picker-option,
+.picker-chosen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.picker-option:hover,
+.picker-option:focus-visible {
+  background: var(--sidebar-accent);
+  outline: none;
+}
+
+.picker-chosen {
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+}
+
+.picker-option .name,
+.picker-chosen .name {
+  font-weight: 600;
+}
+
+.picker-option .ja,
+.picker-chosen .ja {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.picker-chosen .link {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  color: var(--primary);
+  font-size: 12px;
+}
+
+.picker-empty {
+  padding: 8px;
+  color: var(--muted-foreground);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

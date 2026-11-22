@@ -102,6 +102,17 @@ test("multiple native external views follow the layout through a whole session",
   await expect(page.getByRole("status")).toHaveText("Riot API: Connected", { timeout: 15_000 });
   memory["0 views"] = await memoryMB();
 
+  // Manual window before any champion select: dialog hides native views, then one view opens.
+  await page.getByRole("button", { name: "Add window" }).click();
+  await page.getByRole("dialog", { name: "Add window" }).getByLabel("Champion", { exact: true }).fill("ahri");
+  await page.getByRole("dialog", { name: "Add window" }).getByLabel("Champion", { exact: true }).press("Enter");
+  await page.getByRole("button", { name: "開く", exact: true }).click();
+  await expectViewsMatchSlots(1);
+  expect((await shown())[0]!.url).toBe("https://lolalytics.com/lol/ahri/build/");
+  await page.locator(".viewer-li").first().hover();
+  await page.getByRole("button", { name: "Close Ahri build" }).click();
+  await expect.poll(async () => (await shown()).length).toBe(0);
+
   // Step the scenario to the end of match 1 (deterministic, no timers).
   const endOfMatch1 = lines.find((l) => l.data === "EndOfGame")!.t;
   fake.advanceTo(endOfMatch1);
@@ -130,7 +141,7 @@ test("multiple native external views follow the layout through a whole session",
   await page.getByRole("button", { name: "Settings" }).click();
   await expect.poll(async () => (await shown()).length).toBe(0);
   grabScreen("settings-overlay");
-  await page.getByRole("button", { name: "Close" }).click();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   await expectViewsMatchSlots(3);
 
   // back to 1 pane -> 2 views detached (kept in cache, not visible)
