@@ -1,6 +1,8 @@
 # next/ — AI Agent 向けルール
 
-`next/` は Electron + TypeScript の PoC。リポジトリ直下の `claude.md`（Python 版のルール）に加えて、以下を守る。
+`next/` は LoL Viewer の新版（Electron + TypeScript。PoC から発展）。リポジトリ直下の `claude.md`（Python 版のルール）に加えて、以下を守る。
+
+仕様は `../docs/spec/`（README から読む）。新しく決めたことは `docs/spec/decisions.md` に追記し、移植の進み具合は `docs/spec/progress.md` を更新する。
 
 ## ゾーン
 
