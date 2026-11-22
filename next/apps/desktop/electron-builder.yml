@@ -1,6 +1,10 @@
 appId: io.github.kc7891.lolviewer.next
 productName: LoL Viewer Next
 executableName: lol-viewer-next
+# The workspace package is "@lol-viewer/desktop"; without this the install
+# folder and userData folder become "@lol-viewerdesktop".
+extraMetadata:
+  name: lol-viewer-next
 directories:
   output: release
 files:
