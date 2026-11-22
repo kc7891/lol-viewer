@@ -11,12 +11,13 @@
  */
 import { z } from "zod";
 
-export const PROTOCOL_VERSION = 1 as const;
+export const PROTOCOL_VERSION = 2 as const;
 
 // ── Shared primitives ──────────────────────────────────────────────
 
 export const LaneSchema = z.enum(["top", "jungle", "middle", "bottom", "support"]);
 export type Lane = z.infer<typeof LaneSchema>;
+/** Row order of the matchup table (Top, Jungle, Mid, Bot, Support). */
 export const LANES: readonly Lane[] = LaneSchema.options;
 
 export const ConnectionStatusSchema = z.enum(["connecting", "connected", "disconnected"]);
@@ -26,6 +27,9 @@ export type ConnectionStatus = z.infer<typeof ConnectionStatusSchema>;
 export const GamePhaseSchema = z.string();
 export type GamePhase = z.infer<typeof GamePhaseSchema>;
 
+/** Summoner ids are numbers in the LCU; recordings replace them with pseudonym strings. */
+const PlayerIdSchema = z.union([z.number(), z.string()]);
+
 // ── LCU payload subsets (read-only views of what the client sends) ─
 
 export const ChampSelectPlayerSchema = z.looseObject({
@@ -33,6 +37,8 @@ export const ChampSelectPlayerSchema = z.looseObject({
   championId: z.number().default(0),
   championPickIntent: z.number().optional(),
   assignedPosition: z.string().optional(),
+  summonerId: PlayerIdSchema.optional(),
+  puuid: z.string().optional(),
 });
 
 export const ChampSelectSessionSchema = z.looseObject({
@@ -43,16 +49,32 @@ export const ChampSelectSessionSchema = z.looseObject({
 });
 export type ChampSelectSession = z.infer<typeof ChampSelectSessionSchema>;
 
+export const GameflowTeamMemberSchema = z.looseObject({
+  championId: z.number().optional(),
+  summonerId: PlayerIdSchema.optional(),
+  puuid: z.string().optional(),
+});
+
 export const GameflowSessionSchema = z.looseObject({
   phase: z.string().optional(),
   gameData: z
     .looseObject({
       gameId: z.number().optional(),
-      queue: z.looseObject({ id: z.number().optional() }).optional(),
+      /** The client has sent a bare number, `{id}` and `{queueId}` here; core normalizes it. */
+      queue: z.unknown().optional(),
+      gameMode: z.string().optional(),
+      teamOne: z.array(GameflowTeamMemberSchema).optional(),
+      teamTwo: z.array(GameflowTeamMemberSchema).optional(),
     })
     .optional(),
 });
 export type GameflowSession = z.infer<typeof GameflowSessionSchema>;
+
+export const CurrentSummonerSchema = z.looseObject({
+  summonerId: PlayerIdSchema.optional(),
+  puuid: z.string().optional(),
+});
+export type CurrentSummoner = z.infer<typeof CurrentSummonerSchema>;
 
 // ── LcuEvent: adapter -> core ──────────────────────────────────────
 
@@ -61,47 +83,53 @@ export const LcuEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("gameflow-phase"), phase: GamePhaseSchema }),
   z.object({ type: z.literal("gameflow-session"), session: GameflowSessionSchema.nullable() }),
   z.object({ type: z.literal("champ-select-session"), session: ChampSelectSessionSchema.nullable() }),
+  z.object({ type: z.literal("current-summoner"), summoner: CurrentSummonerSchema.nullable() }),
 ]);
 export type LcuEvent = z.infer<typeof LcuEventSchema>;
 
 // ── MatchState: Hub -> every UI ────────────────────────────────────
+//
+// MatchState carries what the League Client tells us, nothing the user did.
+// The matchup table, the viewer list and the pending enemy picks are the
+// renderer's Workspace (packages/core/src/workspace.ts), derived from a
+// sequence of MatchState snapshots plus user actions.
 
-export const AllyPickSchema = z.object({
-  cellId: z.number(),
-  championId: z.number().nullable(),
-  /** Hover / pick intent before lock-in (championId is still 0 then). */
-  intentChampionId: z.number().nullable(),
+export const AllySchema = z.object({
+  championId: z.number().int().positive(),
+  /** Assigned position from champ select; null in blind pick, ARAM and in-game data. */
   lane: LaneSchema.nullable(),
-  isSelf: z.boolean(),
 });
-export type AllyPick = z.infer<typeof AllyPickSchema>;
+export type Ally = z.infer<typeof AllySchema>;
 
-export const EnemyPickSchema = z.object({
-  cellId: z.number(),
-  championId: z.number().nullable(),
+export const SelfPickSchema = z.object({
+  championId: z.number().int().positive(),
+  lane: LaneSchema.nullable(),
 });
-export type EnemyPick = z.infer<typeof EnemyPickSchema>;
-
-export const MatchupRowSchema = z.object({
-  lane: LaneSchema,
-  allyChampionId: z.number().nullable(),
-  enemyChampionId: z.number().nullable(),
-});
-export type MatchupRow = z.infer<typeof MatchupRowSchema>;
+export type SelfPick = z.infer<typeof SelfPickSchema>;
 
 export const MatchStateSchema = z.object({
   protocolVersion: z.literal(PROTOCOL_VERSION),
   connection: ConnectionStatusSchema,
   phase: GamePhaseSchema,
-  /** Increments every time a new champ select starts. UIs reset on change. */
+  /**
+   * Increments every time a new match starts (ChampSelect entered from another
+   * phase, or the champ-select gameId changes). UIs close every viewer on change (M-001).
+   */
   matchSeq: z.number().int().nonnegative(),
   gameId: z.number().nullable(),
   queueId: z.number().nullable(),
-  self: z.object({ championId: z.number(), lane: LaneSchema.nullable() }).nullable(),
-  allies: z.array(AllyPickSchema),
-  /** In pick order (theirTeam order). */
-  enemies: z.array(EnemyPickSchema),
-  matchups: z.array(MatchupRowSchema).length(5),
+  gameMode: z.string().nullable(),
+  /** ARAM / ARAM: Mayhem queue or gameMode "ARAM": my pick opens the ARAM page. */
+  isAram: z.boolean(),
+  /**
+   * My champion (hover included, M-002) and assigned lane. Kept when championId
+   * drops back to 0; cleared on a new match and in None/Lobby.
+   */
+  self: SelfPickSchema.nullable(),
+  /** Picked allies in myTeam order (in game: from gameflow teams, lane null). */
+  allies: z.array(AllySchema),
+  /** Picked enemies in theirTeam (= pick) order (in game: from gameflow teams). */
+  enemies: z.array(z.number().int().positive()),
 });
 export type MatchState = z.infer<typeof MatchStateSchema>;
 
@@ -141,18 +169,33 @@ export function isAllowedViewUrl(raw: string): boolean {
 export const ViewUrlSchema = z.string().refine(isAllowedViewUrl, "URL host is not allow-listed");
 
 export const ViewCommandSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("attach"), viewId: ViewIdSchema, url: ViewUrlSchema, bounds: RectSchema }),
+  /** Show the view at bounds and load url. Same url is not reloaded unless force (re-open, M-008 nav). */
+  z.object({
+    type: z.literal("attach"),
+    viewId: ViewIdSchema,
+    url: ViewUrlSchema,
+    bounds: RectSchema,
+    force: z.boolean().optional(),
+  }),
   z.object({ type: z.literal("setBounds"), viewId: ViewIdSchema, bounds: RectSchema }),
   z.object({ type: z.literal("setVisible"), viewId: ViewIdSchema, visible: z.boolean() }),
   z.object({ type: z.literal("detach"), viewId: ViewIdSchema }),
+  z.object({
+    type: z.literal("navigate"),
+    viewId: ViewIdSchema,
+    action: z.enum(["back", "forward", "reload", "openExternal"]),
+  }),
 ]);
 export type ViewCommand = z.infer<typeof ViewCommandSchema>;
 
 export const ViewStatusSchema = z.object({
   viewId: ViewIdSchema,
   status: z.enum(["loading", "ready", "error"]),
+  /** Current URL, including in-page navigation inside the third-party site. */
   url: z.string(),
   title: z.string(),
+  canGoBack: z.boolean(),
+  canGoForward: z.boolean(),
 });
 export type ViewStatus = z.infer<typeof ViewStatusSchema>;
 
@@ -170,6 +213,27 @@ export interface LolViewerBridge {
   readonly views?: ViewsApi;
   /** Present only in the desktop app. */
   readonly recorder?: RecorderApi;
+  /** Present only where a real LCU connector runs (desktop app). */
+  readonly lcu?: LcuControlApi;
+  /** Present only in the desktop app. */
+  readonly app?: AppApi;
+}
+
+export interface LcuControlApi {
+  /** Settings "Reconnect": drop the connection, rediscover credentials now, reset backoff. */
+  reconnect(): void;
+  /** Matchup "Refresh": re-read every subscribed path (GET) and dispatch it again. */
+  resync(): void;
+}
+
+export const AppInfoSchema = z.object({
+  version: z.string(),
+  platform: z.string(),
+});
+export type AppInfo = z.infer<typeof AppInfoSchema>;
+
+export interface AppApi {
+  info(): Promise<AppInfo>;
 }
 
 // ── Static champion data (generated from Data Dragon; see tools/champion-data) ──
@@ -187,6 +251,8 @@ export const ChampionSpellSchema = z.object({
 });
 export type ChampionSpell = z.infer<typeof ChampionSpellSchema>;
 
+const LaneScoreSchema = z.number().int().min(0).max(5);
+
 export const ChampionEntrySchema = z.object({
   /** Numeric id the League Client uses (Data Dragon `key`). */
   id: z.number().int().positive(),
@@ -196,6 +262,17 @@ export const ChampionEntrySchema = z.object({
   slug: z.string().regex(/^[a-z0-9]+$/),
   name: z.string().min(1),
   nameJa: z.string().min(1),
+  /**
+   * Lane suitability 0-5 from champion_lane.csv (0 for champions missing from the CSV).
+   * Used to place enemies / lane-less allies into matchup rows.
+   */
+  lanes: z.object({
+    top: LaneScoreSchema,
+    jungle: LaneScoreSchema,
+    middle: LaneScoreSchema,
+    bottom: LaneScoreSchema,
+    support: LaneScoreSchema,
+  }),
   spells: z.array(ChampionSpellSchema).length(4),
 });
 export type ChampionEntry = z.infer<typeof ChampionEntrySchema>;

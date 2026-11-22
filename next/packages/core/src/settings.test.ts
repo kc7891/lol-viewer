@@ -1,0 +1,76 @@
+import { describe, expect, it } from "vitest";
+import {
+  DEFAULT_SETTINGS,
+  DEFAULT_URL_TEMPLATES,
+  FEATURE_FLAGS,
+  SettingsSchema,
+  UI_SCALE,
+  parseSettings,
+  trimUrlTemplates,
+  validateUrlTemplates,
+} from "./settings.ts";
+
+describe("defaults", () => {
+  it("match the schema defaults and the Python app", () => {
+    expect(SettingsSchema.parse({})).toEqual(DEFAULT_SETTINGS);
+    expect(DEFAULT_SETTINGS).toMatchObject({ uiSize: "medium", qrButton: true, sidebarWidth: 300, featureFlags: {} });
+    expect(DEFAULT_URL_TEMPLATES.liveGame).toBe("https://u.gg/lol/lg-splash");
+    expect(DEFAULT_URL_TEMPLATES.matchup).toBe(
+      "https://lolalytics.com/lol/{champion_name1}/vs/{champion_name2}/build/?lane={lane_name}&vslane={lane_name}",
+    );
+    expect(FEATURE_FLAGS).toEqual({});
+    expect(UI_SCALE).toEqual({ small: 0.9, medium: 1, large: 1.15 });
+  });
+});
+
+describe("parseSettings", () => {
+  it.each([undefined, null, 5, "x", [], {}])("%j gives the defaults", (input) => {
+    expect(parseSettings(input)).toEqual(DEFAULT_SETTINGS);
+  });
+
+  it("keeps good values", () => {
+    const s = { urls: { ...DEFAULT_URL_TEMPLATES, build: "https://x.test/{name}" }, uiSize: "large", qrButton: false, sidebarWidth: 400, featureFlags: { a: true } };
+    expect(parseSettings(s)).toEqual(s);
+  });
+
+  it("repairs each broken item on its own", () => {
+    const s = parseSettings({
+      urls: { build: 5, matchup: "  ", counter: "https://c.test/{name}" },
+      uiSize: "huge",
+      qrButton: "yes",
+      sidebarWidth: "wide",
+      featureFlags: { ok: true, bad: 1 },
+      unknown: 1,
+    });
+    expect(s).toEqual({
+      urls: { ...DEFAULT_URL_TEMPLATES, counter: "https://c.test/{name}" },
+      uiSize: "medium",
+      qrButton: true,
+      sidebarWidth: 300,
+      featureFlags: { ok: true },
+    });
+  });
+
+  it.each([
+    [100, 240],
+    [9999, 480],
+    [300.4, 300],
+    [NaN, 300],
+  ])("sidebarWidth %s -> %s", (w, want) => {
+    expect(parseSettings({ sidebarWidth: w }).sidebarWidth).toBe(want);
+  });
+
+  it.each(["small", "medium", "large"])("accepts uiSize %s", (u) => {
+    expect(parseSettings({ uiSize: u }).uiSize).toBe(u);
+  });
+});
+
+describe("validateUrlTemplates", () => {
+  it("returns the empty (after trim) items and accepts a full set", () => {
+    expect(validateUrlTemplates(DEFAULT_SETTINGS.urls)).toEqual([]);
+    expect(validateUrlTemplates({ ...DEFAULT_SETTINGS.urls, build: "", aram: "   ", liveGame: "\t" })).toEqual(["build", "aram", "liveGame"]);
+  });
+  it("trims on save", () => {
+    expect(trimUrlTemplates({ ...DEFAULT_SETTINGS.urls, build: "  https://a/{name}  " }).build).toBe("https://a/{name}");
+  });
+});

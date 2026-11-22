@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ChampionDataSchema } from "@lol-viewer/protocol";
-import { diff, format, slugFor, transform, type DDragonChampionFull } from "./index.ts";
+import { readFileSync } from "node:fs";
+import { diff, format, parseLaneCsv, slugFor, transform, unknownLaneNames, type DDragonChampionFull } from "./index.ts";
 
 const spells = (prefix: string, cds: number[][]) =>
   cds.map((cooldown, i) => ({ id: `${prefix}${i}`, name: `${prefix} spell ${i}`, maxrank: cooldown.length, cooldown }));
@@ -76,5 +77,38 @@ describe("diff", () => {
   it("reports when nothing changed", () => {
     const d = transform(full("16.23.1"), full("16.23.1", true));
     expect(diff(d, d)).toContain("No cooldown or roster changes.");
+  });
+});
+
+describe("lane scores (champion_lane.csv)", () => {
+  const csv = "name,top,jg,mid,bot,sup\nahri,4,0,5,0,0\nwukong,5,1,0,0,0\nnobody,1,1,1,1,1\n";
+  const lanes = parseLaneCsv(csv);
+  const data = transform(full("16.23.1"), full("16.23.1", true), lanes);
+
+  it("merges by slug: Wukong (MonkeyKing in Data Dragon) gets the `wukong` row", () => {
+    const wukong = data.champions.find((c) => c.name === "Wukong")!;
+    expect(wukong).toMatchObject({ slug: "wukong", ddragonId: "MonkeyKing" });
+    expect(wukong.lanes).toEqual({ top: 5, jungle: 1, middle: 0, bottom: 0, support: 0 });
+    expect(data.champions.find((c) => c.name === "Ahri")!.lanes).toEqual({ top: 4, jungle: 0, middle: 5, bottom: 0, support: 0 });
+  });
+
+  it("gives 0 to champions missing from the CSV and warns about unknown CSV names", () => {
+    const none = transform(full("16.23.1"), full("16.23.1", true), parseLaneCsv("name,top,jg,mid,bot,sup\nahri,4,0,5,0,0\n"));
+    expect(none.champions.find((c) => c.slug === "wukong")!.lanes).toEqual({ top: 0, jungle: 0, middle: 0, bottom: 0, support: 0 });
+    expect(unknownLaneNames(data, lanes)).toEqual(["nobody"]);
+  });
+
+  it.each([
+    ["bad header", "name,top\nahri,1"],
+    ["out of range", "name,top,jg,mid,bot,sup\nahri,6,0,0,0,0"],
+    ["missing column", "name,top,jg,mid,bot,sup\nahri,1,0,0,0"],
+  ])("rejects a malformed CSV: %s", (_n, text) => {
+    expect(() => parseLaneCsv(text)).toThrow();
+  });
+
+  it("the committed CSV parses and every row matches the generated roster", () => {
+    const real = parseLaneCsv(readFileSync(new URL("../champion_lane.csv", import.meta.url), "utf8"));
+    expect(real.get("wukong")!.top).toBe(5);
+    expect(real.has("monkeyking")).toBe(false);
   });
 });

@@ -10,7 +10,7 @@
  *  - detach   : remove from the window, keep up to MAX_CACHED for quick re-show
  *  - eviction : least recently detached views beyond the cache are destroyed
  */
-import { shell, WebContentsView, type BrowserWindow } from "electron";
+import { clipboard, Menu, shell, WebContentsView, type BrowserWindow } from "electron";
 import { isAllowedViewUrl, type Rect, type ViewCommand, type ViewStatus } from "@lol-viewer/protocol";
 
 const MAX_CACHED = 4;
@@ -39,7 +39,9 @@ export class ExternalViewManager {
   handle(cmd: ViewCommand): void {
     switch (cmd.type) {
       case "attach":
-        return this.#attach(cmd.viewId, cmd.url, cmd.bounds);
+        return this.#attach(cmd.viewId, cmd.url, cmd.bounds, cmd.force === true);
+      case "navigate":
+        return this.#navigate(cmd.viewId, cmd.action);
       case "setBounds": {
         const e = this.#views.get(cmd.viewId);
         if (!e) return;
@@ -70,7 +72,7 @@ export class ExternalViewManager {
     }));
   }
 
-  #attach(viewId: string, url: string, bounds: Rect): void {
+  #attach(viewId: string, url: string, bounds: Rect, force: boolean): void {
     let e = this.#views.get(viewId);
     if (!e) {
       e = { view: this.#create(viewId), url: "", attached: false, visible: true, bounds };
@@ -84,12 +86,38 @@ export class ExternalViewManager {
     e.bounds = bounds;
     e.view.setBounds(bounds);
     e.view.setVisible(e.visible);
-    if (e.url !== url) {
+    if (e.url !== url || force) {
       e.url = url;
-      this.#onStatus({ viewId, status: "loading", url, title: "" });
+      this.#onStatus({ ...this.#nav(e.view.webContents), viewId, status: "loading", url, title: "" });
       void e.view.webContents.loadURL(url).catch(() => {
         /* reported via did-fail-load */
       });
+    }
+  }
+
+  #nav(wc: Electron.WebContents): { canGoBack: boolean; canGoForward: boolean } {
+    const h = wc.navigationHistory;
+    return { canGoBack: h.canGoBack(), canGoForward: h.canGoForward() };
+  }
+
+  #navigate(viewId: string, action: "back" | "forward" | "reload" | "openExternal"): void {
+    const wc = this.#views.get(viewId)?.view.webContents;
+    if (!wc || wc.isDestroyed()) return;
+    switch (action) {
+      case "back":
+        if (wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack();
+        return;
+      case "forward":
+        if (wc.navigationHistory.canGoForward()) wc.navigationHistory.goForward();
+        return;
+      case "reload":
+        wc.reload();
+        return;
+      case "openExternal": {
+        const url = wc.getURL();
+        if (url.startsWith("https://")) void shell.openExternal(url);
+        return;
+      }
     }
   }
 
@@ -132,11 +160,35 @@ export class ExternalViewManager {
       if (url.startsWith("https://")) void shell.openExternal(url);
     });
 
-    const report = (status: ViewStatus["status"]) =>
-      this.#onStatus({ viewId, status, url: wc.getURL(), title: wc.getTitle() });
+    const report = (status: ViewStatus["status"]) => {
+      if (wc.isDestroyed()) return;
+      this.#onStatus({ viewId, status, url: wc.getURL(), title: wc.getTitle(), ...this.#nav(wc) });
+    };
+    wc.on("did-start-loading", () => report("loading"));
     wc.on("did-finish-load", () => report("ready"));
     wc.on("did-fail-load", (_e, code, _d, _u, isMainFrame) => {
       if (isMainFrame && code !== -3 /* ABORTED */) report("error");
+    });
+    // Keep the last known status kind; only url / title / back-forward change.
+    const current = (): ViewStatus["status"] => (wc.isLoading() ? "loading" : "ready");
+    wc.on("did-navigate", () => report(current()));
+    wc.on("did-navigate-in-page", () => report(current()));
+    wc.on("page-title-updated", () => report(current()));
+
+    wc.on("context-menu", (_e, params) => {
+      const items: Electron.MenuItemConstructorOptions[] = [
+        { label: "Back", enabled: wc.navigationHistory.canGoBack(), click: () => wc.navigationHistory.goBack() },
+        { label: "Forward", enabled: wc.navigationHistory.canGoForward(), click: () => wc.navigationHistory.goForward() },
+        { label: "Reload", click: () => wc.reload() },
+      ];
+      if (params.linkURL) {
+        items.push({ type: "separator" }, { label: "Copy link address", click: () => clipboard.writeText(params.linkURL) });
+      }
+      items.push(
+        { type: "separator" },
+        { label: "Open page in browser", enabled: wc.getURL().startsWith("https://"), click: () => this.#navigate(viewId, "openExternal") },
+      );
+      Menu.buildFromTemplate(items).popup({ window: this.#win });
     });
     return view;
   }

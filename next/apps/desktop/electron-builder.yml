@@ -9,9 +9,11 @@ directories:
   output: release
 files:
   - out/**
+  - assets/**
   - package.json
 asar: true
 win:
+  icon: assets/app_icon.ico
   target:
     - target: nsis
       arch: [x64]
@@ -26,6 +28,9 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   deleteAppDataOnUninstall: false
+  # Display name of the shortcuts only. productName / install folder / appId stay
+  # as they are: the Windows CI install tests address them by path.
+  shortcutName: LoL Viewer
   artifactName: lol-viewer-next-setup-${version}.exe
 linux:
   target: [dir]

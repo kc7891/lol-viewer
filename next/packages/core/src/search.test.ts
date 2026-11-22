@@ -31,6 +31,18 @@ describe("searchChampions", () => {
     expect(r[0]!.toLowerCase().startsWith("ga")).toBe(true);
   });
 
+  it("lists prefix matches (English, slug, Japanese) before substring matches", () => {
+    const all = searchChampions("an", 200);
+    const isPrefix = (c: (typeof all)[number]) => [c.name, c.slug, c.nameJa].some((k) => normalizeSearch(k).startsWith("an"));
+    const firstInner = all.findIndex((c) => !isPrefix(c));
+    expect(firstInner).toBeGreaterThan(0);
+    expect(all.slice(firstInner).some(isPrefix)).toBe(false);
+  });
+
+  it("finds Wukong through every spelling", () => {
+    for (const q of ["wukong", "Wukong", "monkeyking", "ウーコン", "うーこん", "wuk"]) expect(names(q)[0], q).toBe("Wukong");
+  });
+
   it("returns the roster for an empty query and nothing for nonsense", () => {
     expect(searchChampions("", 10)).toHaveLength(10);
     expect(searchChampions("zzzzqqq")).toEqual([]);

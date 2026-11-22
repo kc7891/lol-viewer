@@ -41,6 +41,9 @@ export type FakeLcu = {
 
 const WAMP_SUBSCRIBE = 5;
 const WAMP_EVENT = 8;
+const CURRENT_SUMMONER_PATH = "/lol-summoner/v1/current-summoner";
+/** Served on GET when the scenario has no line for the path (a scenario line wins). */
+const SYNTHETIC_SUMMONER = { summonerId: 1, puuid: "player-self" };
 const topicFor = (uri: string) => `OnJsonApiEvent${uri.replaceAll("/", "_")}`;
 
 export async function startFakeLcu(opts: FakeLcuOptions): Promise<FakeLcu> {
@@ -70,6 +73,11 @@ export async function startFakeLcu(opts: FakeLcuOptions): Promise<FakeLcu> {
       return;
     }
     const path = (req.url ?? "").split("?")[0] ?? "";
+    if (!current.has(path) && path === CURRENT_SUMMONER_PATH) {
+      // Synthetic: scenarios recorded before this endpoint existed have no line for it.
+      res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(SYNTHETIC_SUMMONER));
+      return;
+    }
     if (!current.has(path)) {
       res.writeHead(404, { "Content-Type": "application/json" }).end('{"httpStatus":404}');
       return;

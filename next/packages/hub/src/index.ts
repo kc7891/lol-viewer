@@ -1,36 +1,38 @@
 /**
  * @lol-viewer/hub — single source of truth for MatchState.
  *
- * dispatch(LcuEvent) -> core.reduce -> notify subscribers (IPC, WebSocket, tests).
+ * dispatch(LcuEvent) -> core.reduce (DetectorState, kept private) -> notify subscribers with
+ * the MatchState only (IPC, WebSocket, tests). An unchanged MatchState is not re-sent.
  * The optional WebSocket server lets browsers / phones / OBS subscribe.
  */
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { WebSocketServer } from "ws";
-import { initialMatchState, reduce } from "@lol-viewer/core";
+import { initialDetectorState, reduce, type DetectorState } from "@lol-viewer/core";
 import type { HubMessage, LcuEvent, MatchState } from "@lol-viewer/protocol";
 
 export type Listener = (state: MatchState) => void;
 
 export class Hub {
-  #state: MatchState = initialMatchState();
+  #detector: DetectorState = initialDetectorState();
   #listeners = new Set<Listener>();
 
   get state(): MatchState {
-    return this.#state;
+    return this.#detector.match;
   }
 
   dispatch(event: LcuEvent): void {
-    const next = reduce(this.#state, event);
-    if (next === this.#state) return;
-    this.#state = next;
+    const prev = this.#detector.match;
+    this.#detector = reduce(this.#detector, event);
+    const next = this.#detector.match;
+    if (next === prev) return;
     for (const l of this.#listeners) l(next);
   }
 
   /** Calls the listener immediately with the current state, then on every change. */
   subscribe(listener: Listener): () => void {
     this.#listeners.add(listener);
-    listener(this.#state);
+    listener(this.#detector.match);
     return () => this.#listeners.delete(listener);
   }
 }

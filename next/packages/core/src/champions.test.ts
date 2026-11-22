@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { CHAMPION_DATA, CHAMPIONS, getChampion } from "./champions.ts";
+import { CHAMPION_DATA, CHAMPIONS, championIconUrl, getChampion } from "./champions.ts";
 import { parseScenario, scenarioEvents } from "./scenario.ts";
 
 describe("generated champion data", () => {
@@ -11,6 +11,22 @@ describe("generated champion data", () => {
     expect(CHAMPION_DATA.patch).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
+  it("Wukong: slug wukong, Data Dragon id MonkeyKing, top lane 5 (M-004, M-015)", () => {
+    const w = CHAMPIONS.find((c) => c.name === "Wukong")!;
+    expect(w).toMatchObject({ id: 62, slug: "wukong", ddragonId: "MonkeyKing" });
+    expect(w.lanes.top).toBe(5);
+    expect(championIconUrl(w)).toMatch(/\/img\/champion\/MonkeyKing\.png$/);
+  });
+
+  it("every entry has lane scores 0-5, and most champions have at least one lane", () => {
+    for (const c of CHAMPIONS) {
+      for (const n of Object.values(c.lanes)) expect(Number.isInteger(n) && n >= 0 && n <= 5).toBe(true);
+    }
+    const withLane = CHAMPIONS.filter((c) => Object.values(c.lanes).some((n) => n > 0));
+    expect(withLane.length).toBeGreaterThan(CHAMPIONS.length * 0.9);
+    expect(getChampion(103)!.lanes).toMatchObject({ top: 4, middle: 5 });
+  });
+
   it("has one cooldown per rank for every spell", () => {
     for (const c of CHAMPIONS) {
       expect(c.spells.map((s) => s.key)).toEqual(["Q", "W", "E", "R"]);
@@ -18,8 +34,8 @@ describe("generated champion data", () => {
     }
   });
 
-  it("knows every champion the scenarios pick", () => {
-    const text = readFileSync(new URL("../../../scenarios/ranked-two-matches.jsonl", import.meta.url), "utf8");
+  it.each(["ranked-two-matches", "aram-match", "blind-dodge-ingame"])("knows every champion the %s scenario picks", (name) => {
+    const text = readFileSync(new URL(`../../../scenarios/${name}.jsonl`, import.meta.url), "utf8");
     const ids = new Set<number>();
     for (const e of scenarioEvents(parseScenario(text))) {
       if (e.type !== "champ-select-session" || !e.session) continue;

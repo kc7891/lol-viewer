@@ -2,7 +2,7 @@
   "name": "@lol-viewer/desktop",
   "private": true,
   "version": "0.0.1",
-  "description": "LoL Viewer Next (PoC desktop shell)",
+  "description": "LoL Viewer",
   "main": "out/main.cjs",
   "scripts": {
     "build": "node build.mjs",

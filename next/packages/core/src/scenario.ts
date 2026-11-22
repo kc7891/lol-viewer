@@ -11,6 +11,7 @@
  */
 import {
   ChampSelectSessionSchema,
+  CurrentSummonerSchema,
   GameflowSessionSchema,
   type LcuEvent,
 } from "@lol-viewer/protocol";
@@ -31,6 +32,7 @@ export const SUBSCRIBED_URIS = [
   "/lol-gameflow/v1/gameflow-phase",
   "/lol-gameflow/v1/session",
   "/lol-champ-select/v1/session",
+  "/lol-summoner/v1/current-summoner",
 ] as const;
 
 /** Map a raw LCU JSON-API event to our domain event (or null if irrelevant/invalid). */
@@ -48,6 +50,11 @@ export function toLcuEvent(raw: LcuApiEvent): LcuEvent | null {
       if (deleted) return { type: "champ-select-session", session: null };
       const parsed = ChampSelectSessionSchema.safeParse(raw.data);
       return parsed.success ? { type: "champ-select-session", session: parsed.data } : null;
+    }
+    case "/lol-summoner/v1/current-summoner": {
+      if (deleted) return { type: "current-summoner", summoner: null };
+      const parsed = CurrentSummonerSchema.safeParse(raw.data);
+      return parsed.success ? { type: "current-summoner", summoner: parsed.data } : null;
     }
     default:
       return null;

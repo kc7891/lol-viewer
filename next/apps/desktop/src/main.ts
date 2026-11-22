@@ -27,7 +27,8 @@ function createWindow(): BrowserWindow {
     width: 1600,
     height: 900,
     backgroundColor: "#0d1117",
-    title: "LoL Viewer Next",
+    title: "LoL Viewer",
+    icon: join(__dirname, "..", "assets", process.platform === "win32" ? "app_icon.ico" : "main-icon.png"),
     webPreferences: {
       preload: join(__dirname, "preload.cjs"),
       sandbox: true,
@@ -68,6 +69,8 @@ app.whenReady().then(async () => {
     else console.warn("[views] rejected command", cmd.error.issues[0]?.message);
   });
 
+  ipcMain.handle("app:info", (e) => (fromApp(e) ? { version: app.getVersion(), platform: process.platform } : null));
+
   hub.subscribe((state) => {
     if (!win.isDestroyed()) win.webContents.send("hub:state", state);
   });
@@ -80,6 +83,12 @@ app.whenReady().then(async () => {
       if (e) hub.dispatch(e);
     },
     onStatus: (status) => hub.dispatch({ type: "connection", status }),
+  });
+  ipcMain.on("lcu:reconnect", (e) => {
+    if (fromApp(e)) connector.reconnect();
+  });
+  ipcMain.on("lcu:resync", (e) => {
+    if (fromApp(e)) void connector.resync();
   });
   recording = new RecordingController(connector, (s) => {
     if (!win.isDestroyed()) win.webContents.send("recorder:status", s);

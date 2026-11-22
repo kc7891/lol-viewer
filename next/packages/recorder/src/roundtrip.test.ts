@@ -68,9 +68,10 @@ describe("record -> replay round trip", () => {
     // 1) Same match state at the end as the source scenario.
     const want = reduceAll(scenarioEvents(source));
     const got = reduceAll(scenarioEvents(replayed));
-    expect(got.matchSeq).toBe(want.matchSeq);
-    expect(got.self).toEqual(want.self);
-    expect(got.matchups).toEqual(want.matchups);
+    expect(got.match.matchSeq).toBe(want.match.matchSeq);
+    expect(got.match.self).toEqual(want.match.self);
+    expect(got.match.allies).toEqual(want.match.allies);
+    expect(got.match.enemies).toEqual(want.match.enemies);
 
     // 2) No identity survived.
     const text = recorded.join("\n");

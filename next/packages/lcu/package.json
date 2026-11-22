@@ -11,6 +11,7 @@
     "ws": "8.22.1"
   },
   "devDependencies": {
+    "@lol-viewer/fake-lcu": "workspace:*",
     "@types/ws": "8.18.2"
   }
 }
