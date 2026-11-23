@@ -1131,3 +1131,15 @@ pnpm desktop:build && xvfb-run -a pnpm e2e:electron
 - Electron の本体（`node_modules/.pnpm/electron@45.2.2/node_modules/electron/dist`）はインストールスクリプトが実行されておらず無い: `node node_modules/.pnpm/electron@45.2.2/node_modules/electron/install.js`（github.com には届く）。
 - スクショの全画面取得（`import`、ImageMagick）が無ければ Electron の `grabScreen` は黙って飛ばす（既存の動作）。その場合は Storybook のスクショで見た目を確かめ、PR にその旨を書く。
 - どれかが動かせなかったら、動かせなかったコマンドと理由を PR に書く（「通った」と書かない）。
+
+---
+
+## 15. 実装メモ（設計からの差異、2026-11-23）
+
+設計どおりに実装した。次の小さな差異だけある。
+
+- `correctSide`（§5.5）: 結果が現在の並びと同じなら、新しい配列を作らず渡された `rows` をそのまま返す（`applyLiveLanes` が「変わらなければ同じ Workspace」を返せるように）。挙動は同じ。
+- `.switch`（`styles.css`）に `flex: none` を足した。`FeatureFlagsCard` の説明文が長いと、flex の行の中で switch が潰れて見えたため（既存の Display カードでは起きなかった）。
+- `staticBridge` のオプションに `live`（Settings の注記を出さないための stub）を足した（stories 用）。
+- Storybook の E2E に、設計の 3 本に加えて 1 本（`components-sidebar--matchup-live-swap-kept`: 補正のあとの入れ替えが保たれる絵）を足した。`SettingsCards.stories.tsx` に `FeatureFlagsBrowser`（ブラウザ: 「desktop app」の注記）を足した。
+- hub の結合テスト（§9.1）は、偽 LCU のイベントを `advanceTo` で一度に流すと WAMP の購読が間に合わず取りこぼすことがあったので、Electron の E2E と同じく 10ms ずつ進める。
