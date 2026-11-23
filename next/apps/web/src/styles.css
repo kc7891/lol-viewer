@@ -953,31 +953,6 @@ code {
 .quick-pick:disabled {
   opacity: 0.35;
 }
-.loading-bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 2px;
-  overflow: hidden;
-  background: transparent;
-}
-.loading-bar::after {
-  content: "";
-  display: block;
-  width: 35%;
-  height: 100%;
-  background: var(--accent);
-  animation: slide 1s linear infinite;
-}
-@keyframes slide {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(300%);
-  }
-}
 .pane-body {
   position: relative;
   flex: 1;

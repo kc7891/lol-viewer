@@ -13,7 +13,6 @@ import type { Lane, ViewCommand } from "@lol-viewer/protocol";
 import { useBridge, useViewStatus } from "../bridge/context.tsx";
 import { IconBack, IconChevron, IconClose, IconExternal, IconForward, IconQr, IconRefresh } from "../ui/icons.tsx";
 import { LANE_LABEL, MODES, MODE_LABEL } from "../ui/labels.ts";
-import { useLoadingBar } from "../ui/loading-timeout.ts";
 import { ChampionIcon } from "./ChampionIcon.tsx";
 import { ChampionPanel } from "./ChampionPanel.tsx";
 import { ExternalViewSlot } from "./ExternalViewSlot.tsx";
@@ -59,7 +58,6 @@ export function ViewerPane({ viewer, ws, dispatch, templates, qrEnabled, highlig
   const opp = getChampion(viewer.opponentId);
   const url = viewerUrl(viewer, templates);
   const currentUrl = status?.url || url;
-  const showLoading = useLoadingBar(status?.status === "loading", currentUrl ?? "");
   const aram = viewer.mode === "aram";
   const effective: PanelKind | null = panel ?? (champ ? null : "champion");
   const close = () => setPanel(null);
@@ -213,7 +211,6 @@ export function ViewerPane({ viewer, ws, dispatch, templates, qrEnabled, highlig
           </button>
           </div>
         </div>
-        {showLoading && <div className="loading-bar" role="progressbar" aria-label="Loading" />}
       </header>
 
       <div className="pane-body">
