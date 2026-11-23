@@ -3,7 +3,7 @@
  * derived from a sequence of MatchState snapshots plus user actions (M-011).
  * Pure: no I/O, no clock, no randomness. See docs/spec/new-app-design.md §3.
  */
-import { LANES, type Lane, type MatchState, type SelfPick } from "@lol-viewer/protocol";
+import { LANES, type Lane, type LivePlayer, type MatchState, type SelfPick } from "@lol-viewer/protocol";
 import { getChampion } from "./champions.ts";
 
 export const MAX_VIEWERS = 20;
@@ -41,6 +41,11 @@ export type Workspace = {
   /** Enemies already pushed to `pending` in this match (no re-adding). */
   seenEnemies: number[];
   lastSelf: SelfPick | null;
+  /**
+   * Per side, the lane assignment from live data that was last applied to `rows` (assignmentKey),
+   * or null. A side is corrected again only when its assignment changes (M-027).
+   */
+  liveApplied: { ally: string | null; enemy: string | null };
 };
 
 export type WorkspaceAction =
@@ -64,7 +69,7 @@ export type WorkspaceAction =
 const emptyRows = (): MatchupRow[] => LANES.map(() => ({ ally: null, enemy: null }));
 
 export function initialWorkspace(): Workspace {
-  return { viewers: [], nextId: 1, rows: emptyRows(), pending: [], last: null, seenEnemies: [], lastSelf: null };
+  return { viewers: [], nextId: 1, rows: emptyRows(), pending: [], last: null, seenEnemies: [], lastSelf: null, liveApplied: { ally: null, enemy: null } };
 }
 
 export const canAddViewer = (ws: Workspace): boolean => ws.viewers.length < MAX_VIEWERS;
@@ -79,12 +84,12 @@ export function firstEmptyRow(ws: Workspace, side: Side): number | null {
 
 const laneScore = (championId: number, row: number): number => getChampion(championId)?.lanes[LANES[row]!] ?? 0;
 
-/** Empty row with the highest lane suitability; ties go to the upper row. */
-function bestEmptyRow(rows: MatchupRow[], side: Side, championId: number): number | null {
+/** Index of the empty cell with the highest lane score for the champion; ties go to the upper row. */
+function bestEmptyIndex(cells: readonly (number | null)[], championId: number): number | null {
   let best: number | null = null;
   let bestScore = -1;
-  rows.forEach((r, i) => {
-    if (r[side] != null) return;
+  cells.forEach((c, i) => {
+    if (c != null) return;
     const score = laneScore(championId, i);
     if (score > bestScore) {
       best = i;
@@ -93,6 +98,7 @@ function bestEmptyRow(rows: MatchupRow[], side: Side, championId: number): numbe
   });
   return best;
 }
+const bestEmptyRow = (rows: MatchupRow[], side: Side, id: number) => bestEmptyIndex(rows.map((r) => r[side]), id);
 
 function place(rows: MatchupRow[], side: Side, row: number, championId: number): MatchupRow[] {
   return rows.map((r, i) => (i === row ? { ...r, [side]: championId } : r));
@@ -133,6 +139,68 @@ function placeMatchup(rows: MatchupRow[], state: MatchState): MatchupRow[] {
   return out;
 }
 
+// ── live correction (M-027) ───────────────────────────────────────
+
+/** Champion -> lane for one side of the live list. Lanes claimed by two players, and champions listed twice, are dropped. */
+export function liveLaneAssignments(live: readonly LivePlayer[], side: Side): Map<number, Lane> {
+  const players = live.filter((p) => p.team === side);
+  const idCount = new Map<number, number>();
+  for (const p of players) idCount.set(p.championId, (idCount.get(p.championId) ?? 0) + 1);
+  const claims = players.filter((p) => p.lane != null && idCount.get(p.championId) === 1);
+  const out = new Map<number, Lane>();
+  for (const lane of LANES) {
+    const who = claims.filter((p) => p.lane === lane);
+    if (who.length === 1) out.set(who[0]!.championId, lane);
+  }
+  return out; // insertion order = LANES order
+}
+
+/** Stable text form, e.g. "jungle:64,middle:103". "" = nothing assigned. */
+export const assignmentKey = (a: Map<number, Lane>): string => [...a].map(([id, lane]) => `${lane}:${id}`).join(",");
+
+/**
+ * Move the assigned champions of one side to their lane's row. Everyone else keeps their row
+ * when it is still free; the ones pushed out go to the best-fitting free row. Nothing is removed,
+ * nothing is added (champions not in the table are ignored).
+ */
+export function correctSide(rows: MatchupRow[], side: Side, assign: Map<number, Lane>): MatchupRow[] {
+  const cur = rows.map((r) => r[side]);
+  const next: (number | null)[] = cur.map(() => null);
+  let fixed = 0;
+  for (const [id, lane] of assign) {
+    if (!cur.includes(id)) continue;
+    next[LANES.indexOf(lane)] = id;
+    fixed++;
+  }
+  if (fixed === 0) return rows;
+  const displaced: number[] = [];
+  cur.forEach((id, i) => {
+    if (id == null || next.includes(id)) return; // empty, or moved above
+    if (next[i] == null) next[i] = id;
+    else displaced.push(id);
+  });
+  for (const id of displaced) {
+    const i = bestEmptyIndex(next, id)!; // always exists: same number of champions
+    next[i] = id;
+  }
+  const same = rows.every((r, i) => r[side] === next[i]);
+  return same ? rows : rows.map((r, i) => (r[side] === next[i] ? r : { ...r, [side]: next[i] }));
+}
+
+/** M-027: correct each side when its live assignment differs from the one applied last. */
+function applyLiveLanes(ws: Workspace, state: MatchState): Workspace {
+  if (state.phase !== "InProgress" || !state.live) return ws;
+  let { rows, liveApplied } = ws;
+  for (const side of ["ally", "enemy"] as const) {
+    const a = liveLaneAssignments(state.live, side);
+    const key = assignmentKey(a);
+    if (key === "" || key === liveApplied[side]) continue;
+    rows = correctSide(rows, side, a);
+    liveApplied = { ...liveApplied, [side]: key };
+  }
+  return rows === ws.rows && liveApplied === ws.liveApplied ? ws : { ...ws, rows, liveApplied };
+}
+
 // ── helpers ────────────────────────────────────────────────────────
 
 function newViewer(ws: Workspace, init: Partial<Viewer>): { viewer: Viewer; nextId: number } {
@@ -165,12 +233,13 @@ function applyMatch(ws: Workspace, state: MatchState): Workspace {
 
   // 1. New match: close everything, including viewers opened by hand (M-001).
   if (ws.last && ws.last.matchSeq !== state.matchSeq) {
-    next = { ...next, viewers: [], rows: emptyRows(), pending: [], seenEnemies: [], lastSelf: null };
+    next = { ...next, viewers: [], rows: emptyRows(), pending: [], seenEnemies: [], lastSelf: null, liveApplied: { ally: null, enemy: null } };
   }
 
   // 2. Matchup table.
   if (state.phase === "ChampSelect" || state.phase === "InProgress") {
     next = { ...next, rows: placeMatchup(next.rows, state) };
+    next = applyLiveLanes(next, state);
   }
 
   // 3. My pick: a new picked viewer on the left whenever champion or lane changes (M-002).
@@ -270,8 +339,13 @@ export function workspaceReducer(ws: Workspace, action: WorkspaceAction): Worksp
       return { ...ws, viewers: [...ws.viewers, viewer], nextId };
     }
     case "refreshMatchup": {
-      const rows = ws.last ? placeMatchup(emptyRows(), ws.last) : emptyRows();
-      return { ...ws, rows, pending: [] };
+      const base = {
+        ...ws,
+        rows: ws.last ? placeMatchup(emptyRows(), ws.last) : emptyRows(),
+        pending: [],
+        liveApplied: { ally: null, enemy: null },
+      };
+      return ws.last ? applyLiveLanes(base, ws.last) : base;
     }
     case "debugAdd": {
       const row = firstEmptyRow(ws, action.side);
@@ -308,9 +382,24 @@ export function opponentSuggestions(ws: Workspace, viewer: Pick<Viewer, "id" | "
   );
 }
 
-/** Champion whose cooldowns the sidebar shows by default: my lane's enemy, else the first enemy in the table. */
+/** Default cooldown target: the enemy in the row where I am (YOU), else my lane's row, else the first enemy (M-028). */
 export function defaultCooldownChampion(ws: Workspace): number | null {
-  const lane = (ws.last?.self ?? ws.lastSelf)?.lane;
-  const laneEnemy = lane ? ws.rows[LANES.indexOf(lane)]?.enemy : null;
+  const self = ws.last?.self ?? ws.lastSelf;
+  const mine = self ? ws.rows.find((r) => r.ally === self.championId)?.enemy : null;
+  if (mine != null) return mine;
+  const laneEnemy = self?.lane ? ws.rows[LANES.indexOf(self.lane)]?.enemy : null;
   return laneEnemy ?? ws.rows.find((r) => r.enemy != null)?.enemy ?? null;
+}
+
+export type RowLiveDiff = { gold: number; level: number; ally: LivePlayer; enemy: LivePlayer };
+
+/** Ally minus enemy in one row, from the last MatchState's live list; null when either side is missing. */
+export function rowLiveDiff(ws: Workspace, index: number): RowLiveDiff | null {
+  const live = ws.last?.live;
+  const row = ws.rows[index];
+  if (!live || !row || row.ally == null || row.enemy == null) return null;
+  const ally = live.find((p) => p.team === "ally" && p.championId === row.ally);
+  const enemy = live.find((p) => p.team === "enemy" && p.championId === row.enemy);
+  if (!ally || !enemy) return null;
+  return { gold: ally.itemGold - enemy.itemGold, level: ally.level - enemy.level, ally, enemy };
 }

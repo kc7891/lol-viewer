@@ -49,8 +49,29 @@ export const DEFAULT_SETTINGS: Settings = {
   featureFlags: {},
 };
 
-/** Feature flag definitions (none yet). Settings keeps the mechanism: name -> default. */
-export const FEATURE_FLAGS: Readonly<Record<string, { default: boolean; description: string }>> = {};
+export type FeatureFlagDef = { label: string; description: string; default: boolean };
+
+/** Feature flag definitions. Settings > Feature flags lists them; the stored value wins over the default. */
+export const FEATURE_FLAGS = {
+  liveClientData: {
+    label: "Live game data",
+    description:
+      "During a game, read the game's Live Client Data API on this PC (127.0.0.1:2999) every 2 seconds: " +
+      "item gold differences in the matchup, and rows moved to the real lanes. Off: no requests are made.",
+    default: false,
+  },
+} as const satisfies Record<string, FeatureFlagDef>;
+export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;
+export const FEATURE_FLAG_KEYS = Object.keys(FEATURE_FLAGS) as FeatureFlagKey[];
+
+export function isFeatureOn(s: Settings, key: FeatureFlagKey): boolean {
+  return s.featureFlags[key] ?? FEATURE_FLAGS[key].default;
+}
+/** Every defined flag back to its default; unknown stored keys are kept (M-016). */
+export function resetFeatureFlags(flags: Record<string, boolean>): Record<string, boolean> {
+  return { ...flags, ...Object.fromEntries(FEATURE_FLAG_KEYS.map((k) => [k, FEATURE_FLAGS[k].default])) };
+}
+export const flagsAtDefaults = (s: Settings): boolean => FEATURE_FLAG_KEYS.every((k) => isFeatureOn(s, k) === FEATURE_FLAGS[k].default);
 
 /** `--ui-scale` for each UI size. */
 export const UI_SCALE: Record<UiSize, number> = { small: 0.9, medium: 1, large: 1.15 };
