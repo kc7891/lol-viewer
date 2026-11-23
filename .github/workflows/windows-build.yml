@@ -1,88 +1,83 @@
 name: Windows Build
 
+# Pull-request check for the migration bootstrapper (migrate-to-next.iss): compile it, then run it on
+# a Windows runner on top of the last released old app and verify Next is installed and the old app is gone.
+
 on:
   pull_request:
     branches: [ main ]
     paths-ignore:
-      # next/ is the Electron PoC; it has its own workflow (next-ci.yml).
+      # next/ is the Electron app; it has its own workflow (next-ci.yml).
       - 'next/**'
 
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 20
     permissions:
-      contents: write  # Required for uploading to releases
+      contents: read
 
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-    - name: Set up Python
-      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-      with:
-        python-version: '3.11'
-
-    - name: Install dependencies
+    - name: Download the latest LoL Viewer Next installer
+      env:
+        GH_TOKEN: ${{ github.token }}
       run: |
-        python -m pip install --upgrade pip
-        pip install --require-hashes -r requirements.txt
-
-    # The Linux test job runs with WebEngine disabled, so a Qt / WebEngine DLL
-    # mismatch is only visible here. Import the modules the app loads at startup.
-    - name: Smoke test Qt WebEngine import
-      run: |
-        python -c "from PyQt6 import QtCore, QtWebEngineCore, QtWebEngineWidgets; print('Qt', QtCore.QT_VERSION_STR, 'WebEngine import OK')"
-
-    - name: Fetch champion data
-      run: |
-        python scripts/fetch_champions.py
-        echo "Champion data generated:"
-        python -c "import json; data = json.load(open('champions.json', 'r', encoding='utf-8')); print(f'{len(data)} champions loaded')"
-
-    - name: Verify build prerequisites
-      run: |
-        python scripts/check_build.py
-
-    - name: Build Release Version
-      run: |
-        pyinstaller lol-viewer.spec
-
-    - name: Update Installer Version
-      run: |
-        $version = python -c "from constants import __version__; print(__version__)"
-        $issContent = Get-Content lol-viewer.iss -Raw
-        $issContent = $issContent -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"$version`""
-        Set-Content lol-viewer.iss -Value $issContent
-        Write-Host "Updated installer version to: $version"
+        gh release download app-latest --repo "$env:GITHUB_REPOSITORY" --pattern 'lol-viewer-next-setup-*.exe' --dir next-installer
+        if ($LASTEXITCODE -ne 0) { Write-Error "gh release download failed"; exit 1 }
+        $files = @(Get-ChildItem next-installer -Filter 'lol-viewer-next-setup-*.exe')
+        if ($files.Count -ne 1) {
+          Write-Error "Expected exactly one installer, found $($files.Count)"
+          exit 1
+        }
+        Rename-Item -Path $files[0].FullName -NewName 'lol-viewer-next-setup.exe'
       shell: pwsh
 
     - name: Build Installer
       uses: Minionguyjpro/inno-setup-action@36e43b836ce2c78d21787b1f7183caf85c60ba05 # v1.3.0
       with:
-        path: lol-viewer.iss
+        path: migrate-to-next.iss
 
-    - name: Package Installer as Zip
+    # Install the last released old app so the migration has something to remove.
+    - name: Install the previous old release
+      env:
+        GH_TOKEN: ${{ github.token }}
       run: |
-        cd installer_output
-        Compress-Archive -Path lol-viewer-setup.exe -DestinationPath lol-viewer-setup.zip
+        # Pinned: v0.33.6 is the last release that ships the old app. Every later v* release ships the bootstrapper.
+        $tag = 'v0.33.6'
+        Write-Host "Previous old release: $tag"
+        gh release download $tag --repo "$env:GITHUB_REPOSITORY" --pattern 'lol-viewer-setup.zip' --dir old-release
+        if ($LASTEXITCODE -ne 0) { Write-Error "gh release download failed"; exit 1 }
+        Expand-Archive old-release\lol-viewer-setup.zip -DestinationPath old-release
+        # Not Start-Process -Wait: it waits for the whole process tree, and the old installer launches the old app
+        # even when silent, so it would never return. WaitForExit waits for the installer process only.
+        $p = Start-Process -FilePath old-release\lol-viewer-setup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -PassThru
+        $p.WaitForExit()
+        if ($p.ExitCode -ne 0) { Write-Error "Old installer exited with $($p.ExitCode)"; exit 1 }
+        # The old updater exits before it runs the bootstrapper; do the same here.
+        Start-Sleep -Seconds 5
+        Get-Process -Name 'lol-viewer' -ErrorAction SilentlyContinue | Stop-Process -Force
+        $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{8F7A2B3C-4D5E-6F7A-8B9C-0D1E2F3A4B5C}_is1'
+        if (-not (Test-Path $key)) { Write-Error "Old app was not installed"; exit 1 }
       shell: pwsh
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-      with:
-        name: lol-viewer-setup
-        path: installer_output/lol-viewer-setup.zip
-        retention-days: 90
-
-    - name: Build Summary
+    - name: Smoke test the migration
       run: |
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "✓ Test build completed"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo ""
-        echo "Branch: ${{ github.ref_name }}"
-        echo "Package: lol-viewer-setup.zip (test build)"
-        echo ""
-        echo "The installer artifact is available for download in the Actions tab."
-        echo ""
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-      shell: bash
+        $p = Start-Process -FilePath installer_output\lol-viewer-setup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -PassThru
+        $p.WaitForExit()
+        Write-Host "Bootstrapper exit code: $($p.ExitCode)"
+        if ($p.ExitCode -ne 0) { Write-Error "Bootstrapper failed"; exit 1 }
+
+        $exe = Join-Path $env:LOCALAPPDATA 'Programs\lol-viewer-next\lol-viewer-next.exe'
+        if (-not (Test-Path $exe)) { Write-Error "LoL Viewer Next was not installed: $exe"; exit 1 }
+
+        $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{8F7A2B3C-4D5E-6F7A-8B9C-0D1E2F3A4B5C}_is1'
+        # The Inno uninstaller re-launches itself from a temp copy, so removal can finish after the bootstrapper exits.
+        for ($i = 0; $i -lt 60 -and (Test-Path $key); $i++) { Start-Sleep -Seconds 1 }
+        if (Test-Path $key) { Write-Error "Old app is still installed"; exit 1 }
+        Write-Host "Migration OK"
+
+        # The installer launches Next after install; stop it.
+        Get-Process -Name 'lol-viewer-next' -ErrorAction SilentlyContinue | Stop-Process -Force
+      shell: pwsh

@@ -21,18 +21,20 @@ A desktop application for easily viewing League of Legends champion information 
 
 ## Download & Installation
 
+> **LoL Viewer has been replaced by LoL Viewer Next.** The installers below install LoL Viewer Next and remove the old LoL Viewer if it is present. Settings are not carried over. The in-app update of the old version does the same.
+
 ### Fast Download (Recommended for users in Japan/Asia)
-[⚡ Download latest build (Fast)](https://nightly.link/kc7891/lol-viewer/workflows/release/main/lol-viewer-setup.zip) - Updated with each release
+[⚡ Download latest build (Fast)](https://nightly.link/kc7891/lol-viewer/workflows/release/main/lol-viewer-setup.zip) - Installs LoL Viewer Next (refreshed monthly)
 
 ### Standard Download
-[📦 Download from Releases](../../releases) - Official releases
+[📦 Download from Releases](../../releases) - Official releases (LoL Viewer Next: `app-v*`)
 
 **Installation Steps:**
 1. Download `lol-viewer-setup.zip` from one of the links above
 2. Extract the zip file
 3. Run `lol-viewer-setup.exe`
 4. Follow the installation wizard
-5. Launch LoL Viewer from Start Menu or Desktop shortcut
+5. Launch LoL Viewer Next from the Start Menu
 
 ### System Requirements
 
