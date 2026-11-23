@@ -1,5 +1,6 @@
 # Inno Setup
 installer_output/
+next-installer/
 
 # IDE files
 .vscode/
