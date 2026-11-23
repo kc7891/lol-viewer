@@ -877,6 +877,7 @@ export function itemDiffLine(before: ItemData | null, after: ItemData): string {
 
 **`packages/core/src/scenario.test.ts` または `reducer.test.ts`（既存のファイルに足す）**
 - `toLcuEvent`: playerlist → `live-players`（壊れた 1 人は飛ばす）、Delete → `players: null`、配列でない data → null。
+- （M-031 で改訂: `EndOfGame` と切断では `live` を消さずに残す。消すのは新しい試合、ChampSelect を経ない次のゲームの開始、`live-players` null。playerlist の `Delete` は無視する）
 - reduce: `InProgress` 以外で来た `live-players` は無視（同じオブジェクトが返る）／`InProgress` で `live` が入る／`EndOfGame` で `live` が null／新しい試合（ChampSelect）で null／切断で null／`live-players` null で null／同じ中身の playerlist（`respawnTimer` だけ違う、など事実が同じ）は同じ MatchState オブジェクト／`current-summoner` が後から届くと `team` が作り直される（teamOne 仮定 → 正しいチーム）。
 - `scenarios/live-ingame.jsonl` を `reduceAll` して、2 回目の playerlist の直後の `live` が §9.3 の表どおり（10 人、team、lane、level、itemGold）。
 
@@ -1029,7 +1030,7 @@ Cooldowns の既定: live 到着前（フラグ OFF を含む）は **Gragas**�
 2. **ON にすると再起動なしで読み始める**: Settings → `Live game data` の switch → Viewers へ戻る → `expect.poll(fake.liveClientRequests.length) > 0`（10 秒）→ JG の `.gold` が `+1.4k`、敵が `["Pantheon", "Gragas", "Jayce", "Varus", "Karma"]`、Cooldowns が `Jayce`。`grabScreen("live-on")` でスクショ。
 3. **ユーザーの入れ替えは次のポーリングでも保たれる**: 敵の TOP を SUP の行へドラッグ（既存の storybook の DnD テストと同じ操作）→ 5 秒待つ → 入れ替えたまま。
 4. **OFF に戻すと止まり、表示が消える**: Settings で OFF → `.live-diff` が 0 個、`__lolViewer.live.polling` false、リクエスト数を記録して 5 秒待っても増えない（実行中の 1 回分の +1 は許す）。
-5. **試合が終わると止まる**: もう一度 ON → `t=7000`（EndOfGame）まで進める → `polling` が false、`.live-diff` が 0 個。
+5. **試合が終わると止まる**: もう一度 ON → `t=7400`（EndOfGame → Lobby）まで進める → `polling` が false、`.live-diff` は残る（M-031）。続けて ChampSelect を流すと `.live-diff` が 0 個。
 - `fake.rejectedWrites` が空。
 
 ---

@@ -283,13 +283,13 @@ describe("live-players (M-025..M-029)", () => {
   const idx = liveScenario.map((e, i) => (e.type === "live-players" && e.players ? i : -1)).filter((i) => i >= 0);
   const upTo = (n: number) => reduceAll(liveScenario.slice(0, n + 1));
 
-  it("toLcuEvent: skips broken players, Delete -> null, non-array -> null", () => {
+  it("toLcuEvent: skips broken players; Delete (API gone) and non-array are ignored", () => {
     const good = { championName: "Ahri", team: "ORDER", level: 2 };
     expect(toLcuEvent({ uri: "/liveclientdata/playerlist", eventType: "Update", data: [good, { team: 5 }, 7] })).toEqual({
       type: "live-players",
       players: [{ championId: 103, team: "ORDER", lane: null, level: 2, itemGold: 0 }],
     });
-    expect(toLcuEvent({ uri: "/liveclientdata/playerlist", eventType: "Delete", data: null })).toEqual({ type: "live-players", players: null });
+    expect(toLcuEvent({ uri: "/liveclientdata/playerlist", eventType: "Delete", data: null })).toBeNull();
     expect(toLcuEvent({ uri: "/liveclientdata/playerlist", eventType: "Update", data: {} })).toBeNull();
   });
 
@@ -317,12 +317,33 @@ describe("live-players (M-025..M-029)", () => {
     expect(reduce(d, ev)).toBe(d);
   });
 
-  it("clears live at EndOfGame, on a new match, on disconnect and on null", () => {
+  it("keeps live after the game: EndOfGame, Lobby, None and disconnect (M-031)", () => {
     const d = upTo(idx[1]!);
-    expect(reduce(d, phase("EndOfGame")).match.live).toBeNull();
-    expect(reduce(d, phase("EndOfGame")).liveFacts).toBeNull();
-    expect(reduce(d, phase("ChampSelect")).match.live).toBeNull();
-    expect(reduce(d, { type: "connection", status: "disconnected" }).match.live).toBeNull();
+    const kept = d.match.live;
+    expect(kept).not.toBeNull();
+    let after = reduce(d, phase("EndOfGame"));
+    expect(after.match.live).toEqual(kept);
+    after = reduce(after, phase("Lobby"));
+    expect(after.match.live).toEqual(kept);
+    after = reduce(after, phase("None"));
+    expect(after.match.live).toEqual(kept);
+    expect(reduce(d, { type: "connection", status: "disconnected" }).match.live).toEqual(kept);
+    // the whole scenario ends in the lobby (after the API went away): still there
+    expect(reduceAll(liveScenario).match.live).toEqual(kept);
+  });
+
+  it("clears live on the next match, on the next game and on null (M-031)", () => {
+    const d = upTo(idx[1]!);
+    const lobby = reduce(reduce(d, phase("EndOfGame")), phase("Lobby"));
+    const next = reduce(lobby, phase("ChampSelect"));
+    expect(next.match.live).toBeNull();
+    expect(next.liveFacts).toBeNull();
+    // a game that starts without champ select (e.g. the app started late)
+    const noPick = reduce(reduce(d, phase("EndOfGame")), phase("InProgress"));
+    expect(noPick.match.live).toBeNull();
+    expect(noPick.liveFacts).toBeNull();
+    // resuming the same game keeps it
+    expect(reduce(reduce(d, phase("Reconnect")), phase("InProgress")).match.live).toEqual(d.match.live);
     expect(reduce(d, { type: "live-players", players: null }).match.live).toBeNull();
   });
 

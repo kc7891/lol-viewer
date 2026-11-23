@@ -1,7 +1,8 @@
 /**
  * Live Client Data API in the real app (M-025..M-028): feature flag off => no requests,
  * on => item gold differences and lane correction without a restart, user swaps survive
- * the next poll, off / end of game => polling stops and the differences disappear.
+ * the next poll, off => polling stops and the differences disappear, end of game => polling stops
+ * and the differences stay until the next pick starts (M-031).
  * The fake LCU also serves /liveclientdata/playerlist from scenarios/live-ingame.jsonl.
  */
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from "@playwright/test";
@@ -115,13 +116,25 @@ test("turning the flag off stops reading and removes the differences", async () 
   expect(fake.liveClientRequests.length).toBeLessThanOrEqual(n + 1); // one request may have been in flight
 });
 
-test("the end of the game stops reading", async () => {
+test("the end of the game stops reading and keeps the differences", async () => {
   await toSettings();
   await liveSwitch().click();
   await toViewers();
   await expect.poll(polling, { timeout: 10_000 }).toBe(true);
-  await playTo(7000);
+  await expect(page.locator('.matchup-row[data-lane="jungle"] .live-diff .gold')).toHaveText("+1.4k", { timeout: 10_000 });
+  await playTo(7400); // EndOfGame, then Lobby
   await expect.poll(polling, { timeout: 10_000 }).toBe(false);
-  await expect(page.locator(".live-diff")).toHaveCount(0);
+  await expect(page.locator(".top-bar, header").first()).toContainText("Lobby");
+  await expect(page.locator('.matchup-row[data-lane="jungle"] .live-diff .gold')).toHaveText("+1.4k");
+  const n = fake.liveClientRequests.length;
+  await page.waitForTimeout(5000);
+  expect(fake.liveClientRequests.length).toBeLessThanOrEqual(n + 1); // one request may have been in flight
   expect(fake.rejectedWrites).toEqual([]);
+});
+
+test("the next pick clears the differences", async () => {
+  await expect(page.locator(".live-diff")).not.toHaveCount(0); // still there from the last game
+  await app.evaluate(() => (globalThis as any).__lolViewer.hub.dispatch({ type: "gameflow-phase", phase: "ChampSelect" }));
+  await expect(page.locator(".live-diff")).toHaveCount(0);
+  await expect(page.locator(".matchup-row .side.enemy .name")).toHaveCount(0);
 });
