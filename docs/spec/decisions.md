@@ -141,10 +141,6 @@ lolalytics を実際のブラウザ（Playwright）で開いた結果: `/lol/ahr
 
 ---
 
-## 未決事項
-
-現在なし。
-
 ## M-030 旧版のユーザーを更新チャンネルで新版へ移行する（2026-11-23）
 - 旧版は GitHub の `/releases/latest` の `tag_name` を見て、nightly.link の `lol-viewer-setup.zip`（`release.yml` の成果物 `lol-viewer-setup`）をダウンロードし、中の最初の `.exe` を `/NORESTART /DIR=<旧インストール先>` で実行する。インストール済みの旧版の更新処理は変えられない。
 - **決定: 同じファイル名・同じ起動方法の「ブートストラッパー」を配る。** `migrate-to-next.iss` が `lol-viewer-setup.exe` を作り、`app-latest` から取った最新の新版インストーラ（`lol-viewer-next-setup-*.exe`）を同梱する。実行すると新版をインストールし、成功したときだけ旧版を静かにアンインストールする（HKCU、HKLM の順で `{8F7A2B3C-…}_is1` を探す）。新版のインストールに失敗したら旧版は残す。`/DIR` は `CreateAppDir=no` で無視する。ユーザー単位（`PrivilegesRequired=lowest`）のまま動かし、新版が本人のユーザーにインストールされるようにする。
@@ -154,3 +150,7 @@ lolalytics を実際のブラウザ（Playwright）で開いた結果: `/lol/ahr
 - 旧版のソース（`lol-viewer.iss`、spec、Python コード）はこの変更では消さない。
 
 ---
+
+## 未決事項
+
+現在なし。
