@@ -62,12 +62,15 @@ jobs:
 
       - name: Compute the version (tools/release, unit-tested)
         id: plan
+        # Explicit bash = -eo pipefail: a failing `node` must not be hidden by `| tee`.
+        shell: bash
         env:
           MANUAL_BUMP: ${{ github.event_name == 'workflow_dispatch' && inputs.bump || '' }}
         run: |
           args=()
           if [ -n "$MANUAL_BUMP" ]; then args=(--bump "$MANUAL_BUMP"); fi
           node --experimental-strip-types next/tools/release/src/cli.ts plan "${args[@]}" | tee -a "$GITHUB_OUTPUT"
+          grep -Eq '^version=[0-9]+\.[0-9]+\.[0-9]+$' "$GITHUB_OUTPUT" || { echo "no version computed"; exit 1; }
 
       - name: Summary
         env:
