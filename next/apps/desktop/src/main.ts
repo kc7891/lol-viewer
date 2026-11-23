@@ -276,7 +276,7 @@ if (gotLock) void app.whenReady().then(async () => {
   }
 
   if (process.env.LOL_VIEWER_E2E === "1") {
-    (globalThis as Record<string, unknown>).__lolViewer = { hub, views, recording: rec, live, overlay, overlayWindow: () => overlayWin };
+    (globalThis as Record<string, unknown>).__lolViewer = { hub, views, recording: rec, live, overlay, overlayWindow: () => overlayWin, createKeySource };
   }
 
   // Finish (flush and close) an active recording before quitting.
