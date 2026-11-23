@@ -44,6 +44,8 @@ logs/
 
 # Release artifacts (never commit build output)
 release/
+# ...but the new app's release tooling is source code (next-release.yml runs it).
+!/next/tools/release/
 *.zip
 *.zip.part*
 *.part[a-z][a-z]
