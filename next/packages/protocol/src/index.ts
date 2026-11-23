@@ -152,18 +152,39 @@ export type Rect = z.infer<typeof RectSchema>;
 
 export const ViewIdSchema = z.string().regex(/^[a-z0-9:_-]{1,64}$/);
 
-/** Only https URLs on allow-listed analytics hosts may be loaded in-app. */
-export const ALLOWED_VIEW_HOSTS = ["lolalytics.com", "u.gg"] as const;
-
+/**
+ * Any https URL may be loaded in-app (the user chooses the Analytics URLs in Settings).
+ * External views are sandboxed with no preload / Node, so the host is not restricted;
+ * only the scheme is (no http:, file:, javascript:, ...).
+ */
 export function isAllowedViewUrl(raw: string): boolean {
-  let url: URL;
   try {
-    url = new URL(raw);
+    return new URL(raw).protocol === "https:";
   } catch {
     return false;
   }
-  if (url.protocol !== "https:") return false;
-  return ALLOWED_VIEW_HOSTS.some((h) => url.hostname === h || url.hostname.endsWith(`.${h}`));
+}
+
+/** Analytics sites that are always trusted to navigate inside a view (besides the view's own site). */
+export const KNOWN_VIEW_HOSTS = ["lolalytics.com", "u.gg", "op.gg"] as const;
+
+function sameSite(host: string, base: string): boolean {
+  return host === base || host.endsWith(`.${base}`) || base.endsWith(`.${host}`);
+}
+
+/**
+ * Whether a link click / redirect inside a view that was opened at `homeUrl` may stay in the
+ * view. Everything else is handed to the user's browser.
+ */
+export function isTrustedNavigation(homeUrl: string, target: string): boolean {
+  if (!isAllowedViewUrl(target)) return false;
+  const host = new URL(target).hostname;
+  if (KNOWN_VIEW_HOSTS.some((h) => sameSite(host, h))) return true;
+  try {
+    return sameSite(host, new URL(homeUrl).hostname);
+  } catch {
+    return false;
+  }
 }
 
 export const ViewUrlSchema = z.string().refine(isAllowedViewUrl, "URL host is not allow-listed");

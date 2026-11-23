@@ -92,9 +92,9 @@ export function parseSettings(input: unknown): Settings {
 export type UrlTemplateProblem = "empty" | "host";
 
 /**
- * What is wrong with one template: empty, or (with sample values substituted) not an https URL
- * on an allow-listed host. Pages outside the allow-list are refused by the desktop app, so
- * saving one would leave every viewer blank (M-016).
+ * What is wrong with one template: empty, or (with sample values substituted) not an https URL.
+ * Any host is accepted; the desktop app refuses non-https pages, so saving one would leave
+ * every viewer blank (M-016).
  */
 export function urlTemplateProblem(template: string): UrlTemplateProblem | null {
   const t = (template ?? "").trim();

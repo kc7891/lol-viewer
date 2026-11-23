@@ -75,7 +75,7 @@ Windows CI の runner は画面が 1024×768 なので、スクショの右側�
 
 - LCU には GET と購読しかできない（汎用の `request()` は存在しない）。偽 LCU は書き込み要求を記録し、E2E で「0 件」を確認している。
 - TLS 検証を緩めるのは LCU へのループバック接続だけ（Python 版のようにプロセス全体では緩めない）。
-- 外部ビュー: preload なし、sandbox、専用 session。`https` の許可ホスト（lolalytics.com / u.gg）以外への遷移やポップアップは既定ブラウザに回す。
+- 外部ビュー: preload なし、sandbox、専用 session。`https` 以外は読み込まない（ホストは自由）。既知の分析サイト（lolalytics.com / u.gg / op.gg）かそのビューと同じサイト以外への遷移や、ポップアップは既定ブラウザに回す。
 - アプリ本体のウィンドウ: sandbox、contextIsolation、ナビゲーション禁止。IPC は送り元フレームを確認し、zod で検証する。本番ビルドは CSP を強制する。
 - Hub サーバ: 127.0.0.1 にだけ bind、トークン必須、`Origin` と `Host` を検証（DNS rebinding 対策）。テスト済み。
 

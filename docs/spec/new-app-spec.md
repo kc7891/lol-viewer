@@ -273,7 +273,7 @@ MatchState が届くたびに、次の順に処理する。
 ### 4.4 いつ URL が使われるか
 - ビューアの URL は**テンプレートから毎回求める**。Settings で URL を保存すると、URL が変わる開いているビューアは、その場で新しい URL を開き直す（M-021。旧版は「開く時点」の値で、開いているものは変わらなかった）。
 - チャンピオン、対面、レーン、モードを変えると、チャンピオンがあれば**すぐ開き直す**。同じ URL でも、`nav` を進めて強制的に読み込み直す。
-- アプリが開ける URL は `https` で、ホストが `lolalytics.com` か `u.gg`（サブドメイン含む）のものだけ。Settings は、それ以外の URL を保存させない（M-023）。保存済みの値が（古い設定などで）許可外だった場合は、main が読み込みを拒否してペインが空になる（§6.1）。
+- アプリが開ける URL は `https` のものだけで、ホストは制限しない（M-023）。Settings は、空欄と `https` 以外を保存させない。`https` 以外の値が（古い設定などで）残っていた場合は、main が読み込みを拒否してペインが空になる（§6.1）。
 
 ---
 
@@ -306,10 +306,10 @@ MatchState が届くたびに、次の順に処理する。
 ### 6.1 外部ページ（`ExternalViewManager`）
 - ビューアごとに 1 つ（`viewer-<id>`）、Live Game に 1 つ（`live-game`）のネイティブ表示（`WebContentsView`）を、renderer の「穴」（`ExternalViewSlot`）の矩形に重ねる。ウィンドウの大きさやペインの幅が変わると追従する。穴が隠れたり潰れたりしたら表示を隠す。
 - 外部ページには preload も Node の権限も渡さない。サンドボックス、コンテキスト分離あり。
-- 読み込める URL: `https`、ホストが `lolalytics.com` / `u.gg`（とそのサブドメイン）。それ以外の読み込み命令は、検証で拒否して警告をログに出すだけ。
-- ページからの移動: 許可ホストならアプリ内で続行。それ以外の `https` は**既定のブラウザへ回し**、アプリ内では移動しない。ポップアップ（`target=_blank`）は常に既定のブラウザへ（`https` のみ）。
+- 読み込める URL: `https` のみ（ホストは制限しない）。それ以外の読み込み命令は、検証で拒否して警告をログに出すだけ。
+- ページからの移動: 既知の分析サイト（`lolalytics.com` / `u.gg` / `op.gg`）か、そのビューを開いたサイトと同じサイト（サブドメイン含む）ならアプリ内で続行。それ以外の `https` は**既定のブラウザへ回し**、アプリ内では移動しない。ポップアップ（`target=_blank`）は常に既定のブラウザへ（`https` のみ）。
 - 右クリックのメニュー: `Back`、`Forward`（履歴があるときだけ有効）、`Reload`、（リンク上なら）`Copy link address`、`Open page in browser`。
-- ページ内の移動、タイトル、読み込み状態（loading / ready / error）、戻る・進むの可否を renderer へ通知する（ペインの ◀ ▶、QR、↗ が使う）。
+- ページ内の移動、タイトル、読み込み状態（loading / ready / error。`did-start-loading` で loading、`did-stop-loading` で ready。メインフレームの読み込みに失敗したら、次のメインフレーム移動まで error）、戻る・進むの可否を renderer へ通知する（ペインの ◀ ▶、QR、↗ が使う）。
 - 隠した（外した）ビューは、直近の 4 つまで読み込み済みで保持する。同じビューアを再表示すると、同じ URL ならページは読み込み直さない。4 つを超えて外されたビューは破棄する（再表示すると読み込み直しになり、ページ内の移動は失われる）。
 - Cookie などは `persist:external` に保存する（ログインが残る）。
 - アプリ本体のウィンドウは、UI のページ以外へ移動しない。ポップアップは既定のブラウザへ。
@@ -495,7 +495,7 @@ NSIS、ワンクリック、ユーザー単位（`%LOCALAPPDATA%\Programs\lol-vi
 | 旧版の機能（9 項目） | 状態 | 新版での場所 | 根拠 |
 |---|---|---|---|
 | 5 つの URL 入力欄と説明（placeholder の例つき） | ✅ | `UrlsCard`（欄ごとの説明） | M-008（文言は対象外） |
-| Save: trim、全欄必須、エラー表示、成功表示 | ✨ | `UrlsCard`（赤表示、通知）。空欄に加えて、https で lolalytics.com / u.gg 以外も保存させない | M-023、`settings.test.ts`（"validateUrlTemplates"、"urlTemplateProblem"）、`storybook.spec.ts`（"Settings: URL validation blocks saving, saving works…"） |
+| Save: trim、全欄必須、エラー表示、成功表示 | ✨ | `UrlsCard`（赤表示、通知）。空欄と https 以外を保存させない（ホストは自由） | M-023、`settings.test.ts`（"validateUrlTemplates"、"urlTemplateProblem"）、`storybook.spec.ts`（"Settings: URL validation blocks saving, saving works…"） |
 | Reset to Defaults（確認なし） | ✅ | 同上 | M-016 |
 | Version Information のうち、現在のバージョン | ✅ | `VersionCard`（`app.getVersion()` とプラットフォーム） | `storybook.spec.ts`（"Version says dev in the browser"） |
 | Version Information のうち、最新バージョン、ステータス | ✅ | Settings > Version の `Latest version` と状態の文（§2.4） | `storybook.spec.ts`（"Settings > Version: …states show the right text and button"） |

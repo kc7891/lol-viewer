@@ -11,7 +11,7 @@
  *  - eviction : least recently detached views beyond the cache are destroyed
  */
 import { clipboard, Menu, shell, WebContentsView, type BrowserWindow } from "electron";
-import { isAllowedViewUrl, type Rect, type ViewCommand, type ViewStatus } from "@lol-viewer/protocol";
+import { isTrustedNavigation, type Rect, type ViewCommand, type ViewStatus } from "@lol-viewer/protocol";
 
 const MAX_CACHED = 4;
 const PARTITION = "persist:external";
@@ -155,7 +155,7 @@ export class ExternalViewManager {
       return { action: "deny" };
     });
     wc.on("will-navigate", (ev, url) => {
-      if (isAllowedViewUrl(url)) return;
+      if (isTrustedNavigation(this.#views.get(viewId)?.url ?? "", url)) return;
       ev.preventDefault();
       if (url.startsWith("https://")) void shell.openExternal(url);
     });
@@ -164,13 +164,24 @@ export class ExternalViewManager {
       if (wc.isDestroyed()) return;
       this.#onStatus({ viewId, status, url: wc.getURL(), title: wc.getTitle(), ...this.#nav(wc) });
     };
+    // "loading" is raised by any start (sub-frames, ads, SPA routes) but did-finish-load only
+    // fires for the main frame, so heavy pages stayed "loading" forever. did-stop-loading is
+    // the one event that always closes the cycle. A failed main-frame load stays "error"
+    // until the next main-frame navigation starts.
+    let failed = false;
+    wc.on("did-start-navigation", (d) => {
+      if (d.isMainFrame && !d.isSameDocument) failed = false;
+    });
     wc.on("did-start-loading", () => report("loading"));
-    wc.on("did-finish-load", () => report("ready"));
+    wc.on("did-stop-loading", () => report(failed ? "error" : "ready"));
     wc.on("did-fail-load", (_e, code, _d, _u, isMainFrame) => {
-      if (isMainFrame && code !== -3 /* ABORTED */) report("error");
+      if (isMainFrame && code !== -3 /* ABORTED */) {
+        failed = true;
+        report("error");
+      }
     });
     // Keep the last known status kind; only url / title / back-forward change.
-    const current = (): ViewStatus["status"] => (wc.isLoading() ? "loading" : "ready");
+    const current = (): ViewStatus["status"] => (failed ? "error" : wc.isLoading() ? "loading" : "ready");
     wc.on("did-navigate", () => report(current()));
     wc.on("did-navigate-in-page", () => report(current()));
     wc.on("page-title-updated", () => report(current()));
