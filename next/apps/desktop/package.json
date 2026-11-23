@@ -9,7 +9,9 @@
     "start": "electron .",
     "dist": "electron-builder --config electron-builder.yml"
   },
-  "dependencies": {},
+  "dependencies": {
+    "koffi": "3.3.5"
+  },
   "devDependencies": {
     "@lol-viewer/core": "workspace:*",
     "@lol-viewer/hub": "workspace:*",

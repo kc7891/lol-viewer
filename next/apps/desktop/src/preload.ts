@@ -3,7 +3,7 @@
  * nothing else — no ipcRenderer, no Node. Inputs are validated again in main.
  */
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
-import type { AppInfo, LolViewerBridge, MatchState, RecorderStatus, UpdateStatus, ViewCommand, ViewStatus } from "@lol-viewer/protocol";
+import type { AppInfo, LolViewerBridge, MatchState, OverlayRows, RecorderStatus, UpdateStatus, ViewCommand, ViewStatus } from "@lol-viewer/protocol";
 
 function on<T>(channel: string, cb: (v: T) => void): () => void {
   const h = (_e: IpcRendererEvent, v: T) => cb(v);
@@ -38,6 +38,10 @@ const bridge: LolViewerBridge = {
   },
   live: {
     setEnabled: (enabled: boolean) => ipcRenderer.send("live:set-enabled", enabled === true),
+  },
+  overlay: {
+    setEnabled: (enabled: boolean) => ipcRenderer.send("overlay:set-enabled", enabled === true),
+    setRows: (rows: OverlayRows) => ipcRenderer.send("overlay:rows", rows),
   },
   recorder: {
     start: () => ipcRenderer.invoke("recorder:start") as Promise<RecorderStatus>,

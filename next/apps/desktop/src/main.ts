@@ -13,16 +13,19 @@
  *   LOL_VIEWER_UPDATE_URL        update feed base URL (default: the app-latest GitHub Release); tests point it at a local server
  *   LOL_VIEWER_DISABLE_UPDATES=1 never check for updates (also off when not packaged or LOL_VIEWER_E2E=1)
  *   LOL_LIVE_CLIENT_URL   Live Client Data API base URL (fake in tests). Used by the recorder and, with the liveClientData flag on, in game
+ *   LOL_OVERLAY_FAKE_KEYS=<file>  in-game overlay: read Tab from this file (`tab` / `none`) instead of Windows (E2E only)
  *   LOL_VIEWER_USER_DATA_DIR  use this folder instead of the user's profile data (E2E: never touch real settings)
  */
 import { join } from "node:path";
-import { app, BrowserWindow, ipcMain, Menu, shell } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, screen, shell } from "electron";
 import { toLcuEvent } from "@lol-viewer/core";
 import { Hub, startHubServer } from "@lol-viewer/hub";
 import { startLcuConnector, startLiveClientPoller } from "@lol-viewer/lcu";
-import { ViewCommandSchema } from "@lol-viewer/protocol";
+import { OverlayRowsSchema, ViewCommandSchema, type OverlayRows } from "@lol-viewer/protocol";
 import { ExternalViewManager } from "./external-views.ts";
 import { createLiveGate, LIVE_POLL_MS } from "./live-core.ts";
+import { createOverlayGate, overlayBounds, OVERLAY_SIZE } from "./overlay-core.ts";
+import { createKeySource } from "./win-keys.ts";
 import { RecordingController } from "./recording.ts";
 import { createUpdater } from "./updater.ts";
 import { attachRendererLogging, initLogging, installProcessHandlers, log } from "./log.ts";
@@ -156,6 +159,99 @@ if (gotLock) void app.whenReady().then(async () => {
   ipcMain.on("live:set-enabled", (e, enabled: unknown) => {
     if (fromApp(e) && typeof enabled === "boolean") live.setEnabled(enabled);
   });
+  // M-034: in-game overlay. A transparent, click-through window that never takes focus, shown only while Tab is held.
+  let overlayWin: BrowserWindow | null = null;
+  let overlayRows: OverlayRows | null = null;
+  const sendToOverlay = (channel: string, payload: unknown) => {
+    if (overlayWin && !overlayWin.isDestroyed()) overlayWin.webContents.send(channel, payload);
+  };
+  const overlay = createOverlayGate({
+    getKeys: () => {
+      try {
+        const keys = createKeySource();
+        if (keys) log.info("overlay", `key source ready (${process.platform})`);
+        return keys;
+      } catch (err) {
+        log.warn("overlay", "key source not available", String(err)); // e.g. koffi missing from the install
+        return null;
+      }
+    },
+    open: () => {
+      if (overlayWin && !overlayWin.isDestroyed()) return;
+      const ow = new BrowserWindow({
+        show: false,
+        transparent: true,
+        frame: false,
+        resizable: false,
+        movable: false,
+        focusable: false,
+        skipTaskbar: true,
+        hasShadow: false,
+        backgroundColor: "#00000000",
+        width: OVERLAY_SIZE.width,
+        height: OVERLAY_SIZE.height,
+        webPreferences: {
+          preload: join(__dirname, "overlay-preload.cjs"),
+          sandbox: true,
+          contextIsolation: true,
+          nodeIntegration: false,
+          webSecurity: true,
+        },
+      });
+      ow.setAlwaysOnTop(true, "screen-saver");
+      ow.setIgnoreMouseEvents(true);
+      ow.webContents.on("will-navigate", (ev) => ev.preventDefault());
+      ow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+      ow.webContents.on("did-finish-load", () => {
+        sendToOverlay("hub:state", hub.state);
+        if (overlayRows) sendToOverlay("overlay:rows", overlayRows);
+      });
+      ow.on("closed", () => {
+        if (overlayWin === ow) overlayWin = null;
+      });
+      overlayWin = ow;
+      void ow.loadFile(join(__dirname, "web", "overlay.html"));
+    },
+    close: () => {
+      if (overlayWin && !overlayWin.isDestroyed()) overlayWin.close();
+      overlayWin = null;
+    },
+    show: (keys) => {
+      if (!overlayWin || overlayWin.isDestroyed()) return;
+      // Over the game window (physical pixels -> DIPs); the primary display when its bounds are unknown.
+      let game: Electron.Rectangle = screen.getPrimaryDisplay().workArea;
+      try {
+        const r = keys.gameRect?.();
+        if (r) game = process.platform === "win32" ? screen.screenToDipRect(null, r) : r;
+      } catch (err) {
+        log.warn("overlay", "game window bounds not available", String(err));
+      }
+      overlayWin.setBounds(overlayBounds(game));
+      overlayWin.setAlwaysOnTop(true, "screen-saver");
+      overlayWin.showInactive(); // never show(): that takes focus from the game
+    },
+    hide: () => {
+      if (overlayWin && !overlayWin.isDestroyed()) overlayWin.hide();
+    },
+    onError: (err) => log.warn("overlay", "reading the Tab key failed; the overlay stops for this game", String(err)),
+    setInterval: (fn, ms) => setInterval(fn, ms),
+    clearInterval: (h) => clearInterval(h),
+  });
+  hub.subscribe((s) => {
+    overlay.setPhase(s.phase);
+    sendToOverlay("hub:state", s);
+  });
+  ipcMain.on("overlay:set-enabled", (e, enabled: unknown) => {
+    if (fromApp(e) && typeof enabled === "boolean") overlay.setEnabled(enabled);
+  });
+  ipcMain.on("overlay:rows", (e, raw: unknown) => {
+    if (!fromApp(e)) return;
+    const rows = OverlayRowsSchema.safeParse(raw);
+    if (!rows.success) return void log.warn("overlay", "rejected rows", rows.error.issues[0]?.message);
+    overlayRows = rows.data;
+    sendToOverlay("overlay:rows", rows.data);
+  });
+  win.on("closed", () => overlay.dispose()); // the overlay window must not keep the app alive
   ipcMain.on("lcu:reconnect", (e) => {
     if (fromApp(e)) connector.reconnect();
   });
@@ -180,7 +276,7 @@ if (gotLock) void app.whenReady().then(async () => {
   }
 
   if (process.env.LOL_VIEWER_E2E === "1") {
-    (globalThis as Record<string, unknown>).__lolViewer = { hub, views, recording: rec, live };
+    (globalThis as Record<string, unknown>).__lolViewer = { hub, views, recording: rec, live, overlay, overlayWindow: () => overlayWin };
   }
 
   // Finish (flush and close) an active recording before quitting.
@@ -193,6 +289,7 @@ if (gotLock) void app.whenReady().then(async () => {
       return;
     }
     live.dispose();
+    overlay.dispose();
     connector.stop();
     void hubServer?.close();
   });

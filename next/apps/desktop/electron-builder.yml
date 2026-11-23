@@ -12,6 +12,10 @@ files:
   - assets/**
   - package.json
 asar: true
+# koffi (a runtime dependency, so electron-builder packs it) loads a native .node file (the per-OS binary lives in @koromix/koffi-*): keep both outside the asar.
+asarUnpack:
+  - "**/node_modules/koffi/**"
+  - "**/node_modules/@koromix/**"
 win:
   icon: assets/app_icon.ico
   target:
