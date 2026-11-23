@@ -9,9 +9,11 @@ directories:
   output: release
 files:
   - out/**
+  - assets/**
   - package.json
 asar: true
 win:
+  icon: assets/app_icon.ico
   target:
     - target: nsis
       arch: [x64]
@@ -26,7 +28,15 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   deleteAppDataOnUninstall: false
+  # Display name of the shortcuts only. productName / install folder / appId stay
+  # as they are: the Windows CI install tests address them by path.
+  shortcutName: LoL Viewer
   artifactName: lol-viewer-next-setup-${version}.exe
 linux:
   target: [dir]
-publish: null
+# Generic provider: electron-builder writes latest.yml next to the installer and embeds this feed in
+# app-update.yml. The release workflow uploads both to the fixed "app-latest" release (design §6).
+# The build version comes from the CLI (-c.extraMetadata.version=X.Y.Z); package.json's is a dev default.
+publish:
+  provider: generic
+  url: https://github.com/kc7891/lol-viewer/releases/download/app-latest/

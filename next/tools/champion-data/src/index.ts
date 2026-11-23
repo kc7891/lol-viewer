@@ -9,6 +9,7 @@ import {
   ChampionDataSchema,
   type ChampionData,
   type ChampionEntry,
+  type Lane,
   type SpellKey,
 } from "@lol-viewer/protocol";
 
@@ -28,18 +29,53 @@ export function slugFor(ddragonId: string): string {
   return SLUG_OVERRIDES[ddragonId] ?? ddragonId.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-export function transform(en: DDragonChampionFull, ja: DDragonChampionFull): ChampionData {
+export type LaneScores = Record<Lane, number>;
+export const NO_LANES: LaneScores = { top: 0, jungle: 0, middle: 0, bottom: 0, support: 0 };
+
+/**
+ * Parse champion_lane.csv (`name,top,jg,mid,bot,sup`, scores 0-5). The name is the
+ * URL slug (lowercase; Wukong is `wukong`). Throws on a malformed row.
+ */
+export function parseLaneCsv(text: string): Map<string, LaneScores> {
+  const out = new Map<string, LaneScores>();
+  const rows = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const header = rows.shift()?.toLowerCase().split(",").map((h) => h.trim());
+  if (header?.join(",") !== "name,top,jg,mid,bot,sup") throw new Error(`champion_lane.csv: unexpected header: ${header?.join(",")}`);
+  for (const [i, row] of rows.entries()) {
+    const [name, ...nums] = row.split(",").map((c) => c.trim());
+    const n = nums.map(Number);
+    if (!name || n.length !== 5 || n.some((x) => !Number.isInteger(x) || x < 0 || x > 5)) {
+      throw new Error(`champion_lane.csv row ${i + 2}: invalid: ${row}`);
+    }
+    out.set(name.toLowerCase(), { top: n[0]!, jungle: n[1]!, middle: n[2]!, bottom: n[3]!, support: n[4]! });
+  }
+  return out;
+}
+
+/** CSV names that match no champion slug (reported as warnings at generation time). */
+export function unknownLaneNames(data: ChampionData, lanes: Map<string, LaneScores>): string[] {
+  const slugs = new Set(data.champions.map((c) => c.slug));
+  return [...lanes.keys()].filter((k) => !slugs.has(k)).sort();
+}
+
+export function transform(
+  en: DDragonChampionFull,
+  ja: DDragonChampionFull,
+  lanes: Map<string, LaneScores> = new Map(),
+): ChampionData {
   if (en.version !== ja.version) throw new Error(`locale version mismatch: ${en.version} vs ${ja.version}`);
   const champions: ChampionEntry[] = Object.values(en.data).map((c) => {
     const jc = ja.data[c.id];
     if (!jc) throw new Error(`${c.id} missing in ja_JP`);
     if (c.spells.length !== 4 || jc.spells.length !== 4) throw new Error(`${c.id}: expected 4 spells`);
+    const slug = slugFor(c.id);
     return {
       id: Number(c.key),
       ddragonId: c.id,
-      slug: slugFor(c.id),
+      slug,
       name: c.name,
       nameJa: jc.name,
+      lanes: { ...(lanes.get(slug) ?? NO_LANES) },
       spells: c.spells.map((s, i) => ({
         key: SPELL_KEYS[i]!,
         name: s.name,
@@ -86,6 +122,7 @@ export function diff(before: ChampionData | null, after: ChampionData): string {
       }
     }
     if (o.slug !== c.slug || o.name !== c.name || o.nameJa !== c.nameJa) other.push(`- ${c.name}: name/slug changed`);
+    if (JSON.stringify(o.lanes) !== JSON.stringify(c.lanes)) other.push(`- ${c.name}: lane scores changed`);
   }
   if (cd.length) lines.push("", "### Cooldown changes", "", "| Champion | Spell | Before | After |", "|---|---|---|---|", ...cd);
   if (other.length) lines.push("", "### Other changes", ...other);

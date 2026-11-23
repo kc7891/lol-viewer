@@ -8,6 +8,9 @@ LoL Viewer の仕様を、このディレクトリでまとめて管理する。
 |---|---|---|
 | [legacy-inventory/](./legacy-inventory/README.md) | 旧版の全機能、挙動、インフラの棚卸し。各ファイルの末尾に移植チェックリストがある | 旧版の事実を記録するもの。旧コードが変わらない限り、基本的には書き換えない。決定の結果は注記として追記する |
 | [decisions.md](./decisions.md) | 移植方針の決定事項（M-xxx）と未決事項（Q-xxx） | 決まるたびに追記する。過去の決定は消さずに「改訂」を追記する |
+| [new-app-design.md](./new-app-design.md) | 新版（`next/`、Electron 版）の設計: 構成、MatchState と Workspace の規則、新しい UI | 設計を変えたら更新する |
+| [new-app-spec.md](./new-app-spec.md) | 新版の機能仕様（実装に基づく）と移植チェック表 | 実装を変えたら更新する。設計書と食い違うときは、実装を書いて差異に挙げる |
+| [progress.md](./progress.md) | 新版への移植の進み具合（インベントリのチェックリストとの対応） | 作業のたびに更新する |
 
 ## 運用ルール
 - 仕様や移植に関するドキュメントはすべてこのディレクトリに置く。旧版の `docs/features.md`、`docs/architecture.md`、`docs/design/` などは旧版の資料として扱い、移植の基準にはしない。

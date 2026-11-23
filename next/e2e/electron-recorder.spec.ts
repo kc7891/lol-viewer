@@ -1,5 +1,5 @@
 /**
- * Settings → 試合を記録 in the real app: record a session from the fake LCU
+ * Settings → Record session in the real app: record a session from the fake LCU
  * (with real-looking identities), then check the file replays to the same
  * match and contains no personal data.
  */
@@ -42,6 +42,7 @@ test.beforeAll(async () => {
       LOL_LIVE_CLIENT_URL: `http://127.0.0.1:${fake.port}`,
       LOL_VIEWER_RECORDINGS_DIR: recordings,
       LOL_VIEWER_E2E: "1",
+      LOL_VIEWER_USER_DATA_DIR: mkdtempSync(join(tmpdir(), "lol-viewer-e2e-")),
     },
   });
   page = await app.firstWindow();
@@ -53,23 +54,24 @@ test.afterAll(async () => {
 });
 
 test("records a session from Settings, masked and replayable", async () => {
-  await expect(page.getByRole("status").first()).toHaveText("Riot API: Connected", { timeout: 15_000 });
+  await expect(page.locator(".conn")).toHaveAttribute("data-status", "connected", { timeout: 15_000 });
 
-  await page.getByRole("button", { name: "Settings" }).click();
-  const settings = page.getByRole("dialog", { name: "Settings" });
-  await settings.getByRole("button", { name: "記録を開始" }).click();
-  await expect(settings.getByText(/記録中/)).toBeVisible();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(page.getByTestId("update-status")).toHaveText("Update checks are off in this build."); // LOL_VIEWER_E2E=1
+  const settings = page.getByRole("region", { name: "Record session" });
+  await settings.getByRole("button", { name: "Start recording" }).click();
+  await expect(settings.getByRole("status")).toContainText("Recording");
 
   // Play both matches step by step while recording.
   for (const l of withIdentities) {
     fake.advanceTo(l.t);
     await page.waitForTimeout(10);
   }
-  await expect(settings.getByText(/記録中.*件/)).toContainText(/[1-9]\d* 件/, { timeout: 10_000 });
+  await expect(settings.getByRole("status")).toContainText(/[1-9]\d* events/, { timeout: 10_000 });
   await page.waitForTimeout(500);
 
-  await settings.getByRole("button", { name: "記録を停止" }).click();
-  await expect(settings.getByText(/保存しました/)).toBeVisible();
+  await settings.getByRole("button", { name: "Stop" }).click();
+  await expect(settings.getByText(/^Saved:/)).toBeVisible();
 
   const files = readdirSync(recordings).filter((f) => f.endsWith(".jsonl"));
   expect(files).toHaveLength(1);
@@ -81,8 +83,9 @@ test("records a session from Settings, masked and replayable", async () => {
   expect(replayed.flatMap((l) => findUnmaskedPii(l.data))).toEqual([]);
   const want = reduceAll(scenarioEvents(parseScenario(source.map((l) => JSON.stringify(l)).join("\n"))));
   const got = reduceAll(scenarioEvents(replayed));
-  expect(got.matchSeq).toBe(want.matchSeq);
-  expect(got.self).toEqual(want.self);
-  expect(got.matchups).toEqual(want.matchups);
+  expect(got.match.matchSeq).toBe(want.match.matchSeq);
+  expect(got.match.self).toEqual(want.match.self);
+  expect(got.match.allies).toEqual(want.match.allies);
+  expect(got.match.enemies).toEqual(want.match.enemies);
   expect(fake.rejectedWrites).toEqual([]);
 });

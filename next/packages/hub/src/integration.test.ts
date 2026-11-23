@@ -52,8 +52,9 @@ describe("fake LCU -> connector -> hub", () => {
     await waitFor(hub, (s) => s.connection === "connected");
     fake.play();
 
-    const m1 = await waitFor(hub, (s) => s.matchSeq === 1 && s.matchups.every((r) => r.enemyChampionId != null));
+    const m1 = await waitFor(hub, (s) => s.matchSeq === 1 && s.enemies.length === 5);
     expect(m1.self).toEqual({ championId: 103, lane: "middle" });
+    expect(m1.allies).toHaveLength(5);
 
     const m2 = await waitFor(hub, (s) => s.matchSeq === 2 && s.self != null);
     expect(m2.self).toEqual({ championId: 266, lane: "top" });
@@ -73,6 +74,20 @@ describe("fake LCU -> connector -> hub", () => {
   });
 });
 
+describe("hub", () => {
+  it("does not notify twice for an event that changes nothing observable, and hides DetectorState", () => {
+    const hub = new Hub();
+    const seen: MatchState[] = [];
+    hub.subscribe((s) => seen.push(s));
+    hub.dispatch({ type: "connection", status: "connected" });
+    hub.dispatch({ type: "connection", status: "connected" });
+    hub.dispatch({ type: "current-summoner", summoner: { summonerId: 7 } });
+    expect(seen).toHaveLength(2);
+    expect(Object.keys(hub.state)).not.toContain("summonerId");
+    expect(Object.keys(hub.state)).not.toContain("match");
+  });
+});
+
 describe("hub server security", () => {
   async function server(): Promise<{ hub: Hub; srv: HubServer }> {
     const hub = new Hub();
@@ -85,7 +100,7 @@ describe("hub server security", () => {
     const { srv } = await server();
     const res = await fetch(`${srv.url}/api/state?token=t0ken`);
     expect(res.status).toBe(200);
-    expect(((await res.json()) as { protocolVersion: number }).protocolVersion).toBe(1);
+    expect(((await res.json()) as { protocolVersion: number }).protocolVersion).toBe(2);
   });
 
   it.each([

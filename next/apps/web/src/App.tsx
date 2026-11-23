@@ -1,182 +1,192 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { autoViewers, defaultCooldownChampion, viewerId, type ViewerTarget } from "@lol-viewer/core";
-import { SuppressViewsProvider, useBridge, useMatchState } from "./bridge/context.tsx";
-import { AddViewerDialog } from "./components/AddViewerDialog.tsx";
-import { ChampionIcon } from "./components/ChampionIcon.tsx";
-import { ConnectionStatus } from "./components/ConnectionStatus.tsx";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { canAddViewer, defaultCooldownChampion, liveGameUrl, MAX_VIEWERS, type Side, type UrlTemplateKey, type UrlTemplates, type Workspace } from "@lol-viewer/core";
+import { SuppressViews, useBridge, useMatchState, useUpdateStatus } from "./bridge/context.tsx";
 import { CooldownPanel } from "./components/CooldownPanel.tsx";
-import { MatchupList } from "./components/MatchupList.tsx";
-import { RecorderSection } from "./components/RecorderSection.tsx";
-import { ViewerPane, viewerTitle } from "./components/ViewerPane.tsx";
-import type { ReactNode } from "react";
-
-export type Layout = 1 | 2 | 3;
+import { LivePage } from "./components/LivePage.tsx";
+import { MatchupSection } from "./components/MatchupSection.tsx";
+import { PaneStrip } from "./components/PaneStrip.tsx";
+import { SettingsPage } from "./components/SettingsPage.tsx";
+import { Sidebar } from "./components/Sidebar.tsx";
+import { Toasts } from "./components/Toasts.tsx";
+import { TopBar, type Page } from "./components/TopBar.tsx";
+import type { PanelKind } from "./components/ViewerPane.tsx";
+import { ViewersSection } from "./components/ViewersSection.tsx";
+import { useSettings } from "./state/settings.tsx";
+import { useToasts, type Toast } from "./state/toasts.tsx";
+import { useWorkspace } from "./state/workspace.ts";
 
 export type AppProps = {
-  initialLayout?: Layout;
-  /** Extra controls rendered in the toolbar (e.g. mock playback). */
+  /** Extra controls in the top bar (e.g. mock playback). */
   toolbarExtra?: ReactNode;
-  initialSettingsOpen?: boolean;
-  initialAddOpen?: boolean;
-  /** Viewers opened by hand (stories / tests). */
-  initialManualViewers?: ViewerTarget[];
+  /** Red dot on Settings. */
+  updateAvailable?: boolean;
+  // Stories and tests only:
+  initialWorkspace?: Workspace;
+  initialPage?: Page;
+  initialToasts?: Toast[];
+  /** Stories keep toasts on screen; the app lets them fade. */
+  autoDismissToasts?: boolean;
+  initialPanels?: Record<number, PanelKind>;
+  initialLiveQr?: boolean;
+  urlsInitialDraft?: UrlTemplates;
+  urlsInitialErrors?: UrlTemplateKey[];
 };
 
 export function App({
-  initialLayout = 2,
   toolbarExtra,
-  initialSettingsOpen = false,
-  initialAddOpen = false,
-  initialManualViewers = [],
+  updateAvailable,
+  initialWorkspace: initialWs,
+  initialPage = "viewers",
+  initialToasts,
+  autoDismissToasts = true,
+  initialPanels,
+  initialLiveQr,
+  urlsInitialDraft,
+  urlsInitialErrors,
 }: AppProps) {
-  const state = useMatchState();
   const bridge = useBridge();
-  const [manual, setManual] = useState<ViewerTarget[]>(initialManualViewers);
-  /** Auto viewers the user closed during this match. */
-  const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
-  const viewers = useMemo(() => {
-    const out: ViewerTarget[] = [];
-    const seen = new Set<string>();
-    for (const v of [...manual, ...autoViewers(state)]) {
-      const id = viewerId(v);
-      if (seen.has(id) || dismissed.has(id)) continue;
-      seen.add(id);
-      out.push(v);
-    }
-    return out;
-  }, [manual, state, dismissed]);
-  const [layout, setLayout] = useState<Layout>(initialLayout);
-  const [selected, setSelected] = useState<string[]>(() => initialManualViewers.map(viewerId));
-  const [settingsOpen, setSettingsOpen] = useState(initialSettingsOpen);
-  const [addOpen, setAddOpen] = useState(initialAddOpen);
+  const match = useMatchState();
+  const updateStatus = useUpdateStatus();
+  const updateDot = updateAvailable ?? (updateStatus?.state === "available" || updateStatus?.state === "downloaded");
+  const { settings, update } = useSettings();
+  const [ws, dispatch] = useWorkspace(match, initialWs);
+  const { toasts, push: notify, dismiss } = useToasts(initialToasts, autoDismissToasts);
+
+  const [page, setPage] = useState<Page>(initialPage);
+  const [focusLcu, setFocusLcu] = useState(0);
+  const [liveNav, setLiveNav] = useState(0);
+
+  // Sidebar width: live while dragging, saved on release.
+  const [sbWidth, setSbWidth] = useState(settings.sidebarWidth);
+  const [sbDrag, setSbDrag] = useState(false);
+
+  // Cooldowns follow the matchup click; a new match goes back to the default.
   const [cooldownPick, setCooldownPick] = useState<number | null>(null);
-  const cooldownChampionId = cooldownPick ?? defaultCooldownChampion(state);
+  const matchSeq = ws.last?.matchSeq;
+  useEffect(() => setCooldownPick(null), [matchSeq]);
+  const cooldownChampion = cooldownPick ?? defaultCooldownChampion(ws);
 
-  // New match -> drop the previous selections (the auto viewers already reset).
-  // Manually opened viewers are kept: the user asked for them explicitly.
-  useEffect(() => {
-    setSelected((s) => s.filter((id) => manual.some((m) => viewerId(m) === id)));
-    setDismissed(new Set());
-    setCooldownPick(null);
-  }, [state.matchSeq]);
+  // Sidebar click / new viewer: scroll the pane into view and flash it.
+  const [focus, setFocus] = useState<{ id: number; n: number } | null>(null);
+  const [highlightId, setHighlightId] = useState<number | null>(null);
+  const focusN = useRef(0);
+  const focusViewer = useCallback((id: number) => setFocus({ id, n: ++focusN.current }), []);
+  useLayoutEffect(() => {
+    if (!focus) return;
+    document.querySelector(`[data-pane-id="${focus.id}"]`)?.scrollIntoView({ inline: "nearest", block: "nearest" });
+    setHighlightId(focus.id);
+    const t = setTimeout(() => setHighlightId(null), 1400);
+    return () => clearTimeout(t);
+  }, [focus]);
 
-  const addViewer = useCallback((t: ViewerTarget) => {
-    const id = viewerId(t);
-    setManual((m) => [t, ...m.filter((x) => viewerId(x) !== id)]);
-    setDismissed((d) => {
-      const n = new Set(d);
-      n.delete(id);
-      return n;
-    });
-    setSelected((s) => [id, ...s.filter((x) => x !== id)]);
-    setAddOpen(false);
-  }, []);
-
-  const closeViewer = (id: string) => {
-    setSelected((s) => s.filter((x) => x !== id));
-    if (manual.some((m) => viewerId(m) === id)) setManual((m) => m.filter((x) => viewerId(x) !== id));
-    else setDismissed((d) => new Set(d).add(id));
+  const limitReached = () => {
+    notify(`Viewer limit reached (${MAX_VIEWERS}). Close one first.`, "warn");
+  };
+  const add = () => {
+    if (!canAddViewer(ws)) return limitReached();
+    dispatch({ type: "addViewer" });
+    focusViewer(ws.nextId);
+  };
+  const openRow = (index: number) => {
+    if (!canAddViewer(ws)) return limitReached();
+    dispatch({ type: "openRow", index });
+    focusViewer(ws.nextId);
+  };
+  const openPending = (championId: number) => {
+    if (!canAddViewer(ws)) return limitReached();
+    dispatch({ type: "openPending", championId });
+    focusViewer(ws.nextId);
+  };
+  const refresh = () => {
+    dispatch({ type: "refreshMatchup" });
+    bridge.lcu?.resync();
+    notify("Matchup refreshed.");
   };
 
-  const byId = new Map(viewers.map((v) => [viewerId(v), v]));
-  const visibleIds = [...selected.filter((id) => byId.has(id)), ...viewers.map(viewerId)]
-    .filter((id, i, a) => a.indexOf(id) === i)
-    .slice(0, layout);
-  const visible = visibleIds.map((id) => byId.get(id)!) as ViewerTarget[];
-
-  const toggle = (id: string) =>
-    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [id, ...s].slice(0, layout)));
+  const goSettings = () => {
+    setPage("settings");
+    setFocusLcu((n) => n + 1);
+  };
 
   return (
-    <SuppressViewsProvider value={settingsOpen || addOpen}>
-      <div className="app">
-        <aside className="sidebar">
-          <div className="sidebar-header">
-            <span>Windows ({viewers.length})</span>
-            <button type="button" className="icon-btn" aria-label="Add window" title="ウィンドウを開く" onClick={() => setAddOpen(true)}>
-              +
-            </button>
+    <div className="app">
+      <TopBar
+        page={page}
+        onPage={setPage}
+        connection={match.connection}
+        phase={match.phase}
+        updateAvailable={updateDot}
+        onConnectionClick={goSettings}
+        extra={toolbarExtra}
+      />
+      <div className="pages">
+        <SuppressViews when={page !== "viewers" || sbDrag}>
+          <div className="page viewers-page" hidden={page !== "viewers"}>
+            <Sidebar
+              width={sbWidth}
+              onWidth={setSbWidth}
+              onCommitWidth={(w) => update({ sidebarWidth: w })}
+              onDragging={setSbDrag}
+              footer={<Toasts toasts={toasts} onDismiss={dismiss} />}
+            >
+              <MatchupSection
+                ws={ws}
+                selectedChampionId={cooldownChampion}
+                onSelectChampion={setCooldownPick}
+                onSwap={(side: Side, from, to) => dispatch({ type: "swapRows", side, from, to })}
+                onOpenRow={openRow}
+                onRefresh={refresh}
+              />
+              <CooldownPanel championId={cooldownChampion} />
+              <ViewersSection
+                ws={ws}
+                onAdd={add}
+                onCloseAll={() => dispatch({ type: "closeAll" })}
+                onClose={(id) => dispatch({ type: "closeViewer", id })}
+                onToggleHidden={(id) => dispatch({ type: "toggleHidden", id })}
+                onFocus={focusViewer}
+                onOpenPending={openPending}
+                onRemovePending={(championId) => dispatch({ type: "removePending", championId })}
+              />
+            </Sidebar>
+            <main className="main">
+              <PaneStrip
+                ws={ws}
+                dispatch={dispatch}
+                templates={settings.urls}
+                qrEnabled={settings.qrButton}
+                highlightId={highlightId}
+                notify={notify}
+                initialPanels={initialPanels}
+                onAdd={add}
+              />
+            </main>
           </div>
-          <ul className="viewer-list">
-            {viewers.map((v) => {
-              const id = viewerId(v);
-              return (
-                <li key={id} className="viewer-li">
-                  <button className="viewer-item" aria-pressed={visibleIds.includes(id)} onClick={() => toggle(id)}>
-                    <ChampionIcon id={v.championId} size={30} />
-                    <span>
-                      <div className="name">{viewerTitle(v)}</div>
-                      <div className="kind">{v.kind}</div>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="viewer-close"
-                    aria-label={`Close ${viewerTitle(v)} ${v.kind}`}
-                    title="閉じる"
-                    onClick={() => closeViewer(id)}
-                  >
-                    ×
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-          <ConnectionStatus status={state.connection} />
-        </aside>
+        </SuppressViews>
 
-        <main className="main">
-          <div className="top-area">
-            <MatchupList state={state} selectedChampionId={cooldownChampionId} onSelectChampion={setCooldownPick} />
-            <CooldownPanel championId={cooldownChampionId} />
-          </div>
-          <div className="toolbar">
-            <div className="seg" role="group" aria-label="Layout">
-              {([1, 2, 3] as const).map((n) => (
-                <button key={n} aria-pressed={layout === n} onClick={() => setLayout(n)}>
-                  {n} pane{n > 1 ? "s" : ""}
-                </button>
-              ))}
-            </div>
-            <span className="phase">Phase: {state.phase}</span>
-            <span className="spacer" />
-            {toolbarExtra}
-            <button className="btn" onClick={() => setSettingsOpen(true)}>
-              Settings
-            </button>
-          </div>
-          {visible.length === 0 ? (
-            <div className="empty-state">
-              <div>Waiting for champion select…</div>
-              <button type="button" className="btn" onClick={() => setAddOpen(true)}>
-                ＋ ウィンドウを開く
-              </button>
-            </div>
-          ) : (
-            <div className="viewer-grid" style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))` }}>
-              {visible.map((v) => (
-                <ViewerPane key={viewerId(v)} target={v} />
-              ))}
-            </div>
-          )}
-        </main>
-      </div>
+        <LivePage
+          url={liveGameUrl(settings.urls)}
+          nav={liveNav}
+          active={page === "live"}
+          qrEnabled={settings.qrButton}
+          notify={notify}
+          initialQr={initialLiveQr}
+        />
 
-      {addOpen && <AddViewerDialog onAdd={addViewer} onClose={() => setAddOpen(false)} defaultLane={state.self?.lane} />}
-
-      {settingsOpen && (
-        <div className="modal-backdrop" onClick={() => setSettingsOpen(false)}>
-          <div className="modal" role="dialog" aria-label="Settings" onClick={(e) => e.stopPropagation()}>
-            <h3>Settings</h3>
-            <RecorderSection recorder={bridge.recorder} />
-            <div className="modal-actions">
-              <button className="btn" onClick={() => setSettingsOpen(false)}>
-                Close
-              </button>
-            </div>
-          </div>
+        <div className="page settings-wrap" hidden={page !== "settings"}>
+          <SettingsPage
+            connection={match.connection}
+            ws={ws}
+            dispatch={dispatch}
+            notify={notify}
+            onUrlsSaved={() => setLiveNav((n) => n + 1)}
+            focusLcu={focusLcu}
+            urlsInitialDraft={urlsInitialDraft}
+            urlsInitialErrors={urlsInitialErrors}
+          />
         </div>
-      )}
-    </SuppressViewsProvider>
+      </div>
+      {page === "settings" && toasts.length > 0 && <div className="toasts-floating"><Toasts toasts={toasts} onDismiss={dismiss} /></div>}
+    </div>
   );
 }

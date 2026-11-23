@@ -1,6 +1,8 @@
 # next/ — AI Agent 向けルール
 
-`next/` は Electron + TypeScript の PoC。リポジトリ直下の `claude.md`（Python 版のルール）に加えて、以下を守る。
+`next/` は LoL Viewer の新版（Electron + TypeScript。PoC から発展）。リポジトリ直下の `claude.md`（Python 版のルール）に加えて、以下を守る。
+
+仕様は `../docs/spec/`（README から読む）。新しく決めたことは `docs/spec/decisions.md` に追記し、移植の進み具合は `docs/spec/progress.md` を更新する。
 
 ## ゾーン
 
@@ -28,7 +30,7 @@ pnpm desktop:build && xvfb-run -a pnpm e2e:electron
 
 ## 配布（インストーラを人に渡す前に必ず）
 
-- 渡すインストーラは、**そのコミットの `next-ci.yml` の windows ジョブが全部成功したもの**に限る。windows ジョブでは次を確認している:
+- 渡すインストーラは、**そのコミットの `next-ci.yml` の windows ジョブ（中身は `next-windows.yml`）が全部成功したもの**に限る。windows ジョブでは次を確認している:
   インストール → 起動して E2E → 起動中の上書きインストール → アンインストール、および一般ユーザー（管理者でない・日本語ユーザー名）でのインストール → 起動 → アンインストール。
 - 「exe がビルドできた」「win-unpacked が起動した」だけでは配布可としない。
 - CI で確かめられないもの（実際の League Client への接続、SmartScreen の表示、既存の失敗したインストールが残っている環境）は、未確認であることを明記して渡す。

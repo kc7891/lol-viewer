@@ -1,0 +1,143 @@
+name: Next Windows (reusable)
+
+# Build the Windows installer and run every install check on it. Called by next-ci.yml (any commit) and by
+# next-release.yml (which publishes only what passed here). Never publishes anything itself: read-only token.
+#
+# Checks: install -> E2E against the installed app -> reinstall while running -> uninstall; the in-app update
+# from an old version to a new one (local feed); install/launch/uninstall as standard users (ASCII, Japanese).
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Version to build (electron-builder extraMetadata.version). Empty: package.json's."
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: next
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: next/package.json
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: next/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build installer (unsigned)
+        shell: pwsh
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          $extra = @()
+          if ($env:VERSION) { $extra += "-c.extraMetadata.version=$env:VERSION" }
+          pnpm desktop:dist --win --publish never @extra
+          if ($LASTEXITCODE -ne 0) { throw "build failed" }
+          $rel = 'apps/desktop/release'
+          $setup = Get-ChildItem "$rel/lol-viewer-next-setup-*.exe"
+          if ($setup.Count -ne 1) { throw "expected exactly one setup exe, found $($setup.Count)" }
+          foreach ($f in @('latest.yml', "$($setup[0].Name).blockmap")) {
+            if (-not (Test-Path (Join-Path $rel $f))) { throw "$f was not generated (publish config missing?)" }
+          }
+          if ($env:VERSION -and $setup[0].Name -ne "lol-viewer-next-setup-$env:VERSION.exe") { throw "unexpected installer name $($setup[0].Name)" }
+          Get-Content (Join-Path $rel 'latest.yml') | Out-Host
+
+      # Exercise the installer itself the way users do (not just win-unpacked/).
+      - name: Install with the setup exe (silent, per-user)
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem apps/desktop/release/lol-viewer-next-setup-*.exe | Select-Object -First 1).FullName
+          $p = Start-Process $setup -ArgumentList '/S' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "installer exited with $($p.ExitCode)" }
+          $exe = Join-Path $env:LOCALAPPDATA 'Programs\lol-viewer-next\lol-viewer-next.exe'
+          if (-not (Test-Path $exe)) {
+            Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Programs') -Depth 1 | Out-Host
+            throw "app not found at $exe"
+          }
+          "LOL_VIEWER_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: E2E against the installed app (fake LCU, native external views)
+        run: pnpm e2e:electron
+
+      - name: Reinstall while the app is running (update path)
+        shell: pwsh
+        run: |
+          $app = Start-Process $env:LOL_VIEWER_EXE -PassThru
+          Start-Sleep -Seconds 8
+          $setup = (Get-ChildItem apps/desktop/release/lol-viewer-next-setup-*.exe | Select-Object -First 1).FullName
+          $p = Start-Process $setup -ArgumentList '/S' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "reinstall exited with $($p.ExitCode)" }
+          if (-not (Test-Path $env:LOL_VIEWER_EXE)) { throw "app missing after reinstall" }
+          Get-Process lol-viewer-next -ErrorAction SilentlyContinue | Stop-Process -Force
+
+      - name: Uninstall (silent) removes the app
+        shell: pwsh
+        run: |
+          $dir = Split-Path $env:LOL_VIEWER_EXE
+          $un = (Get-ChildItem (Join-Path $dir 'Uninstall*.exe') | Select-Object -First 1).FullName
+          $p = Start-Process $un -ArgumentList '/S' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "uninstaller exited with $($p.ExitCode)" }
+          for ($i = 0; $i -lt 20 -and (Test-Path $env:LOL_VIEWER_EXE); $i++) { Start-Sleep -Seconds 1 }
+          if (Test-Path $env:LOL_VIEWER_EXE) { throw "app still present after uninstall" }
+
+      # In-app update (electron-updater) end to end: two builds of the same source (0.0.1 and 0.0.2), the new one
+      # served from a local HTTP feed, the old one installed and driven through Settings > Download > Restart and update.
+      - name: Build 0.0.1 and 0.0.2 for the update test
+        shell: pwsh
+        run: |
+          foreach ($v in @('0.0.1', '0.0.2')) {
+            pnpm --filter @lol-viewer/desktop exec electron-builder --config electron-builder.yml --win --publish never "-c.extraMetadata.version=$v" "-c.directories.output=release-update/$v"
+            if ($LASTEXITCODE -ne 0) { throw "build $v failed" }
+          }
+
+      - name: In-app update from 0.0.1 to 0.0.2
+        shell: pwsh
+        run: |
+          $old = (Get-ChildItem apps/desktop/release-update/0.0.1/lol-viewer-next-setup-0.0.1.exe).FullName
+          ./e2e/windows/update-flow.ps1 -OldSetup $old -FeedDir (Resolve-Path apps/desktop/release-update/0.0.2).Path -OldVersion 0.0.1 -NewVersion 0.0.2
+
+      # The runner account is an administrator; real users usually are not, and
+      # many have non-ASCII profile paths. Repeat install/launch/uninstall as
+      # fresh standard users (ASCII and Japanese names) to tell the two apart.
+      - name: Install, launch and uninstall as a standard user (ASCII name)
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem apps/desktop/release/lol-viewer-next-setup-*.exe | Select-Object -First 1).FullName
+          ./e2e/windows/install-as-user.ps1 -Setup $setup -UserName 'lvtest'
+
+      - name: Install, launch and uninstall as a standard user (Japanese name)
+        if: always()
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem apps/desktop/release/lol-viewer-next-setup-*.exe | Select-Object -First 1).FullName
+          ./e2e/windows/install-as-user.ps1 -Setup $setup -UserName 'テスト利用者'
+
+      # Only the release files (installer, latest.yml, blockmap); next-release.yml publishes exactly these.
+      - name: Upload installer + screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: next-windows
+          path: |
+            next/apps/desktop/release/lol-viewer-next-setup-*.exe
+            next/apps/desktop/release/lol-viewer-next-setup-*.exe.blockmap
+            next/apps/desktop/release/latest.yml
+            next/e2e/screenshots/
+            next/test-results/
+          if-no-files-found: ignore

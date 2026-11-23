@@ -8,7 +8,7 @@ function elapsed(startedAt: number | null): string {
 }
 
 /**
- * Settings → 試合を記録. Records League Client events (personal data masked)
+ * Settings → Record session. Records League Client events (personal data masked)
  * so the session can be replayed in tests.
  */
 export function RecorderSection({ recorder }: { recorder: RecorderApi | undefined }) {
@@ -38,13 +38,13 @@ export function RecorderSection({ recorder }: { recorder: RecorderApi | undefine
   };
 
   return (
-    <section className="settings-section" aria-label="Recording">
-      <h4>試合を記録</h4>
-      <p className="settings-desc">
-        League Client から届くデータをファイルに保存します。開発やテストに使うためのもので、他のプレイヤーの名前や ID は保存前に伏せられます。
+    <section className="card" aria-label="Record session">
+      <h2>Record session</h2>
+      <p className="desc">
+        Saves the data the League Client sends to a file, for development and tests. Other players' names and IDs are masked before saving.
       </p>
       {!recorder ? (
-        <p className="settings-desc">デスクトップアプリでのみ使えます。</p>
+        <p className="desc muted">Only available in the desktop app.</p>
       ) : !status ? null : (
         <>
           <div className="recorder-row">
@@ -52,26 +52,26 @@ export function RecorderSection({ recorder }: { recorder: RecorderApi | undefine
               <>
                 <span className="rec-dot" aria-hidden />
                 <span role="status">
-                  記録中 {elapsed(status.startedAt)}・{status.lines} 件
+                  Recording {elapsed(status.startedAt)} · {status.lines} events
                 </span>
                 <button type="button" className="btn" disabled={busy} onClick={() => run(recorder.stop)}>
-                  記録を停止
+                  Stop
                 </button>
               </>
             ) : (
               <button type="button" className="btn primary" disabled={busy} onClick={() => run(recorder.start)}>
-                記録を開始
+                Start recording
               </button>
             )}
+            <button type="button" className="btn ghost" onClick={() => recorder.openFolder()}>
+              Open recordings folder
+            </button>
           </div>
           {status.file && (
-            <p className="settings-desc">
-              {status.recording ? "保存先" : "保存しました"}: <code className="path">{status.file}</code>
+            <p className="desc">
+              {status.recording ? "Writing to" : "Saved"}: <code className="path">{status.file}</code>
             </p>
           )}
-          <button type="button" className="link-btn" onClick={() => recorder.openFolder()}>
-            記録フォルダを開く
-          </button>
         </>
       )}
     </section>

@@ -8,6 +8,13 @@
       "slug": "aatrox",
       "name": "Aatrox",
       "nameJa": "エイトロックス",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -45,6 +52,13 @@
       "slug": "ahri",
       "name": "Ahri",
       "nameJa": "アーリ",
+      "lanes": {
+        "top": 4,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -82,6 +96,13 @@
       "slug": "akali",
       "name": "Akali",
       "nameJa": "アカリ",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 4,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -119,6 +140,13 @@
       "slug": "akshan",
       "name": "Akshan",
       "nameJa": "アクシャン",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -156,6 +184,13 @@
       "slug": "alistar",
       "name": "Alistar",
       "nameJa": "アリスター",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -193,6 +228,13 @@
       "slug": "ambessa",
       "name": "Ambessa",
       "nameJa": "アンベッサ",
+      "lanes": {
+        "top": 5,
+        "jungle": 4,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -230,6 +272,13 @@
       "slug": "amumu",
       "name": "Amumu",
       "nameJa": "アムム",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 4
+      },
       "spells": [
         {
           "key": "Q",
@@ -267,6 +316,13 @@
       "slug": "anivia",
       "name": "Anivia",
       "nameJa": "アニビア",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -304,6 +360,13 @@
       "slug": "annie",
       "name": "Annie",
       "nameJa": "アニー",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -341,6 +404,13 @@
       "slug": "aphelios",
       "name": "Aphelios",
       "nameJa": "アフェリオス",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -378,6 +448,13 @@
       "slug": "ashe",
       "name": "Ashe",
       "nameJa": "アッシュ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -415,6 +492,13 @@
       "slug": "aurelionsol",
       "name": "Aurelion Sol",
       "nameJa": "オレリオン・ソル",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -452,6 +536,13 @@
       "slug": "aurora",
       "name": "Aurora",
       "nameJa": "オーロラ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -489,6 +580,13 @@
       "slug": "azir",
       "name": "Azir",
       "nameJa": "アジール",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -526,6 +624,13 @@
       "slug": "bard",
       "name": "Bard",
       "nameJa": "バード",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -563,6 +668,13 @@
       "slug": "belveth",
       "name": "Bel'Veth",
       "nameJa": "ベル＝ヴェス",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -600,6 +712,13 @@
       "slug": "blitzcrank",
       "name": "Blitzcrank",
       "nameJa": "ブリッツクランク",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -637,6 +756,13 @@
       "slug": "brand",
       "name": "Brand",
       "nameJa": "ブランド",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -674,6 +800,13 @@
       "slug": "braum",
       "name": "Braum",
       "nameJa": "ブラウム",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -711,6 +844,13 @@
       "slug": "briar",
       "name": "Briar",
       "nameJa": "ブライアー",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -748,6 +888,13 @@
       "slug": "caitlyn",
       "name": "Caitlyn",
       "nameJa": "ケイトリン",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -785,6 +932,13 @@
       "slug": "camille",
       "name": "Camille",
       "nameJa": "カミール",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -822,6 +976,13 @@
       "slug": "cassiopeia",
       "name": "Cassiopeia",
       "nameJa": "カシオペア",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -859,6 +1020,13 @@
       "slug": "chogath",
       "name": "Cho'Gath",
       "nameJa": "チョ＝ガス",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -896,6 +1064,13 @@
       "slug": "corki",
       "name": "Corki",
       "nameJa": "コーキ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -933,6 +1108,13 @@
       "slug": "darius",
       "name": "Darius",
       "nameJa": "ダリウス",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -970,6 +1152,13 @@
       "slug": "diana",
       "name": "Diana",
       "nameJa": "ダイアナ",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 4,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1007,6 +1196,13 @@
       "slug": "drmundo",
       "name": "Dr. Mundo",
       "nameJa": "ドクター・ムンド",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1044,6 +1240,13 @@
       "slug": "draven",
       "name": "Draven",
       "nameJa": "ドレイヴン",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1081,6 +1284,13 @@
       "slug": "ekko",
       "name": "Ekko",
       "nameJa": "エコー",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1118,6 +1328,13 @@
       "slug": "elise",
       "name": "Elise",
       "nameJa": "エリス",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1155,6 +1372,13 @@
       "slug": "evelynn",
       "name": "Evelynn",
       "nameJa": "イブリン",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1192,6 +1416,13 @@
       "slug": "ezreal",
       "name": "Ezreal",
       "nameJa": "エズリアル",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1229,6 +1460,13 @@
       "slug": "fiddlesticks",
       "name": "Fiddlesticks",
       "nameJa": "フィドルスティックス",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1266,6 +1504,13 @@
       "slug": "fiora",
       "name": "Fiora",
       "nameJa": "フィオラ",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1303,6 +1548,13 @@
       "slug": "fizz",
       "name": "Fizz",
       "nameJa": "フィズ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1340,6 +1592,13 @@
       "slug": "galio",
       "name": "Galio",
       "nameJa": "ガリオ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1377,6 +1636,13 @@
       "slug": "gangplank",
       "name": "Gangplank",
       "nameJa": "ガングプランク",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1414,6 +1680,13 @@
       "slug": "garen",
       "name": "Garen",
       "nameJa": "ガレン",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1451,6 +1724,13 @@
       "slug": "gnar",
       "name": "Gnar",
       "nameJa": "ナー",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1488,6 +1768,13 @@
       "slug": "gragas",
       "name": "Gragas",
       "nameJa": "グラガス",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 4,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1525,6 +1812,13 @@
       "slug": "graves",
       "name": "Graves",
       "nameJa": "グレイブス",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1562,6 +1856,13 @@
       "slug": "gwen",
       "name": "Gwen",
       "nameJa": "グウェン",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1599,6 +1900,13 @@
       "slug": "hecarim",
       "name": "Hecarim",
       "nameJa": "ヘカリム",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1636,6 +1944,13 @@
       "slug": "heimerdinger",
       "name": "Heimerdinger",
       "nameJa": "ハイマーディンガー",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 4
+      },
       "spells": [
         {
           "key": "Q",
@@ -1673,6 +1988,13 @@
       "slug": "hwei",
       "name": "Hwei",
       "nameJa": "フェイ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1710,6 +2032,13 @@
       "slug": "illaoi",
       "name": "Illaoi",
       "nameJa": "イラオイ",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1747,6 +2076,13 @@
       "slug": "irelia",
       "name": "Irelia",
       "nameJa": "イレリア",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 4,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1784,6 +2120,13 @@
       "slug": "ivern",
       "name": "Ivern",
       "nameJa": "アイバーン",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1821,6 +2164,13 @@
       "slug": "janna",
       "name": "Janna",
       "nameJa": "ジャンナ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -1858,6 +2208,13 @@
       "slug": "jarvaniv",
       "name": "Jarvan IV",
       "nameJa": "ジャーヴァンⅣ",
+      "lanes": {
+        "top": 3,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 4
+      },
       "spells": [
         {
           "key": "Q",
@@ -1895,6 +2252,13 @@
       "slug": "jax",
       "name": "Jax",
       "nameJa": "ジャックス",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1932,6 +2296,13 @@
       "slug": "jayce",
       "name": "Jayce",
       "nameJa": "ジェイス",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 4,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -1969,6 +2340,13 @@
       "slug": "jhin",
       "name": "Jhin",
       "nameJa": "ジン",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2006,6 +2384,13 @@
       "slug": "jinx",
       "name": "Jinx",
       "nameJa": "ジンクス",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2043,6 +2428,13 @@
       "slug": "ksante",
       "name": "K'Sante",
       "nameJa": "カ・サンテ",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2080,6 +2472,13 @@
       "slug": "kaisa",
       "name": "Kai'Sa",
       "nameJa": "カイ＝サ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2117,6 +2516,13 @@
       "slug": "kalista",
       "name": "Kalista",
       "nameJa": "カリスタ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2154,6 +2560,13 @@
       "slug": "karma",
       "name": "Karma",
       "nameJa": "カルマ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -2191,6 +2604,13 @@
       "slug": "karthus",
       "name": "Karthus",
       "nameJa": "カーサス",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2228,6 +2648,13 @@
       "slug": "kassadin",
       "name": "Kassadin",
       "nameJa": "カサディン",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2265,6 +2692,13 @@
       "slug": "katarina",
       "name": "Katarina",
       "nameJa": "カタリナ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2302,6 +2736,13 @@
       "slug": "kayle",
       "name": "Kayle",
       "nameJa": "ケイル",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 4,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2339,6 +2780,13 @@
       "slug": "kayn",
       "name": "Kayn",
       "nameJa": "ケイン",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2376,6 +2824,13 @@
       "slug": "kennen",
       "name": "Kennen",
       "nameJa": "ケネン",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2413,6 +2868,13 @@
       "slug": "khazix",
       "name": "Kha'Zix",
       "nameJa": "カ＝ジックス",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2450,6 +2912,13 @@
       "slug": "kindred",
       "name": "Kindred",
       "nameJa": "キンドレッド",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2487,6 +2956,13 @@
       "slug": "kled",
       "name": "Kled",
       "nameJa": "クレッド",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2524,6 +3000,13 @@
       "slug": "kogmaw",
       "name": "Kog'Maw",
       "nameJa": "コグ＝マウ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2561,6 +3044,13 @@
       "slug": "leblanc",
       "name": "LeBlanc",
       "nameJa": "ルブラン",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2598,6 +3088,13 @@
       "slug": "leesin",
       "name": "Lee Sin",
       "nameJa": "リー・シン",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2635,6 +3132,13 @@
       "slug": "leona",
       "name": "Leona",
       "nameJa": "レオナ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -2672,6 +3176,13 @@
       "slug": "lillia",
       "name": "Lillia",
       "nameJa": "リリア",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2709,6 +3220,13 @@
       "slug": "lissandra",
       "name": "Lissandra",
       "nameJa": "リサンドラ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2746,6 +3264,13 @@
       "slug": "locke",
       "name": "Locke",
       "nameJa": "ロック",
+      "lanes": {
+        "top": 4,
+        "jungle": 5,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2783,6 +3308,13 @@
       "slug": "lucian",
       "name": "Lucian",
       "nameJa": "ルシアン",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2820,6 +3352,13 @@
       "slug": "lulu",
       "name": "Lulu",
       "nameJa": "ルル",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -2857,6 +3396,13 @@
       "slug": "lux",
       "name": "Lux",
       "nameJa": "ラックス",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -2894,6 +3440,13 @@
       "slug": "malphite",
       "name": "Malphite",
       "nameJa": "マルファイト",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2931,6 +3484,13 @@
       "slug": "malzahar",
       "name": "Malzahar",
       "nameJa": "マルザハール",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -2968,6 +3528,13 @@
       "slug": "maokai",
       "name": "Maokai",
       "nameJa": "マオカイ",
+      "lanes": {
+        "top": 4,
+        "jungle": 3,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -3005,6 +3572,13 @@
       "slug": "masteryi",
       "name": "Master Yi",
       "nameJa": "マスター・イー",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3042,6 +3616,13 @@
       "slug": "mel",
       "name": "Mel",
       "nameJa": "メル",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -3079,6 +3660,13 @@
       "slug": "milio",
       "name": "Milio",
       "nameJa": "ミリオ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -3116,6 +3704,13 @@
       "slug": "missfortune",
       "name": "Miss Fortune",
       "nameJa": "ミス・フォーチュン",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 3,
+        "bottom": 4,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3153,6 +3748,13 @@
       "slug": "mordekaiser",
       "name": "Mordekaiser",
       "nameJa": "モルデカイザー",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3190,6 +3792,13 @@
       "slug": "morgana",
       "name": "Morgana",
       "nameJa": "モルガナ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -3227,6 +3836,13 @@
       "slug": "naafiri",
       "name": "Naafiri",
       "nameJa": "ナフィーリ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3264,6 +3880,13 @@
       "slug": "nami",
       "name": "Nami",
       "nameJa": "ナミ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -3301,6 +3924,13 @@
       "slug": "nasus",
       "name": "Nasus",
       "nameJa": "ナサス",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3338,6 +3968,13 @@
       "slug": "nautilus",
       "name": "Nautilus",
       "nameJa": "ノーチラス",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -3375,6 +4012,13 @@
       "slug": "neeko",
       "name": "Neeko",
       "nameJa": "ニーコ",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 4
+      },
       "spells": [
         {
           "key": "Q",
@@ -3412,6 +4056,13 @@
       "slug": "nidalee",
       "name": "Nidalee",
       "nameJa": "ニダリー",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3449,6 +4100,13 @@
       "slug": "nilah",
       "name": "Nilah",
       "nameJa": "ニーラ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3486,6 +4144,13 @@
       "slug": "nocturne",
       "name": "Nocturne",
       "nameJa": "ノクターン",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3523,6 +4188,13 @@
       "slug": "nunu",
       "name": "Nunu & Willump",
       "nameJa": "ヌヌ＆ウィルンプ",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3560,6 +4232,13 @@
       "slug": "olaf",
       "name": "Olaf",
       "nameJa": "オラフ",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3597,6 +4276,13 @@
       "slug": "orianna",
       "name": "Orianna",
       "nameJa": "オリアナ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3634,6 +4320,13 @@
       "slug": "ornn",
       "name": "Ornn",
       "nameJa": "オーン",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3671,6 +4364,13 @@
       "slug": "pantheon",
       "name": "Pantheon",
       "nameJa": "パンテオン",
+      "lanes": {
+        "top": 4,
+        "jungle": 3,
+        "middle": 2,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -3708,6 +4408,13 @@
       "slug": "poppy",
       "name": "Poppy",
       "nameJa": "ポッピー",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3745,6 +4452,13 @@
       "slug": "pyke",
       "name": "Pyke",
       "nameJa": "パイク",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -3782,6 +4496,13 @@
       "slug": "qiyana",
       "name": "Qiyana",
       "nameJa": "キヤナ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3819,6 +4540,13 @@
       "slug": "quinn",
       "name": "Quinn",
       "nameJa": "クイン",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3856,6 +4584,13 @@
       "slug": "rakan",
       "name": "Rakan",
       "nameJa": "ラカン",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -3893,6 +4628,13 @@
       "slug": "rammus",
       "name": "Rammus",
       "nameJa": "ラムス",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3930,6 +4672,13 @@
       "slug": "reksai",
       "name": "Rek'Sai",
       "nameJa": "レク＝サイ",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -3967,6 +4716,13 @@
       "slug": "rell",
       "name": "Rell",
       "nameJa": "レル",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -4004,6 +4760,13 @@
       "slug": "renata",
       "name": "Renata Glasc",
       "nameJa": "レナータ・グラスク",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -4041,6 +4804,13 @@
       "slug": "renekton",
       "name": "Renekton",
       "nameJa": "レネクトン",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4078,6 +4848,13 @@
       "slug": "rengar",
       "name": "Rengar",
       "nameJa": "レンガー",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4115,6 +4892,13 @@
       "slug": "riven",
       "name": "Riven",
       "nameJa": "リヴェン",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4152,6 +4936,13 @@
       "slug": "rumble",
       "name": "Rumble",
       "nameJa": "ランブル",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4189,6 +4980,13 @@
       "slug": "ryze",
       "name": "Ryze",
       "nameJa": "ライズ",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4226,6 +5024,13 @@
       "slug": "samira",
       "name": "Samira",
       "nameJa": "サミーラ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4263,6 +5068,13 @@
       "slug": "sejuani",
       "name": "Sejuani",
       "nameJa": "セジュアニ",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4300,6 +5112,13 @@
       "slug": "senna",
       "name": "Senna",
       "nameJa": "セナ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4337,6 +5156,13 @@
       "slug": "seraphine",
       "name": "Seraphine",
       "nameJa": "セラフィーン",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -4374,6 +5200,13 @@
       "slug": "sett",
       "name": "Sett",
       "nameJa": "セト",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4411,6 +5244,13 @@
       "slug": "shaco",
       "name": "Shaco",
       "nameJa": "シャコ",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4448,6 +5288,13 @@
       "slug": "shen",
       "name": "Shen",
       "nameJa": "シェン",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4485,6 +5332,13 @@
       "slug": "shyvana",
       "name": "Shyvana",
       "nameJa": "シヴァーナ",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4522,6 +5376,13 @@
       "slug": "singed",
       "name": "Singed",
       "nameJa": "シンジド",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4559,6 +5420,13 @@
       "slug": "sion",
       "name": "Sion",
       "nameJa": "サイオン",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4596,6 +5464,13 @@
       "slug": "sivir",
       "name": "Sivir",
       "nameJa": "シヴィア",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4633,6 +5508,13 @@
       "slug": "skarner",
       "name": "Skarner",
       "nameJa": "スカーナー",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4670,6 +5552,13 @@
       "slug": "smolder",
       "name": "Smolder",
       "nameJa": "スモルダー",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4707,6 +5596,13 @@
       "slug": "sona",
       "name": "Sona",
       "nameJa": "ソナ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -4744,6 +5640,13 @@
       "slug": "soraka",
       "name": "Soraka",
       "nameJa": "ソラカ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -4781,6 +5684,13 @@
       "slug": "swain",
       "name": "Swain",
       "nameJa": "スウェイン",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 4,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4818,6 +5728,13 @@
       "slug": "sylas",
       "name": "Sylas",
       "nameJa": "サイラス",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4855,6 +5772,13 @@
       "slug": "syndra",
       "name": "Syndra",
       "nameJa": "シンドラ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4892,6 +5816,13 @@
       "slug": "tahmkench",
       "name": "Tahm Kench",
       "nameJa": "タム・ケンチ",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4929,6 +5860,13 @@
       "slug": "taliyah",
       "name": "Taliyah",
       "nameJa": "タリヤ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -4966,6 +5904,13 @@
       "slug": "talon",
       "name": "Talon",
       "nameJa": "タロン",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5003,6 +5948,13 @@
       "slug": "taric",
       "name": "Taric",
       "nameJa": "タリック",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -5040,6 +5992,13 @@
       "slug": "teemo",
       "name": "Teemo",
       "nameJa": "ティーモ",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5077,6 +6036,13 @@
       "slug": "thresh",
       "name": "Thresh",
       "nameJa": "スレッシュ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -5114,6 +6080,13 @@
       "slug": "tristana",
       "name": "Tristana",
       "nameJa": "トリスターナ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5151,6 +6124,13 @@
       "slug": "trundle",
       "name": "Trundle",
       "nameJa": "トランドル",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5188,6 +6168,13 @@
       "slug": "tryndamere",
       "name": "Tryndamere",
       "nameJa": "トリンダメア",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5225,6 +6212,13 @@
       "slug": "twistedfate",
       "name": "Twisted Fate",
       "nameJa": "ツイステッド・フェイト",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5262,6 +6256,13 @@
       "slug": "twitch",
       "name": "Twitch",
       "nameJa": "トゥイッチ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5299,6 +6300,13 @@
       "slug": "udyr",
       "name": "Udyr",
       "nameJa": "ウディア",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5336,6 +6344,13 @@
       "slug": "urgot",
       "name": "Urgot",
       "nameJa": "アーゴット",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5373,6 +6388,13 @@
       "slug": "varus",
       "name": "Varus",
       "nameJa": "ヴァルス",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5410,6 +6432,13 @@
       "slug": "vayne",
       "name": "Vayne",
       "nameJa": "ヴェイン",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5447,6 +6476,13 @@
       "slug": "veigar",
       "name": "Veigar",
       "nameJa": "ベイガー",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5484,6 +6520,13 @@
       "slug": "velkoz",
       "name": "Vel'Koz",
       "nameJa": "ヴェル＝コズ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -5521,6 +6564,13 @@
       "slug": "vex",
       "name": "Vex",
       "nameJa": "ヴェックス",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5558,6 +6608,13 @@
       "slug": "vi",
       "name": "Vi",
       "nameJa": "ヴァイ",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5595,6 +6652,13 @@
       "slug": "viego",
       "name": "Viego",
       "nameJa": "ヴィエゴ",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5632,6 +6696,13 @@
       "slug": "viktor",
       "name": "Viktor",
       "nameJa": "ビクター",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5669,6 +6740,13 @@
       "slug": "vladimir",
       "name": "Vladimir",
       "nameJa": "ブラッドミア",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5706,6 +6784,13 @@
       "slug": "volibear",
       "name": "Volibear",
       "nameJa": "ボリベア",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5743,6 +6828,13 @@
       "slug": "warwick",
       "name": "Warwick",
       "nameJa": "ワーウィック",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5780,6 +6872,13 @@
       "slug": "wukong",
       "name": "Wukong",
       "nameJa": "ウーコン",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5817,6 +6916,13 @@
       "slug": "xayah",
       "name": "Xayah",
       "nameJa": "ザヤ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5854,6 +6960,13 @@
       "slug": "xerath",
       "name": "Xerath",
       "nameJa": "ゼラス",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5891,6 +7004,13 @@
       "slug": "xinzhao",
       "name": "Xin Zhao",
       "nameJa": "シン・ジャオ",
+      "lanes": {
+        "top": 0,
+        "jungle": 5,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5928,6 +7048,13 @@
       "slug": "yasuo",
       "name": "Yasuo",
       "nameJa": "ヤスオ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -5965,6 +7092,13 @@
       "slug": "yone",
       "name": "Yone",
       "nameJa": "ヨネ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -6002,6 +7136,13 @@
       "slug": "yorick",
       "name": "Yorick",
       "nameJa": "ヨリック",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -6039,6 +7180,13 @@
       "slug": "yunara",
       "name": "Yunara",
       "nameJa": "ユナラ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -6076,6 +7224,13 @@
       "slug": "yuumi",
       "name": "Yuumi",
       "nameJa": "ユーミ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -6113,6 +7268,13 @@
       "slug": "zaahen",
       "name": "Zaahen",
       "nameJa": "ザーヘン",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -6150,6 +7312,13 @@
       "slug": "zac",
       "name": "Zac",
       "nameJa": "ザック",
+      "lanes": {
+        "top": 5,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -6187,6 +7356,13 @@
       "slug": "zed",
       "name": "Zed",
       "nameJa": "ゼド",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -6224,6 +7400,13 @@
       "slug": "zeri",
       "name": "Zeri",
       "nameJa": "ゼリ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 5,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -6261,6 +7444,13 @@
       "slug": "ziggs",
       "name": "Ziggs",
       "nameJa": "ジグス",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -6298,6 +7488,13 @@
       "slug": "zilean",
       "name": "Zilean",
       "nameJa": "ジリアン",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",
@@ -6335,6 +7532,13 @@
       "slug": "zoe",
       "name": "Zoe",
       "nameJa": "ゾーイ",
+      "lanes": {
+        "top": 0,
+        "jungle": 0,
+        "middle": 5,
+        "bottom": 0,
+        "support": 0
+      },
       "spells": [
         {
           "key": "Q",
@@ -6372,6 +7576,13 @@
       "slug": "zyra",
       "name": "Zyra",
       "nameJa": "ザイラ",
+      "lanes": {
+        "top": 0,
+        "jungle": 4,
+        "middle": 0,
+        "bottom": 0,
+        "support": 5
+      },
       "spells": [
         {
           "key": "Q",

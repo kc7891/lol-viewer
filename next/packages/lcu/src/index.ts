@@ -9,16 +9,22 @@
  *    (self-signed cert) and only on the sockets created here, never process-wide.
  *  - The auth token never leaves this module (not in events, not in logs).
  */
+import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
+import { join } from "node:path";
+import { promisify } from "node:util";
 import WebSocket from "ws";
 import type { ConnectionStatus } from "@lol-viewer/protocol";
+
+const execFileAsync = promisify(execFile);
 
 export const READ_ONLY_PATHS = [
   "/lol-gameflow/v1/gameflow-phase",
   "/lol-gameflow/v1/session",
   "/lol-champ-select/v1/session",
+  "/lol-summoner/v1/current-summoner",
 ] as const;
 export type ReadOnlyPath = (typeof READ_ONLY_PATHS)[number];
 
@@ -39,14 +45,53 @@ export function parseLockfile(text: string): LcuCredentials {
   return { port, password, protocol };
 }
 
+export type ClientCommandLine = { port: number; password: string; installDir?: string };
+
+/** `--install-directory=...` with or without quotes (`"--install-directory=C:\\A B"`, `--install-directory="C:\\A B"`, bare). */
+export function parseInstallDirectory(cmdline: string): string | undefined {
+  const m = /"--install-directory=([^"]*)"|'--install-directory=([^']*)'|--install-directory=(?:"([^"]*)"|'([^']*)'|(\S+))/.exec(cmdline);
+  const dir = m?.slice(1).find((x) => x !== undefined);
+  return dir || undefined;
+}
+
+/** Extract `--app-port`, `--remoting-auth-token` and `--install-directory` from a LeagueClientUx command line. */
+export function parseClientCommandLine(cmdline: string): ClientCommandLine | null {
+  const portM = /--app-port=["']?(\d+)/.exec(cmdline);
+  const tokenM = /--remoting-auth-token=["']?([\w-]+)/.exec(cmdline);
+  if (!portM || !tokenM) return null;
+  const port = Number(portM[1]);
+  if (!Number.isInteger(port) || port <= 0 || port > 65535) return null;
+  const installDir = parseInstallDirectory(cmdline);
+  return { port, password: tokenM[1]!, ...(installDir ? { installDir } : {}) };
+}
+
+/** Windows only: the command line of the running League Client UX process, or null. Never throws. */
+export async function readClientCommandLine(): Promise<string | null> {
+  if (process.platform !== "win32") return null;
+  try {
+    const { stdout } = await execFileAsync(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process -Filter \"Name='LeagueClientUx.exe'\" | Select-Object -ExpandProperty CommandLine",
+      ],
+      { timeout: 5000, windowsHide: true, maxBuffer: 1024 * 1024 },
+    );
+    const text = String(stdout).trim();
+    return text || null;
+  } catch {
+    return null;
+  }
+}
+
 export const DEFAULT_LOCKFILE_PATHS = [
   "C:\\Riot Games\\League of Legends\\lockfile",
   "D:\\Riot Games\\League of Legends\\lockfile",
 ];
 
-export async function findCredentials(
-  paths: string[] = process.env.LOL_LCU_LOCKFILE ? [process.env.LOL_LCU_LOCKFILE] : DEFAULT_LOCKFILE_PATHS,
-): Promise<LcuCredentials | null> {
+async function readLockfiles(paths: readonly string[]): Promise<LcuCredentials | null> {
   for (const p of paths) {
     try {
       return parseLockfile(await readFile(p, "utf8"));
@@ -55,6 +100,40 @@ export async function findCredentials(
     }
   }
   return null;
+}
+
+export type FindCredentialsDeps = {
+  env?: Record<string, string | undefined>;
+  /** Defaults to readClientCommandLine (PowerShell on Windows). */
+  readCommandLine?: () => Promise<string | null>;
+  defaultLockfiles?: readonly string[];
+};
+
+/**
+ * Discover credentials.
+ *  - `paths` given: those lockfiles only.
+ *  - else env LOL_LCU_LOCKFILE: that lockfile only.
+ *  - else: client process command line (https) -> <install-directory>/lockfile -> default lockfiles.
+ */
+export async function findCredentials(paths?: string[], deps: FindCredentialsDeps = {}): Promise<LcuCredentials | null> {
+  if (paths) return readLockfiles(paths);
+  const env = deps.env ?? process.env;
+  if (env.LOL_LCU_LOCKFILE) return readLockfiles([env.LOL_LCU_LOCKFILE]);
+
+  let installDir: string | undefined;
+  try {
+    const line = await (deps.readCommandLine ?? readClientCommandLine)();
+    const parsed = line ? parseClientCommandLine(line) : null;
+    if (parsed) return { port: parsed.port, password: parsed.password, protocol: "https" };
+    installDir = line ? parseInstallDirectory(line) : undefined;
+  } catch {
+    // treat as "no process"
+  }
+  if (installDir) {
+    const fromInstall = await readLockfiles([join(installDir, "lockfile")]);
+    if (fromInstall) return fromInstall;
+  }
+  return readLockfiles(deps.defaultLockfiles ?? DEFAULT_LOCKFILE_PATHS);
 }
 
 export type RawLcuEvent = { uri: string; eventType: "Create" | "Update" | "Delete"; data: unknown };
@@ -76,6 +155,7 @@ export class LcuClient {
   #opts: LcuClientOptions;
   #ws: WebSocket | null = null;
   #closed = false;
+  #connected = false;
 
   constructor(creds: LcuCredentials, opts: LcuClientOptions) {
     this.#creds = creds;
@@ -141,6 +221,7 @@ export class LcuClient {
     });
 
     ws.on("message", (buf) => {
+      if (this.#closed) return;
       let msg: unknown;
       try {
         msg = JSON.parse(buf.toString());
@@ -153,27 +234,48 @@ export class LcuClient {
     });
     ws.on("close", () => {
       this.#ws = null;
+      this.#connected = false;
       if (!this.#closed) this.#opts.onStatus("disconnected");
     });
 
+    if (this.#closed) return;
     for (const p of READ_ONLY_PATHS) ws.send(JSON.stringify([WAMP_SUBSCRIBE, topicFor(p)]));
+    this.#connected = true;
     this.#opts.onStatus("connected");
+    await this.resync();
+  }
 
+  get connected(): boolean {
+    return this.#connected && !this.#closed;
+  }
+
+  /** GET every path and emit it as a synthetic Update (nothing is emitted after close()). */
+  async resync(): Promise<void> {
     for (const p of READ_ONLY_PATHS) {
       const data = await this.get(p);
+      if (this.#closed) return;
       if (data != null) this.#opts.onEvent({ uri: p, eventType: "Update", data });
     }
   }
 
   close(): void {
     this.#closed = true;
-    this.#ws?.close();
+    this.#connected = false;
+    const ws = this.#ws;
+    this.#ws = null;
+    if (!ws) return;
+    ws.removeAllListeners("message");
+    ws.on("error", () => {}); // a late error on a socket we abandoned must not crash
+    if (ws.readyState === WebSocket.CONNECTING) ws.terminate();
+    else ws.close();
   }
 }
 
 export type LcuConnectorOptions = LcuClientOptions & {
   findCredentials?: () => Promise<LcuCredentials | null>;
+  /** First retry delay; doubles on every failure. Default 2000. */
   retryMs?: number;
+  /** Backoff ceiling. Default 60000. */
   maxRetryMs?: number;
 };
 
@@ -181,44 +283,75 @@ export type LcuConnector = {
   stop: () => void;
   /** Current value of every read-only path (GET), e.g. to seed a recording started mid-session. */
   snapshot: () => Promise<RawLcuEvent[]>;
+  /** Drop the current connection, reset the backoff and try again right now (reports "connecting"). */
+  reconnect: () => void;
+  /** While connected: GET every path and emit it through onEvent again. */
+  resync: () => Promise<void>;
 };
 
-/** Keeps an LcuClient connected: discover credentials, connect, back off on failure. */
+/** Keeps an LcuClient connected: discover credentials, connect, back off (2s, 4s ... 60s) on failure. */
 export function startLcuConnector(opts: LcuConnectorOptions): LcuConnector {
   const find = opts.findCredentials ?? (() => findCredentials());
   const base = opts.retryMs ?? 2000;
-  const max = opts.maxRetryMs ?? 30000;
+  const max = opts.maxRetryMs ?? 60000;
   let delay = base;
   let stopped = false;
   let client: LcuClient | null = null;
   let timer: ReturnType<typeof setTimeout> | null = null;
+  /** Bumped by reconnect()/stop(); an attempt that finds a newer epoch abandons itself. */
+  let epoch = 0;
 
   const schedule = () => {
-    if (stopped) return;
-    timer = setTimeout(attempt, delay);
+    if (stopped || timer) return;
+    timer = setTimeout(() => {
+      timer = null;
+      void attempt();
+    }, delay);
     delay = Math.min(delay * 2, max);
   };
 
   const attempt = async () => {
-    const creds = await find();
-    if (stopped) return;
+    const mine = epoch;
+    const stale = () => stopped || mine !== epoch;
+    let creds: LcuCredentials | null = null;
+    try {
+      creds = await find();
+    } catch {
+      creds = null;
+    }
+    if (stale()) return;
     if (!creds) {
       opts.onStatus("disconnected");
       return schedule();
     }
-    client = new LcuClient(creds, {
-      onEvent: opts.onEvent,
+    const c: LcuClient = new LcuClient(creds, {
+      // Events from a client that is no longer the current one are dropped.
+      onEvent: (e) => {
+        if (client === c) opts.onEvent(e);
+      },
       onStatus: (s) => {
+        if (client !== c) return;
         opts.onStatus(s);
         if (s === "connected") delay = base;
-        if (s === "disconnected") schedule();
+        if (s === "disconnected") {
+          c.close();
+          client = null;
+          schedule();
+        }
       },
     });
+    client = c;
     try {
-      await client.connect();
+      await c.connect();
     } catch {
-      opts.onStatus("disconnected");
-      schedule();
+      if (client === c) {
+        c.close();
+        client = null;
+        if (!stale()) {
+          opts.onStatus("disconnected");
+          schedule();
+        }
+      }
     }
   };
 
@@ -226,8 +359,28 @@ export function startLcuConnector(opts: LcuConnectorOptions): LcuConnector {
   return {
     stop: () => {
       stopped = true;
+      epoch++;
       if (timer) clearTimeout(timer);
-      client?.close();
+      timer = null;
+      const c = client;
+      client = null;
+      c?.close();
+    },
+    reconnect: () => {
+      if (stopped) return;
+      epoch++;
+      if (timer) clearTimeout(timer);
+      timer = null;
+      const c = client;
+      client = null;
+      c?.close();
+      delay = base;
+      opts.onStatus("connecting");
+      void attempt();
+    },
+    resync: async () => {
+      const c = client;
+      if (c?.connected) await c.resync();
     },
     snapshot: async () => {
       const c = client;

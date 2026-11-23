@@ -1,0 +1,75 @@
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { DEFAULT_URL_TEMPLATES } from "@lol-viewer/core";
+import { mockUpdates } from "../bridge/mock.ts";
+import { scenes, updateStatuses } from "../fixtures.ts";
+import { Harness } from "../storyHelpers.tsx";
+import { DisplayCard, LcuCard, UrlsCard, VersionCard } from "./SettingsPage.tsx";
+
+const Wrap = ({ children, options }: { children: React.ReactNode; options?: Parameters<typeof Harness>[0]["bridgeOptions"] }) => (
+  <Harness match={scenes.idle.match} bridgeOptions={options} height="auto" width={680}>
+    <div className="settings-inner">{children}</div>
+  </Harness>
+);
+
+const meta = { title: "Components/SettingsCards", parameters: { layout: "centered" } } satisfies Meta;
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Urls: Story = { render: () => <Wrap><UrlsCard onSaved={() => {}} notify={() => {}} /></Wrap> };
+/** Empty fields are flagged and nothing is saved. */
+export const UrlsWithErrors: Story = {
+  render: () => (
+    <Wrap>
+      <UrlsCard
+        onSaved={() => {}}
+        notify={() => {}}
+        initialDraft={{ ...DEFAULT_URL_TEMPLATES, build: "", aram: "" }}
+        initialErrors={["build", "aram"]}
+      />
+    </Wrap>
+  ),
+};
+export const LeagueClientConnected: Story = {
+  render: () => (
+    <Wrap options={{ lcu: true }}>
+      <LcuCard connection="connected" />
+    </Wrap>
+  ),
+};
+export const LeagueClientDisconnected: Story = {
+  render: () => (
+    <Wrap options={{ lcu: true }}>
+      <LcuCard connection="disconnected" />
+    </Wrap>
+  ),
+};
+export const LeagueClientBrowser: Story = { render: () => <Wrap><LcuCard connection="connected" /></Wrap> };
+export const Display: Story = { render: () => <Wrap><DisplayCard /></Wrap> };
+export const VersionDev: Story = { render: () => <Wrap><VersionCard /></Wrap> };
+export const VersionDesktop: Story = {
+  render: () => (
+    <Wrap options={{ app: { info: async () => ({ version: "0.1.0", platform: "win32" }) } }}>
+      <VersionCard />
+    </Wrap>
+  ),
+};
+
+const desktop = { info: async () => ({ version: "0.1.0", platform: "win32" }) };
+const withUpdates = (status: keyof typeof updateStatuses, simulate = false): Story => ({
+  render: () => (
+    <Wrap options={{ app: desktop, updates: mockUpdates(updateStatuses[status], simulate) }}>
+      <VersionCard />
+    </Wrap>
+  ),
+});
+/** Dev / packaged-less runs: the desktop bridge exists but updates are off. */
+export const VersionUpdatesOff: Story = withUpdates("unsupported");
+export const VersionNotChecked: Story = withUpdates("idle");
+export const VersionChecking: Story = withUpdates("checking");
+export const VersionUpToDate: Story = withUpdates("notAvailable");
+export const VersionUpdateAvailable: Story = withUpdates("available");
+export const VersionDownloading: Story = withUpdates("downloading");
+export const VersionReadyToInstall: Story = withUpdates("downloaded");
+export const VersionUpdateError: Story = withUpdates("error");
+/** Buttons play out a fake update (used by the Storybook e2e). */
+export const VersionUpdateFlow: Story = withUpdates("idle", true);

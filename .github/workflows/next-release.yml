@@ -1,0 +1,163 @@
+name: Next Release
+
+# Releases of the new app (next/). Tags are app-vX.Y.Z; the Python app's release.yml only looks at v* tags.
+# Design: docs/spec/new-app-design.md §6.1 (M-018..M-020).
+#
+#  version  compute the next version from the latest app-v* tag and the next/ commits since (PRs stop here: dry-run)
+#  build    next-windows.yml: build the installer and run every install / update check
+#  publish  only if build passed: Release app-vX.Y.Z (prerelease) and the fixed update feed Release "app-latest"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "next/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "next/**"
+      - ".github/workflows/next-release.yml"
+      - ".github/workflows/next-windows.yml"
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: read
+
+# One release at a time (queued, never cancelled: a half-published release is worse than a late one).
+# Pull requests only compute a version, so a newer push to the same PR may cancel the older run.
+concurrency:
+  group: next-release-${{ github.event_name == 'pull_request' && github.ref || 'main' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DRY_RUN: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      tag: ${{ steps.plan.outputs.tag }}
+      bump: ${{ steps.plan.outputs.bump }}
+      tag_exists: ${{ steps.plan.outputs.tag_exists }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # tags and history for version detection
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Compute the version (tools/release, unit-tested)
+        id: plan
+        env:
+          MANUAL_BUMP: ${{ github.event_name == 'workflow_dispatch' && inputs.bump || '' }}
+        run: |
+          args=()
+          if [ -n "$MANUAL_BUMP" ]; then args=(--bump "$MANUAL_BUMP"); fi
+          node --experimental-strip-types next/tools/release/src/cli.ts plan "${args[@]}" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Summary
+        env:
+          VERSION: ${{ steps.plan.outputs.version }}
+          BUMP: ${{ steps.plan.outputs.bump }}
+          TAG: ${{ steps.plan.outputs.tag }}
+          EXISTS: ${{ steps.plan.outputs.tag_exists }}
+        run: |
+          {
+            if [ "$DRY_RUN" = "true" ]; then echo "### Dry run (pull request): nothing is built or published"; else echo "### Release plan"; fi
+            echo
+            echo "- version: \`$VERSION\` ($BUMP bump), tag \`$TAG\`"
+            if [ "$EXISTS" = "true" ]; then echo "- tag already exists: nothing will be released"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    needs: version
+    # Only main publishes (a manual run on another branch stops after the version plan).
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.version.outputs.tag_exists != 'true'
+    uses: ./.github/workflows/next-windows.yml
+    permissions:
+      contents: read
+    with:
+      version: ${{ needs.version.outputs.version }}
+
+  publish:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # create the tag and Releases
+      actions: read # download the build's artifact
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.version.outputs.version }}
+      TAG: ${{ needs.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Download the verified installer
+        run: gh run download "$GITHUB_RUN_ID" --name next-windows --dir dl
+
+      - name: Collect release files
+        run: |
+          mkdir release-files
+          # The artifact keeps the path below its common root (dl/apps/desktop/release/...), so search for the files.
+          for f in lol-viewer-next-setup-"$VERSION".exe lol-viewer-next-setup-"$VERSION".exe.blockmap latest.yml; do
+            found=$(find dl -type f -name "$f" | head -n 1)
+            [ -n "$found" ] || { echo "missing $f in the build artifact"; find dl -type f; exit 1; }
+            cp "$found" release-files/
+          done
+          grep -q "^version: $VERSION\$" release-files/latest.yml || { echo "latest.yml does not say version $VERSION"; cat release-files/latest.yml; exit 1; }
+          ls -l release-files
+
+      - name: Release notes
+        run: node --experimental-strip-types next/tools/release/src/cli.ts notes --tag "$TAG" --repo "$GITHUB_REPOSITORY" --out notes.md
+
+      # prerelease + not "latest": the Python app's update check (/releases/latest) must never see it (M-019).
+      - name: Create Release app-vX.Y.Z
+        run: |
+          gh release create "$TAG" release-files/* \
+            --target "$GITHUB_SHA" \
+            --title "LoL Viewer Next $VERSION" \
+            --notes-file notes.md \
+            --prerelease --latest=false
+
+      # The fixed feed the app reads (…/releases/download/app-latest/latest.yml). New files go up first and latest.yml
+      # last, so the feed never points at a missing installer; then every other asset is removed.
+      - name: Update the app-latest feed
+        run: |
+          if ! gh release view app-latest >/dev/null 2>&1; then
+            gh release create app-latest --target "$GITHUB_SHA" --prerelease --latest=false \
+              --title "LoL Viewer Next (update feed)" --notes "Update feed for the in-app updater. Do not download from here; use the app-v* releases."
+          fi
+          gh release upload app-latest release-files/lol-viewer-next-setup-"$VERSION".exe release-files/lol-viewer-next-setup-"$VERSION".exe.blockmap --clobber
+          gh release upload app-latest release-files/latest.yml --clobber
+          gh release view app-latest --json assets --jq '.assets[].name' | while read -r name; do
+            case "$name" in
+              latest.yml | lol-viewer-next-setup-"$VERSION".exe | lol-viewer-next-setup-"$VERSION".exe.blockmap) ;;
+              *) gh release delete-asset app-latest "$name" --yes ;;
+            esac
+          done
+          gh release edit app-latest --prerelease --latest=false --notes "Update feed for the in-app updater (currently $VERSION). Do not download from here; use the app-v* releases."
+          # Move the tag to this commit (create it if the release was made without one).
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/app-latest" -f sha="$GITHUB_SHA" -F force=true \
+            || gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref=refs/tags/app-latest -f sha="$GITHUB_SHA"
+          gh release view app-latest --json assets --jq '.assets[].name'

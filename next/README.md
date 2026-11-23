@@ -1,6 +1,9 @@
-# LoL Viewer Next (PoC)
+# LoL Viewer（新版 / Electron）
 
-Electron + TypeScript + React で LoL Viewer を作り直す PoC。設計は [`../docs/design/next-architecture.md`](../docs/design/next-architecture.md)。
+Electron + TypeScript + React で作り直している LoL Viewer の新版。PoC から始まり、旧版（PyQt6 版）の機能を移植している。
+
+- 仕様と移植の資料は [`../docs/spec/`](../docs/spec/README.md)（まず README から読む）。新版の設計は [`new-app-design.md`](../docs/spec/new-app-design.md)、進み具合は [`progress.md`](../docs/spec/progress.md)。
+- 当初の構成案は [`../docs/design/next-architecture.md`](../docs/design/next-architecture.md)。
 
 Python 版とは完全に独立している（`next/` の中で閉じた pnpm workspace）。
 Python 版のワークフローは `next/**` だけの変更では動かず、この PoC 専用の CI は [`.github/workflows/next-ci.yml`](../.github/workflows/next-ci.yml)。
@@ -36,11 +39,11 @@ LOL_LCU_LOCKFILE=<表示されたパス> pnpm desktop:start
 
 ```
 packages/protocol   zod スキーマ: LCU ペイロード、MatchState、外部ビューのコマンド、URL 許可リスト
-packages/core       純粋ロジック: reducer (LcuEvent -> MatchState)、URL ビルダー、自動ビューア、シナリオ
+packages/core       純粋ロジック: reducer (LcuEvent -> MatchState)、workspace (ビューア一覧・対面表・保留中の敵ピック)、URL、設定、検索、シナリオ
 packages/lcu        🔴 読み取り専用の LCU クライアント（GET + WAMP 購読のみ）
 packages/hub        状態ストア + 購読用サーバ（127.0.0.1 / トークン / Origin・Host 検証）
 tools/fake-lcu      シナリオを LCU と同じプロトコルで再生する偽サーバ
-tools/champion-data Data Dragon からチャンピオン表（ID・名前・URL 名・スキルのクールダウン）を生成
+tools/champion-data Data Dragon からチャンピオン表（ID・名前・URL 名・レーン適性・スキルのクールダウン）を生成
 packages/recorder   実際の League Client の試合データを記録（個人情報は保存前に伏せる）
 scenarios/          試合のイベント列（JSONL）。テスト・Storybook・E2E で共用
 apps/web            React UI。Electron・ブラウザ・Storybook で同じものが動く
@@ -85,7 +88,7 @@ pnpm champion-data                      # 最新パッチで再生成
 pnpm champion-data --version 16.22.1    # パッチを指定
 ```
 
-- 中身: League Client が送ってくる数値 ID、英語名・日本語名、lolalytics/u.gg の URL 名（`MonkeyKing` → `wukong` のみ例外）、Q/W/E/R のランク別の基本クールダウン。
+- 中身: League Client が送ってくる数値 ID、英語名・日本語名、lolalytics/u.gg の URL 名（`MonkeyKing` → `wukong` のみ例外）、レーン適性（`tools/champion-data/champion_lane.csv` の 0〜5。手で編集する入力ファイル）、Q/W/E/R のランク別の基本クールダウン。
 - 更新: [`.github/workflows/next-champion-data.yml`](../.github/workflows/next-champion-data.yml) が毎週木曜に再生成し、変化があれば PR を出す。PR 本文にクールダウンの変更点の表が入る。
 - アプリは同梱した JSON を読むだけで、実行時には通信しない。
 - 生成した URL 名は、全 173 体が lolalytics で 200 を返すことを確認済み（2026-11, patch 16.23.1）。
@@ -123,8 +126,9 @@ pnpm champion-data --version 16.22.1    # パッチを指定
 
 ## まだやっていないこと
 
-- 実際の LCU（https/wss、Riot の自己署名証明書）での接続確認。Windows 実機で人間が `pnpm desktop:start` する必要がある。
-- 実際の試合の録画ツール（`tools/recorder`）
-- 自動更新、コード署名、Python 版からの設定の引き継ぎ
-- Storybook の画像差分比較（今はスクショを保存するだけ。基準画像を CI 環境で作る仕組みが必要）
-- CODEOWNERS とブランチ保護による 🔴 ゾーンの強制
+[`docs/spec/progress.md`](../docs/spec/progress.md) を参照。主なもの:
+
+- 実際の LCU（https/wss、Riot の自己署名証明書、プロセスのコマンドラインからの接続情報の取得）での接続確認。Windows 実機で人間が確認する必要がある。
+- 更新確認・自動更新と、新版のリリース経路
+- コード署名
+- Storybook の画像差分比較（今はスクショを保存するだけ）
