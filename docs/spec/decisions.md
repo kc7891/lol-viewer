@@ -30,6 +30,7 @@
 | M-022 | インストーラはワンクリック・ユーザー単位（`%LOCALAPPDATA%\Programs`）にし、言語選択、全ユーザーへの昇格、インストール先の選択は出さない（PoC で、保護されたフォルダを選べてしまい書き込みに失敗した問題への対処） | 新版の方針 | 04 §4 |
 | M-023 | Settings の URL テンプレートは、空欄と「https 以外」を保存させない。ホストは制限しない（2026-11-23 に改訂。当初は lolalytics.com / u.gg のみ。op.gg など他のサイトも使いたいため。外部ビューはサンドボックスで preload も Node もなく、危険は低いと判断） | 改善 | 01 §8.1 |
 | M-024 | Wukong のレーン適性はジャングル（`champion_lane.csv` の `wukong,0,5,0,0,0`）。M-004 の「レーン適性が top=5」を改訂する | 改訂（M-004） | 03 §11 |
+| M-025 | 旧版の更新チャンネルで、旧版のユーザーを新版へ移行する。旧版の最後のリリースは、新版のインストーラを同梱した移行用ブートストラッパー（`migrate-to-next.iss`）を `lol-viewer-setup.exe` として配る。設定は引き継がない（M-003） | 新版の方針 | 04 §1 |
 
 ---
 
@@ -121,6 +122,14 @@ lolalytics を実際のブラウザ（Playwright）で開いた結果: `/lol/ahr
 - 持ち主が main の `champions.json` で Wukong を top=5 から jg=5 に直した（コミット `1637743`）。元データの `champion_lane.csv` とテストが top=5 のままだったため、旧版のテスト `test_wukong_uses_wukong_key_and_monkeyking_only_for_data_dragon` が main で失敗していた。週次の自動更新でも top=5 に戻ってしまう状態だった。
 - **決定: ジャングルに揃える。** 旧版と新版の `champion_lane.csv` を `wukong,0,5,0,0,0` にし、旧版のテスト、新版の生成データ（`next/packages/core/data/champions.json`）とテストを合わせた。
 - M-004 の「回帰テスト: レーン適性が top=5 になること」は「jungle=5 になること」と読み替える。キーを `wukong` にする方針（M-004 の本体）は変わらない。
+
+## M-025 旧版のユーザーを更新チャンネルで新版へ移行する（2026-11-23）
+- 旧版は GitHub の `/releases/latest` の `tag_name` を見て、nightly.link の `lol-viewer-setup.zip`（`release.yml` の成果物 `lol-viewer-setup`）をダウンロードし、中の最初の `.exe` を `/NORESTART /DIR=<旧インストール先>` で実行する。インストール済みの旧版の更新処理は変えられない。
+- **決定: 同じファイル名・同じ起動方法の「ブートストラッパー」を配る。** `migrate-to-next.iss` が `lol-viewer-setup.exe` を作り、`app-latest` から取った最新の新版インストーラ（`lol-viewer-next-setup-*.exe`）を同梱する。実行すると新版をインストールし、成功したときだけ旧版を静かにアンインストールする（HKCU、HKLM の順で `{8F7A2B3C-…}_is1` を探す）。新版のインストールに失敗したら旧版は残す。`/DIR` は `CreateAppDir=no` で無視する。ユーザー単位（`PrivilegesRequired=lowest`）のまま動かし、新版が本人のユーザーにインストールされるようにする。
+- リリース本文の先頭に移行の案内（日本語と英語）を置く。旧版は本文の先頭 200 文字しか表示しないため、短い一文から始める。
+- nightly.link の成果物は保持期間が 90 日なので、`release.yml` に月次の `schedule` を足し、期限が切れず、常に最新の新版を同梱するようにする。スケジュール実行ではタグもリリースも作らない。
+- 設定は移行しない（M-003）。PR では `windows-build.yml` が、旧版の最新リリースを入れた上でブートストラッパーを実行し、新版が入って旧版が消えることを確かめる。
+- 旧版のソース（`lol-viewer.iss`、spec、Python コード）はこの変更では消さない。
 
 ---
 

@@ -22,12 +22,17 @@ on:
           - patch
           - minor
           - major
+  schedule:
+    # Monthly: re-run the bootstrapper build so the nightly.link artifact (90-day retention)
+    # never expires and always bundles the newest LoL Viewer Next installer. No release is created.
+    - cron: '17 3 1 * *'
 
 env:
   DRY_RUN: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   release:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -187,6 +192,9 @@ jobs:
 
           # Create release notes
           cat > release_notes.md << EOF
+          LoL Viewer は LoL Viewer Next に移行しました。「Yes」で新しいアプリをインストールし、旧版を削除します（設定は引き継がれません）。
+          LoL Viewer has moved to LoL Viewer Next. Choose "Yes" to install the new app and remove the old one (settings are not carried over).
+
           ## What's Changed
 
           $COMMITS
@@ -232,8 +240,8 @@ jobs:
           echo "Tag: v${{ steps.version.outputs.new }}"
           echo ""
           echo "Next steps:"
-          echo "  • Windows installer build will start next"
-          echo "  • lol-viewer-setup.exe will be uploaded to the release"
+          echo "  • Migration bootstrapper build will start next"
+          echo "  • lol-viewer-setup.exe (installs LoL Viewer Next, removes the old app) will be uploaded to the release"
           echo "  • Users will receive update notifications on next app launch"
           echo ""
           echo "Release URL:"
@@ -241,77 +249,46 @@ jobs:
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-  # Build Windows installer after release is created
+  # Build the migration bootstrapper (installs LoL Viewer Next, removes the old app).
+  # Pull requests are covered by windows-build.yml.
   build-installer:
     needs: release
-    if: needs.release.outputs.tag_exists == 'false' && github.event_name != 'pull_request'
+    if: >-
+      always() && github.event_name != 'pull_request' && (
+        github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch' ||
+        (needs.release.result == 'success' && needs.release.outputs.tag_exists == 'false')
+      )
     runs-on: windows-latest
     permissions:
-      contents: write
+      contents: write  # upload to the vX.Y.Z release; reading app-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.release.outputs.version_commit_sha }}
-          fetch-depth: 0  # Fetch all history to ensure tags are available
+          # Version commit when a release was just created; otherwise the triggering ref.
+          ref: ${{ needs.release.outputs.version_commit_sha || github.sha }}
 
-      - name: Verify checked out version
+      - name: Download the latest LoL Viewer Next installer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $currentSha = git rev-parse HEAD
-          Write-Host "Checked out commit SHA: $currentSha"
-          Write-Host "Expected SHA: ${{ needs.release.outputs.version_commit_sha }}"
-          if ($currentSha -ne "${{ needs.release.outputs.version_commit_sha }}") {
-            Write-Error "Checkout SHA mismatch!"
+          gh release download app-latest --repo "$env:GITHUB_REPOSITORY" --pattern 'lol-viewer-next-setup-*.exe' --dir next-installer
+          if ($LASTEXITCODE -ne 0) { Write-Error "gh release download failed"; exit 1 }
+          $files = @(Get-ChildItem next-installer -Filter 'lol-viewer-next-setup-*.exe')
+          if ($files.Count -ne 1) {
+            Write-Error "Expected exactly one installer, found $($files.Count)"
             exit 1
           }
-        shell: pwsh
-
-      - name: Set up Python
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install --require-hashes -r requirements.txt
-
-      - name: Fetch champion data
-        run: |
-          python scripts/fetch_champions.py
-          python -c "import json; data = json.load(open('champions.json', 'r', encoding='utf-8')); print(f'{len(data)} champions loaded')"
-
-      - name: Verify build prerequisites
-        run: python scripts/check_build.py
-
-      - name: Build Release Version
-        run: pyinstaller lol-viewer.spec
-
-      - name: Update Installer Version
-        run: |
-          $version = python -c "from constants import __version__; print(__version__)"
-          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          Write-Host "Building installer for version: $version"
-          Write-Host "Git commit SHA: $(git rev-parse HEAD)"
-          Write-Host "Expected version: ${{ needs.release.outputs.new_version }}"
-          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-          if ($version -ne "${{ needs.release.outputs.new_version }}") {
-            Write-Error "Version mismatch! main.py has $version but expected ${{ needs.release.outputs.new_version }}"
-            exit 1
-          }
-
-          $issContent = Get-Content lol-viewer.iss -Raw
-          $issContent = $issContent -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"$version`""
-          Set-Content lol-viewer.iss -Value $issContent
-          Write-Host "✓ Updated installer version to: $version"
+          Write-Host "Bundling $($files[0].Name)"
+          Rename-Item -Path $files[0].FullName -NewName 'lol-viewer-next-setup.exe'
         shell: pwsh
 
       - name: Build Installer
         uses: Minionguyjpro/inno-setup-action@36e43b836ce2c78d21787b1f7183caf85c60ba05 # v1.3.0
         with:
-          path: lol-viewer.iss
+          path: migrate-to-next.iss
 
       - name: Package Installer as Zip
         run: |
@@ -320,6 +297,7 @@ jobs:
         shell: pwsh
 
       - name: Upload to Release
+        if: needs.release.outputs.version_commit_sha != ''
         uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           tag_name: v${{ needs.release.outputs.new_version }}
@@ -327,30 +305,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # nightly.link serves the newest successful run's artifact named lol-viewer-setup.
       - name: Upload as Artifact for nightly.link
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: lol-viewer-setup
           path: installer_output/lol-viewer-setup.exe
           retention-days: 90
-
-      - name: Build Summary
-        run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "✓ Installer built and uploaded to release"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-          echo "Release: v${{ needs.release.outputs.new_version }}"
-          echo "Package: lol-viewer-setup.exe (single-file installer)"
-          echo "No VC++ Redistributable required!"
-          echo ""
-          echo "Installer includes:"
-          echo "  - Automatic Program Files installation"
-          echo "  - Start Menu shortcuts"
-          echo "  - Optional desktop shortcut"
-          echo "  - Silent update support"
-          echo ""
-          echo "Users will receive update notifications on next app launch!"
-          echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        shell: bash
