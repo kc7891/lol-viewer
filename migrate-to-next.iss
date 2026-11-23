@@ -1,4 +1,4 @@
-; Migration bootstrapper: the final "LoL Viewer" (old PyQt app) update.
+﻿; Migration bootstrapper: the final "LoL Viewer" (old PyQt app) update.
 ;
 ; The old app's updater downloads lol-viewer-setup.exe (via nightly.link) and runs it as
 ;   lol-viewer-setup.exe /NORESTART /DIR=<old install dir>
@@ -23,6 +23,7 @@ AppPublisherURL={#MyAppURL}
 ; Nothing is installed by this script itself, so /DIR=... from the old updater is ignored.
 Uninstallable=no
 CreateAppDir=no
+DisableWelcomePage=no
 DisableProgramGroupPage=yes
 DisableReadyPage=yes
 DisableFinishedPage=yes
