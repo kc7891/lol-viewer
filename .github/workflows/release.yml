@@ -1,274 +1,40 @@
 name: Automatic Release
 
+# Why this workflow still exists (and why its filename must NOT change):
+#
+# LoL Viewer v0.34.0 was the final release of the old Python app. Old installs update themselves by
+# downloading the migration bootstrapper from
+#   https://nightly.link/kc7891/lol-viewer/workflows/release/main/lol-viewer-setup.zip
+# which serves the `lol-viewer-setup` artifact of the latest successful run of THIS file
+# (.github/workflows/release.yml) on main. That URL is baked into every installed old app.
+#
+# The bootstrapper (migrate-to-next.iss) installs LoL Viewer Next and removes the old app. It bundles the
+# newest Next installer, and artifacts expire after 90 days, so a monthly run refreshes it.
+#
+# This workflow no longer creates tags, releases or version bumps.
+
 on:
+  schedule:
+    # Monthly refresh: keeps the artifact inside its 90-day retention and bundles the newest Next installer.
+    - cron: '17 3 1 * *'
+  workflow_dispatch:
   push:
     branches:
       - main
-    paths-ignore:
-      # Pushes that only touch the next/ PoC must not cut a Python release.
-      - 'next/**'
-  pull_request:
-    branches:
-      - main
-    paths-ignore:
-      - 'next/**'
-  workflow_dispatch:
-    inputs:
-      version_type:
-        description: 'Version bump type'
-        required: true
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
-  schedule:
-    # Monthly: re-run the bootstrapper build so the nightly.link artifact (90-day retention)
-    # never expires and always bundles the newest LoL Viewer Next installer. No release is created.
-    - cron: '17 3 1 * *'
-
-env:
-  DRY_RUN: ${{ github.event_name == 'pull_request' }}
+    paths:
+      - migrate-to-next.iss
+      - .github/workflows/release.yml
 
 jobs:
-  release:
-    if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    outputs:
-      new_version: ${{ steps.version.outputs.new }}
-      tag_exists: ${{ steps.check_tag.outputs.exists }}
-      version_commit_sha: ${{ steps.get_commit_sha.outputs.sha }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0  # Fetch all history for version detection
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Python
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: '3.11'
-
-      - name: Install CI dependencies
-        run: pip install --require-hashes -r requirements-ci.txt
-
-      - name: Determine version bump type
-        id: bump_type
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # Manual trigger
-            echo "type=${{ github.event.inputs.version_type }}" >> $GITHUB_OUTPUT
-            echo "Manual version bump: ${{ github.event.inputs.version_type }}"
-          else
-            # Automatic detection from commit messages (including PR body for squash merges)
-            COMMITS=$(git log --format=%B $(git describe --tags --match 'v[0-9]*' --abbrev=0 2>/dev/null || echo "")..HEAD 2>/dev/null || git log --format=%B)
-
-            echo "Analyzing commits:"
-            echo "$COMMITS"
-            echo ""
-
-            # Check for breaking changes
-            if echo "$COMMITS" | grep -qiE "BREAKING CHANGE|!:"; then
-              echo "type=major" >> $GITHUB_OUTPUT
-              echo "Detected: BREAKING CHANGE → major version bump"
-            # Check for features
-            elif echo "$COMMITS" | grep -qE "^feat(\(.*\))?:"; then
-              echo "type=minor" >> $GITHUB_OUTPUT
-              echo "Detected: feat → minor version bump"
-            # Default to patch
-            else
-              echo "type=patch" >> $GITHUB_OUTPUT
-              echo "Detected: fix/docs/chore → patch version bump"
-            fi
-          fi
-
-      - name: Get current version and bump
-        id: version
-        run: |
-          # Get current version from latest git tag (source of truth)
-          LATEST_TAG=$(git describe --tags --match 'v[0-9]*' --abbrev=0 2>/dev/null || echo "v0.0.0")
-          CURRENT_VERSION=${LATEST_TAG#v}  # Remove 'v' prefix
-          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          echo "Current version (from git tag): $CURRENT_VERSION"
-
-          # Bump version using Python
-          NEW_VERSION=$(python3 << EOF
-          from packaging import version
-
-          current = version.parse("$CURRENT_VERSION")
-          bump_type = "${{ steps.bump_type.outputs.type }}"
-
-          major, minor, patch = current.major, current.minor, current.micro
-
-          if bump_type == "major":
-              new_version = f"{major + 1}.0.0"
-          elif bump_type == "minor":
-              new_version = f"{major}.{minor + 1}.0"
-          else:  # patch
-              new_version = f"{major}.{minor}.{patch + 1}"
-
-          print(new_version)
-          EOF
-          )
-
-          echo "new=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "New version: $NEW_VERSION"
-
-      - name: Check if version already exists
-        id: check_tag
-        run: |
-          if git rev-parse "v${{ steps.version.outputs.new }}" >/dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "⚠️  Tag v${{ steps.version.outputs.new }} already exists, skipping release"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "✓ Tag v${{ steps.version.outputs.new }} does not exist, proceeding with release"
-          fi
-
-      - name: Update version in constants.py
-        if: steps.check_tag.outputs.exists == 'false'
-        run: |
-          sed -i 's/__version__ = ".*"/__version__ = "${{ steps.version.outputs.new }}"/' constants.py
-          echo "Updated constants.py with version ${{ steps.version.outputs.new }}"
-          grep "__version__" constants.py
-
-      - name: Verify version was updated
-        if: steps.check_tag.outputs.exists == 'false'
-        run: |
-          UPDATED=$(grep '__version__' constants.py)
-          echo "Updated line: $UPDATED"
-          if ! echo "$UPDATED" | grep -q '${{ steps.version.outputs.new }}'; then
-            echo "ERROR: version update failed - sed did not match"
-            exit 1
-          fi
-
-      - name: Commit version bump
-        if: steps.check_tag.outputs.exists == 'false' && env.DRY_RUN != 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add constants.py
-          if git diff --cached --quiet; then
-            # constants.py already has the target version (e.g. a bump commit
-            # landed without a matching tag). Nothing to commit; HEAD is the
-            # version commit, so continue to tag + release.
-            echo "constants.py already at ${{ steps.version.outputs.new }}, skipping version bump commit"
-          else
-            git commit -m "chore: bump version to ${{ steps.version.outputs.new }}"
-            git push
-          fi
-
-      - name: Get version commit SHA
-        if: steps.check_tag.outputs.exists == 'false' && env.DRY_RUN != 'true'
-        id: get_commit_sha
-        run: |
-          SHA=$(git rev-parse HEAD)
-          echo "sha=$SHA" >> $GITHUB_OUTPUT
-          echo "Version commit SHA: $SHA"
-
-      - name: Create Git tag
-        if: steps.check_tag.outputs.exists == 'false' && env.DRY_RUN != 'true'
-        run: |
-          git tag -a "v${{ steps.version.outputs.new }}" -m "Release v${{ steps.version.outputs.new }}"
-          git push origin "v${{ steps.version.outputs.new }}"
-          echo "✓ Created and pushed tag v${{ steps.version.outputs.new }}"
-
-      - name: Generate release notes
-        if: steps.check_tag.outputs.exists == 'false' && env.DRY_RUN != 'true'
-        id: notes
-        run: |
-          # Get commits since last tag
-          LAST_TAG=$(git describe --tags --match 'v[0-9]*' --abbrev=0 HEAD^ 2>/dev/null || echo "")
-
-          if [ -z "$LAST_TAG" ]; then
-            COMMITS=$(git log --format="* %s (%h)" HEAD)
-          else
-            COMMITS=$(git log --format="* %s (%h)" $LAST_TAG..HEAD)
-          fi
-
-          # Create release notes
-          cat > release_notes.md << EOF
-          LoL Viewer は LoL Viewer Next に移行しました。「Yes」で新しいアプリをインストールし、旧版を削除します（設定は引き継がれません）。
-          LoL Viewer has moved to LoL Viewer Next. Choose "Yes" to install the new app and remove the old one (settings are not carried over).
-
-          ## What's Changed
-
-          $COMMITS
-
-          **Full Changelog**: https://github.com/${{ github.repository }}/compare/$LAST_TAG...v${{ steps.version.outputs.new }}
-          EOF
-
-          echo "Release notes:"
-          cat release_notes.md
-
-      - name: Create GitHub Release
-        if: steps.check_tag.outputs.exists == 'false' && env.DRY_RUN != 'true'
-        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
-        with:
-          tag_name: v${{ steps.version.outputs.new }}
-          name: v${{ steps.version.outputs.new }}
-          body_path: release_notes.md
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Dry Run Summary
-        if: env.DRY_RUN == 'true' && steps.check_tag.outputs.exists == 'false'
-        run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "✓ Release dry-run passed"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-          echo "Version: ${{ steps.version.outputs.current }} → ${{ steps.version.outputs.new }}"
-          echo "Bump type: ${{ steps.bump_type.outputs.type }}"
-          echo "Tag would be: v${{ steps.version.outputs.new }}"
-
-      - name: Summary
-        if: steps.check_tag.outputs.exists == 'false' && env.DRY_RUN != 'true'
-        run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "✓ Release created successfully"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-          echo "Version: ${{ steps.version.outputs.current }} → ${{ steps.version.outputs.new }}"
-          echo "Bump type: ${{ steps.bump_type.outputs.type }}"
-          echo "Tag: v${{ steps.version.outputs.new }}"
-          echo ""
-          echo "Next steps:"
-          echo "  • Migration bootstrapper build will start next"
-          echo "  • lol-viewer-setup.exe (installs LoL Viewer Next, removes the old app) will be uploaded to the release"
-          echo "  • Users will receive update notifications on next app launch"
-          echo ""
-          echo "Release URL:"
-          echo "  https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.new }}"
-          echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-  # Build the migration bootstrapper (installs LoL Viewer Next, removes the old app).
-  # Pull requests are covered by windows-build.yml.
   build-installer:
-    needs: release
-    if: >-
-      always() && github.event_name != 'pull_request' && (
-        github.event_name == 'schedule' ||
-        github.event_name == 'workflow_dispatch' ||
-        (needs.release.result == 'success' && needs.release.outputs.tag_exists == 'false')
-      )
     runs-on: windows-latest
+    timeout-minutes: 20
     permissions:
-      contents: write  # upload to the vX.Y.Z release; reading app-latest
+      contents: read
 
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          # Version commit when a release was just created; otherwise the triggering ref.
-          ref: ${{ needs.release.outputs.version_commit_sha || github.sha }}
 
       - name: Download the latest LoL Viewer Next installer
         env:
@@ -289,21 +55,6 @@ jobs:
         uses: Minionguyjpro/inno-setup-action@36e43b836ce2c78d21787b1f7183caf85c60ba05 # v1.3.0
         with:
           path: migrate-to-next.iss
-
-      - name: Package Installer as Zip
-        run: |
-          cd installer_output
-          Compress-Archive -Path lol-viewer-setup.exe -DestinationPath lol-viewer-setup.zip
-        shell: pwsh
-
-      - name: Upload to Release
-        if: needs.release.outputs.version_commit_sha != ''
-        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
-        with:
-          tag_name: v${{ needs.release.outputs.new_version }}
-          files: installer_output/lol-viewer-setup.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # nightly.link serves the newest successful run's artifact named lol-viewer-setup.
       - name: Upload as Artifact for nightly.link

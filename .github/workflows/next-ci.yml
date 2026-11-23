@@ -1,7 +1,6 @@
 name: Next (Electron PoC)
 
-# CI for the next/ PoC only. The Python app's workflows ignore next/** and this
-# one only runs for next/** changes, so the two never block or release each other.
+# CI for next/ only; it runs for next/** changes.
 # This workflow never publishes anything: no releases, no tags, read-only token.
 
 on:

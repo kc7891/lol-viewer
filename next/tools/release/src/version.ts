@@ -1,6 +1,6 @@
 /**
  * Release version rules for the new app (docs/spec/new-app-design.md §6.1). Pure functions; cli.ts adds git.
- * Same bump rule as the Python app's release.yml: BREAKING CHANGE / "!:" -> major, "feat:" -> minor, else patch.
+ * Bump rule: BREAKING CHANGE / "!:" -> major, "feat:" -> minor, else patch.
  */
 export type Bump = "major" | "minor" | "patch";
 

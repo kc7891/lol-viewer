@@ -1,7 +1,7 @@
 # 移植方針の決定事項
 
 旧版（PyQt6 版 `v0.33.1`）から新版へ移植するときの判断を記録する。
-[旧機能インベントリ](./legacy-inventory/README.md) で「要判断」としていた項目のうち、決まったものをここに書く。
+旧機能インベントリ（git のタグ v0.34.0 の `docs/spec/legacy-inventory/`） で「要判断」としていた項目のうち、決まったものをここに書く。
 新しく決めたことは末尾に追記する。決定を覆すときは、元の項目を消さずに「改訂」を追記する。
 
 | ID | 決定 | 区分 | 関連する旧インベントリの項目 |
@@ -37,6 +37,7 @@
 | M-029 | Live Client のデータから「自分のチーム」を決めるのに名前（Riot ID）を使わない。自分のチャンピオン、次に MatchState の味方・敵との一致で決める。決まらなければ試合中のデータを使わない | 新版の方針（個人情報） | — |
 | M-030 | 旧版の更新チャンネルで、旧版のユーザーを新版へ移行する。旧版の最後のリリースは、新版のインストーラを同梱した移行用ブートストラッパー（`migrate-to-next.iss`）を `lol-viewer-setup.exe` として配る。設定は引き継がない（M-003） | 新版の方針 | 04 §1 |
 | M-031 | 試合中のデータ（ゴールド差・レベル差）は試合が終わっても残す。消すのは、次の試合（ChampSelect に入る）、ChampSelect を経ずに次のゲームが始まったとき（`Reconnect` からの復帰は除く）、Feature Flag を OFF にしたとき。M-025 の「`InProgress` 以外になると消える」を改訂する | 改訂（M-025） | — |
+| M-032 | 旧版のアプリ、CI、ドキュメントを削除する。`release.yml` は月次のブートストラッパー更新だけにし、タグもリリースも作らない。旧版のソースは git のタグ `v0.34.0` に残す | 新版の方針 | 04 §1 |
 
 ---
 
@@ -102,7 +103,7 @@ lolalytics を実際のブラウザ（Playwright）で開いた結果: `/lol/ahr
 
 ## M-005 ↑↓ 並べ替えボタンを移植しない
 - PR #114 で ↑↓ ボタン（`_matchup_move_ally` / `_matchup_move_enemy`）とそのテストを意図的に削除し、ドラッグ&ドロップ（#112）に置き換えている。
-- 設計書 `docs/design/matchup-list.md` と `docs/features.md` に残っている ↑↓ の記述は古い。
+- 旧版の設計書 `docs/design/matchup-list.md` と `docs/features.md`（どちらも削除済み。git のタグ v0.34.0 にある）に残っていた ↑↓ の記述は古い。
 - 使われずに残っている `_matchup_swap_enemies` も移植しない。
 
 ---
@@ -148,7 +149,9 @@ lolalytics を実際のブラウザ（Playwright）で開いた結果: `/lol/ahr
 - リリース本文の先頭に移行の案内（日本語と英語）を置く。旧版は本文の先頭 200 文字しか表示しないため、短い一文から始める。
 - nightly.link の成果物は保持期間が 90 日なので、`release.yml` に月次の `schedule` を足し、期限が切れず、常に最新の新版を同梱するようにする。スケジュール実行ではタグもリリースも作らない。
 - 設定は移行しない（M-003）。PR では `windows-build.yml` が、旧版の最新リリースを入れた上でブートストラッパーを実行し、新版が入って旧版が消えることを確かめる。
-- 旧版のソース（`lol-viewer.iss`、spec、Python コード）はこの変更では消さない。
+- 旧版のソース（`lol-viewer.iss`、spec、Python コード）はこの変更では消さない（M-032 で削除した）。
+
+---
 
 ## M-031 試合が終わってもゴールド差を残す（M-025 の改訂、2026-11-23）
 - 持ち主の要望: 試合の結果を振り返れるよう、ゴールド差は試合後も見えていてほしい。次の試合のピックが始まったら消えればよい。
@@ -156,6 +159,14 @@ lolalytics を実際のブラウザ（Playwright）で開いた結果: `/lol/ahr
   - 消すのは次の 3 つ: 新しい試合（`startNewMatch`。ChampSelect に入る、ドッジして次のロビー）、ChampSelect を経ずに `InProgress` に入ったとき（アプリを試合中に起動した、など。直前のフェーズが `Reconnect` なら同じ試合の再開なので消さない）、`live-players: null`（Feature Flag を OFF にした）。
   - 切断（`disconnected`）では消さない（味方・敵の一覧と同じく、直前の表示を保つ）。
   - Live Client API が無くなったこと（記録やシナリオの `Delete`）は無視する。実際のポーラーも 404 を報告しないので、両者の動きをそろえた。
+
+---
+
+## M-032 旧版のアプリ、CI、ドキュメントを削除する（2026-11-23）
+- M-030 の移行（旧版の最後のリリース v0.34.0）が済んだので、旧版の Python コード、PyInstaller と Inno Setup の設定、依存関係の固定ファイル、旧版のテストとスクリプト、旧版専用のワークフロー（`python-tests.yml`、`update-champions.yml`、`lock-refresh.yml`）、旧版のドキュメント（`docs/architecture.md`、`docs/features.md`、旧版の設計書、`legacy-inventory/`）、リポジトリ直下の Python 向けルール（`claude.md`）を削除した。
+- **`release.yml` は、ブートストラッパーの月次更新だけにする。** 旧版に埋め込まれた nightly.link の URL（`workflows/release/main/lol-viewer-setup.zip`）が指すので、ファイル名は変えない。タグもリリースもバージョン更新もしない。`push`（`migrate-to-next.iss` と `release.yml` の変更時）、`workflow_dispatch`、月次の `schedule` で `lol-viewer-setup` の成果物を作り直す。
+- `windows-build.yml` は、旧版 v0.33.6 を入れた上でブートストラッパーを実行する移行の確認だけを残し、`migrate-to-next.iss` と関連ワークフローの変更時にだけ動かす。
+- 旧版のソースは git のタグ `v0.34.0` に残してある。旧インベントリ（01〜04）もそこで読める。
 
 ---
 

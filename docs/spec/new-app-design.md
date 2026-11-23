@@ -3,7 +3,7 @@
 旧版（PyQt6 版）の機能を、`next/` の Electron + TypeScript + React 構成へ移植するための設計。
 **機能（何ができるか・どう振る舞うか）は旧版を移植し、見た目と操作方法は新しく設計する**（M-008）。
 
-- 読む順番: [README](./README.md) → [decisions.md](./decisions.md) → この文書 → 必要に応じて [legacy-inventory/](./legacy-inventory/README.md)
+- 読む順番: [README](./README.md) → [decisions.md](./decisions.md) → この文書 → 必要に応じて 旧版棚卸し（git のタグ v0.34.0 の `docs/spec/legacy-inventory/`）
 - 旧インベントリの「見た目の指定」（色コード、px、ボタンの文字、ツールチップの文言、レイアウト）は移植の対象ではない。この文書の §4 が新しい UI の基準になる。
 - 「挙動の指定」（URL の組み立て、配置の規則、新しい試合での全消去、上限 20 など）は移植の対象。食い違ったら decisions.md → この文書 → インベントリの順に優先する。
 - 進み具合は [progress.md](./progress.md) で管理する。

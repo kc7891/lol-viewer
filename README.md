@@ -1,54 +1,21 @@
-# LoL Viewer
+# LoL Viewer Next
 
-A desktop application for easily viewing League of Legends champion information with LoLAnalytics.
+League of Legends のチャンピオン情報（ビルド・カウンター・対面）を、試合の進行に合わせて LoLAnalytics などで自動的に開いて見られる Windows 用デスクトップアプリです。League Client に接続し、チャンピオン選択と試合中の情報を読み取るだけで、書き込みはしません。
 
-## Features
+## ダウンロード
 
-- **Champion Search**: Display build/counter information by entering champion names
-- **Bilingual Autocomplete**: Supports both English and Japanese champion names
-- **Multiple Tabs**: Open and compare multiple WebViews simultaneously
-- **Auto Build/Counter Tabs**: During online matches, automatically opens Build tabs for your picked champions and Counter tabs for opponent picked champions
+[GitHub Releases](../../releases) の最新の `app-v*` リリースからインストーラ（`lol-viewer-next-setup-*.exe`）をダウンロードして実行してください。アプリは自動更新されます。
 
-## How to Use
+- Windows 10/11（64-bit）
 
-1. Launch the application
-2. Enter a champion name in the search field (English or Japanese)
-3. Select "Build" or "Counter" tab to view information
+## 旧版（Python 版）について
 
-### Live Game Features
+旧 Python 版の LoL Viewer は終了しました。旧版をお使いの場合は、旧版の更新機能で LoL Viewer Next へ自動的に移行します（設定は引き継がれません）。旧版のソースは git のタグ [`v0.34.0`](../../tree/v0.34.0) に残っています。
 
-- You can check your picked champion build and opposite counter champ automaticaly with this app.
+## 開発
 
-## Download & Installation
+[next/README.md](next/README.md) を参照してください。AI Agent 向けのルールは [next/CLAUDE.md](next/CLAUDE.md)、仕様は [docs/spec/](docs/spec/README.md) にあります。コミット前のセットアップは [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
 
-> **LoL Viewer has been replaced by LoL Viewer Next.** The installers below install LoL Viewer Next and remove the old LoL Viewer if it is present. Settings are not carried over. The in-app update of the old version does the same.
+## ライセンス
 
-### Fast Download (Recommended for users in Japan/Asia)
-[⚡ Download latest build (Fast)](https://nightly.link/kc7891/lol-viewer/workflows/release/main/lol-viewer-setup.zip) - Installs LoL Viewer Next (refreshed monthly)
-
-### Standard Download
-[📦 Download from Releases](../../releases) - Official releases (LoL Viewer Next: `app-v*`)
-
-**Installation Steps:**
-1. Download `lol-viewer-setup.zip` from one of the links above
-2. Extract the zip file
-3. Run `lol-viewer-setup.exe`
-4. Follow the installation wizard
-5. Launch LoL Viewer Next from the Start Menu
-
-### System Requirements
-
-- Windows 10/11 (64-bit)
-- No additional software required!
-
-### Automatic Updates
-
-The application checks for updates on startup. When a new version is available, you'll be prompted to update automatically.
-
-## Development
-
-For development instructions, debug logging, and build information, please see [DEV.md](DEV.md).
-
-## License
-
-This project is licensed under the [GNU General Public License v3.0](LICENSE).
+[GNU General Public License v3.0](LICENSE)

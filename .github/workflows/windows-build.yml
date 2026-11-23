@@ -6,9 +6,16 @@ name: Windows Build
 on:
   pull_request:
     branches: [ main ]
-    paths-ignore:
-      # next/ is the Electron app; it has its own workflow (next-ci.yml).
-      - 'next/**'
+    paths:
+      - migrate-to-next.iss
+      - .github/workflows/release.yml
+      - .github/workflows/windows-build.yml
+  push:
+    branches: [ main ]
+    paths:
+      - migrate-to-next.iss
+      - .github/workflows/release.yml
+      - .github/workflows/windows-build.yml
 
 jobs:
   build:

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { bumpFromMessages, bumpVersion, latestAppTag, planRelease, releaseNotes } from "./version.ts";
 
 describe("latestAppTag", () => {
-  it("takes the highest app-v tag by version and ignores the Python app's tags", () => {
+  it("takes the highest app-v tag by version and ignores the legacy v* tags", () => {
     expect(latestAppTag(["v0.33.1", "app-v0.0.9", "app-v0.0.10", "app-v0.1.0", "app-latest", "app-vfoo"])).toBe("app-v0.1.0");
     expect(latestAppTag(["app-v0.0.9", "app-v0.0.10"])).toBe("app-v0.0.10");
     expect(latestAppTag(["v1.0.0", "app-latest"])).toBeNull();
@@ -10,7 +10,7 @@ describe("latestAppTag", () => {
 });
 
 describe("bumpFromMessages", () => {
-  it("follows the Python app's rules", () => {
+  it("follows the Conventional Commits rules", () => {
     expect(bumpFromMessages(["fix: x", "chore(next): y"])).toBe("patch");
     expect(bumpFromMessages(["fix: x", "feat(next): y"])).toBe("minor");
     expect(bumpFromMessages(["feat: y\n\nBREAKING CHANGE: z"])).toBe("major");

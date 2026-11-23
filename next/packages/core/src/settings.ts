@@ -5,7 +5,7 @@
 import { z } from "zod";
 import { isAllowedViewUrl } from "@lol-viewer/protocol";
 
-/** Same defaults as the Python app (constants.py DEFAULT_*_URL). */
+/** Default URL templates (carried over from the legacy app's defaults). */
 export const DEFAULT_URL_TEMPLATES = {
   build: "https://lolalytics.com/lol/{name}/build/",
   matchup:

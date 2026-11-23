@@ -1,6 +1,6 @@
 name: Next Release
 
-# Releases of the new app (next/). Tags are app-vX.Y.Z; the Python app's release.yml only looks at v* tags.
+# Releases of the new app (next/). Tags are app-vX.Y.Z; the legacy v* tags (final: v0.34.0) are no longer used.
 # Design: docs/spec/new-app-design.md §6.1 (M-018..M-020).
 #
 #  version  compute the next version from the latest app-v* tag and the next/ commits since (PRs stop here: dry-run)
@@ -134,7 +134,7 @@ jobs:
       - name: Release notes
         run: node --experimental-strip-types next/tools/release/src/cli.ts notes --tag "$TAG" --repo "$GITHUB_REPOSITORY" --out notes.md
 
-      # prerelease + not "latest": the Python app's update check (/releases/latest) must never see it (M-019).
+      # prerelease + not "latest": the legacy app's update check (/releases/latest, v0.34.0) must never see it (M-019).
       - name: Create Release app-vX.Y.Z
         run: |
           gh release create "$TAG" release-files/* \

@@ -1,6 +1,13 @@
 # next/ — AI Agent 向けルール
 
-`next/` は LoL Viewer の新版（Electron + TypeScript。PoC から発展）。リポジトリ直下の `claude.md`（Python 版のルール）に加えて、以下を守る。
+`next/` は LoL Viewer Next（Electron + TypeScript）。以下を守る。
+
+## AI 開発の原則
+
+- このプロジェクトのコード、ドキュメント、テスト、設定は AI アシスタントが生成・保守する。
+- AI が自分でできること（実装の確認、テストの実行、動作確認、GitHub Actions とそのログの確認）は、なるべく自分で実行する。
+- 実際に動かして確かめるだけでなく、コードやドキュメントを注意深く作り、確認する。事前の設計と実装の正確さで、デバッグの往復を減らす。
+- Windows ユーザーを想定する。モダンでシンプルな構成で、最小限で効果の大きい実装にする。できる限りテストを書く。
 
 仕様は `../docs/spec/`（README から読む）。新しく決めたことは `docs/spec/decisions.md` に追記し、移植の進み具合は `docs/spec/progress.md` を更新する。
 
@@ -38,4 +45,6 @@ pnpm desktop:build && xvfb-run -a pnpm e2e:electron
 
 ## コミット
 
-- Python 版のリリース判定（`release.yml`）はコミットメッセージを見る。`next/` 以外のファイルと一緒に main に入る場合に備えて、PoC のコミットは `feat(next):` ではなく `chore(next):` / `docs(next):` / `test(next):` を使う。
+- テストを実行して通ってからコミットし、変更内容を確認してから push する。
+- コミットメッセージは Conventional Commits（`.githooks/commit-msg` が検査する。`setup-hooks.sh` / `setup-hooks.bat` で有効にする）。
+- `next-release.yml` は、最新の `app-v*` タグ以降の `next/` のコミットメッセージからバージョンを決める: `BREAKING CHANGE` / `!:` なら major、`feat:` なら minor、それ以外は patch。利用者に見える機能追加だけを `feat:` にする。
