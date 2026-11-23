@@ -5,7 +5,7 @@
 - 根拠はコード（`next/packages/core`、`next/apps/web`、`next/apps/desktop`、`next/packages/lcu`）とテスト（`*.test.ts`、`next/e2e/*.spec.ts`）。設計書（[new-app-design.md](./new-app-design.md)）と実装が食い違うときは実装を書き、§9.2 に差異として挙げた。
 - 見た目（色、px、ボタンの文言、ツールチップ）は M-008 により仕様の対象外。ここに書く文言は、操作を説明するための目安。
 - §8 の移植チェック表が、旧インベントリ（`legacy-inventory/01`〜`04` 末尾のチェックリスト）の全項目との対応表。
-- 最終確認: 2026-11-22（更新とリリースの実装を反映）。更新は Windows CI で確認済み（0.0.1 → 0.0.2、§7.3）。リリースの公開ジョブは main でしか動かないので未実行（§7.2）。
+- 最終確認: 2026-11-23（試合中のゴールド差と対面表の補正、Feature Flag を反映。実機のゲームでは未確認、§9.1）。前回 2026-11-22（更新とリリースの実装を反映）。更新は Windows CI で確認済み（0.0.1 → 0.0.2、§7.3）。リリースの公開ジョブは main でしか動かないので未実行（§7.2）。
 
 ---
 
@@ -14,7 +14,7 @@
 League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ内で複数並べて表示するデスクトップアプリ（Windows 向け）。League Client（LCU）を読み取り専用で監視し、チャンピオンセレクトの進行に合わせて、自分のピックのページを自動で開き、対面表（Matchup）を作り、敵のピックを Counter ページの候補として並べる。
 
 - 技術: Electron + TypeScript + React。外部サイトは `WebContentsView`（ネイティブ。iframe は使わない）で表示する。
-- LCU への操作は GET と WAMP の購読だけ。書き込み系は持たない（`packages/lcu` の許可パスは 4 つ。§3）。
+- LCU への操作は GET と WAMP の購読だけ。書き込み系は持たない（`packages/lcu` の許可パスは 4 つ。§3）。試合中は、Feature Flag `liveClientData` が ON のときだけ、ゲームの Live Client Data API（127.0.0.1:2999）の `/liveclientdata/playerlist` を 2 秒ごとに GET する（M-025。§3.6）。
 - 起動直後のビューアは 0 枚。ビューア、対面表、保留中の敵ピックは保存しない（再起動で消える）。
 
 ### 1.1 画面構成
@@ -38,9 +38,9 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 
 | 状態 | 持ち主 | 内容 | 保存 |
 |---|---|---|---|
-| MatchState | main の hub | LCU が言っていることだけ（接続、フェーズ、`matchSeq`、キュー、ARAM か、自分のピック、味方と敵） | しない |
+| MatchState | main の hub | LCU が言っていることだけ（接続、フェーズ、`matchSeq`、キュー、ARAM か、自分のピック、味方と敵）。試合中のデータ（`live`: チャンピオン、味方/敵、レーン、レベル、推定ゴールド。名前なし。フラグ ON の試合中だけ） | しない |
 | Workspace | renderer の純粋 reducer（`core/workspace.ts`） | ビューア一覧、対面表 5 行、保留中の敵ピック | しない |
-| Settings | renderer の `localStorage` | URL テンプレート 5 つ、UI サイズ、QR ボタン、サイドバー幅、Feature Flag | する（§5） |
+| Settings | renderer の `localStorage` | URL テンプレート 5 つ、UI サイズ、QR ボタン、サイドバー幅、Feature Flag（`liveClientData`） | する（§5） |
 
 ---
 
@@ -63,7 +63,7 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 - 内容は上から Matchup、Cooldowns、Viewers、Enemy picks（保留があるときだけ）。通知は下部。
 
 #### Matchup（対面表）
-5 行固定（TOP / JG / MID / BOT / SUP）。各行は `[レーン] [味方アイコン+名前] vs [敵アイコン+名前] [⧉]`。空は「—」。
+5 行固定（TOP / JG / MID / BOT / SUP）。各行は `[レーン] [味方アイコン+名前] vs [敵アイコン+名前] [⧉]`。空は「—」。試合中のデータがある行（両側にいて、試合中のデータにも両方いる）は、`vs` の代わりに**味方 − 敵のアイテムゴールド差**（`+1.4k` / `-150` / `0`。50 未満は `0`。緑 = 味方が多い、赤 = 少ない、灰 = ほぼ同じ）を出し、レベル差があれば下に小さく `Lv+1`。ツールチップに両方のアイテム金額とレベル（`Item gold: Garen 4,500 vs Pantheon 4,350 · Level 11 vs 10`）。1 行でも出るときは中央の列を広げる。
 
 | 操作 | 結果 |
 |---|---|
@@ -73,10 +73,10 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 | 見出しの ⟳（Refresh）を押す | 対面表と保留中の敵ピックを空にし、最後に受け取った MatchState の味方・敵から置き直す。あわせて LCU の購読パスをすべて GET し直す（`lcu.resync()`）。ビューアは閉じない。`Matchup refreshed.` を通知する。置き直しでは保留リストへ積み直さない（この試合で積んだ敵は覚えている） |
 | 自分の行 | 味方側で、自分のチャンピオンと同じ子に `YOU` を付ける |
 
-自動配置の規則は §3.4。
+自動配置と試合中の補正の規則は §3.4。
 
 #### Cooldowns
-- 対象は、Matchup でクリックした子。クリックしていなければ既定: **自分のレーンの行の敵**、無ければ対面表の最初の敵。新しい試合になると、クリックした選択は既定に戻る。
+- 対象は、Matchup でクリックした子。クリックしていなければ既定（M-028）: **`YOU` の行（自分のチャンピオンがいる行）の敵**、無ければ自分のレーンの行の敵、無ければ対面表の最初の敵。ブラインドや ARAM（自分のレーンが null）でも、自分の行の敵になる。新しい試合になると、クリックした選択は既定に戻る。
 - Q / W / E / R の行に、スキル名（日本語）と**ランクごとの基本クールダウン**を `9 / 8 / 7 / 6 / 5` の形で出す。Data Dragon にクールダウンが無いスキル（パッシブなど）は「—」。末尾にパッチ番号（`champions.json` の `patch`）を出す。
 - 見出しを押すと折りたたむ。対象が無いときは案内の文を出す。タイマーやスキルレベル連動、アビリティヘイストは無い（静的な参照用）。
 
@@ -166,11 +166,12 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 | Analytics URLs | Build / Matchup / Counter / ARAM / Live Game の 5 つの入力欄。各欄に使えるプレースホルダーの説明。**Save**: 前後の空白を除いて保存。5 つとも、空でなく、プレースホルダーに例の値を入れたときに `https` かつ `lolalytics.com` / `u.gg`（サブドメイン含む）の URL になることが必要（M-023）。満たさない欄があると保存せず、その欄を赤く示し（`Required. Enter a URL.` または `Must be an https URL on lolalytics.com or u.gg.`）、`Not saved: N URL(s) are empty.` を通知する（保存済みの値は変わらない。通知の文言は「empty」のままで、ホストの誤りでも同じ）。成功すると Live Game を開き直し `URLs saved. Live Game reloaded.` を通知。変更が無く、エラーも無いとき Save は押せない。**Reset to defaults**: 確認なしで 5 つとも既定に戻して保存し、Live Game を開き直す |
 | League Client | 接続状態と、`Reconnect`。押すと現在の接続を閉じ、再試行の待ち時間を戻して今すぐ試す。押してから 1.5 秒は `Connecting…` を出してボタンを無効にする。デスクトップ版以外では押せない |
 | Display | UI size（Small / Medium / Large）。**押した瞬間に反映**（再起動不要。M-012）。`Show the QR button on viewers`（既定オン）。オフにすると Viewer pane と Live Game の QR ボタンが消える |
+| Feature flags | 定義（`FEATURE_FLAGS`）ごとに 1 行: 名前、説明、switch。今は `Live game data`（`liveClientData`、既定オフ）だけ。**押した瞬間に保存して反映**（再起動不要）し、`Live game data: on.` / `off.` を通知する。`Reset flags to defaults`（既定のとき無効）で定義済みのフラグを既定に戻し、`Feature flags reset to defaults.` を通知（保存済みの未知のキーは残す）。デスクトップ版以外では「Live game data is read by the desktop app.」と注記する |
 | Version | 現在のバージョンとプラットフォーム（例 `0.0.1 (win32)`）。ブラウザ（モック）では `dev` と「Updates are available in the desktop app.」。デスクトップ版では、`Latest version`（確認中は `Checking…`、未確認は `—`）、状態の文、ボタンを出す。状態の文: `Not checked yet.` / `Checking…` / `You have the latest version.` / `A new version is available.` / `Downloading… n%`（進行バー付き）/ `Ready to install. The app restarts.` / 失敗時は短い理由（下記）/ `Update checks are off in this build.`。ボタン: 未確認・最新・失敗のとき `Check for updates`（確認中は無効）、新しい版があるとき `Download`（ダウンロード中は無効）、ダウンロード済みのとき `Restart and update`、無効なビルドでは出さない。詳細は §7 |
 | Debug | チャンピオンを検索して選び、`Add ally` / `Add enemy`。対面表の**その側の最初の空き行**に入れる（レーン適性も重複も見ない）。成功すると結果を表示して入力を消す。その側が埋まっていれば「full」と表示 |
 | Record session | `Start recording` / `Stop` / `Open recordings folder`。LCU のイベントをファイルへ保存する（他のプレイヤーの名前と ID は伏せる）。記録中は経過時間とイベント数を表示。デスクトップ版だけ（PoC で追加した機能） |
 
-- Feature Flag の仕組み（保存、既定値）は `core/settings.ts` にあるが、定義が空なので画面には出さない（旧版も、定義が空の間は出さなかった）。
+- Feature Flag の定義（`FEATURE_FLAGS`）が 1 つ以上あるときカードを出す。今は `liveClientData` だけ。保存と既定値は `core/settings.ts`。
 - 保存先と既定値は §5。
 
 ---
@@ -189,6 +190,7 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 5. つながったあとにソケットが閉じたら `disconnected` にして、同じ再試行へ戻る。
 6. Settings の `Reconnect`: 接続を閉じ、`connecting` を出し、待ち時間を戻して今すぐ試す。
 7. LCU へ書き込む API は持たない。許可されたパス以外の GET も拒否する。
+8. Live Client Data API（試合中のゲームが出している API）は LCU とは別。ホストは `127.0.0.1` だけ（それ以外は例外）、GET だけ、認証なし、`/liveclientdata/playerlist` だけ。200 以外（ロード画面の 404、接続失敗）は黙って次を待つ。詳細は §3.6。
 
 ### 3.2 MatchState の規則（`core.reduce`）
 イベントを受けるたびに MatchState を作り直す。変わらなければ配信しない。
@@ -204,6 +206,7 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 | 試合中（`InProgress`） | gameflow の `gameData.teamOne` / `teamTwo` から味方と敵を作る（レーンは null）。自分のチームは summonerId または puuid で判定し、分からなければ teamOne を味方とみなす（自分の情報が後から届いたら作り直す）。結果が空なら前の一覧を保持。`self` は ChampSelect のものを保持。ブラインドや ARAM で ChampSelect 中に敵が見えなかった場合も、ここで補う |
 | 自分の summonerId | champ-select の自分の行から。無ければ `current-summoner` から。MatchState には出さない |
 | キューと ARAM | `gameData.queue` が数値、`{id}`、`{queueId}` のどれでも読む。gameMode は `queue.gameMode`、`queue.mode`、`gameData.gameMode` の順。`isAram` は、キュー ID が {450, 65, 100, 720, 2400, 2401, 2403, 2405, 3240, 3270} のどれか、または gameMode が `ARAM`。新しい試合になってもキュー情報は保つ（gameflow が先に届くため） |
+| 試合中のデータ（`live`） | `InProgress` の間だけ受け取る（それ以外のフェーズで来たものは捨てる）。フェーズが `InProgress` 以外になる、新しい試合、切断、一覧の削除（`live-players` が null）で消える。自分のチームは名前を使わず、自分のチャンピオン、次に味方・敵との一致で決め、決まらなければ null（M-029）。2 チーム × 5 人以下の形でなければ null。アイテムの金額は Data Dragon `gold.total`（M-026）。同じ内容なら MatchState は同じ |
 | 切断 | `connection = disconnected`、`phase = None`、自分の summonerId / puuid を消す。`self`、`allies`、`enemies` は残す（画面は直前の表示を保つ）。再接続して ChampSelect に入れば新しい試合 |
 
 ### 3.3 Workspace の反応（`core.workspaceReducer`）
@@ -223,11 +226,32 @@ MatchState が届くたびに、次の順に処理する。
 - 敵: 空き行のうちレーン適性が最も高い行へ。同点は上の行。適性データが無い（すべて 0）なら、最初の空き行。
 - 味方と敵は独立に置く。片方の側が埋まっても、もう片方は置き続ける。空きが無くなったらその側はそこで止める。
 
+**試合中の補正（M-027）**:
+- 補正は、試合中（`InProgress`）に試合中のデータが届いたときだけ。その側の割り当て（チャンピオン → レーン）が、前回その側を直したときと違えば直す。位置は試合中に変わらないので、ふつうは試合ごとに 1 回。
+- 割り当てに入るのは、その側で 1 人だけが名乗ったレーン。`position` が空なら Smite を持つ人がジャングルを名乗る。2 人が同じレーンを名乗ったら、そのレーンは誰も動かさない。
+- 割り当てのある子はそのレーンの行へ。それ以外の子は、自分の行が空いていればそのまま。押し出された子は、空いた行のうちレーン適性が最も高い行へ（同点は上）。表に居ない子は無視する。消さない、足さない。
+- 試合前（チャンピオンセレクト中）にユーザーが入れ替えた並びは、補正で上書きされることがある（位置の方が事実なので）。補正のあとの入れ替えは保たれる。
+- Refresh（⟳）は補正もやり直す。
+- Feature Flag が OFF なら `live` が来ないので、補正は起きない（今と同じ）。
+
 ### 3.5 ARAM、試合中、切断の挙動（まとめ）
 - **ARAM**: キュー ID か gameMode で判定。自分のピックの picked ビューアは ARAM ページ（レーンなし）。レーンが無いので対面表は適性で置く。
 - **試合中**: 味方と敵は gameflow から補う。敵ピックは保留に積まない。
 - **切断**: `Disconnected` を表示し、一覧や picked ビューアは消さない。再接続して新しい ChampSelect に入ると、すべて閉じて始め直す。
-- **ポーリングは無い**（M-010）: イベントが来たときだけ処理する。10 体そろった後の一時停止やウォッチモードも無い。
+- **LCU はポーリングしない**（M-010）: イベントが来たときだけ処理する。例外: 試合中の Live Client Data API（M-025、Feature Flag、既定 OFF。§3.6）。10 体そろった後の一時停止やウォッチモードも無い。
+
+### 3.6 試合中のデータ（Live Client Data API）
+```
+ゲーム 127.0.0.1:2999 ──GET /liveclientdata/playerlist (2 秒ごと、packages/lcu の startLiveClientPoller)──▶ core.toLcuEvent
+  ──live-players（チャンピオン、ORDER/CHAOS、レーン、レベル、アイテム金額だけ。名前は捨てる）──▶ hub / core.reduce
+  ──MatchState.live（味方 / 敵に変換済み）──▶ renderer: フラグ OFF なら live を捨てる ──▶ workspaceReducer（補正、§3.4）／行の差（`rowLiveDiff`）
+```
+- **ゲート**（`apps/desktop/src/live-core.ts`）: ポーラーは「Feature Flag `liveClientData` が ON、かつフェーズが `InProgress`」の間だけ動く。main の既定は OFF で、renderer が IPC `live:set-enabled`（真偽のみ）で伝えるまで 1 回も問い合わせない。フラグを切ると止めて、`live` を消す。フェーズが変わったときの `live` の消去は reducer がする。再起動は要らない。
+- **レーン**: `position`（`TOP` / `JUNGLE` / `MIDDLE` / `BOTTOM` / `UTILITY`）。空なら Smite（`rawDescription` / `rawDisplayName` に `SummonerSmite`）を持つ人がジャングル。それ以外は null。
+- **推定ゴールド**（M-026）: アイテムの Data Dragon `gold.total` × 個数の合計（`packages/core/data/items.json`。`pnpm champion-data` で生成）。使うと無くなるもの（`consumed`）とトリンケットは 0。表に無い ID だけ Live Client の `price × count`（`consumable` なら 0）。所持金は含まない（敵のは取れない）。
+- **自分のチーム**（M-029）: 名前は使わない。自分のチャンピオン（片方のチームだけにいるとき）、次に MatchState の味方・敵との一致。決まらなければ `live` は null。
+- **記録機能との関係**: `recording.ts` は変えていない。記録中は記録用のポーラーが従来どおり 3 秒ごとに 2999 を読む（ユーザーが明示的に始める別の操作で、フラグと独立）。フラグ ON の試合中に記録すると 2 つのポーラーが別々に読む。
+- **保存しない**: 試合中のデータはファイルにも `localStorage` にも保存しない。
 
 ---
 
@@ -291,7 +315,7 @@ MatchState が届くたびに、次の順に処理する。
 | `uiSize` | `small` / `medium` / `large` | `medium` | 文字と余白の倍率 0.9 / 1 / 1.15。未知の値は `medium` |
 | `qrButton` | 真偽 | 真 | ペインと Live Game の QR ボタンの表示 |
 | `sidebarWidth` | 240〜480 | 300 | 範囲外は丸める |
-| `featureFlags` | 名前 → 真偽 | 空 | 定義（`FEATURE_FLAGS`）が空。保存済みの値は掃除しない（M-016） |
+| `featureFlags` | 名前 → 真偽 | 空（既定は定義側が持つ） | 定義: `liveClientData`（既定 偽）。保存済みの未定義のキーは掃除しない（M-016） |
 
 **保存しないもの**: ウィンドウの位置とサイズ、ビューア、対面表、保留、Cooldowns の対象と折りたたみ、各ペインの幅、パネルの開閉。
 
@@ -309,7 +333,7 @@ MatchState が届くたびに、次の順に処理する。
 - 読み込める URL: `https` のみ（ホストは制限しない）。それ以外の読み込み命令は、検証で拒否して警告をログに出すだけ。
 - ページからの移動: 既知の分析サイト（`lolalytics.com` / `u.gg` / `op.gg`）か、そのビューを開いたサイトと同じサイト（サブドメイン含む）ならアプリ内で続行。それ以外の `https` は**既定のブラウザへ回し**、アプリ内では移動しない。ポップアップ（`target=_blank`）は常に既定のブラウザへ（`https` のみ）。
 - 右クリックのメニュー: `Back`、`Forward`（履歴があるときだけ有効）、`Reload`、（リンク上なら）`Copy link address`、`Open page in browser`。
-- ページ内の移動、タイトル、読み込み状態（loading / ready / error。`did-start-loading` で loading、`did-stop-loading` で ready。メインフレームの読み込みに失敗したら、次のメインフレーム移動まで error）、戻る・進むの可否を renderer へ通知する（ペインの ◀ ▶、QR、↗ が使う）。ペイン上部のローディングバーは、loading になってから最大 30 秒で消す（その間にページの URL が変わったら数え直す）。重いページで loading が長く続いても、画面を騒がせないため。
+- ページ内の移動、タイトル、読み込み状態（loading / ready / error。`did-start-loading` で loading、`did-stop-loading` で ready。メインフレームの読み込みに失敗したら、次のメインフレーム移動まで error）、戻る・進むの可否を renderer へ通知する（ペインの ◀ ▶、QR、↗ が使う）。ペイン上部にローディング表示は出さない（広告などで loading が長く続き、表示が残り続けるため廃止した）。
 - 隠した（外した）ビューは、直近の 4 つまで読み込み済みで保持する。同じビューアを再表示すると、同じ URL ならページは読み込み直さない。4 つを超えて外されたビューは破棄する（再表示すると読み込み直しになり、ページ内の移動は失われる）。
 - Cookie などは `persist:external` に保存する（ログインが残る）。
 - アプリ本体のウィンドウは、UI のページ以外へ移動しない。ポップアップは既定のブラウザへ。
@@ -325,6 +349,8 @@ MatchState が届くたびに、次の順に処理する。
 - `LOL_VIEWER_WEB_URL`: UI を開発サーバーから読む。
 - `LOL_VIEWER_HUB_PORT`: MatchState を `127.0.0.1` の WebSocket で配信する（トークン必須、Host / Origin を検査）。ブラウザ（`?hub=`）や別画面から同じ MatchState を見られる。
 - `LOL_LCU_LOCKFILE`: 偽の LCU（`tools/fake-lcu`）を指す lockfile。
+- `LOL_LIVE_CLIENT_URL`: Live Client Data API のベース URL（テストでは偽の LCU。`127.0.0.1` だけ）。記録機能と、フラグ ON の試合中に使う。偽の LCU は `/liveclientdata/` への GET を `liveClientRequests` に記録する。
+- `LOL_VIEWER_E2E=1` のとき `globalThis.__lolViewer.live`（`enabled`、`polling`）を公開する。
 - `LOL_VIEWER_E2E=1`: 多重起動のロックを使わず、診断用のオブジェクトを公開する。
 - ブラウザ単体（Vite / Storybook）では、`scenarios/*.jsonl` を本物の reducer で再生するモックで動く。外部ページは「External page」のプレースホルダー（URL と新しいタブで開くリンク）。
 
@@ -503,7 +529,7 @@ NSIS、ワンクリック、ユーザー単位（`%LOCALAPPDATA%\Programs\lol-vi
 | UI Size（Small / Medium / Large） | ✨ | Display カード。**すぐ反映**（再起動不要） | M-012、`storybook.spec.ts`（"…UI size applies at once"） |
 | QR Code Overlay（既定オン、即時反映） | ✨ | `Show the QR button on viewers`。ボタンの表示 / 非表示 | M-009、`storybook.spec.ts`（"QR button can be switched off in Settings"） |
 | Feature Flags の仕組み（定義、既定値、`featureFlags` への保存） | ✅ | `core/settings.ts`（`FEATURE_FLAGS`、`parseSettings`） | `settings.test.ts`（"repairs each broken item on its own"） |
-| Feature Flags の画面（定義があるときだけ表示、トグル即保存、Reset Flags） | ✅ | 定義が空なので出さない（旧版も、定義が空の間は出さなかった）。最初のフラグを定義するときに作る | `core/settings.ts`（`FEATURE_FLAGS` が空） |
+| Feature Flags の画面（定義があるときだけ表示、トグル即保存、Reset Flags） | ✅ | Settings の `Feature flags` カード（定義があるときだけ。トグルは即保存・即反映、`Reset flags to defaults`）。旧版の「restart may be required」は出さない（再起動不要） | `storybook.spec.ts`（Settings: the live data flag…）、`SettingsCards.stories.tsx` |
 | Debug セクションは常時表示 | ✅ | `DebugCard` | — |
 
 #### 更新チェック
@@ -540,7 +566,7 @@ NSIS、ワンクリック、ユーザー単位（`%LOCALAPPDATA%\Programs\lol-vi
 | 既定の Build / Counter / Matchup / ARAM / Live Game の URL（5 項目） | ✅ | `DEFAULT_URL_TEMPLATES` | `settings.test.ts`（"defaults match the schema defaults and the Python app"） |
 | 5 つのテンプレートを上書き、既定に戻す（キー名は新しい） | ✅ | Settings の Analytics URLs | `storybook.spec.ts` |
 | 閉じるグリフ `×` の統一 | ➖ | 見た目 | M-008 |
-| 機能フラグの仕組み（定義辞書、既定値、保存、掃除しない）。画面は 01 の Feature Flags の画面の行（定義が空なので出さない） | ✅ | `core/settings.ts` | M-016（B19）、`settings.test.ts` |
+| 機能フラグの仕組み（定義辞書、既定値、保存、掃除しない）。画面は 01 の Feature Flags の画面の行（`liveClientData` を定義済み） | ✅ | `core/settings.ts` | M-016（B19）、`settings.test.ts` |
 | ARAM のキュー ID {450, 65, 100, 720} | ✅ | `ARAM_QUEUE_IDS` | `reducer.test.ts`（"queue and ARAM"） |
 | Mayhem のキュー ID {2400, 2401, 2403, 2405, 3240, 3270} | ✅ | 同上 | 同上 |
 | ARAM 系のとき、自分のピックで ARAM ページを開く | ✅ | `applyMatch` 3 | `workspace.test.ts`（"is an ARAM viewer without a lane in ARAM"） |
@@ -820,7 +846,7 @@ NSIS、ワンクリック、ユーザー単位（`%LOCALAPPDATA%\Programs\lol-vi
 |---|---|---|---|
 | lockfile による認証情報の取得 | ✨ | 実装した（コマンドラインで取れないときの代替） | `lcu.test.ts` |
 | LCU WebSocket（WAMP）によるイベント駆動 | ✨ | 実装した（中心の仕組み） | M-010 |
-| Live Client Data API（127.0.0.1:2999） | ✨ | 記録機能だけが使う（`startLiveClientPoller`）。検知には使わない | `lcu/src/index.ts`、`recording.ts` |
+| Live Client Data API（127.0.0.1:2999） | ✨ | 記録機能と、フラグ ON の試合中のゴールド差・補正（M-025）が使う（`startLiveClientPoller`）。検知（MatchState の自分のピックなど）には使わない | `lcu/src/index.ts`、`recording.ts` |
 | Ban 情報の取得 | ➖ | 作らない（旧版も未実装） | legacy README §5.1 D7 |
 
 ### 8.4 旧 04: 更新、ログ、配布、CI（04-infra-release-ci.md の §8）
@@ -948,6 +974,7 @@ CI（Linux の Xvfb と偽の LCU）では確かめられないもの。Windows 
 - **実際の試合での自動検知**: ホバー、ロック、ドッジ（`gameId` の変化）、ARAM / Mayhem、試合中のチーム補完（自分のチームの判定）、ブラインドピック。
 - **u.gg の表示**: 検証環境（データセンターの IP）では Cloudflare に弾かれる。Live Game と ARAM ページの見た目はまだ見ていない。lolalytics は Electron の E2E で実ページまで確認済み。
 - **ダウンロード**: ページからのダウンロードには専用の処理が無い。Electron の既定の動作になるはず（旧版は未対応）。
+- **Live Client Data API（試合中のゴールド差と補正。M-025〜M-029）**: 本物のゲームの 2999（自己署名の https、Vanguard 環境での接続）、`position` の中身（ランク / ドラフトでは割り当てられたロールのはず。ロールを交換した人は誤る。ブラインド、ARAM、カスタムで `""` になるか）、日本語クライアントの `championName`、ロード画面中の応答（404 か部分的な一覧か）、Smite の内部名、アプリを試合中に起動したときの自分のチームの判定、ミラーで決まらないとき。
 - **インストーラと Vanguard**: 起動中にインストーラを実行したときの挙動、League や Vanguard が動いている状態での入れ替え。
 - **更新の実機確認**: 本物の GitHub Release（`app-latest`）からの確認、ダウンロード、再起動後の動作。CI は手元のフィードで確認する（§7.3）。
 - **AppUserModelID、High-DPI**: 明示的な設定はしていない。タスクバーや通知、高 DPI での表示は未確認。

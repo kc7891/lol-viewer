@@ -10,6 +10,7 @@ LoL Viewer の仕様を、このディレクトリでまとめて管理する。
 | [decisions.md](./decisions.md) | 移植方針の決定事項（M-xxx）と未決事項（Q-xxx） | 決まるたびに追記する。過去の決定は消さずに「改訂」を追記する |
 | [new-app-design.md](./new-app-design.md) | 新版（`next/`、Electron 版）の設計: 構成、MatchState と Workspace の規則、新しい UI | 設計を変えたら更新する |
 | [new-app-spec.md](./new-app-spec.md) | 新版の機能仕様（実装に基づく）と移植チェック表 | 実装を変えたら更新する。設計書と食い違うときは、実装を書いて差異に挙げる |
+| [live-matchup-design.md](./live-matchup-design.md) | 試合中のゴールド差と対面表の補正（Live Client Data API、Feature Flag）の設計。決定 M-025〜M-029 の案を含む | 実装の手順書。実装を終えたら new-app-spec.md に反映し、この文書は設計の記録として残す |
 | [progress.md](./progress.md) | 新版への移植の進み具合（インベントリのチェックリストとの対応） | 作業のたびに更新する |
 
 ## 運用ルール

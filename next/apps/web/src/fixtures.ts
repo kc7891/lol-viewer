@@ -19,6 +19,7 @@ import {
 } from "@lol-viewer/core";
 import type { LcuEvent, MatchState, UpdateStatus } from "@lol-viewer/protocol";
 import scenarioText from "../../../scenarios/ranked-two-matches.jsonl?raw";
+import liveText from "../../../scenarios/live-ingame.jsonl?raw";
 
 /** What the app holds at one moment: the League Client's facts and the user's workspace. */
 export type Scene = { match: MatchState; ws: Workspace };
@@ -27,16 +28,18 @@ const connect: LcuEvent = { type: "connection", status: "connected" };
 const events: LcuEvent[] = [connect, ...scenarioEvents(parseScenario(scenarioText))];
 
 /** Feed the first `count` events through the detector, and every changed MatchState through the workspace. */
-function replay(count: number): Scene {
+function replayEvents(list: readonly LcuEvent[], count: number): Scene {
   let d: DetectorState = initialDetectorState();
   let ws = initialWorkspace();
-  for (const e of events.slice(0, count)) {
+  for (const e of list.slice(0, count)) {
     const next = reduce(d, e);
     if (next.match !== d.match) ws = workspaceReducer(ws, { type: "match", state: next.match });
     d = next;
   }
   return { match: d.match, ws };
 }
+
+const replay = (count: number): Scene => replayEvents(events, count);
 
 const indexOf = (pred: (e: LcuEvent) => boolean): number => events.findIndex(pred) + 1;
 
@@ -99,6 +102,33 @@ export const viewerLimit: Scene = act(
     { type: "setChampion", id: i + 1, championId: CHAMPIONS[i * 7]!.id },
   ]).flat(),
 );
+
+// ── In game with Live Client data (feature flag liveClientData, M-025..M-029) ──
+
+const liveEvents: LcuEvent[] = [connect, ...scenarioEvents(parseScenario(liveText))];
+const livePlayerIdx = liveEvents.flatMap((e, i) => (e.type === "live-players" && e.players ? [i + 1] : []));
+const liveCount = (n: number) => livePlayerIdx[n]!;
+
+const liveMid = replayEvents(liveEvents, liveCount(1));
+
+export const liveScenes = {
+  /** In game, nothing from the Live Client yet: the table is the champ-select guess. */
+  inGameGuessed: replayEvents(liveEvents, liveEvents.findIndex((e) => e.type === "current-summoner") + 1),
+  /** First playerlist (level 1, starting items). */
+  liveEarly: replayEvents(liveEvents, liveCount(0)),
+  /** Second playerlist (mid game): rows on their real lanes, gold and level differences. */
+  liveMid,
+  /** Same moment with the flag off: main never polls, so no live-players event ever arrives. */
+  liveFlagOff: replayEvents(
+    liveEvents.filter((e) => e.type !== "live-players"),
+    liveCount(1) - livePlayerIdx.length,
+  ),
+  /** After the correction I swapped two enemy rows; the next playerlist leaves the swap alone (M-027). */
+  liveSwappedAfter: ((): Scene => {
+    const swapped = act(liveMid, { type: "swapRows", side: "enemy", from: 0, to: 4 });
+    return { ...swapped, ws: workspaceReducer(swapped.ws, { type: "match", state: liveMid.match }) };
+  })(),
+} satisfies Record<string, Scene>;
 
 /** The first viewer of a scene (for single-pane component stories). */
 export const firstViewer = (s: Scene) => s.ws.viewers[0]!;

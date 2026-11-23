@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ChampionDataSchema } from "@lol-viewer/protocol";
 import { readFileSync } from "node:fs";
-import { diff, format, parseLaneCsv, slugFor, transform, unknownLaneNames, type DDragonChampionFull } from "./index.ts";
+import { diff, format, parseLaneCsv, slugFor, transform, transformItems, itemDiffLine, unknownLaneNames, type DDragonChampionFull } from "./index.ts";
 
 const spells = (prefix: string, cds: number[][]) =>
   cds.map((cooldown, i) => ({ id: `${prefix}${i}`, name: `${prefix} spell ${i}`, maxrank: cooldown.length, cooldown }));
@@ -110,5 +110,30 @@ describe("lane scores (champion_lane.csv)", () => {
     const real = parseLaneCsv(readFileSync(new URL("../champion_lane.csv", import.meta.url), "utf8"));
     expect(real.get("wukong")).toMatchObject({ top: 0, jungle: 5 }); // M-024
     expect(real.has("monkeyking")).toBe(false);
+  });
+});
+
+describe("transformItems", () => {
+  const file = {
+    version: "16.23.1",
+    data: {
+      "3340": { name: "Stealth Ward", gold: { total: 0 } },
+      "3031": { name: "Infinity Edge", gold: { total: 3500 } },
+      "2003": { name: "Health Potion", gold: { total: 50 }, consumed: true },
+      "2031": { name: "Refillable Potion", gold: { total: 150 } },
+      "abc": { name: "junk", gold: { total: 1 } },
+    },
+  };
+  it("counts gold.total, zeroes consumed items, drops non-numeric ids, sorts by id", () => {
+    const d = transformItems(file);
+    expect(Object.keys(d.items)).toEqual(["2003", "2031", "3031", "3340"]);
+    expect(d.items).toMatchObject({ "2003": 0, "2031": 150, "3031": 3500, "3340": 0 });
+    expect(d.patch).toBe("16.23.1");
+  });
+  it("summarises changes", () => {
+    const a = transformItems(file);
+    const b = transformItems({ ...file, data: { ...file.data, "3031": { name: "IE", gold: { total: 3400 } } } });
+    expect(itemDiffLine(null, a)).toBe("Items: 4");
+    expect(itemDiffLine(a, b)).toBe("Items: 4 (1 changed)");
   });
 });

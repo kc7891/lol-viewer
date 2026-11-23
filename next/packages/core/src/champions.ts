@@ -20,6 +20,14 @@ export function getChampion(id: number | null | undefined): Champion | undefined
   return id == null ? undefined : byId.get(id);
 }
 
+const byDdragonId = new Map(CHAMPIONS.map((c) => [c.ddragonId, c]));
+const byDdragonIdLower = new Map(CHAMPIONS.map((c) => [c.ddragonId.toLowerCase(), c]));
+
+/** Data Dragon id ("MonkeyKing"); falls back to a case-insensitive match. */
+export function getChampionByDdragonId(id: string): Champion | undefined {
+  return byDdragonId.get(id) ?? byDdragonIdLower.get(id.toLowerCase());
+}
+
 export function championIconUrl(c: Champion): string {
   return `https://ddragon.leagueoflegends.com/cdn/${CHAMPION_DATA.patch}/img/champion/${c.ddragonId}.png`;
 }

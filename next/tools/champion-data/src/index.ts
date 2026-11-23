@@ -9,6 +9,8 @@ import {
   ChampionDataSchema,
   type ChampionData,
   type ChampionEntry,
+  ItemDataSchema,
+  type ItemData,
   type Lane,
   type SpellKey,
 } from "@lol-viewer/protocol";
@@ -128,4 +130,33 @@ export function diff(before: ChampionData | null, after: ChampionData): string {
   if (other.length) lines.push("", "### Other changes", ...other);
   if (!added.length && !removed.length && !cd.length && !other.length) lines.push("", "No cooldown or roster changes.");
   return lines.join("\n") + "\n";
+}
+
+/** The subset of Data Dragon `item.json` we read. */
+export type DDragonItem = { name: string; gold: { total: number }; consumed?: boolean };
+export type DDragonItemFile = { version: string; data: Record<string, DDragonItem> };
+
+/** item id -> counted gold (M-026): gold.total, 0 for items consumed on use. Sorted by numeric id. */
+export function transformItems(file: DDragonItemFile): ItemData {
+  const ids = Object.keys(file.data)
+    .filter((k) => /^\d+$/.test(k))
+    .sort((a, b) => Number(a) - Number(b));
+  const items: Record<string, number> = {};
+  for (const id of ids) {
+    const it = file.data[id]!;
+    items[id] = it.consumed === true ? 0 : Math.max(0, Math.round(it.gold.total));
+  }
+  return ItemDataSchema.parse({ source: "Data Dragon", patch: file.version, items });
+}
+
+export const formatItems = (d: ItemData): string => JSON.stringify(d, null, 2) + "\n";
+
+/** One summary line: "Items: 863 (5 changed)". */
+export function itemDiffLine(before: ItemData | null, after: ItemData): string {
+  const total = Object.keys(after.items).length;
+  if (!before) return `Items: ${total}`;
+  let changed = 0;
+  for (const [id, v] of Object.entries(after.items)) if (before.items[id] !== v) changed++;
+  for (const id of Object.keys(before.items)) if (!(id in after.items)) changed++;
+  return `Items: ${total} (${changed} changed)`;
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getChampion, type Side, type Workspace } from "@lol-viewer/core";
+import { formatGoldDiff, formatLevelDiff, getChampion, goldTrend, rowLiveDiff, type Side, type Workspace } from "@lol-viewer/core";
 import { LANES } from "@lol-viewer/protocol";
 import { ChampionIcon } from "./ChampionIcon.tsx";
 import { IconCopy, IconRefresh } from "../ui/icons.tsx";
@@ -22,6 +22,8 @@ export function MatchupSection({ ws, selectedChampionId, onSelectChampion, onSwa
   const [drag, setDrag] = useState<Drag | null>(null);
   const [over, setOver] = useState<Drag | null>(null);
   const selfId = ws.last?.self?.championId ?? ws.lastSelf?.championId ?? null;
+
+  const diffs = ws.rows.map((_, i) => rowLiveDiff(ws, i));
 
   const cell = (side: Side, index: number, id: number | null) => {
     const champ = getChampion(id);
@@ -90,14 +92,30 @@ export function MatchupSection({ ws, selectedChampionId, onSelectChampion, onSwa
           <IconRefresh />
         </button>
       </header>
-      <div className="matchup-rows">
+      <div className={`matchup-rows${diffs.some((d) => d) ? " has-live" : ""}`}>
         {ws.rows.map((row, i) => {
           const lane = LANES[i]!;
+          const diff = diffs[i];
+          const lvl = diff ? formatLevelDiff(diff.level) : null;
           return (
             <div className="matchup-row" key={lane} data-lane={lane}>
               <span className="lane">{LANE_SHORT[lane]}</span>
               {cell("ally", i, row.ally)}
-              <span className="vs">vs</span>
+              {diff ? (
+                <span
+                  className="vs live-diff"
+                  data-trend={goldTrend(diff.gold)}
+                  data-gold-diff={diff.gold}
+                  data-level-diff={diff.level}
+                  title={`Item gold: ${getChampion(row.ally)!.name} ${diff.ally.itemGold.toLocaleString("en-US")} vs ${getChampion(row.enemy)!.name} ${diff.enemy.itemGold.toLocaleString("en-US")} · Level ${diff.ally.level} vs ${diff.enemy.level}`}
+                  aria-label={`Item gold difference ${formatGoldDiff(diff.gold)}${lvl ? `, level ${lvl.slice(2)}` : ""}`}
+                >
+                  <span className="gold">{formatGoldDiff(diff.gold)}</span>
+                  {lvl && <span className="lvl">{lvl}</span>}
+                </span>
+              ) : (
+                <span className="vs">vs</span>
+              )}
               {cell("enemy", i, row.enemy)}
               <button
                 type="button"

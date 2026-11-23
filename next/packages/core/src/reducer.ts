@@ -3,11 +3,13 @@ import {
   type Ally,
   type ChampSelectSession,
   type GameflowSession,
-  type Lane,
+  type LivePlayerFact,
   type LcuEvent,
   type MatchState,
 } from "@lol-viewer/protocol";
 import { getChampion } from "./champions.ts";
+import { normalizeLane } from "./lanes.ts";
+import { buildLivePlayers } from "./live.ts";
 
 /** Queues whose "my pick" page is ARAM: ARAM, ARAM Clash, and the Mayhem variants. */
 export const ARAM_QUEUE_IDS: ReadonlySet<number> = new Set([450, 65, 100, 720, 2400, 2401, 2403, 2405, 3240, 3270]);
@@ -24,6 +26,8 @@ export type DetectorState = {
   lastChampSelectGameId: number | null;
   /** Latest gameflow teams, kept so the in-game lists can be rebuilt when the phase or my identity arrives later. */
   gameflowTeams: { one: TeamMember[]; two: TeamMember[] } | null;
+  /** Last Live Client player list (in game only); kept so `live` can be rebuilt when self / allies arrive later. */
+  liveFacts: LivePlayerFact[] | null;
 };
 
 export function initialMatchState(): MatchState {
@@ -39,33 +43,15 @@ export function initialMatchState(): MatchState {
     self: null,
     allies: [],
     enemies: [],
+    live: null,
   };
 }
 
 export function initialDetectorState(): DetectorState {
-  return { match: initialMatchState(), summonerId: null, puuid: null, lastChampSelectGameId: null, gameflowTeams: null };
+  return { match: initialMatchState(), summonerId: null, puuid: null, lastChampSelectGameId: null, gameflowTeams: null, liveFacts: null };
 }
 
-/** LCU says "utility" for support and "" when positions are not assigned. */
-export function normalizeLane(raw: string | undefined | null): Lane | null {
-  switch ((raw ?? "").toLowerCase()) {
-    case "top":
-      return "top";
-    case "jungle":
-      return "jungle";
-    case "middle":
-    case "mid":
-      return "middle";
-    case "bottom":
-    case "bot":
-      return "bottom";
-    case "utility":
-    case "support":
-      return "support";
-    default:
-      return null;
-  }
-}
+export { normalizeLane } from "./lanes.ts";
 
 const positive = (n: number | undefined | null): number | null => (n != null && n > 0 ? n : null);
 const known = (id: number | null): id is number => id != null && getChampion(id) !== undefined;
@@ -222,6 +208,10 @@ function step(d: DetectorState, event: LcuEvent): DetectorState {
     case "champ-select-session":
       // Session deletion (champ select ended) keeps the picks for in-game use.
       return event.session ? applyChampSelect(d, event.session) : d;
+    case "live-players":
+      if (event.players == null) return d.liveFacts == null ? d : { ...d, liveFacts: null };
+      if (d.match.phase !== "InProgress") return d; // late answer after the game: ignore
+      return { ...d, liveFacts: event.players };
     case "current-summoner": {
       const s = event.summoner;
       const summonerId = present(s?.summonerId) ? s.summonerId : d.summonerId;
@@ -237,9 +227,19 @@ function step(d: DetectorState, event: LcuEvent): DetectorState {
  * No-op events return the same object, and an event that changes nothing observable
  * keeps the same MatchState object (cheap change detection in the hub).
  */
+/** MatchState.live follows liveFacts in game; outside InProgress both are cleared (no stale data next game). */
+function withLive(d: DetectorState): DetectorState {
+  if (d.match.phase !== "InProgress") {
+    return d.liveFacts == null && d.match.live == null ? d : { ...d, liveFacts: null, match: { ...d.match, live: null } };
+  }
+  const live = d.liveFacts ? buildLivePlayers(d.liveFacts, d.match) : null;
+  return { ...d, match: { ...d.match, live } };
+}
+
 export function reduce(d: DetectorState, event: LcuEvent): DetectorState {
-  const next = step(d, event);
-  if (next === d) return d;
+  const stepped = step(d, event);
+  if (stepped === d) return d;
+  const next = withLive(stepped);
   const match = JSON.stringify(next.match) === JSON.stringify(d.match) ? d.match : next.match;
   return match === next.match ? next : { ...next, match };
 }
