@@ -2,9 +2,9 @@
 
 試合中、**Tab キーを押している間だけ**、ゲームの画面の上にレーンごとのアイテムゴールド差の表を重ねて出す機能の調査と設計。Feature Flag `inGameOverlay`（既定オフ）で ON / OFF できる。
 
-- 状態: **調査と設計まで（未実装）**。§9 の「持ち主に決めてほしいこと」が決まったら §8 の順で実装する。
+- 状態: **実装済み**（2026-11-23。§9 は持ち主が設計どおりに承認）。実機での確認は未了（§11）。設計との差異は末尾の「実装メモ」。
 - 前提として読むもの: [live-matchup-design.md](./live-matchup-design.md)（ゴールド差のデータ、Feature Flag、main のゲート）、[decisions.md](./decisions.md) M-025〜M-029・M-031・M-033、[../design/next-architecture.md](../design/next-architecture.md) §8（オーバーレイの方式の比較）、`next/CLAUDE.md`（ゾーン）。
-- 決定番号は M-034（案）を使う（§10）。
+- 決定番号は M-034（[decisions.md](./decisions.md) に確定済み。§10 はその原案）。
 - 作成: 2026-11-23。
 
 ---
@@ -264,9 +264,9 @@ inGameOverlay: {
 
 ---
 
-## 10. 決定（案）: M-034（実装時に decisions.md へ）
+## 10. 決定: M-034（decisions.md に確定済み。以下は原案）
 
-## M-034 ゲーム内オーバーレイ（Tab で表示、Feature Flag、2026-11-23 案）
+## M-034 ゲーム内オーバーレイ（Tab で表示、Feature Flag、2026-11-23）
 - 透明・最前面・クリック透過・フォーカスを取らない Electron のウィンドウをゲームの上に重ねる。ゲームのプロセスには触れない。ボーダーレス / ウィンドウモードでだけ見える。
 - Tab の検知は `GetAsyncKeyState(VK_TAB)` を 50ms ごとに読む（`koffi`）。`globalShortcut` は Tab を横取りしてゲームのスコアボードを壊すので使わない。読むのは Tab だけで、試合中・フラグ ON・LoL のゲームが前面の間だけ。
 - データは `MatchState.live` だけ（`liveClientData` が前提）。表の並びはメインウィンドウの対面表と同じ。
@@ -292,3 +292,16 @@ inGameOverlay: {
 - Riot: [Third Party Applications](https://support-leagueoflegends.riotgames.com/hc/en-us/articles/225266848-Third-Party-Applications)、開発者ポリシー（[General Policies](https://support-developer.riotgames.com/hc/en-us/articles/22698591841939-General-Policies)、[League of Legends](https://support-developer.riotgames.com/hc/en-us/articles/22698698001939-League-of-Legends)。自動取得は 403 で、原文は未確認）
 - 二次資料: [lolnow.gg: Riot Cracks Down on Overlays](https://lolnow.gg/riot-cracks-down-on-overlays-in-league-of-legends-a-long-overdue-clean-up/)、[buildzcrank: What's Allowed in 2026](https://buildzcrank.com/en/blog/riot-api-and-third-party-apps-what-is-allowed/)、[senseos.gg: after Riot's Memory Block](https://senseos.gg/guides/league-of-legends/third-party-apps-after-memory-block/)
 - Overwolf: [ow-electron overlay](https://dev.overwolf.com/ow-electron/reference/Overwolf-electron-APIs/overlay/Overview)
+
+---
+
+## 実装メモ（設計からの差異）
+
+- **`koffi` は 3.3.5**（2026-10-28 公開）に固定し、`apps/desktop` の `dependencies` に足した。3.x は OS ごとのバイナリを `@koromix/koffi-*`（optionalDependencies）で配る。electron-builder は pnpm でインストールした OS 用のバイナリだけを同梱するので、Windows 用は Windows 上でインストールしたとき（Windows CI）に入る。`electron-builder.yml` は `koffi` と `@koromix` を `asarUnpack` する。Linux では `electron-builder --linux dir` で同梱とアンパックを確認した。Windows のパッケージは未確認。
+- **`OverlayGateDeps`**: `keys` を値ではなく `getKeys()`（最初に必要になったとき 1 回だけ呼ぶ）にした。フラグ OFF や Windows 以外で `koffi` を読まないため。ウィンドウの作成と破棄も同じゲートの `open()` / `close()` にして、単体テストで確かめられるようにした。`KeySource` には省略可能な `gameRect()` を足した（`GetWindowRect`、物理ピクセル。main が DIP に直す）。
+- **高さ**: `win.setContentSize` で中身に合わせる代わりに、表を固定サイズ（360 × 204 CSS px）にして main と renderer で同じ数字を持つ。オーバーレイ側から main へ送る手段を持たせないため。
+- **IPC の初回送信**: `hub:get` の invoke は使わず、main がオーバーレイの読み込み完了時と、以後の変化ごとに `hub:state` / `overlay:rows` を送る。preload が最後の値を覚えるので、ページが遅れて購読しても受け取れる。
+- **Settings**: オーバーレイの switch は `liveClientData` が OFF の間は OFF 表示で無効にする（保存された値は残る）。「Windows only」の注記は `app.info().platform` が `win32` 以外、またはデスクトップ版でないときに出す。
+- **プロトコル**: `OverlayControlApi`、`OverlayRowsSchema`、`LolOverlayBridge` を `packages/protocol` に足した。
+- **Electron の E2E**: クリック透過は取得 API が無いので E2E では確かめていない（コードで `setIgnoreMouseEvents(true)`）。Xvfb にはコンポジタが無いので、画面全体のスクショでは透明部分が正しく透けるかは確かめられず、`capturePage` の画像（`overlay.png`）で見る。
+- **未確認**: §11 の項目（実機の LoL、Vanguard、DPI、位置、クラス名）と、Windows CI のパッケージ版。

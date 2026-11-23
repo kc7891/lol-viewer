@@ -7,7 +7,7 @@
 
 テスト: core / lcu / hub / desktop の単体テスト（Vitest）、Storybook の全 story のスクショと操作の E2E、Electron 本体を偽 LCU で動かす E2E（外部ビューの位置・表示、2 試合目のリセットなど）。
 
-最終更新: 2026-11-23
+最終更新: 2026-11-23（ゲーム内オーバーレイを追加）
 
 ## 1. 機能
 
@@ -30,6 +30,7 @@
 | CURRENT MATCHUP（5 行、配置規則、DnD、⧉、Refresh） | ✅ | Workspace | ↑↓ は移植しない（M-005） |
 | Cooldowns（PoC で追加した機能） | ✅ | Sidebar | 旧版にはない。既定の対象は `YOU` の行の敵（M-028） |
 | 試合中のゴールド差と対面表の補正（Live Client Data API、Feature Flag） | ✅ | `core/live.ts`、`core/workspace.ts`、`apps/desktop/src/live-core.ts` | M-025〜M-029。既定オフ。実機のゲームでは未確認。チーム合計の差（`TEAM` 行、M-033）も同じフラグで出る |
+| ゲーム内オーバーレイ（Tab を押している間だけ、ゲームの上にゴールド差の表。Feature Flag `inGameOverlay`） | 🔶 | `apps/desktop/src/overlay-core.ts`、`win-keys.ts`、`overlay-preload.ts`、`main.ts`、`apps/web/src/overlay/` | M-034。既定オフ、Windows だけ。ゲートの単体テスト、Storybook、偽のキーでの Electron E2E は済み。**実機（Windows + 本物の LoL）と Windows CI のパッケージ版では未確認**（設計書 §11） |
 | LCU 接続（プロセスのコマンドライン、lockfile、Basic 認証、TLS はループバックだけ緩める） | ✅ | `packages/lcu` | |
 | 再接続とバックオフ（上限 60 秒）、手動 Reconnect | ✅ | `startLcuConnector` | |
 | ポーリング間隔、ウォッチモード、10 体そろった後の一時停止 | ➖ | | WAMP 購読に置き換え（M-010） |

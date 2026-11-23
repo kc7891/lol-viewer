@@ -179,6 +179,15 @@ lolalytics を実際のブラウザ（Playwright）で開いた結果: `/lol/ahr
 
 ---
 
+## M-034 ゲーム内オーバーレイ（Tab で表示、Feature Flag、2026-11-23）
+- 透明・最前面・クリック透過・フォーカスを取らない Electron のウィンドウをゲームの上に重ねる。ゲームのプロセスには触れない。ボーダーレス / ウィンドウモードでだけ見える（フルスクリーンは対象外。持ち主が受け入れた）。
+- Tab の検知は `GetAsyncKeyState(VK_TAB)` を 50ms ごとに読む（`koffi`）。`globalShortcut` は Tab を横取りしてゲームのスコアボードを壊すので使わない。読むのは Tab だけで、試合中・フラグ ON・LoL のゲームが前面の間だけ。
+- データは `MatchState.live` だけ（`liveClientData` が前提）。表の並びはメインウィンドウの対面表と同じ。
+- Feature Flag `inGameOverlay`、既定オフ。Windows 以外では何もしない。
+- 位置はゲームのウィンドウの上端中央、上から 8%。ネイティブの依存として `koffi` を足すことを持ち主が承認した。
+
+---
+
 ## 未決事項
 
 現在なし。

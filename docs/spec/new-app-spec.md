@@ -166,12 +166,12 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 | Analytics URLs | Build / Matchup / Counter / ARAM / Live Game の 5 つの入力欄。各欄に使えるプレースホルダーの説明。**Save**: 前後の空白を除いて保存。5 つとも、空でなく、プレースホルダーに例の値を入れたときに `https` かつ `lolalytics.com` / `u.gg`（サブドメイン含む）の URL になることが必要（M-023）。満たさない欄があると保存せず、その欄を赤く示し（`Required. Enter a URL.` または `Must be an https URL on lolalytics.com or u.gg.`）、`Not saved: N URL(s) are empty.` を通知する（保存済みの値は変わらない。通知の文言は「empty」のままで、ホストの誤りでも同じ）。成功すると Live Game を開き直し `URLs saved. Live Game reloaded.` を通知。変更が無く、エラーも無いとき Save は押せない。**Reset to defaults**: 確認なしで 5 つとも既定に戻して保存し、Live Game を開き直す |
 | League Client | 接続状態と、`Reconnect`。押すと現在の接続を閉じ、再試行の待ち時間を戻して今すぐ試す。押してから 1.5 秒は `Connecting…` を出してボタンを無効にする。デスクトップ版以外では押せない |
 | Display | UI size（Small / Medium / Large）。**押した瞬間に反映**（再起動不要。M-012）。`Show the QR button on viewers`（既定オン）。オフにすると Viewer pane と Live Game の QR ボタンが消える |
-| Feature flags | 定義（`FEATURE_FLAGS`）ごとに 1 行: 名前、説明、switch。今は `Live game data`（`liveClientData`、既定オフ）だけ。**押した瞬間に保存して反映**（再起動不要）し、`Live game data: on.` / `off.` を通知する。`Reset flags to defaults`（既定のとき無効）で定義済みのフラグを既定に戻し、`Feature flags reset to defaults.` を通知（保存済みの未知のキーは残す）。デスクトップ版以外では「Live game data is read by the desktop app.」と注記する |
+| Feature flags | 定義（`FEATURE_FLAGS`）ごとに 1 行: 名前、説明、switch。今は `Live game data`（`liveClientData`、既定オフ）と `In-game overlay (hold Tab)`（`inGameOverlay`、既定オフ、M-034）。オーバーレイは `Live game data` が OFF の間は switch が無効（OFF 表示）で「Requires Live game data」と注記し、Windows 以外（ブラウザを含む）では「Windows only」と注記する。**押した瞬間に保存して反映**（再起動不要）し、`Live game data: on.` / `off.` を通知する。`Reset flags to defaults`（既定のとき無効）で定義済みのフラグを既定に戻し、`Feature flags reset to defaults.` を通知（保存済みの未知のキーは残す）。デスクトップ版以外では「Live game data is read by the desktop app.」と注記する |
 | Version | 現在のバージョンとプラットフォーム（例 `0.0.1 (win32)`）。ブラウザ（モック）では `dev` と「Updates are available in the desktop app.」。デスクトップ版では、`Latest version`（確認中は `Checking…`、未確認は `—`）、状態の文、ボタンを出す。状態の文: `Not checked yet.` / `Checking…` / `You have the latest version.` / `A new version is available.` / `Downloading… n%`（進行バー付き）/ `Ready to install. The app restarts.` / 失敗時は短い理由（下記）/ `Update checks are off in this build.`。ボタン: 未確認・最新・失敗のとき `Check for updates`（確認中は無効）、新しい版があるとき `Download`（ダウンロード中は無効）、ダウンロード済みのとき `Restart and update`、無効なビルドでは出さない。詳細は §7 |
 | Debug | チャンピオンを検索して選び、`Add ally` / `Add enemy`。対面表の**その側の最初の空き行**に入れる（レーン適性も重複も見ない）。成功すると結果を表示して入力を消す。その側が埋まっていれば「full」と表示 |
 | Record session | `Start recording` / `Stop` / `Open recordings folder`。LCU のイベントをファイルへ保存する（他のプレイヤーの名前と ID は伏せる）。記録中は経過時間とイベント数を表示。デスクトップ版だけ（PoC で追加した機能） |
 
-- Feature Flag の定義（`FEATURE_FLAGS`）が 1 つ以上あるときカードを出す。今は `liveClientData` だけ。保存と既定値は `core/settings.ts`。
+- Feature Flag の定義（`FEATURE_FLAGS`）が 1 つ以上あるときカードを出す。今は `liveClientData` と `inGameOverlay`。保存と既定値は `core/settings.ts`。
 - 保存先と既定値は §5。
 
 ---
@@ -253,6 +253,17 @@ MatchState が届くたびに、次の順に処理する。
 - **記録機能との関係**: `recording.ts` は変えていない。記録中は記録用のポーラーが従来どおり 3 秒ごとに 2999 を読む（ユーザーが明示的に始める別の操作で、フラグと独立）。フラグ ON の試合中に記録すると 2 つのポーラーが別々に読む。
 - **保存しない**: 試合中のデータはファイルにも `localStorage` にも保存しない。
 
+
+### 3.7 ゲーム内オーバーレイ（M-034、Feature Flag `inGameOverlay`）
+
+設計は [ingame-overlay-design.md](./ingame-overlay-design.md)。試合中、LoL のゲームのウィンドウが前面にあり **Tab を押している間だけ**、ゲームの上端中央（上から 8%）にレーンごとのアイテムゴールド差の表を重ねる。
+- **前提**: `liveClientData` が ON、フラグ `inGameOverlay` が ON、Windows。LoL の Window Mode はボーダーレスかウィンドウ（フルスクリーンでは見えない）。
+- **表**: 5 レーンの行（味方アイコン、レベル、差、レベル、敵アイコン）と `TEAM` 行（両チームの合計と差）。値と色はサイドバーの Matchup と同じ（`rowLiveDiffOf` / `teamLiveDiffOf`）。並びはメインウィンドウの対面表（補正とユーザーの入れ替えの後）。試合中のデータが無ければ何も描かない。
+- **ウィンドウ**: 透明、枠なし、フォーカスを取らない、タスクバーに出ない、最前面（`screen-saver`）、クリック透過。ゲームが始まって有効なとき隠したまま作り、終わるか無効になったら閉じる。`showInactive()` だけで出す。ナビゲーションと `window.open` は止める。専用の preload（`overlay-preload.ts`）は受信だけ（`onState`、`onRows`）。
+- **Tab の検知**（`overlay-core.ts`、`win-keys.ts`）: 有効かつ `InProgress` の間だけ 50ms ごとに `GetAsyncKeyState(VK_TAB)` と前面のウィンドウのクラス名（`RiotWindowClass`）を読み、変わったときだけ表示 / 非表示にする。Tab 以外のキーは読まない。`globalShortcut` は使わない。読み取りが例外を投げたらログを 1 回出して、その試合では止める。`koffi` は Windows のときだけ遅延で読み込む。
+- **IPC**: `overlay:set-enabled`（真偽）、`overlay:rows`（5 行の `{ally, enemy}`、zod で検証）。どちらも本体ウィンドウからだけ受ける。
+- **テスト用**: 環境変数 `LOL_OVERLAY_FAKE_KEYS=<ファイル>`（中身 `tab` / `none`）で、Windows の代わりにそのファイルを読む（前面判定は常に真）。
+
 ---
 
 ## 4. URL の組み立て
@@ -315,7 +326,7 @@ MatchState が届くたびに、次の順に処理する。
 | `uiSize` | `small` / `medium` / `large` | `medium` | 文字と余白の倍率 0.9 / 1 / 1.15。未知の値は `medium` |
 | `qrButton` | 真偽 | 真 | ペインと Live Game の QR ボタンの表示 |
 | `sidebarWidth` | 240〜480 | 300 | 範囲外は丸める |
-| `featureFlags` | 名前 → 真偽 | 空（既定は定義側が持つ） | 定義: `liveClientData`（既定 偽）。保存済みの未定義のキーは掃除しない（M-016） |
+| `featureFlags` | 名前 → 真偽 | 空（既定は定義側が持つ） | 定義: `liveClientData`、`inGameOverlay`（どちらも既定 偽）。保存済みの未定義のキーは掃除しない（M-016） |
 
 **保存しないもの**: ウィンドウの位置とサイズ、ビューア、対面表、保留、Cooldowns の対象と折りたたみ、各ペインの幅、パネルの開閉。
 
