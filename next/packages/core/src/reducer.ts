@@ -91,7 +91,9 @@ function startNewMatch(d: DetectorState): DetectorState {
       self: null,
       allies: [],
       enemies: [],
+      live: null,
     },
+    liveFacts: null,
   };
 }
 
@@ -116,7 +118,11 @@ function applyTeams(d: DetectorState): DetectorState {
 function applyPhase(d: DetectorState, phase: string): DetectorState {
   if (phase === "ChampSelect" && d.match.phase !== "ChampSelect") return startNewMatch(d);
   if (phase === d.match.phase) return d;
-  if (phase === "InProgress") return applyTeams({ ...d, match: { ...d.match, phase } });
+  if (phase === "InProgress") {
+    // A game starts: forget the last game's live list (M-031), unless it is the same game resuming.
+    const fresh = d.match.phase === "Reconnect" ? d : { ...d, liveFacts: null, match: { ...d.match, live: null } };
+    return applyTeams({ ...fresh, match: { ...fresh.match, phase } });
+  }
   if (phase === "None" || phase === "Lobby") {
     // Forget me and the lobby; keep allies/enemies (the old app also kept the last lists).
     return {
@@ -227,12 +233,15 @@ function step(d: DetectorState, event: LcuEvent): DetectorState {
  * No-op events return the same object, and an event that changes nothing observable
  * keeps the same MatchState object (cheap change detection in the hub).
  */
-/** MatchState.live follows liveFacts in game; outside InProgress both are cleared (no stale data next game). */
+/**
+ * MatchState.live follows liveFacts in game. After the game it is frozen as last seen (M-031), so the
+ * gold differences stay on screen; it is cleared by the next match (startNewMatch), the start of the
+ * next game (applyPhase) or `live-players: null` (the feature flag turned off).
+ */
 function withLive(d: DetectorState): DetectorState {
-  if (d.match.phase !== "InProgress") {
-    return d.liveFacts == null && d.match.live == null ? d : { ...d, liveFacts: null, match: { ...d.match, live: null } };
-  }
-  const live = d.liveFacts ? buildLivePlayers(d.liveFacts, d.match) : null;
+  if (d.liveFacts == null) return d.match.live == null ? d : { ...d, match: { ...d.match, live: null } };
+  if (d.match.phase !== "InProgress") return d;
+  const live = buildLivePlayers(d.liveFacts, d.match);
   return { ...d, match: { ...d.match, live } };
 }
 

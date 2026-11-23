@@ -39,8 +39,8 @@ export function createLiveGate(deps: LiveGateDeps): LiveGate {
       sync();
       if (!v) deps.clear();
     },
-    // Never clears from here: this runs inside a Hub listener, and the reducer drops `live`
-    // itself when the phase leaves InProgress (a dispatch here would nest Hub notifications).
+    // Never clears from here: this runs inside a Hub listener (a dispatch here would nest Hub
+    // notifications). `live` stays after the game; the reducer drops it on the next match (M-031).
     setPhase(p) {
       if (p === phase) return;
       phase = p;

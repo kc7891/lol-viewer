@@ -492,4 +492,12 @@ describe("rowLiveDiff", () => {
   it("null without live data", () => {
     expect(rowLiveDiff(match(initialWorkspace(), ms({ allies: [[AHRI, "middle"]], enemies: [JAYCE] })), 2)).toBeNull();
   });
+  it("stays after the game and goes with the next match (M-031)", () => {
+    const base = { allies: [[AHRI, "middle"], [GAREN, "top"]] as Pick[], enemies: [JAYCE], live };
+    const ended = match(match(ws, ms({ ...base, phase: "EndOfGame" })), ms({ ...base, phase: "Lobby" }));
+    expect(rowLiveDiff(ended, 2)).toMatchObject({ gold: -150, level: 1 });
+    const next = match(ended, ms({ phase: "ChampSelect", matchSeq: 2 }));
+    expect(rowLiveDiff(next, 2)).toBeNull();
+    expect(col(next, "ally")).toEqual([null, null, null, null, null]);
+  });
 });
