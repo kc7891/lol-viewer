@@ -229,6 +229,7 @@ check → 更新なしなら False → prompt で No なら False → URL を取
      - それ以外 → patch。
   3. 最新タグ（無ければ `v0.0.0`）から `packaging` で新バージョンを計算（`:79-109`）。
   4. タグ `v<new>` がすでにあれば以降をスキップ（`:111-120`）。
+     - 補足（2026-11-22 修正）: `constants.py` がすでに新しい版になっている場合（前回の run が bump コミットを push したあと、タグの push で失敗した場合）は、コミットを省略して現在の HEAD にタグを付ける。以前は「nothing to commit」で失敗し続けていた（v0.33.1 のタグ push が GitHub 側の一時エラーで失敗した 2026-11-03 以降、リリースが止まっていた）。
   5. `constants.py` を sed で書き換え、書き換わったか確認（`:122-137`、PR の dry-run でもここまでは実行）。
   6. （dry-run でなければ）以下を順に実行（`:139-198`）:
      - github-actions[bot] として `chore: bump version to X` をコミットして main へ push。
