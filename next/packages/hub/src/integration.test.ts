@@ -7,7 +7,7 @@ import { get as httpGet } from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { parseScenario, toLcuEvent } from "@lol-viewer/core";
-import { findCredentials, startLcuConnector } from "@lol-viewer/lcu";
+import { findCredentials, startLcuConnector, startLiveClientPoller } from "@lol-viewer/lcu";
 import { startFakeLcu, type FakeLcu } from "@lol-viewer/fake-lcu";
 import { HubMessageSchema, type MatchState } from "@lol-viewer/protocol";
 import { Hub, startHubServer, type HubServer } from "./index.ts";
@@ -33,6 +33,44 @@ function waitFor(hub: Hub, pred: (s: MatchState) => boolean, ms = 5000): Promise
     });
   });
 }
+
+describe("fake LCU + Live Client API -> hub", () => {
+  it("reads the player list in game: 10 players, no names, no writes (M-025, M-029)", async () => {
+    const liveLines = parseScenario(readFileSync(new URL("../../../scenarios/live-ingame.jsonl", import.meta.url), "utf8"));
+    const fake: FakeLcu = await startFakeLcu({ lines: liveLines, autoplay: false });
+    cleanups.push(() => fake.close());
+    const hub = new Hub();
+    const onEvent = (raw: Parameters<typeof toLcuEvent>[0]) => {
+      const e = toLcuEvent(raw);
+      if (e) hub.dispatch(e);
+    };
+    const conn = startLcuConnector({
+      findCredentials: () => findCredentials([fake.lockfilePath]),
+      onEvent,
+      onStatus: (status) => hub.dispatch({ type: "connection", status }),
+    });
+    cleanups.push(() => conn.stop());
+    await waitFor(hub, (s) => s.connection === "connected");
+    const playTo = async (ms: number) => {
+      for (const l of liveLines) {
+        if (l.t > ms) break;
+        fake.advanceTo(l.t);
+        await new Promise((r) => setTimeout(r, 10));
+      }
+    };
+    await playTo(2900); // InProgress, teams, current summoner
+    await waitFor(hub, (s) => s.phase === "InProgress" && s.self != null, 3000);
+    const poller = startLiveClientPoller({ intervalMs: 50, baseUrl: `http://127.0.0.1:${fake.port}`, onData: onEvent });
+    cleanups.push(() => poller.stop());
+    await playTo(5000);
+    const s = await waitFor(hub, (st) => st.live?.some((p) => p.level === 12) === true, 3000);
+    expect(s.live).toHaveLength(10);
+    expect(s.live!.filter((p) => p.team === "ally").map((p) => p.championId)).toEqual([86, 64, 103, 222, 412]);
+    expect(JSON.stringify(hub.state)).not.toMatch(/player-\d|tag-\d/);
+    expect(fake.liveClientRequests.every((p) => p === "/liveclientdata/playerlist")).toBe(true);
+    expect(fake.rejectedWrites).toEqual([]);
+  });
+});
 
 describe("fake LCU -> connector -> hub", () => {
   it("replays two matches and never attempts a write", async () => {

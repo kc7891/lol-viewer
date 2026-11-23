@@ -32,6 +32,8 @@ export type FakeLcu = {
   lockfilePath: string;
   /** Requests that tried to mutate the client (must stay empty). */
   rejectedWrites: string[];
+  /** Paths of GET requests to /liveclientdata/ (E2E: the feature flag off must leave this empty). */
+  liveClientRequests: string[];
   play: () => void;
   /** Deterministic stepping: immediately emit every not-yet-emitted line with t <= ms. */
   advanceTo: (ms: number) => void;
@@ -53,6 +55,7 @@ export async function startFakeLcu(opts: FakeLcuOptions): Promise<FakeLcu> {
   const auth = "Basic " + Buffer.from(`riot:${password}`).toString("base64");
   const current = new Map<string, unknown>();
   const rejectedWrites: string[] = [];
+  const liveClientRequests: string[] = [];
   const subs = new Map<WebSocket, Set<string>>();
 
   const server: Server = createServer((req, res) => {
@@ -73,6 +76,7 @@ export async function startFakeLcu(opts: FakeLcuOptions): Promise<FakeLcu> {
       return;
     }
     const path = (req.url ?? "").split("?")[0] ?? "";
+    if (isLiveClient) liveClientRequests.push(path);
     if (!current.has(path) && path === CURRENT_SUMMONER_PATH) {
       // Synthetic: scenarios recorded before this endpoint existed have no line for it.
       res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(SYNTHETIC_SUMMONER));
@@ -151,6 +155,7 @@ export async function startFakeLcu(opts: FakeLcuOptions): Promise<FakeLcu> {
     password,
     lockfilePath,
     rejectedWrites,
+    liveClientRequests,
     play,
     advanceTo,
     done,
