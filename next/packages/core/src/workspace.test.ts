@@ -10,6 +10,8 @@ import {
   correctSide,
   liveLaneAssignments,
   rowLiveDiff,
+  rowLiveDiffOf,
+  teamLiveDiffOf,
   teamLiveDiff,
   canAddViewer,
   defaultCooldownChampion,
@@ -500,6 +502,24 @@ describe("rowLiveDiff", () => {
     const next = match(ended, ms({ phase: "ChampSelect", matchSeq: 2 }));
     expect(rowLiveDiff(next, 2)).toBeNull();
     expect(col(next, "ally")).toEqual([null, null, null, null, null]);
+  });
+});
+
+describe("rowLiveDiffOf", () => {
+  const rows = [{ ally: GAREN, enemy: null }, { ally: AHRI, enemy: JAYCE }];
+  const live = [lp(AHRI, "ally", "middle", 12, 4650), lp(JAYCE, "enemy", "middle", 11, 4800), lp(GAREN, "ally", "top", 3, 100)];
+  it("works on rows and a live list alone", () => {
+    expect(rowLiveDiffOf(rows, live, 1)).toMatchObject({ gold: -150, level: 1 });
+    expect(rowLiveDiffOf(rows, live, 0)).toBeNull();
+    expect(rowLiveDiffOf(rows, live, 7)).toBeNull();
+  });
+  it("null without a live list", () => {
+    expect(rowLiveDiffOf(rows, null, 1)).toBeNull();
+    expect(rowLiveDiffOf(rows, undefined, 1)).toBeNull();
+  });
+  it("teamLiveDiffOf takes the list directly", () => {
+    expect(teamLiveDiffOf(live)).toEqual({ gold: -50, allyGold: 4750, enemyGold: 4800, allyCount: 2, enemyCount: 1 });
+    expect(teamLiveDiffOf(null)).toBeNull();
   });
 });
 

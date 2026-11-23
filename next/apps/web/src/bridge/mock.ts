@@ -4,7 +4,7 @@
  * It has no `views` (ExternalViewSlot shows a placeholder) and no `app` (Settings shows "dev").
  */
 import { initialDetectorState, initialMatchState, parseScenario, reduce, toLcuEvent, type DetectorState, type ScenarioLine } from "@lol-viewer/core";
-import type { AppApi, LcuControlApi, LiveClientControlApi, LolViewerBridge, MatchState, UpdateStatus, UpdatesApi } from "@lol-viewer/protocol";
+import type { AppApi, LcuControlApi, LiveClientControlApi, LolViewerBridge, MatchState, OverlayControlApi, UpdateStatus, UpdatesApi } from "@lol-viewer/protocol";
 import scenarioText from "../../../../scenarios/ranked-two-matches.jsonl?raw";
 
 export type MockPlayer = LolViewerBridge & {
@@ -118,11 +118,14 @@ export type StaticBridgeOptions = {
   updates?: UpdatesApi;
   /** Give the bridge the desktop Live Client switch (Settings > Feature flags). */
   live?: LiveClientControlApi | true;
+  /** Give the bridge the desktop in-game overlay switch (Settings > Feature flags). */
+  overlay?: OverlayControlApi | true;
 };
 
 /** A bridge pinned to one state — for stories and screenshots. */
 export function staticBridge(state: MatchState, opts: StaticBridgeOptions = {}): LolViewerBridge {
   const lcu = opts.lcu === true ? { reconnect() {}, resync() {} } : opts.lcu;
   const live = opts.live === true ? { setEnabled() {} } : opts.live;
-  return { kind: "mock", onState: (cb) => (cb(state), () => {}), ...(lcu ? { lcu } : {}), ...(live ? { live } : {}), ...(opts.app ? { app: opts.app } : {}), ...(opts.updates ? { updates: opts.updates } : {}) };
+  const overlay = opts.overlay === true ? { setEnabled() {}, setRows() {} } : opts.overlay;
+  return { kind: "mock", onState: (cb) => (cb(state), () => {}), ...(lcu ? { lcu } : {}), ...(live ? { live } : {}), ...(overlay ? { overlay } : {}), ...(opts.app ? { app: opts.app } : {}), ...(opts.updates ? { updates: opts.updates } : {}) };
 }

@@ -304,6 +304,27 @@ export interface LolViewerBridge {
   readonly updates?: UpdatesApi;
   /** Present only in the desktop app. */
   readonly live?: LiveClientControlApi;
+  /** Present only in the desktop app. */
+  readonly overlay?: OverlayControlApi;
+}
+
+/** Matchup rows the in-game overlay draws: champion ids in lane order (top, jungle, middle, bottom, support). */
+export const OverlayRowsSchema = z
+  .array(z.object({ ally: z.number().int().nullable(), enemy: z.number().int().nullable() }))
+  .length(5);
+export type OverlayRows = z.infer<typeof OverlayRowsSchema>;
+
+export interface OverlayControlApi {
+  /** Feature flags liveClientData AND inGameOverlay (M-034): main reads the Tab key only while this is true, in a game, on Windows. */
+  setEnabled(enabled: boolean): void;
+  /** The matchup table as the main window shows it (after the lane correction and the user's swaps). */
+  setRows(rows: OverlayRows): void;
+}
+
+/** What the overlay window's own preload exposes: receive-only, nothing to send. */
+export interface LolOverlayBridge {
+  onState(cb: (s: MatchState) => void): () => void;
+  onRows(cb: (rows: OverlayRows) => void): () => void;
 }
 
 export interface LiveClientControlApi {

@@ -53,9 +53,18 @@ export function App({
   useEffect(() => {
     bridge.live?.setEnabled(liveOn);
   }, [bridge, liveOn]);
+  // M-034: the in-game overlay needs the live data too.
+  const overlayOn = liveOn && isFeatureOn(settings, "inGameOverlay");
+  useEffect(() => {
+    bridge.overlay?.setEnabled(overlayOn);
+  }, [bridge, overlayOn]);
   const updateStatus = useUpdateStatus();
   const updateDot = updateAvailable ?? (updateStatus?.state === "available" || updateStatus?.state === "downloaded");
   const [ws, dispatch] = useWorkspace(match, initialWs);
+  // The overlay draws the table as it is here (lane correction and my swaps included).
+  useEffect(() => {
+    if (overlayOn) bridge.overlay?.setRows(ws.rows);
+  }, [bridge, overlayOn, ws.rows]);
   const { toasts, push: notify, dismiss } = useToasts(initialToasts, autoDismissToasts);
 
   const [page, setPage] = useState<Page>(initialPage);

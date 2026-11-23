@@ -184,17 +184,41 @@ export function DisplayCard() {
   );
 }
 
+/** The OS the desktop app runs on; null in a browser (no desktop bridge), undefined while the first answer is pending. */
+function usePlatform(): string | null | undefined {
+  const app = useBridge().app;
+  const [platform, setPlatform] = useState<string | null | undefined>(app ? undefined : null);
+  useEffect(() => {
+    if (!app) return setPlatform(null);
+    let live = true;
+    app.info().then(
+      (i) => live && setPlatform(i.platform),
+      () => live && setPlatform(null),
+    );
+    return () => {
+      live = false;
+    };
+  }, [app]);
+  return platform;
+}
+
 export function FeatureFlagsCard({ notify }: { notify: (text: string, kind?: ToastKind) => void }) {
   const { settings, update } = useSettings();
   const desktop = useBridge().live != null;
+  const platform = usePlatform();
   if (FEATURE_FLAG_KEYS.length === 0) return null;
+  const liveOn = isFeatureOn(settings, "liveClientData");
   return (
     <section className="card" aria-label="Feature flags">
       <h2>Feature flags</h2>
       <p className="desc">Optional features. Changes apply at once.</p>
       {FEATURE_FLAG_KEYS.map((k) => {
         const def = FEATURE_FLAGS[k];
-        const on = isFeatureOn(settings, k);
+        // M-034: the overlay needs Live game data; it shows as off while that is off.
+        const needsLive = k === "inGameOverlay";
+        const blocked = needsLive && !liveOn;
+        const on = isFeatureOn(settings, k) && !blocked;
+        const windowsOnly = needsLive && platform !== undefined && platform !== "win32";
         return (
           <div className="setting-row flag-row" key={k}>
             <div className="flag-text">
@@ -204,6 +228,16 @@ export function FeatureFlagsCard({ notify }: { notify: (text: string, kind?: Toa
               <span className="hint" id={`flag-${k}-desc`}>
                 {def.description}
               </span>
+              {blocked && (
+                <span className="hint flag-note" data-testid={`flag-${k}-requires`}>
+                  Requires Live game data
+                </span>
+              )}
+              {windowsOnly && (
+                <span className="hint flag-note" data-testid={`flag-${k}-windows-only`}>
+                  Windows only
+                </span>
+              )}
             </div>
             <input
               id={`flag-${k}`}
@@ -211,6 +245,7 @@ export function FeatureFlagsCard({ notify }: { notify: (text: string, kind?: Toa
               role="switch"
               className="switch"
               checked={on}
+              disabled={blocked}
               aria-describedby={`flag-${k}-desc`}
               onChange={(e) => {
                 update({ featureFlags: { ...settings.featureFlags, [k]: e.target.checked } });

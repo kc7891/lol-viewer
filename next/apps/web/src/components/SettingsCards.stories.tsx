@@ -45,10 +45,29 @@ export const LeagueClientDisconnected: Story = {
 };
 export const LeagueClientBrowser: Story = { render: () => <Wrap><LcuCard connection="connected" /></Wrap> };
 export const Display: Story = { render: () => <Wrap><DisplayCard /></Wrap> };
-export const FeatureFlags: Story = { render: () => <Wrap options={{ live: true }}><FeatureFlagsCard notify={() => {}} /></Wrap> };
+const win = { info: async () => ({ version: "0.1.0", platform: "win32" }) };
+const mac = { info: async () => ({ version: "0.1.0", platform: "darwin" }) };
+/** Desktop app on Windows, defaults: the overlay switch is disabled until Live game data is on. */
+export const FeatureFlags: Story = { render: () => <Wrap options={{ live: true, overlay: true, app: win }}><FeatureFlagsCard notify={() => {}} /></Wrap> };
+/** Live game data on: the overlay switch can be turned on. */
+export const FeatureFlagsLiveOn: Story = {
+  render: () => (
+    <Wrap options={{ live: true, overlay: true, app: win }} settings={{ ...DEFAULT_SETTINGS, featureFlags: { liveClientData: true } }}>
+      <FeatureFlagsCard notify={() => {}} />
+    </Wrap>
+  ),
+};
 export const FeatureFlagsOn: Story = {
   render: () => (
-    <Wrap options={{ live: true }} settings={{ ...DEFAULT_SETTINGS, featureFlags: { liveClientData: true } }}>
+    <Wrap options={{ live: true, overlay: true, app: win }} settings={{ ...DEFAULT_SETTINGS, featureFlags: { liveClientData: true, inGameOverlay: true } }}>
+      <FeatureFlagsCard notify={() => {}} />
+    </Wrap>
+  ),
+};
+/** Not Windows: the overlay flag says "Windows only" (main does nothing there). */
+export const FeatureFlagsNotWindows: Story = {
+  render: () => (
+    <Wrap options={{ live: true, overlay: true, app: mac }} settings={{ ...DEFAULT_SETTINGS, featureFlags: { liveClientData: true } }}>
       <FeatureFlagsCard notify={() => {}} />
     </Wrap>
   ),

@@ -1489,3 +1489,7 @@ code {
 .story-frame {
   border: 1px solid var(--line);
 }
+.flag-note {
+  color: var(--warn);
+  font-weight: 600;
+}
