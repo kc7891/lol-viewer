@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CHAMPION_DATA, CHAMPIONS, championIconUrl, getChampion } from "./champions.ts";
+import { ITEM_DATA } from "./live.ts";
 import { parseScenario, scenarioEvents } from "./scenario.ts";
 
 describe("generated champion data", () => {
@@ -34,7 +35,7 @@ describe("generated champion data", () => {
     }
   });
 
-  it.each(["ranked-two-matches", "aram-match", "blind-dodge-ingame"])("knows every champion the %s scenario picks", (name) => {
+  it.each(["ranked-two-matches", "aram-match", "blind-dodge-ingame", "live-ingame"])("knows every champion the %s scenario picks", (name) => {
     const text = readFileSync(new URL(`../../../scenarios/${name}.jsonl`, import.meta.url), "utf8");
     const ids = new Set<number>();
     for (const e of scenarioEvents(parseScenario(text))) {
@@ -52,5 +53,15 @@ describe("generated champion data", () => {
     );
     // Both apps key Wukong as "wukong" (lolalytics serves /lol/wukong/, not /lol/monkeyking/).
     expect(mismatches).toEqual([]);
+  });
+});
+
+describe("generated item data", () => {
+  it("matches the champion patch and has the expected prices", () => {
+    expect(ITEM_DATA.patch).toBe(CHAMPION_DATA.patch);
+    expect(Object.keys(ITEM_DATA.items).length).toBeGreaterThan(300);
+    expect(ITEM_DATA.items["3031"]).toBe(3500);
+    expect(ITEM_DATA.items["2003"]).toBe(0);
+    expect(ITEM_DATA.items["3340"]).toBe(0);
   });
 });

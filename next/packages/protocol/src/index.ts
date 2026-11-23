@@ -11,7 +11,7 @@
  */
 import { z } from "zod";
 
-export const PROTOCOL_VERSION = 2 as const;
+export const PROTOCOL_VERSION = 3 as const;
 
 // ── Shared primitives ──────────────────────────────────────────────
 
@@ -76,7 +76,51 @@ export const CurrentSummonerSchema = z.looseObject({
 });
 export type CurrentSummoner = z.infer<typeof CurrentSummonerSchema>;
 
+// ── Live Client Data API payload subsets (in-game, 127.0.0.1:2999) ──
+
+export const LiveClientItemSchema = z.looseObject({
+  itemID: z.number(),
+  count: z.number().optional(),
+  /** Meaning not documented (own price vs. combine cost); only a fallback for unknown items (M-026). */
+  price: z.number().optional(),
+  consumable: z.boolean().optional(),
+});
+
+export const LiveClientSpellSchema = z.looseObject({
+  displayName: z.string().optional(),
+  rawDisplayName: z.string().optional(),
+  rawDescription: z.string().optional(),
+});
+
+export const LiveClientPlayerSchema = z.looseObject({
+  championName: z.string().optional(),
+  /** "game_character_displayname_<Data Dragon id>", e.g. "..._MonkeyKing". */
+  rawChampionName: z.string().optional(),
+  /** "ORDER" | "CHAOS" (anything else is ignored). */
+  team: z.string().optional(),
+  /** "TOP" | "JUNGLE" | "MIDDLE" | "BOTTOM" | "UTILITY" | "" (blind, ARAM, custom). */
+  position: z.string().optional(),
+  level: z.number().optional(),
+  items: z.array(LiveClientItemSchema).optional(),
+  summonerSpells: z
+    .looseObject({ summonerSpellOne: LiveClientSpellSchema.optional(), summonerSpellTwo: LiveClientSpellSchema.optional() })
+    .optional(),
+});
+export type LiveClientPlayer = z.infer<typeof LiveClientPlayerSchema>;
+
 // ── LcuEvent: adapter -> core ──────────────────────────────────────
+
+/** One player of /liveclientdata/playerlist, reduced to facts (no names). Built by core.toLcuEvent. */
+export const LivePlayerFactSchema = z.object({
+  championId: z.number().int().positive(),
+  team: z.enum(["ORDER", "CHAOS"]),
+  /** From `position`; when that is empty, Smite => "jungle"; otherwise null. */
+  lane: LaneSchema.nullable(),
+  level: z.number().int().nonnegative(),
+  /** Estimated gold: sum of item values (M-026). */
+  itemGold: z.number().int().nonnegative(),
+});
+export type LivePlayerFact = z.infer<typeof LivePlayerFactSchema>;
 
 export const LcuEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("connection"), status: ConnectionStatusSchema }),
@@ -84,6 +128,8 @@ export const LcuEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("gameflow-session"), session: GameflowSessionSchema.nullable() }),
   z.object({ type: z.literal("champ-select-session"), session: ChampSelectSessionSchema.nullable() }),
   z.object({ type: z.literal("current-summoner"), summoner: CurrentSummonerSchema.nullable() }),
+  /** Live Client Data API (in game). null = the list is gone (Delete / flag turned off). */
+  z.object({ type: z.literal("live-players"), players: z.array(LivePlayerFactSchema).nullable() }),
 ]);
 export type LcuEvent = z.infer<typeof LcuEventSchema>;
 
@@ -106,6 +152,16 @@ export const SelfPickSchema = z.object({
   lane: LaneSchema.nullable(),
 });
 export type SelfPick = z.infer<typeof SelfPickSchema>;
+
+export const LivePlayerSchema = z.object({
+  championId: z.number().int().positive(),
+  /** Relative to me (M-029). */
+  team: z.enum(["ally", "enemy"]),
+  lane: LaneSchema.nullable(),
+  level: z.number().int().nonnegative(),
+  itemGold: z.number().int().nonnegative(),
+});
+export type LivePlayer = z.infer<typeof LivePlayerSchema>;
 
 export const MatchStateSchema = z.object({
   protocolVersion: z.literal(PROTOCOL_VERSION),
@@ -130,6 +186,12 @@ export const MatchStateSchema = z.object({
   allies: z.array(AllySchema),
   /** Picked enemies in theirTeam (= pick) order (in game: from gameflow teams). */
   enemies: z.array(z.number().int().positive()),
+  /**
+   * In game only (phase InProgress) and only while the liveClientData feature flag is on:
+   * every player of the Live Client player list, in its order. null otherwise, and when my
+   * team could not be told (M-029). No names.
+   */
+  live: z.array(LivePlayerSchema).nullable().default(null),
 });
 export type MatchState = z.infer<typeof MatchStateSchema>;
 
@@ -240,6 +302,13 @@ export interface LolViewerBridge {
   readonly app?: AppApi;
   /** Present only in the desktop app. */
   readonly updates?: UpdatesApi;
+  /** Present only in the desktop app. */
+  readonly live?: LiveClientControlApi;
+}
+
+export interface LiveClientControlApi {
+  /** Feature flag liveClientData (M-025): main polls the Live Client Data API only while this is true and a game is in progress. */
+  setEnabled(enabled: boolean): void;
 }
 
 export interface LcuControlApi {
@@ -340,6 +409,15 @@ export const ChampionDataSchema = z.object({
   champions: z.array(ChampionEntrySchema).min(1),
 });
 export type ChampionData = z.infer<typeof ChampionDataSchema>;
+
+// ── Static item data (generated from Data Dragon item.json; see tools/champion-data) ──
+export const ItemDataSchema = z.object({
+  source: z.literal("Data Dragon"),
+  patch: z.string().regex(/^\d+\.\d+\.\d+$/),
+  /** item id (string key) -> gold counted for the item (gold.total; 0 when consumed on use). */
+  items: z.record(z.string().regex(/^\d+$/), z.number().int().nonnegative()),
+});
+export type ItemData = z.infer<typeof ItemDataSchema>;
 
 // ── Session recorder (desktop only) ────────────────────────────────
 

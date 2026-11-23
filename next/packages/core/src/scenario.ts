@@ -13,8 +13,11 @@ import {
   ChampSelectSessionSchema,
   CurrentSummonerSchema,
   GameflowSessionSchema,
+  LiveClientPlayerSchema,
   type LcuEvent,
+  type LivePlayerFact,
 } from "@lol-viewer/protocol";
+import { normalizeLivePlayer } from "./live.ts";
 import { z } from "zod";
 
 export const LcuApiEventSchema = z.object({
@@ -27,7 +30,10 @@ export type LcuApiEvent = z.infer<typeof LcuApiEventSchema>;
 export const ScenarioLineSchema = LcuApiEventSchema.extend({ t: z.number().nonnegative() });
 export type ScenarioLine = z.infer<typeof ScenarioLineSchema>;
 
-/** The only LCU URIs the app subscribes to. Everything else is ignored. */
+/**
+ * The only LCU URIs the app subscribes to. Everything else is ignored.
+ * (`/liveclientdata/playerlist` is the Live Client Data API, polled in game: M-025. Not a subscription.)
+ */
 export const SUBSCRIBED_URIS = [
   "/lol-gameflow/v1/gameflow-phase",
   "/lol-gameflow/v1/session",
@@ -55,6 +61,18 @@ export function toLcuEvent(raw: LcuApiEvent): LcuEvent | null {
       if (deleted) return { type: "current-summoner", summoner: null };
       const parsed = CurrentSummonerSchema.safeParse(raw.data);
       return parsed.success ? { type: "current-summoner", summoner: parsed.data } : null;
+    }
+    case "/liveclientdata/playerlist": {
+      if (deleted) return { type: "live-players", players: null };
+      if (!Array.isArray(raw.data)) return null;
+      const players: LivePlayerFact[] = [];
+      for (const item of raw.data) {
+        const p = LiveClientPlayerSchema.safeParse(item); // one broken player does not drop the others
+        if (!p.success) continue;
+        const fact = normalizeLivePlayer(p.data);
+        if (fact) players.push(fact);
+      }
+      return { type: "live-players", players };
     }
     default:
       return null;

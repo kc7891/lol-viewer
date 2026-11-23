@@ -100,7 +100,7 @@ describe("hub server security", () => {
     const { srv } = await server();
     const res = await fetch(`${srv.url}/api/state?token=t0ken`);
     expect(res.status).toBe(200);
-    expect(((await res.json()) as { protocolVersion: number }).protocolVersion).toBe(2);
+    expect(((await res.json()) as { protocolVersion: number }).protocolVersion).toBe(3);
   });
 
   it.each([
