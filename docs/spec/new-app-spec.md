@@ -206,7 +206,7 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 | 試合中（`InProgress`） | gameflow の `gameData.teamOne` / `teamTwo` から味方と敵を作る（レーンは null）。自分のチームは summonerId または puuid で判定し、分からなければ teamOne を味方とみなす（自分の情報が後から届いたら作り直す）。結果が空なら前の一覧を保持。`self` は ChampSelect のものを保持。ブラインドや ARAM で ChampSelect 中に敵が見えなかった場合も、ここで補う |
 | 自分の summonerId | champ-select の自分の行から。無ければ `current-summoner` から。MatchState には出さない |
 | キューと ARAM | `gameData.queue` が数値、`{id}`、`{queueId}` のどれでも読む。gameMode は `queue.gameMode`、`queue.mode`、`gameData.gameMode` の順。`isAram` は、キュー ID が {450, 65, 100, 720, 2400, 2401, 2403, 2405, 3240, 3270} のどれか、または gameMode が `ARAM`。新しい試合になってもキュー情報は保つ（gameflow が先に届くため） |
-| 試合中のデータ（`live`） | `InProgress` の間だけ受け取る（それ以外のフェーズで来たものは捨てる）。フェーズが `InProgress` 以外になる、新しい試合、切断、一覧の削除（`live-players` が null）で消える。自分のチームは名前を使わず、自分のチャンピオン、次に味方・敵との一致で決め、決まらなければ null（M-029）。2 チーム × 5 人以下の形でなければ null。アイテムの金額は Data Dragon `gold.total`（M-026）。同じ内容なら MatchState は同じ |
+| 試合中のデータ（`live`） | `InProgress` の間だけ受け取る（それ以外のフェーズで来たものは捨てる）。試合が終わっても最後の値のまま残し（作り直さない）、新しい試合（ChampSelect）、ChampSelect を経ない次のゲームの開始（`Reconnect` からの復帰は除く）、`live-players` が null（Feature Flag を OFF）で消える。切断では消さない（M-031）。自分のチームは名前を使わず、自分のチャンピオン、次に味方・敵との一致で決め、決まらなければ null（M-029）。2 チーム × 5 人以下の形でなければ null。アイテムの金額は Data Dragon `gold.total`（M-026）。同じ内容なら MatchState は同じ |
 | 切断 | `connection = disconnected`、`phase = None`、自分の summonerId / puuid を消す。`self`、`allies`、`enemies` は残す（画面は直前の表示を保つ）。再接続して ChampSelect に入れば新しい試合 |
 
 ### 3.3 Workspace の反応（`core.workspaceReducer`）
@@ -246,7 +246,7 @@ MatchState が届くたびに、次の順に処理する。
   ──live-players（チャンピオン、ORDER/CHAOS、レーン、レベル、アイテム金額だけ。名前は捨てる）──▶ hub / core.reduce
   ──MatchState.live（味方 / 敵に変換済み）──▶ renderer: フラグ OFF なら live を捨てる ──▶ workspaceReducer（補正、§3.4）／行の差（`rowLiveDiff`）
 ```
-- **ゲート**（`apps/desktop/src/live-core.ts`）: ポーラーは「Feature Flag `liveClientData` が ON、かつフェーズが `InProgress`」の間だけ動く。main の既定は OFF で、renderer が IPC `live:set-enabled`（真偽のみ）で伝えるまで 1 回も問い合わせない。フラグを切ると止めて、`live` を消す。フェーズが変わったときの `live` の消去は reducer がする。再起動は要らない。
+- **ゲート**（`apps/desktop/src/live-core.ts`）: ポーラーは「Feature Flag `liveClientData` が ON、かつフェーズが `InProgress`」の間だけ動く。main の既定は OFF で、renderer が IPC `live:set-enabled`（真偽のみ）で伝えるまで 1 回も問い合わせない。フラグを切ると止めて、`live` を消す。試合が終わってポーラーが止まっても `live` は残り、次の試合で reducer が消す（M-031）。再起動は要らない。
 - **レーン**: `position`（`TOP` / `JUNGLE` / `MIDDLE` / `BOTTOM` / `UTILITY`）。空なら Smite（`rawDescription` / `rawDisplayName` に `SummonerSmite`）を持つ人がジャングル。それ以外は null。
 - **推定ゴールド**（M-026）: アイテムの Data Dragon `gold.total` × 個数の合計（`packages/core/data/items.json`。`pnpm champion-data` で生成）。使うと無くなるもの（`consumed`）とトリンケットは 0。表に無い ID だけ Live Client の `price × count`（`consumable` なら 0）。所持金は含まない（敵のは取れない）。
 - **自分のチーム**（M-029）: 名前は使わない。自分のチャンピオン（片方のチームだけにいるとき）、次に MatchState の味方・敵との一致。決まらなければ `live` は null。

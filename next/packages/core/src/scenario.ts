@@ -63,8 +63,8 @@ export function toLcuEvent(raw: LcuApiEvent): LcuEvent | null {
       return parsed.success ? { type: "current-summoner", summoner: parsed.data } : null;
     }
     case "/liveclientdata/playerlist": {
-      if (deleted) return { type: "live-players", players: null };
-      if (!Array.isArray(raw.data)) return null;
+      // The API going away (the game ended) keeps the last list (M-031). The real poller never reports it either.
+      if (deleted || !Array.isArray(raw.data)) return null;
       const players: LivePlayerFact[] = [];
       for (const item of raw.data) {
         const p = LiveClientPlayerSchema.safeParse(item); // one broken player does not drop the others
