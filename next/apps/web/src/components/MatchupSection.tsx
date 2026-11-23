@@ -1,5 +1,15 @@
 import { useState } from "react";
-import { formatGoldDiff, formatLevelDiff, getChampion, goldTrend, rowLiveDiff, type Side, type Workspace } from "@lol-viewer/core";
+import {
+  formatGold,
+  formatGoldDiff,
+  formatLevelDiff,
+  getChampion,
+  goldTrend,
+  rowLiveDiff,
+  teamLiveDiff,
+  type Side,
+  type Workspace,
+} from "@lol-viewer/core";
 import { LANES } from "@lol-viewer/protocol";
 import { ChampionIcon } from "./ChampionIcon.tsx";
 import { IconCopy, IconRefresh } from "../ui/icons.tsx";
@@ -24,6 +34,7 @@ export function MatchupSection({ ws, selectedChampionId, onSelectChampion, onSwa
   const selfId = ws.last?.self?.championId ?? ws.lastSelf?.championId ?? null;
 
   const diffs = ws.rows.map((_, i) => rowLiveDiff(ws, i));
+  const team = teamLiveDiff(ws);
 
   const cell = (side: Side, index: number, id: number | null) => {
     const champ = getChampion(id);
@@ -92,7 +103,7 @@ export function MatchupSection({ ws, selectedChampionId, onSelectChampion, onSwa
           <IconRefresh />
         </button>
       </header>
-      <div className={`matchup-rows${diffs.some((d) => d) ? " has-live" : ""}`}>
+      <div className={`matchup-rows${diffs.some((d) => d) || team ? " has-live" : ""}`}>
         {ws.rows.map((row, i) => {
           const lane = LANES[i]!;
           const diff = diffs[i];
@@ -130,6 +141,24 @@ export function MatchupSection({ ws, selectedChampionId, onSelectChampion, onSwa
             </div>
           );
         })}
+        {team && (
+          <div
+            className="matchup-row team-total"
+            data-gold-diff={team.gold}
+            title={`Item gold, whole team: ally ${team.allyGold.toLocaleString("en-US")} (${team.allyCount}) vs enemy ${team.enemyGold.toLocaleString("en-US")} (${team.enemyCount})`}
+          >
+            <span className="lane">TEAM</span>
+            <span className="team-gold ally" aria-label={`Ally team item gold ${formatGold(team.allyGold)}`}>
+              {formatGold(team.allyGold)}
+            </span>
+            <span className="vs live-diff" data-trend={goldTrend(team.gold)} aria-label={`Team item gold difference ${formatGoldDiff(team.gold)}`}>
+              <span className="gold">{formatGoldDiff(team.gold)}</span>
+            </span>
+            <span className="team-gold enemy" aria-label={`Enemy team item gold ${formatGold(team.enemyGold)}`}>
+              {formatGold(team.enemyGold)}
+            </span>
+          </div>
+        )}
       </div>
     </section>
   );

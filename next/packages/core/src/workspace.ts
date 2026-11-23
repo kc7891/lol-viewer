@@ -403,3 +403,21 @@ export function rowLiveDiff(ws: Workspace, index: number): RowLiveDiff | null {
   if (!ally || !enemy) return null;
   return { gold: ally.itemGold - enemy.itemGold, level: ally.level - enemy.level, ally, enemy };
 }
+
+export type TeamLiveDiff = { gold: number; allyGold: number; enemyGold: number; allyCount: number; enemyCount: number };
+
+/**
+ * Team totals of item gold, ally minus enemy, from the whole live list (every player the game
+ * reports, whether or not the table could place them). null without live data or with an empty side.
+ */
+export function teamLiveDiff(ws: Workspace): TeamLiveDiff | null {
+  const live = ws.last?.live;
+  if (!live) return null;
+  const allies = live.filter((p) => p.team === "ally");
+  const enemies = live.filter((p) => p.team === "enemy");
+  if (!allies.length || !enemies.length) return null;
+  const sum = (ps: readonly LivePlayer[]) => ps.reduce((n, p) => n + p.itemGold, 0);
+  const allyGold = sum(allies);
+  const enemyGold = sum(enemies);
+  return { gold: allyGold - enemyGold, allyGold, enemyGold, allyCount: allies.length, enemyCount: enemies.length };
+}

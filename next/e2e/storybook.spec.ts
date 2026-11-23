@@ -324,6 +324,12 @@ test("in game with live data: enemies moved to their lanes, gold and level diffs
   await expect(row("support").locator(".live-diff")).toHaveAttribute("data-trend", "even");
   await expect(row("bottom").locator(".live-diff .lvl")).toHaveText("Lv-1");
   await expect(row("support").locator(".lvl")).toHaveCount(0);
+  // Team total: every live player's item gold, ally minus enemy
+  const team = page.locator(".matchup-row.team-total");
+  await expect(team).toHaveAttribute("data-gold-diff", "450");
+  await expect(team.locator(".live-diff .gold")).toHaveText("+450");
+  await expect(team.locator(".live-diff")).toHaveAttribute("data-trend", "ahead");
+  await expect(team.locator(".team-gold")).toHaveText(["21.1k", "20.7k"]);
   await expect(page.getByRole("region", { name: "Cooldowns" }).locator(".cd-champ")).toContainText("Jayce");
 });
 
@@ -331,6 +337,7 @@ test("live data flag off: the table and cooldowns are as before", async ({ page 
   await open(page, "screens-app--in-game-live-flag-off");
   await expect(page.locator(".matchup-row .side.enemy .name")).toHaveText(["Jayce", "Karma", "Gragas", "Varus", "Pantheon"]);
   await expect(page.locator(".live-diff")).toHaveCount(0);
+  await expect(page.locator(".team-total")).toHaveCount(0);
   await expect(page.locator(".matchup-row .vs")).toHaveText(["vs", "vs", "vs", "vs", "vs"]);
   await expect(page.getByRole("region", { name: "Cooldowns" }).locator(".cd-champ")).toContainText("Gragas");
 });

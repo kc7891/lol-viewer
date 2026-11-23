@@ -492,6 +492,25 @@ code {
 .live-diff[data-trend="even"] .gold {
   color: var(--text-3);
 }
+/* Team total of item gold (ally minus enemy), under the five lanes */
+.matchup-row.team-total {
+  margin-top: 0.2rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--line);
+}
+.team-total .team-gold {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  padding-inline: 0.35rem;
+}
+.team-total .team-gold.enemy {
+  text-align: right;
+}
+.team-total .live-diff .gold {
+  font-size: 0.74rem;
+}
 .side {
   position: relative;
   min-width: 0;

@@ -118,6 +118,11 @@ export function formatGoldDiff(d: number): string {
   const k = Math.round(a / 100) / 10;
   return k < 10 ? `${sign}${k.toFixed(1)}k` : `${sign}${Math.round(a / 1000)}k`;
 }
+/** Unsigned team total, always one decimal so two close totals stay apart: "950", "1.0k", "21.3k". */
+export function formatGold(n: number): string {
+  const a = Math.max(0, Math.round(n));
+  return a < 1000 ? `${a}` : `${(Math.round(a / 100) / 10).toFixed(1)}k`;
+}
 export const goldTrend = (d: number): "ahead" | "behind" | "even" =>
   Math.abs(Math.round(d)) < 50 ? "even" : d > 0 ? "ahead" : "behind";
 /** "Lv+1" / "Lv-2"; null when equal. */

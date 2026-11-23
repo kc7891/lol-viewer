@@ -29,7 +29,7 @@
 | URL の組み立て（Build / Matchup / Counter / ARAM、`?lane=`） | ✅ | `core/urls.ts` | Wukong は `wukong`（M-004） |
 | CURRENT MATCHUP（5 行、配置規則、DnD、⧉、Refresh） | ✅ | Workspace | ↑↓ は移植しない（M-005） |
 | Cooldowns（PoC で追加した機能） | ✅ | Sidebar | 旧版にはない。既定の対象は `YOU` の行の敵（M-028） |
-| 試合中のゴールド差と対面表の補正（Live Client Data API、Feature Flag） | ✅ | `core/live.ts`、`core/workspace.ts`、`apps/desktop/src/live-core.ts` | M-025〜M-029。既定オフ。実機のゲームでは未確認 |
+| 試合中のゴールド差と対面表の補正（Live Client Data API、Feature Flag） | ✅ | `core/live.ts`、`core/workspace.ts`、`apps/desktop/src/live-core.ts` | M-025〜M-029。既定オフ。実機のゲームでは未確認。チーム合計の差（`TEAM` 行、M-033）も同じフラグで出る |
 | LCU 接続（プロセスのコマンドライン、lockfile、Basic 認証、TLS はループバックだけ緩める） | ✅ | `packages/lcu` | |
 | 再接続とバックオフ（上限 60 秒）、手動 Reconnect | ✅ | `startLcuConnector` | |
 | ポーリング間隔、ウォッチモード、10 体そろった後の一時停止 | ➖ | | WAMP 購読に置き換え（M-010） |

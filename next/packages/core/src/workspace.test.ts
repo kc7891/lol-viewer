@@ -10,6 +10,7 @@ import {
   correctSide,
   liveLaneAssignments,
   rowLiveDiff,
+  teamLiveDiff,
   canAddViewer,
   defaultCooldownChampion,
   firstEmptyRow,
@@ -499,5 +500,18 @@ describe("rowLiveDiff", () => {
     const next = match(ended, ms({ phase: "ChampSelect", matchSeq: 2 }));
     expect(rowLiveDiff(next, 2)).toBeNull();
     expect(col(next, "ally")).toEqual([null, null, null, null, null]);
+  });
+});
+
+describe("teamLiveDiff", () => {
+  it("sums every live player per team, placed in the table or not", () => {
+    const live = [lp(AHRI, "ally", "middle", 12, 4650), lp(GAREN, "ally", "top", 3, 100), lp(JAYCE, "enemy", "middle", 11, 4800), lp(ZED, "enemy", null, 9, 2000)];
+    const ws = match(initialWorkspace(), ms({ phase: "InProgress", allies: [[AHRI, "middle"], [GAREN, "top"]], enemies: [JAYCE], live }));
+    expect(teamLiveDiff(ws)).toEqual({ gold: -2050, allyGold: 4750, enemyGold: 6800, allyCount: 2, enemyCount: 2 });
+  });
+  it("null without live data or with an empty side", () => {
+    expect(teamLiveDiff(match(initialWorkspace(), ms({ allies: [[AHRI, "middle"]], enemies: [JAYCE] })))).toBeNull();
+    const onlyAllies = match(initialWorkspace(), ms({ phase: "InProgress", allies: [[AHRI, "middle"]], live: [lp(AHRI, "ally", "middle", 1, 500)] }));
+    expect(teamLiveDiff(onlyAllies)).toBeNull();
   });
 });
