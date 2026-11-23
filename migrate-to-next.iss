@@ -113,7 +113,7 @@ begin
       else
         Log('Failed to run LoL Viewer Next installer: ' + SysErrorMessage(ResultCode));
       // Keep the old app: do not uninstall it.
-      MsgBox(CustomMessage('MigrateFailed'), mbError, MB_OK);
+      SuppressibleMsgBox(CustomMessage('MigrateFailed'), mbError, MB_OK, IDOK);
       Exit;
     end;
     // 2. Next is installed: remove the old app.
