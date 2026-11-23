@@ -3,8 +3,13 @@ import type { Lane, MatchState } from "@lol-viewer/protocol";
 import { initialMatchState } from "./reducer.ts";
 import { DEFAULT_SETTINGS } from "./settings.ts";
 import { viewerUrl } from "./urls.ts";
+import type { LivePlayer } from "@lol-viewer/protocol";
 import {
   MAX_VIEWERS,
+  assignmentKey,
+  correctSide,
+  liveLaneAssignments,
+  rowLiveDiff,
   canAddViewer,
   defaultCooldownChampion,
   firstEmptyRow,
@@ -12,6 +17,7 @@ import {
   opponentSuggestions,
   quickPicks,
   workspaceReducer,
+  type MatchupRow,
   type Workspace,
   type WorkspaceAction,
 } from "./workspace.ts";
@@ -351,16 +357,139 @@ describe("derived values", () => {
     expect(opponentSuggestions(initialWorkspace(), { id: 1, championId: null })).toEqual([]);
   });
 
-  it("defaultCooldownChampion: my lane's enemy, else the first enemy, else null", () => {
+  it("defaultCooldownChampion: the enemy in my row, else my lane's row, else the first enemy, else null (M-028)", () => {
     expect(defaultCooldownChampion(initialWorkspace())).toBeNull();
     const state = (lane: Lane | null) => ms({ self: { championId: AHRI, lane }, allies: [[AHRI, lane]], enemies: [GAREN, ZED] });
     expect(defaultCooldownChampion(match(initialWorkspace(), state("middle")))).toBe(ZED);
     expect(defaultCooldownChampion(match(initialWorkspace(), state("support")))).toBe(GAREN); // my row has no enemy
-    expect(defaultCooldownChampion(match(initialWorkspace(), state(null)))).toBe(GAREN);
+    // no lane (blind, ARAM): Ahri is placed by suitability into MID, so my row's enemy is Zed
+    expect(defaultCooldownChampion(match(initialWorkspace(), state(null)))).toBe(ZED);
+  });
+
+  it("defaultCooldownChampion follows me when I am moved to another row", () => {
+    const ws0 = match(initialWorkspace(), ms({ self: { championId: AHRI, lane: "middle" }, allies: [[AHRI, "middle"]], enemies: [GAREN, ZED] }));
+    expect(defaultCooldownChampion(run(ws0, { type: "swapRows", side: "ally", from: 2, to: 0 }))).toBe(GAREN);
   });
 
   it("firstEmptyRow reports the top-most empty row", () => {
     expect(firstEmptyRow(initialWorkspace(), "ally")).toBe(0);
     expect(firstEmptyRow(match(initialWorkspace(), ms({ allies: [[GAREN, "top"]] })), "ally")).toBe(1);
+  });
+});
+
+// ── live correction (M-027) ───────────────────────────────────────
+
+const PANTHEON = 80; // top
+const GRAGAS = 79; // jungle
+const JAYCE = 126; // top/mid
+const VARUS = 110; // bottom
+const KARMA = 43; // support
+const lp = (championId: number, team: "ally" | "enemy", lane: Lane | null, level = 1, itemGold = 0): LivePlayer => ({ championId, team, lane, level, itemGold });
+const rows5 = (side: "ally" | "enemy", ids: (number | null)[]): MatchupRow[] => ids.map((id) => ({ ally: null, enemy: null, [side]: id }));
+
+describe("liveLaneAssignments / assignmentKey", () => {
+  it("one claimant per lane; duplicates, null lanes and double champions are dropped", () => {
+    const live = [lp(1, "enemy", "top"), lp(2, "enemy", "top"), lp(3, "enemy", "jungle"), lp(4, "enemy", null), lp(5, "enemy", "middle"), lp(5, "enemy", "bottom"), lp(9, "ally", "support")];
+    const a = liveLaneAssignments(live, "enemy");
+    expect([...a]).toEqual([[3, "jungle"]]);
+    expect(assignmentKey(a)).toBe("jungle:3");
+    expect(assignmentKey(new Map())).toBe("");
+  });
+  it("is in lane order", () => {
+    const a = liveLaneAssignments([lp(1, "ally", "support"), lp(2, "ally", "top")], "ally");
+    expect(assignmentKey(a)).toBe("top:2,support:1");
+  });
+});
+
+describe("correctSide", () => {
+  const enemyRows = () => rows5("enemy", [JAYCE, KARMA, GRAGAS, VARUS, PANTHEON]);
+  const enemies = (rows: MatchupRow[]) => rows.map((r) => r.enemy);
+  it("full assignment lines everyone up", () => {
+    const a = new Map<number, Lane>([[PANTHEON, "top"], [GRAGAS, "jungle"], [JAYCE, "middle"], [VARUS, "bottom"], [KARMA, "support"]]);
+    expect(enemies(correctSide(enemyRows(), "enemy", a))).toEqual([PANTHEON, GRAGAS, JAYCE, VARUS, KARMA]);
+  });
+  it("Smite only: the jungler swaps with the jungle row's owner, others stay", () => {
+    const rows = rows5("enemy", [GAREN, ZED, LEE, JINX, THRESH]);
+    const out = correctSide(rows, "enemy", new Map([[LEE, "jungle"]]));
+    expect(enemies(out)).toEqual([GAREN, LEE, ZED, JINX, THRESH]);
+  });
+  it("two pushed-out champions go to their best free rows", () => {
+    const rows = rows5("enemy", [ZED, GAREN, LEE, JINX, THRESH]);
+    const out = correctSide(rows, "enemy", new Map<number, Lane>([[LEE, "top"], [THRESH, "jungle"]]));
+    // Lee -> top, Thresh -> jungle; Zed (row 0 taken) and Garen (row 1 taken) displaced: Zed -> mid, Garen -> first best free (top/jg taken -> tie 0 -> row 4)
+    expect(out.map((r) => r.enemy)).toEqual([LEE, THRESH, ZED, JINX, GAREN]);
+  });
+  it("ignores champions not in the table, returns the same array for nothing to do", () => {
+    const rows = enemyRows();
+    expect(correctSide(rows, "enemy", new Map([[ASHE, "top"]]))).toBe(rows);
+    expect(correctSide(rows, "enemy", new Map())).toBe(rows);
+    expect(correctSide(rows, "enemy", new Map<number, Lane>([[JAYCE, "top"]])).map((r) => r.enemy)).toContain(KARMA);
+  });
+  it("handles empty cells and never changes the count", () => {
+    const rows = rows5("enemy", [null, ZED, null, null, LEE]);
+    const out = correctSide(rows, "enemy", new Map([[LEE, "jungle"]]));
+    expect(out.map((r) => r.enemy).filter((x) => x != null).sort()).toEqual([LEE, ZED].sort());
+    expect(out[1]!.enemy).toBe(LEE);
+  });
+});
+
+describe("applyMatch with live data", () => {
+  const ally = [[GAREN, "top"], [LEE, "jungle"], [AHRI, "middle"], [JINX, "bottom"], [THRESH, "support"]] as Pick[];
+  const guessed = (live: LivePlayer[] | null, phase = "InProgress") =>
+    ms({ phase, self: { championId: AHRI, lane: "middle" }, allies: ally, enemies: [JAYCE, GRAGAS, PANTHEON, VARUS, KARMA], live });
+  const liveList = (enemyLanes: (Lane | null)[]): LivePlayer[] => [
+    ...ally.map(([id, lane]) => lp(id, "ally", lane)),
+    ...[PANTHEON, GRAGAS, JAYCE, VARUS, KARMA].map((id, i) => lp(id, "enemy", enemyLanes[i]!)),
+  ];
+  const real = liveList(["top", "jungle", "middle", "bottom", "support"]);
+
+  it("moves enemies to their lanes, leaves allies", () => {
+    const before = match(initialWorkspace(), guessed(null, "ChampSelect"));
+    const ws = match(before, guessed(real));
+    expect(col(ws, "enemy")).toEqual([PANTHEON, GRAGAS, JAYCE, VARUS, KARMA]);
+    expect(col(ws, "ally")).toEqual(col(before, "ally"));
+    expect(ws.liveApplied.enemy).not.toBeNull();
+  });
+  it("keeps the user's swap on the next identical live state", () => {
+    let ws = match(match(initialWorkspace(), guessed(null, "ChampSelect")), guessed(real));
+    ws = run(ws, { type: "swapRows", side: "enemy", from: 0, to: 1 });
+    const swapped = col(ws, "enemy");
+    ws = match(ws, guessed(real.map((p) => ({ ...p, level: p.level + 1 }))));
+    expect(col(ws, "enemy")).toEqual(swapped);
+  });
+  it("corrects again when the assignment changes", () => {
+    let ws = match(match(initialWorkspace(), guessed(null, "ChampSelect")), guessed(liveList([null, null, null, null, null])));
+    expect(col(ws, "enemy")).toEqual([JAYCE, KARMA, GRAGAS, VARUS, PANTHEON]);
+    ws = match(ws, guessed(real));
+    expect(col(ws, "enemy")).toEqual([PANTHEON, GRAGAS, JAYCE, VARUS, KARMA]);
+  });
+  it("does nothing outside InProgress, or without live", () => {
+    const ws = match(match(initialWorkspace(), guessed(null, "ChampSelect")), guessed(real, "ChampSelect"));
+    expect(col(ws, "enemy")).toEqual([JAYCE, KARMA, GRAGAS, VARUS, PANTHEON]);
+    const off = match(match(initialWorkspace(), guessed(null, "ChampSelect")), guessed(null));
+    expect(off.liveApplied).toEqual({ ally: null, enemy: null });
+  });
+  it("resets on a new match; refresh redoes the correction and drops swaps", () => {
+    let ws = match(match(initialWorkspace(), guessed(null, "ChampSelect")), guessed(real));
+    ws = run(ws, { type: "swapRows", side: "enemy", from: 0, to: 1 });
+    ws = run(ws, { type: "refreshMatchup" });
+    expect(col(ws, "enemy")).toEqual([PANTHEON, GRAGAS, JAYCE, VARUS, KARMA]);
+    ws = match(ws, { ...guessed(null, "ChampSelect"), matchSeq: 2 });
+    expect(ws.liveApplied).toEqual({ ally: null, enemy: null });
+  });
+});
+
+describe("rowLiveDiff", () => {
+  const live = [lp(AHRI, "ally", "middle", 12, 4650), lp(JAYCE, "enemy", "middle", 11, 4800), lp(GAREN, "ally", "top", 3, 100)];
+  const ws = match(initialWorkspace(), ms({ phase: "InProgress", allies: [[AHRI, "middle"], [GAREN, "top"]], enemies: [JAYCE], live }));
+  it("ally minus enemy; null when a side is missing or unknown", () => {
+    expect(rowLiveDiff(ws, 2)).toMatchObject({ gold: -150, level: 1 });
+    expect(rowLiveDiff(ws, 0)).toBeNull(); // no enemy in the top row
+    expect(rowLiveDiff(ws, 1)).toBeNull();
+    const unknown = run(ws, { type: "debugAdd", side: "enemy", championId: ZED });
+    expect(rowLiveDiff(unknown, 0)).toBeNull(); // Zed not in the live list
+  });
+  it("null without live data", () => {
+    expect(rowLiveDiff(match(initialWorkspace(), ms({ allies: [[AHRI, "middle"]], enemies: [JAYCE] })), 2)).toBeNull();
   });
 });

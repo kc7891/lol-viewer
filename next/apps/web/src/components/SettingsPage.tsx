@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState, type Dispatch } from "react";
 import {
   DEFAULT_URL_TEMPLATES,
+  FEATURE_FLAGS,
+  FEATURE_FLAG_KEYS,
   firstEmptyRow,
+  flagsAtDefaults,
+  isFeatureOn,
+  resetFeatureFlags,
   getChampion,
   searchChampions,
   trimUrlTemplates,
@@ -174,6 +179,60 @@ export function DisplayCard() {
           Show the QR button on viewers
         </label>
         <input id="qr-switch" type="checkbox" role="switch" className="switch" checked={settings.qrButton} onChange={(e) => update({ qrButton: e.target.checked })} />
+      </div>
+    </section>
+  );
+}
+
+export function FeatureFlagsCard({ notify }: { notify: (text: string, kind?: ToastKind) => void }) {
+  const { settings, update } = useSettings();
+  const desktop = useBridge().live != null;
+  if (FEATURE_FLAG_KEYS.length === 0) return null;
+  return (
+    <section className="card" aria-label="Feature flags">
+      <h2>Feature flags</h2>
+      <p className="desc">Optional features. Changes apply at once.</p>
+      {FEATURE_FLAG_KEYS.map((k) => {
+        const def = FEATURE_FLAGS[k];
+        const on = isFeatureOn(settings, k);
+        return (
+          <div className="setting-row flag-row" key={k}>
+            <div className="flag-text">
+              <label className="setting-label" htmlFor={`flag-${k}`}>
+                {def.label}
+              </label>
+              <span className="hint" id={`flag-${k}-desc`}>
+                {def.description}
+              </span>
+            </div>
+            <input
+              id={`flag-${k}`}
+              type="checkbox"
+              role="switch"
+              className="switch"
+              checked={on}
+              aria-describedby={`flag-${k}-desc`}
+              onChange={(e) => {
+                update({ featureFlags: { ...settings.featureFlags, [k]: e.target.checked } });
+                notify(`${def.label}: ${e.target.checked ? "on" : "off"}.`, "success");
+              }}
+            />
+          </div>
+        );
+      })}
+      {!desktop && <p className="desc muted">Live game data is read by the desktop app.</p>}
+      <div className="card-actions">
+        <button
+          type="button"
+          className="btn ghost"
+          disabled={flagsAtDefaults(settings)}
+          onClick={() => {
+            update({ featureFlags: resetFeatureFlags(settings.featureFlags) });
+            notify("Feature flags reset to defaults.", "success");
+          }}
+        >
+          Reset flags to defaults
+        </button>
       </div>
     </section>
   );
@@ -361,6 +420,7 @@ export function SettingsPage({ connection, ws, dispatch, notify, onUrlsSaved, fo
         <UrlsCard onSaved={onUrlsSaved} notify={notify} initialDraft={urlsInitialDraft} initialErrors={urlsInitialErrors} />
         <LcuCard connection={connection} />
         <DisplayCard />
+        <FeatureFlagsCard notify={notify} />
         <VersionCard />
         <DebugCard ws={ws} dispatch={dispatch} />
         <RecorderSection recorder={bridge.recorder} />

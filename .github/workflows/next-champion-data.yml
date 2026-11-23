@@ -50,7 +50,9 @@ jobs:
       - name: Open PR if anything changed
         uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8.1.3
         with:
-          add-paths: next/packages/core/data/champions.json
+          add-paths: |
+            next/packages/core/data/champions.json
+            next/packages/core/data/items.json
           branch: automated/next-champion-data
           delete-branch: true
           commit-message: "chore(next): update champion data to Data Dragon ${{ steps.patch.outputs.version }}"

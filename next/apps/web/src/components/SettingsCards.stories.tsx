@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { DEFAULT_URL_TEMPLATES } from "@lol-viewer/core";
+import { DEFAULT_SETTINGS, DEFAULT_URL_TEMPLATES, type Settings } from "@lol-viewer/core";
 import { mockUpdates } from "../bridge/mock.ts";
 import { scenes, updateStatuses } from "../fixtures.ts";
 import { Harness } from "../storyHelpers.tsx";
-import { DisplayCard, LcuCard, UrlsCard, VersionCard } from "./SettingsPage.tsx";
+import { DisplayCard, FeatureFlagsCard, LcuCard, UrlsCard, VersionCard } from "./SettingsPage.tsx";
 
-const Wrap = ({ children, options }: { children: React.ReactNode; options?: Parameters<typeof Harness>[0]["bridgeOptions"] }) => (
-  <Harness match={scenes.idle.match} bridgeOptions={options} height="auto" width={680}>
+const Wrap = ({ children, options, settings }: { children: React.ReactNode; options?: Parameters<typeof Harness>[0]["bridgeOptions"]; settings?: Settings }) => (
+  <Harness match={scenes.idle.match} bridgeOptions={options} settings={settings} height="auto" width={680}>
     <div className="settings-inner">{children}</div>
   </Harness>
 );
@@ -45,6 +45,15 @@ export const LeagueClientDisconnected: Story = {
 };
 export const LeagueClientBrowser: Story = { render: () => <Wrap><LcuCard connection="connected" /></Wrap> };
 export const Display: Story = { render: () => <Wrap><DisplayCard /></Wrap> };
+export const FeatureFlags: Story = { render: () => <Wrap options={{ live: true }}><FeatureFlagsCard notify={() => {}} /></Wrap> };
+export const FeatureFlagsOn: Story = {
+  render: () => (
+    <Wrap options={{ live: true }} settings={{ ...DEFAULT_SETTINGS, featureFlags: { liveClientData: true } }}>
+      <FeatureFlagsCard notify={() => {}} />
+    </Wrap>
+  ),
+};
+export const FeatureFlagsBrowser: Story = { render: () => <Wrap><FeatureFlagsCard notify={() => {}} /></Wrap> };
 export const VersionDev: Story = { render: () => <Wrap><VersionCard /></Wrap> };
 export const VersionDesktop: Story = {
   render: () => (

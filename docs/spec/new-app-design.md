@@ -13,6 +13,7 @@
 ## 1. 全体構成
 
 ```
+ゲーム (127.0.0.1:2999) ──GET 2 秒ごと（試合中・フラグ ON のみ、M-025）──▶ packages/lcu startLiveClientPoller ──┐
 League Client (LCU) ──WAMP/GET──▶ packages/lcu ──RawLcuEvent──▶ core.toLcuEvent ──LcuEvent──▶ packages/hub
                                                                                      (core.reduce → MatchState)
                                                                                             │ IPC (snapshot)
@@ -53,6 +54,7 @@ League Client (LCU) ──WAMP/GET──▶ packages/lcu ──RawLcuEvent──
 | 試合中（InProgress） | gameflow session の `gameData.teamOne/teamTwo` から味方と敵を作る（lane は null）。自分のチームは summonerId（または puuid）で判定し、分からなければ teamOne を味方とみなす。結果が空なら前の一覧を保持する。`self` は ChampSelect のものを保持する |
 | summonerId | champ-select の自分の行から取る。無ければ `/lol-summoner/v1/current-summoner`（`current-summoner` イベント）から取る。MatchState には出さない（reducer の内部状態） |
 | キューと ARAM | queueId は `gameData.queue` が数値 / `{id}` / `{queueId}` のどれでも取り出す。gameMode は `queue.gameMode` → `queue.mode` → `gameData.gameMode`。`isAram` は queueId が {450, 65, 100, 720, 2400, 2401, 2403, 2405, 3240, 3270} に入るか、gameMode が `"ARAM"` |
+| 試合中のデータ（`live`、M-025〜M-029） | `live-players` イベント（Live Client の playerlist を事実だけにしたもの。名前は `toLcuEvent` で捨てる）を `InProgress` の間だけ `liveFacts` に保持し、`MatchState.live` を `withLive` で毎回作り直す（味方 / 敵への変換は名前を使わず、自分のチャンピオン → 味方・敵との一致。決まらなければ null）。`InProgress` 以外では両方消す（新しい試合、`None` / `Lobby`、切断も同じ） |
 | 切断 | `connection = disconnected` にし、`phase = "None"` に戻す（再接続して ChampSelect に入ったら新しい試合）。`allies` / `enemies` は残す（UI は表示を保持する） |
 
 reducer は `DetectorState = { match: MatchState, summonerId, puuid, lastChampSelectGameId }` を内部で持ち、hub は `match` だけを配信する。
@@ -93,6 +95,7 @@ type Workspace = {
    - 味方 2 周目: lane がない味方を、空き行のうちレーン適性（`champion.lanes`）が最も高い行へ。同点は上の行（Top 優先）。
    - 敵: 空き行のうちレーン適性が最も高い行へ。同点は上の行。
    - 空きがなければそこで止める。味方と敵は独立に置く（同じ行の相方は動かさない）。
+   - **試合中の補正（M-027）**: `InProgress` で `state.live` があるとき、各側の割り当て（`liveLaneAssignments`: 1 人だけが名乗ったレーン）を `assignmentKey` にして、Workspace の `liveApplied[side]` と違うときだけ `correctSide` で行を直す（割り当てのある子はそのレーンの行へ、押し出された子は空き行のうち適性が最も高い行へ。消さない、足さない）。新しい試合で `liveApplied` を戻す。`swapRows` / `debugAdd` は `liveApplied` を変えないので、ユーザーの入れ替えは次の補正まで保たれる。`refreshMatchup` は `liveApplied` を戻して補正もやり直す。
 3. **自分のピック**: `state.self` が null でなく、`lastSelf` と championId か lane が違うとき、`picked: true` の新しいビューアを**左端**に作る（既存の picked ビューアは残す。M-002）。`state.isAram` なら `mode: "aram"`、lane は null。そうでなければ `mode: "build"`、lane は `self.lane`。`nav = 1`（すぐ開く）。`state.self` が null になったら `lastSelf` も null にする。
 4. **敵ピック**: `state.phase === "ChampSelect"` のときだけ、`state.enemies` のうち `seenEnemies` にないものを pick 順に `pending` の末尾へ積む（ビューアは作らない）。試合中のデータからは積まない。
 
@@ -119,7 +122,8 @@ type Workspace = {
   - 名前は champion の `slug`（小文字・記号なし。Wukong は `wukong`。M-004）。`lane=` はテンプレートに `?` が無ければ `?`、あれば `&` で付ける。URL エンコードはしない。
 - `quickPicks(ws, viewer)`: 対面表の敵を行順に重複なく最大 5 体。今の opponent は除く。
 - `opponentSuggestions(ws, viewer)`: 対面表の敵（行順・重複なし）。1 体もいなければ、他のビューアのチャンピオンと opponent（自分のチャンピオンは除く）。
-- `defaultCooldownChampion(ws)`: 自分の lane の行の敵 → 無ければ対面表の最初の敵。
+- `defaultCooldownChampion(ws)`（M-028）: 自分（`YOU`）の行の敵 → 自分の lane の行の敵 → 対面表の最初の敵。
+- `rowLiveDiff(ws, index)`: 行の味方 − 敵のアイテムゴールドとレベルの差（`last.live` から。どちらかが空、または live に居なければ null）。表示用の `formatGoldDiff` / `goldTrend` / `formatLevelDiff` は `core/live.ts`。
 - 検索 `searchChampions(query)`: 大小無視。英語名・slug・日本語名（ひらがなはカタカナに寄せる）の前方一致を先に、部分一致を後に並べる。
 
 ---

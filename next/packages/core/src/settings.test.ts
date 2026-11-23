@@ -3,6 +3,9 @@ import {
   DEFAULT_SETTINGS,
   DEFAULT_URL_TEMPLATES,
   FEATURE_FLAGS,
+  flagsAtDefaults,
+  isFeatureOn,
+  resetFeatureFlags,
   SettingsSchema,
   UI_SCALE,
   parseSettings,
@@ -19,7 +22,8 @@ describe("defaults", () => {
     expect(DEFAULT_URL_TEMPLATES.matchup).toBe(
       "https://lolalytics.com/lol/{champion_name1}/vs/{champion_name2}/build/?lane={lane_name}&vslane={lane_name}",
     );
-    expect(FEATURE_FLAGS).toEqual({});
+    expect(FEATURE_FLAGS.liveClientData.default).toBe(false);
+    expect(isFeatureOn(DEFAULT_SETTINGS, "liveClientData")).toBe(false);
     expect(UI_SCALE).toEqual({ small: 0.9, medium: 1, large: 1.15 });
   });
 });
@@ -84,5 +88,15 @@ describe("validateUrlTemplates", () => {
   });
   it("trims on save", () => {
     expect(trimUrlTemplates({ ...DEFAULT_SETTINGS.urls, build: "  https://a/{name}  " }).build).toBe("https://a/{name}");
+  });
+});
+
+describe("feature flags (M-025)", () => {
+  it("the stored value wins; reset keeps unknown keys", () => {
+    const on = { ...DEFAULT_SETTINGS, featureFlags: { liveClientData: true } };
+    expect(isFeatureOn(on, "liveClientData")).toBe(true);
+    expect(flagsAtDefaults(on)).toBe(false);
+    expect(flagsAtDefaults(DEFAULT_SETTINGS)).toBe(true);
+    expect(resetFeatureFlags({ liveClientData: true, unknown: true })).toEqual({ liveClientData: false, unknown: true });
   });
 });

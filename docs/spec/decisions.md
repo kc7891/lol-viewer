@@ -30,6 +30,11 @@
 | M-022 | インストーラはワンクリック・ユーザー単位（`%LOCALAPPDATA%\Programs`）にし、言語選択、全ユーザーへの昇格、インストール先の選択は出さない（PoC で、保護されたフォルダを選べてしまい書き込みに失敗した問題への対処） | 新版の方針 | 04 §4 |
 | M-023 | Settings の URL テンプレートは、空欄と「https 以外」を保存させない。ホストは制限しない（2026-11-23 に改訂。当初は lolalytics.com / u.gg のみ。op.gg など他のサイトも使いたいため。外部ビューはサンドボックスで preload も Node もなく、危険は低いと判断） | 改善 | 01 §8.1 |
 | M-024 | Wukong のレーン適性はジャングル（`champion_lane.csv` の `wukong,0,5,0,0,0`）。M-004 の「レーン適性が top=5」を改訂する | 改訂（M-004） | 03 §11 |
+| M-025 | 試合中（`InProgress`）だけ、Live Client Data API（`127.0.0.1:2999/liveclientdata/playerlist`）を 2 秒ごとに GET する（M-010 の例外）。Feature Flag `liveClientData` の後ろに置き、既定は OFF。OFF なら 2999 に問い合わせない（記録機能は従来どおり別）。切り替えは再起動なしで効く | 新版の方針（M-010 の例外） | 03 §2.1, §12（Live Client Data API は旧版では設計書だけ） |
+| M-026 | 推定ゴールドは「アイテムの Data Dragon `gold.total` × 個数の合計」。消費して無くなるアイテム（`consumed: true`。ポーション、コントロールワード、エリクサーなど）は 0、トリンケットは元から 0。表に無い ID だけ Live Client の `price × count`（`consumable` なら 0）で代える | 新版の方針 | — |
+| M-027 | 試合中の位置（`position`、空なら Smite ⇒ jungle）で対面表を直す。直すのは「その側の割り当てが前回直したときと変わったとき」だけ（ふつうは試合ごとに 1 回）。その後のユーザーの入れ替えは保つ。表から消すことはしない | 新版の方針（§3.4 の規則の追加） | 01 §7 |
+| M-028 | Cooldowns の既定の対象は、`YOU` の行の敵 → 自分のレーンの行の敵 → 対面表の最初の敵、の順 | 改善（§2.2 の改訂） | — |
+| M-029 | Live Client のデータから「自分のチーム」を決めるのに名前（Riot ID）を使わない。自分のチャンピオン、次に MatchState の味方・敵との一致で決める。決まらなければ試合中のデータを使わない | 新版の方針（個人情報） | — |
 
 ---
 
@@ -121,6 +126,19 @@ lolalytics を実際のブラウザ（Playwright）で開いた結果: `/lol/ahr
 - 持ち主が main の `champions.json` で Wukong を top=5 から jg=5 に直した（コミット `1637743`）。元データの `champion_lane.csv` とテストが top=5 のままだったため、旧版のテスト `test_wukong_uses_wukong_key_and_monkeyking_only_for_data_dragon` が main で失敗していた。週次の自動更新でも top=5 に戻ってしまう状態だった。
 - **決定: ジャングルに揃える。** 旧版と新版の `champion_lane.csv` を `wukong,0,5,0,0,0` にし、旧版のテスト、新版の生成データ（`next/packages/core/data/champions.json`）とテストを合わせた。
 - M-004 の「回帰テスト: レーン適性が top=5 になること」は「jungle=5 になること」と読み替える。キーを `wukong` にする方針（M-004 の本体）は変わらない。
+
+---
+
+## M-025〜M-029 試合中のゴールド差と対面表の補正（2026-11-23）
+- 設計と理由は [live-matchup-design.md](./live-matchup-design.md)。要点だけここに残す。
+- **M-025（ポーリング）**: LCU（WAMP）には試合中のアイテムやレベルが流れてこない。試合中のゲームが自分で出している Live Client Data API（ローカル、認証なし、GET だけ）を読むしかなく、イベントの購読も無いのでポーリングにする。M-010 の「ポーリングしない」は LCU についての決定で、これはその例外。
+  - 読むのは `/liveclientdata/playerlist` の 1 つだけ。間隔は 2 秒。フェーズが `InProgress` で、かつ Feature Flag `liveClientData` が ON の間だけ動かす。ロード画面の間の 404 や接続失敗は「まだ無い」として黙って次を待つ。
+  - Feature Flag は renderer の設定（`localStorage`）にあり、IPC（`live:set-enabled`）で main に伝える。main の既定は OFF なので、renderer が ON と言うまで 1 回も問い合わせない。
+  - 記録機能（Settings > Record session）の Live Client の読み取りは、ユーザーが明示的に始める別の操作なので、このフラグに関係なく従来どおり動く。
+- **M-026（ゴールド）**: Live Client の `items[].price` は、意味（単体の値段か、合成の差額か）が文書化されておらず実機で確かめていない。Data Dragon の `gold.total` は合成元を含む総額で、どの版でも意味が同じ。`pnpm champion-data`（M-015 の 1 本化した生成処理）で `packages/core/data/items.json` を作る。
+- **M-027（補正）**: 位置は試合が始まってから変わらないので、「割り当てが変わったときだけ」直せば実質 1 回になり、そのあとユーザーがドラッグで直した並びを次のポーリングで壊さない。同じレーンを 2 人が名乗ったら、そのレーンは直さない。Refresh（⟳）は事実から置き直すので、補正もやり直す。
+- **M-028（Cooldowns）**: ブラインドや ARAM では自分のレーンが null なので、これまでは最初の敵（たいてい TOP）になっていた。`YOU` の行を見れば、補正やユーザーの入れ替えにも従う。
+- **M-029（名前を使わない）**: `activeplayername` は名前の文字列そのものを返し、記録機能の伏せ方（キー名で伏せる）では伏せられない。チャンピオンで決めれば名前は要らない。playerlist の名前は core の `toLcuEvent` で捨て、MatchState には入れない。
 
 ---
 

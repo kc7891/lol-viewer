@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { canAddViewer, defaultCooldownChampion, liveGameUrl, MAX_VIEWERS, type Side, type UrlTemplateKey, type UrlTemplates, type Workspace } from "@lol-viewer/core";
+import { useCallback, useMemo, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { canAddViewer, defaultCooldownChampion, isFeatureOn, liveGameUrl, MAX_VIEWERS, type Side, type UrlTemplateKey, type UrlTemplates, type Workspace } from "@lol-viewer/core";
 import { SuppressViews, useBridge, useMatchState, useUpdateStatus } from "./bridge/context.tsx";
 import { CooldownPanel } from "./components/CooldownPanel.tsx";
 import { LivePage } from "./components/LivePage.tsx";
@@ -45,10 +45,16 @@ export function App({
   urlsInitialErrors,
 }: AppProps) {
   const bridge = useBridge();
-  const match = useMatchState();
+  const rawMatch = useMatchState();
+  const { settings, update } = useSettings();
+  const liveOn = isFeatureOn(settings, "liveClientData");
+  // M-025: with the flag off the app behaves as before, whatever the bridge sends.
+  const match = useMemo(() => (liveOn || rawMatch.live == null ? rawMatch : { ...rawMatch, live: null }), [rawMatch, liveOn]);
+  useEffect(() => {
+    bridge.live?.setEnabled(liveOn);
+  }, [bridge, liveOn]);
   const updateStatus = useUpdateStatus();
   const updateDot = updateAvailable ?? (updateStatus?.state === "available" || updateStatus?.state === "downloaded");
-  const { settings, update } = useSettings();
   const [ws, dispatch] = useWorkspace(match, initialWs);
   const { toasts, push: notify, dismiss } = useToasts(initialToasts, autoDismissToasts);
 

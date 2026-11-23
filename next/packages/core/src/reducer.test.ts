@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { MatchStateSchema, type LcuEvent } from "@lol-viewer/protocol";
 import { initialDetectorState, initialMatchState, normalizeLane, reduce, reduceAll, type DetectorState } from "./reducer.ts";
-import { parseScenario, scenarioEvents } from "./scenario.ts";
+import { parseScenario, scenarioEvents, toLcuEvent } from "./scenario.ts";
 
 const load = (name: string) => scenarioEvents(parseScenario(readFileSync(new URL(`../../../scenarios/${name}.jsonl`, import.meta.url), "utf8")));
 const ranked = load("ranked-two-matches");
@@ -276,4 +276,68 @@ describe("scenarios", () => {
 
 it("initialMatchState is schema-valid", () => {
   expect(() => MatchStateSchema.parse(initialMatchState())).not.toThrow();
+});
+
+describe("live-players (M-025..M-029)", () => {
+  const liveScenario = load("live-ingame");
+  const idx = liveScenario.map((e, i) => (e.type === "live-players" && e.players ? i : -1)).filter((i) => i >= 0);
+  const upTo = (n: number) => reduceAll(liveScenario.slice(0, n + 1));
+
+  it("toLcuEvent: skips broken players, Delete -> null, non-array -> null", () => {
+    const good = { championName: "Ahri", team: "ORDER", level: 2 };
+    expect(toLcuEvent({ uri: "/liveclientdata/playerlist", eventType: "Update", data: [good, { team: 5 }, 7] })).toEqual({
+      type: "live-players",
+      players: [{ championId: 103, team: "ORDER", lane: null, level: 2, itemGold: 0 }],
+    });
+    expect(toLcuEvent({ uri: "/liveclientdata/playerlist", eventType: "Delete", data: null })).toEqual({ type: "live-players", players: null });
+    expect(toLcuEvent({ uri: "/liveclientdata/playerlist", eventType: "Update", data: {} })).toBeNull();
+  });
+
+  it("scenario: the second playerlist gives table B of the design", () => {
+    const live = upTo(idx[1]!).match.live!;
+    expect(live).toHaveLength(10);
+    expect(live.map((p) => [p.team, p.championId, p.lane, p.level, p.itemGold])).toEqual([
+      ["enemy", 126, "middle", 11, 4800],
+      ["enemy", 79, "jungle", 9, 2750],
+      ["enemy", 80, "top", 10, 4350],
+      ["enemy", 110, "bottom", 11, 5850],
+      ["enemy", 43, "support", 8, 2900],
+      ["ally", 86, "top", 11, 4500],
+      ["ally", 64, "jungle", 10, 4150],
+      ["ally", 103, "middle", 12, 4650],
+      ["ally", 222, "bottom", 10, 4900],
+      ["ally", 412, "support", 8, 2900],
+    ]);
+    expect(MatchStateSchema.safeParse(upTo(idx[1]!).match).success).toBe(true);
+  });
+
+  it("ignores live-players outside InProgress (same object back)", () => {
+    const d = reduceAll(liveScenario.slice(0, 3));
+    const ev = liveScenario[idx[0]!]!;
+    expect(reduce(d, ev)).toBe(d);
+  });
+
+  it("clears live at EndOfGame, on a new match, on disconnect and on null", () => {
+    const d = upTo(idx[1]!);
+    expect(reduce(d, phase("EndOfGame")).match.live).toBeNull();
+    expect(reduce(d, phase("EndOfGame")).liveFacts).toBeNull();
+    expect(reduce(d, phase("ChampSelect")).match.live).toBeNull();
+    expect(reduce(d, { type: "connection", status: "disconnected" }).match.live).toBeNull();
+    expect(reduce(d, { type: "live-players", players: null }).match.live).toBeNull();
+  });
+
+  it("an identical playerlist keeps the same MatchState object", () => {
+    const d = upTo(idx[1]!);
+    const again = reduce(d, liveScenario[idx[1]!]!);
+    expect(again.match).toBe(d.match);
+  });
+
+  it("rebuilds teams when current-summoner arrives later", () => {
+    const events = liveScenario.filter((e) => e.type !== "current-summoner");
+    const noSelf = events.slice(0, events.findIndex((e) => e.type === "live-players") + 1);
+    // self is known from champ select, so the team is right either way
+    expect(reduceAll(noSelf).match.live!.filter((p) => p.team === "ally").map((p) => p.championId)).toContain(103);
+    const d = reduce({ ...reduceAll(noSelf), match: { ...reduceAll(noSelf).match, self: null } }, { type: "live-players", players: reduceAll(noSelf).liveFacts });
+    expect(d.match.live).not.toBeNull();
+  });
 });

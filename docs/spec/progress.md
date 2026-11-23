@@ -7,7 +7,7 @@
 
 テスト: core / lcu / hub / desktop の単体テスト（Vitest）、Storybook の全 story のスクショと操作の E2E、Electron 本体を偽 LCU で動かす E2E（外部ビューの位置・表示、2 試合目のリセットなど）。
 
-最終更新: 2026-11-22
+最終更新: 2026-11-23
 
 ## 1. 機能
 
@@ -28,7 +28,8 @@
 | クイックピック（敵 最大 5） | ✅ | `quickPicks` | アイコンボタンに変更 |
 | URL の組み立て（Build / Matchup / Counter / ARAM、`?lane=`） | ✅ | `core/urls.ts` | Wukong は `wukong`（M-004） |
 | CURRENT MATCHUP（5 行、配置規則、DnD、⧉、Refresh） | ✅ | Workspace | ↑↓ は移植しない（M-005） |
-| Cooldowns（PoC で追加した機能） | ✅ | Sidebar | 旧版にはない |
+| Cooldowns（PoC で追加した機能） | ✅ | Sidebar | 旧版にはない。既定の対象は `YOU` の行の敵（M-028） |
+| 試合中のゴールド差と対面表の補正（Live Client Data API、Feature Flag） | ✅ | `core/live.ts`、`core/workspace.ts`、`apps/desktop/src/live-core.ts` | M-025〜M-029。既定オフ。実機のゲームでは未確認 |
 | LCU 接続（プロセスのコマンドライン、lockfile、Basic 認証、TLS はループバックだけ緩める） | ✅ | `packages/lcu` | |
 | 再接続とバックオフ（上限 60 秒）、手動 Reconnect | ✅ | `startLcuConnector` | |
 | ポーリング間隔、ウォッチモード、10 体そろった後の一時停止 | ➖ | | WAMP 購読に置き換え（M-010） |
@@ -38,7 +39,7 @@
 | 新しい試合で全ビューアを閉じる | ✅ | Workspace | M-001 |
 | Settings: URL 5 つ（保存・検証・リセット） | ✅ | Settings ページ | 保存失敗で値を変えない（M-016）。https 以外は保存させない。ホストは自由（M-023）。保存すると開いているビューアも開き直す（M-021） |
 | Settings: UI サイズ（すぐ反映）、QR | ✅ | | M-012、M-009 |
-| Settings: Feature Flag の仕組み | ✅ | `core/settings.ts` | 定義が空なので画面には出さない |
+| Settings: Feature Flag の仕組みと画面 | ✅ | `core/settings.ts`、Settings の `Feature flags` カード | `liveClientData`（既定オフ）。即保存・即反映。旧版の再起動の注意は出さない |
 | Settings: Debug（対面表へ手動追加） | ✅ | | |
 | QR | ✅ | ペインの QR ボタン | 常時表示はしない（M-009） |
 | 外部ページ: 許可ホスト外は既定ブラウザ、ポップアップ、右クリックメニュー、戻る/進む | ✅ | `ExternalViewManager` | M-013 |
@@ -65,4 +66,5 @@ CI と Linux の Xvfb では確かめられないもの。Windows 実機で人�
 
 - 本物の League Client への接続（プロセスのコマンドラインからの接続情報の取得、https/wss、自己署名証明書）。
 - 実際の試合での自動検知（ホバー、ロック、ドッジ、ARAM、試合中のチーム補完）。
+- 試合中のゴールド差と対面表の補正（Live Client Data API、フラグ ON）: 本物のゲームの 2999（自己署名 https、Vanguard 環境）、`position` の中身（ブラインド / ARAM / カスタムで空か、ロール交換）、日本語クライアントの `championName`、ロード画面中の応答、Smite の内部名、ミラーでの自分のチーム判定（M-025〜M-029、spec §9.1）。
 - u.gg の表示。検証環境（データセンターの IP）からは Cloudflare に「blocked」と表示されるため、Live Game と ARAM ページの見た目はまだ確認できていない。lolalytics は Electron の E2E で実ページの表示まで確認済み。

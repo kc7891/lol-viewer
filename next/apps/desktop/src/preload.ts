@@ -36,6 +36,9 @@ const bridge: LolViewerBridge = {
     download: () => ipcRenderer.send("updates:download"),
     install: () => ipcRenderer.send("updates:install"),
   },
+  live: {
+    setEnabled: (enabled: boolean) => ipcRenderer.send("live:set-enabled", enabled === true),
+  },
   recorder: {
     start: () => ipcRenderer.invoke("recorder:start") as Promise<RecorderStatus>,
     stop: () => ipcRenderer.invoke("recorder:stop") as Promise<RecorderStatus>,

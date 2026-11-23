@@ -309,3 +309,49 @@ test("Top bar: clicking the connection status goes to Settings", async ({ page }
   await page.getByRole("button", { name: /Disconnected/ }).click();
   await expect(page.getByRole("heading", { name: "League Client" })).toBeVisible();
 });
+
+// ── Live Client data (feature flag liveClientData, M-025..M-029) ──
+
+test("in game with live data: enemies moved to their lanes, gold and level diffs, cooldowns on my lane opponent", async ({ page }) => {
+  await open(page, "screens-app--in-game-live");
+  await expect(page.locator(".matchup-row .side.enemy .name")).toHaveText(["Pantheon", "Gragas", "Jayce", "Varus", "Karma"]);
+  const row = (lane: string) => page.locator(`.matchup-row[data-lane="${lane}"]`);
+  await expect(row("jungle").locator(".live-diff .gold")).toHaveText("+1.4k");
+  await expect(row("jungle").locator(".live-diff")).toHaveAttribute("data-trend", "ahead");
+  await expect(row("middle").locator(".live-diff .gold")).toHaveText("-150");
+  await expect(row("middle").locator(".live-diff")).toHaveAttribute("data-trend", "behind");
+  await expect(row("support").locator(".live-diff .gold")).toHaveText("0");
+  await expect(row("support").locator(".live-diff")).toHaveAttribute("data-trend", "even");
+  await expect(row("bottom").locator(".live-diff .lvl")).toHaveText("Lv-1");
+  await expect(row("support").locator(".lvl")).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Cooldowns" }).locator(".cd-champ")).toContainText("Jayce");
+});
+
+test("live data flag off: the table and cooldowns are as before", async ({ page }) => {
+  await open(page, "screens-app--in-game-live-flag-off");
+  await expect(page.locator(".matchup-row .side.enemy .name")).toHaveText(["Jayce", "Karma", "Gragas", "Varus", "Pantheon"]);
+  await expect(page.locator(".live-diff")).toHaveCount(0);
+  await expect(page.locator(".matchup-row .vs")).toHaveText(["vs", "vs", "vs", "vs", "vs"]);
+  await expect(page.getByRole("region", { name: "Cooldowns" }).locator(".cd-champ")).toContainText("Gragas");
+});
+
+test("Settings: the live data flag is off by default, toggles at once and resets", async ({ page }) => {
+  await open(page, "screens-app--settings");
+  const card = page.getByRole("region", { name: "Feature flags" });
+  const sw = card.getByRole("switch", { name: "Live game data" });
+  const reset = card.getByRole("button", { name: "Reset flags to defaults" });
+  await expect(sw).not.toBeChecked();
+  await expect(reset).toBeDisabled();
+  await sw.click();
+  await expect(sw).toBeChecked();
+  await expect(page.locator(".toasts-floating .toast", { hasText: "Live game data: on." })).toBeVisible();
+  await expect(reset).toBeEnabled();
+  await reset.click();
+  await expect(sw).not.toBeChecked();
+  await expect(page.locator(".toasts-floating .toast", { hasText: "Feature flags reset to defaults." })).toBeVisible();
+});
+
+test("live data: my swap after the correction is kept", async ({ page }) => {
+  await open(page, "components-sidebar--matchup-live-swap-kept");
+  await expect(page.locator(".matchup-row .side.enemy .name")).toHaveText(["Karma", "Gragas", "Jayce", "Varus", "Pantheon"]);
+});

@@ -12,16 +12,17 @@
  *   LOL_VIEWER_RECORDINGS_DIR  where session recordings go (default Documents/LoL Viewer Next/recordings)
  *   LOL_VIEWER_UPDATE_URL        update feed base URL (default: the app-latest GitHub Release); tests point it at a local server
  *   LOL_VIEWER_DISABLE_UPDATES=1 never check for updates (also off when not packaged or LOL_VIEWER_E2E=1)
- *   LOL_LIVE_CLIENT_URL   Live Client Data API base URL (fake in tests)
+ *   LOL_LIVE_CLIENT_URL   Live Client Data API base URL (fake in tests). Used by the recorder and, with the liveClientData flag on, in game
  *   LOL_VIEWER_USER_DATA_DIR  use this folder instead of the user's profile data (E2E: never touch real settings)
  */
 import { join } from "node:path";
 import { app, BrowserWindow, ipcMain, Menu, shell } from "electron";
 import { toLcuEvent } from "@lol-viewer/core";
 import { Hub, startHubServer } from "@lol-viewer/hub";
-import { startLcuConnector } from "@lol-viewer/lcu";
+import { startLcuConnector, startLiveClientPoller } from "@lol-viewer/lcu";
 import { ViewCommandSchema } from "@lol-viewer/protocol";
 import { ExternalViewManager } from "./external-views.ts";
+import { createLiveGate, LIVE_POLL_MS } from "./live-core.ts";
 import { RecordingController } from "./recording.ts";
 import { createUpdater } from "./updater.ts";
 import { attachRendererLogging, initLogging, installProcessHandlers, log } from "./log.ts";
@@ -133,6 +134,28 @@ if (gotLock) void app.whenReady().then(async () => {
     },
     onStatus: (status) => hub.dispatch({ type: "connection", status }),
   });
+  // M-025: Live Client Data API, only while the feature flag is on and a game is in progress (GET, 127.0.0.1 only).
+  const live = createLiveGate({
+    start: () => {
+      try {
+        return startLiveClientPoller({
+          intervalMs: LIVE_POLL_MS,
+          onData: (raw) => {
+            const e = toLcuEvent(raw);
+            if (e) hub.dispatch(e);
+          },
+        });
+      } catch (err) {
+        log.warn("live", "live client poller not started", String(err)); // e.g. LOL_LIVE_CLIENT_URL not on 127.0.0.1
+        return { stop: () => {} };
+      }
+    },
+    clear: () => hub.dispatch({ type: "live-players", players: null }),
+  });
+  hub.subscribe((s) => live.setPhase(s.phase));
+  ipcMain.on("live:set-enabled", (e, enabled: unknown) => {
+    if (fromApp(e) && typeof enabled === "boolean") live.setEnabled(enabled);
+  });
   ipcMain.on("lcu:reconnect", (e) => {
     if (fromApp(e)) connector.reconnect();
   });
@@ -157,7 +180,7 @@ if (gotLock) void app.whenReady().then(async () => {
   }
 
   if (process.env.LOL_VIEWER_E2E === "1") {
-    (globalThis as Record<string, unknown>).__lolViewer = { hub, views, recording: rec };
+    (globalThis as Record<string, unknown>).__lolViewer = { hub, views, recording: rec, live };
   }
 
   // Finish (flush and close) an active recording before quitting.
@@ -169,6 +192,7 @@ if (gotLock) void app.whenReady().then(async () => {
       void rec.stop().finally(() => app.quit());
       return;
     }
+    live.dispose();
     connector.stop();
     void hubServer?.close();
   });
