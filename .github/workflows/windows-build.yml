@@ -13,6 +13,7 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 20
     permissions:
       contents: read
 
@@ -49,15 +50,22 @@ jobs:
         gh release download $tag --repo "$env:GITHUB_REPOSITORY" --pattern 'lol-viewer-setup.zip' --dir old-release
         if ($LASTEXITCODE -ne 0) { Write-Error "gh release download failed"; exit 1 }
         Expand-Archive old-release\lol-viewer-setup.zip -DestinationPath old-release
-        $p = Start-Process -FilePath old-release\lol-viewer-setup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+        # Not Start-Process -Wait: it waits for the whole process tree, and the old installer launches the old app
+        # even when silent, so it would never return. WaitForExit waits for the installer process only.
+        $p = Start-Process -FilePath old-release\lol-viewer-setup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -PassThru
+        $p.WaitForExit()
         if ($p.ExitCode -ne 0) { Write-Error "Old installer exited with $($p.ExitCode)"; exit 1 }
+        # The old updater exits before it runs the bootstrapper; do the same here.
+        Start-Sleep -Seconds 5
+        Get-Process -Name 'lol-viewer' -ErrorAction SilentlyContinue | Stop-Process -Force
         $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{8F7A2B3C-4D5E-6F7A-8B9C-0D1E2F3A4B5C}_is1'
         if (-not (Test-Path $key)) { Write-Error "Old app was not installed"; exit 1 }
       shell: pwsh
 
     - name: Smoke test the migration
       run: |
-        $p = Start-Process -FilePath installer_output\lol-viewer-setup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+        $p = Start-Process -FilePath installer_output\lol-viewer-setup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -PassThru
+        $p.WaitForExit()
         Write-Host "Bootstrapper exit code: $($p.ExitCode)"
         if ($p.ExitCode -ne 0) { Write-Error "Bootstrapper failed"; exit 1 }
 
