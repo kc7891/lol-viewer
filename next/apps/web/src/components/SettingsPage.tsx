@@ -70,7 +70,7 @@ export function UrlsCard({ onSaved, notify, initialDraft, initialErrors = [] }: 
   return (
     <section className="card" aria-label="Analytics URLs">
       <h2>Analytics URLs</h2>
-      <p className="desc">Pages open in the app only for lolalytics.com and u.gg. All five are required.</p>
+      <p className="desc">Any https site can be used (lolalytics.com, u.gg, op.gg, ...). All five are required.</p>
       <div className="fields">
         {URL_FIELDS.map((f) => {
           const bad = errors.includes(f.key);
@@ -93,7 +93,7 @@ export function UrlsCard({ onSaved, notify, initialDraft, initialErrors = [] }: 
                 {bad
                   ? urlTemplateProblem(draft[f.key]) === "empty"
                     ? "Required. Enter a URL."
-                    : "Must be an https URL on lolalytics.com or u.gg."
+                    : "Must be an https URL."
                   : f.hint}
               </span>
             </div>

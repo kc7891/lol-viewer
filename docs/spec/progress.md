@@ -36,7 +36,7 @@
 | 自分のピック → picked ビューア（左端、変化のたびに追加） | ✅ | Workspace | M-002 |
 | 敵ピック → 保留リスト → Counter ビューア | ✅ | Workspace | |
 | 新しい試合で全ビューアを閉じる | ✅ | Workspace | M-001 |
-| Settings: URL 5 つ（保存・検証・リセット） | ✅ | Settings ページ | 保存失敗で値を変えない（M-016）。https で lolalytics.com / u.gg 以外は保存させない（M-023）。保存すると開いているビューアも開き直す（M-021） |
+| Settings: URL 5 つ（保存・検証・リセット） | ✅ | Settings ページ | 保存失敗で値を変えない（M-016）。https 以外は保存させない。ホストは自由（M-023）。保存すると開いているビューアも開き直す（M-021） |
 | Settings: UI サイズ（すぐ反映）、QR | ✅ | | M-012、M-009 |
 | Settings: Feature Flag の仕組み | ✅ | `core/settings.ts` | 定義が空なので画面には出さない |
 | Settings: Debug（対面表へ手動追加） | ✅ | | |
