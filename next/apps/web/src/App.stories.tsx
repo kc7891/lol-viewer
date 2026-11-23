@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DEFAULT_SETTINGS, DEFAULT_URL_TEMPLATES, type Settings } from "@lol-viewer/core";
 import { App, type AppProps } from "./App.tsx";
 import { mockUpdates } from "./bridge/mock.ts";
-import { emptyViewer, firstViewer, manualViewers, scenes, threeViewers, updateStatuses, viewerLimit, withHidden, type Scene } from "./fixtures.ts";
+import { emptyViewer, firstViewer, liveScenes, manualViewers, scenes, threeViewers, updateStatuses, viewerLimit, withHidden, type Scene } from "./fixtures.ts";
 import { Harness } from "./storyHelpers.tsx";
 import type { Toast } from "./state/toasts.tsx";
 
@@ -36,6 +36,10 @@ export const ChampSelectPartial: Story = story({ scene: scenes.champSelectPartia
 /** 10 champions placed, picked viewers for my pick, every enemy waiting under Enemy picks. */
 export const ChampSelectComplete: Story = story({ scene: scenes.champSelectComplete });
 export const InGame: Story = story({ scene: scenes.inGame });
+/** Flag on, mid game: enemies on their real lanes, gold / level differences, cooldowns on my lane opponent. */
+export const InGameLive: Story = story({ scene: liveScenes.liveMid, settings: { ...DEFAULT_SETTINGS, featureFlags: { liveClientData: true } } });
+/** Flag off (default): the same moment without live data. */
+export const InGameLiveFlagOff: Story = story({ scene: liveScenes.liveFlagOff });
 export const SecondMatchClosesEverything: Story = story({ scene: scenes.secondMatch });
 
 export const ThreeViewers: Story = story({ scene: threeViewers });

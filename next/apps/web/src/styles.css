@@ -463,6 +463,35 @@ code {
   text-transform: uppercase;
   color: var(--text-3);
 }
+.matchup-rows.has-live .matchup-row {
+  grid-template-columns: 2rem minmax(0, 1fr) 2.4rem minmax(0, 1fr) 1.6rem;
+}
+.matchup-row .live-diff {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+  text-transform: none; /* .vs is uppercase: keep "k" lower case */
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.live-diff .gold {
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+.live-diff .lvl {
+  font-size: 0.56rem;
+  color: var(--text-2);
+}
+.live-diff[data-trend="ahead"] .gold {
+  color: var(--success);
+}
+.live-diff[data-trend="behind"] .gold {
+  color: var(--danger);
+}
+.live-diff[data-trend="even"] .gold {
+  color: var(--text-3);
+}
 .side {
   position: relative;
   min-width: 0;
@@ -1321,6 +1350,17 @@ code {
   gap: 1rem;
   min-height: 2.4rem;
 }
+.flag-row {
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.35rem 0;
+}
+.flag-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
 .setting-row + .setting-row {
   border-top: 1px solid var(--line);
 }
@@ -1363,6 +1403,7 @@ code {
   margin: 0;
   background: var(--bg-4);
   border-radius: 1rem;
+  flex: none;
   cursor: pointer;
   transition: background 0.12s;
 }

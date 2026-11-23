@@ -4,13 +4,13 @@ import { workspaceReducer } from "@lol-viewer/core";
 import { Toasts } from "./Toasts.tsx";
 import { MatchupSection } from "./MatchupSection.tsx";
 import { ViewersSection } from "./ViewersSection.tsx";
-import { scenes, threeViewers, withHidden, type Scene } from "../fixtures.ts";
+import { liveScenes, scenes, threeViewers, withHidden, type Scene } from "../fixtures.ts";
 import type { Toast } from "../state/toasts.tsx";
 
-function Demo({ scene, parts }: { scene: Scene; parts: ("matchup" | "viewers")[] }) {
+function Demo({ scene, parts, width = 320 }: { scene: Scene; parts: ("matchup" | "viewers")[]; width?: number }) {
   const [ws, dispatch] = useReducer(workspaceReducer, scene.ws);
   return (
-    <div className="story-sidebar" style={{ width: 320, background: "var(--bg-1)" }}>
+    <div className="story-sidebar" style={{ width, background: "var(--bg-1)" }}>
       {parts.includes("matchup") && (
         <MatchupSection
           ws={ws}
@@ -45,6 +45,16 @@ export const MatchupEmpty: Story = { render: () => <Demo scene={scenes.champSele
 export const MatchupPartial: Story = { render: () => <Demo scene={scenes.champSelectPartial} parts={["matchup"]} /> };
 /** Ten champions; YOU marks my row. */
 export const MatchupComplete: Story = { render: () => <Demo scene={scenes.champSelectComplete} parts={["matchup"]} /> };
+/** In game with live data: rows on the real lanes, item gold and level differences (ally minus enemy). */
+export const MatchupLive: Story = { render: () => <Demo scene={liveScenes.liveMid} parts={["matchup"]} /> };
+/** The smallest sidebar (240px): icons and differences stay readable. */
+export const MatchupLiveNarrow: Story = { render: () => <Demo scene={liveScenes.liveMid} parts={["matchup"]} width={240} /> };
+/** First playerlist: starting items, level 1. */
+export const MatchupLiveEarly: Story = { render: () => <Demo scene={liveScenes.liveEarly} parts={["matchup"]} /> };
+/** Flag off: in game, but no live data. The champ-select guess and `vs`. */
+export const MatchupInGameFlagOff: Story = { render: () => <Demo scene={liveScenes.liveFlagOff} parts={["matchup"]} /> };
+/** I swapped two enemy rows after the correction; the next playerlist keeps it. */
+export const MatchupLiveSwapKept: Story = { render: () => <Demo scene={liveScenes.liveSwappedAfter} parts={["matchup"]} /> };
 export const ViewersAndEnemyPicks: Story = { render: () => <Demo scene={scenes.champSelectComplete} parts={["viewers"]} /> };
 /** Hidden viewers look like any other row (M-006); the eye button on hover shows the state. */
 export const ViewersWithHidden: Story = { render: () => <Demo scene={withHidden} parts={["viewers"]} /> };
