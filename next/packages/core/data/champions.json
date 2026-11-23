@@ -6873,8 +6873,8 @@
       "name": "Wukong",
       "nameJa": "ウーコン",
       "lanes": {
-        "top": 5,
-        "jungle": 0,
+        "top": 0,
+        "jungle": 5,
         "middle": 0,
         "bottom": 0,
         "support": 0

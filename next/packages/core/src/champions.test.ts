@@ -11,10 +11,10 @@ describe("generated champion data", () => {
     expect(CHAMPION_DATA.patch).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
-  it("Wukong: slug wukong, Data Dragon id MonkeyKing, top lane 5 (M-004, M-015)", () => {
+  it("Wukong: slug wukong, Data Dragon id MonkeyKing, jungle 5 (M-004, M-015, M-024)", () => {
     const w = CHAMPIONS.find((c) => c.name === "Wukong")!;
     expect(w).toMatchObject({ id: 62, slug: "wukong", ddragonId: "MonkeyKing" });
-    expect(w.lanes.top).toBe(5);
+    expect(w.lanes).toMatchObject({ top: 0, jungle: 5 });
     expect(championIconUrl(w)).toMatch(/\/img\/champion\/MonkeyKing\.png$/);
   });
 

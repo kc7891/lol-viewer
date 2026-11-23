@@ -85,7 +85,7 @@ def test_wukong_uses_wukong_key_and_monkeyking_only_for_data_dragon():
     assert wukong['english_name'] == 'Wukong'
     assert wukong['id'] == 'MonkeyKing'
     assert wukong['image_url'].endswith('/img/champion/MonkeyKing.png')
-    assert wukong['lanes']['top'] == 5
+    assert wukong['lanes']['jg'] == 5  # jungle (changed 2026-11-23, decisions.md M-024)
 
 
 if __name__ == "__main__":

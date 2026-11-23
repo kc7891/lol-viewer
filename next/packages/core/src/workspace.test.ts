@@ -28,7 +28,7 @@ const JINX = 222; // 0 0 0 5 0
 const ASHE = 22; // 0 0 0 5 0
 const THRESH = 412; // 0 0 0 0 5
 const LEONA = 89; // 0 0 0 0 5
-const WUKONG = 62; // 5 0 0 0 0
+const WUKONG = 62; // 0 5 0 0 0 (jungle, M-024)
 
 type Pick = [number, Lane | null];
 const ms = (p: Omit<Partial<MatchState>, "allies"> & { allies?: Pick[] } = {}): MatchState => {
@@ -291,9 +291,11 @@ describe("user actions", () => {
   });
 
   it("openRow with Wukong as the enemy keeps `wukong` in the URL", () => {
-    let ws = match(initialWorkspace(), ms({ allies: [[GAREN, "top"]], enemies: [WUKONG] }));
-    ws = run(ws, { type: "openRow", index: 0 });
-    expect(viewerUrl(ws.viewers[0]!, DEFAULT_SETTINGS.urls)).toBe("https://lolalytics.com/lol/garen/vs/wukong/build/?lane=top&vslane=top");
+    // Wukong's best lane is jungle (M-024), so he lands in the JG row opposite Lee Sin.
+    let ws = match(initialWorkspace(), ms({ allies: [[GAREN, "top"], [LEE, "jungle"]], enemies: [WUKONG] }));
+    expect(ws.rows[1]!.enemy).toBe(WUKONG);
+    ws = run(ws, { type: "openRow", index: 1 });
+    expect(viewerUrl(ws.viewers[0]!, DEFAULT_SETTINGS.urls)).toBe("https://lolalytics.com/lol/leesin/vs/wukong/build/?lane=jungle&vslane=jungle");
   });
 
   it("refreshMatchup rebuilds the table from the last state, drops pending, keeps seenEnemies", () => {

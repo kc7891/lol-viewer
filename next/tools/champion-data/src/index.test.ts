@@ -108,7 +108,7 @@ describe("lane scores (champion_lane.csv)", () => {
 
   it("the committed CSV parses and every row matches the generated roster", () => {
     const real = parseLaneCsv(readFileSync(new URL("../champion_lane.csv", import.meta.url), "utf8"));
-    expect(real.get("wukong")!.top).toBe(5);
+    expect(real.get("wukong")).toMatchObject({ top: 0, jungle: 5 }); // M-024
     expect(real.has("monkeyking")).toBe(false);
   });
 });
