@@ -27,7 +27,7 @@
 |---|---|
 | UI の確認に Windows 実機が要る | Qt Widgets の見た目は実際に起動しないと分からない。AI も人間もスクショでレビューしにくい |
 | UI 部品を単体で動かせない | `main_window.py` が 2,600 行。ウィジェットの状態を1つだけ切り出して表示する仕組みがない |
-| Chromium 埋め込みのタイミング地雷 | `docs/architecture.md` の「QWebEngineView タイミング制約」(PR #103〜#105 のセグフォ)。AST テストで防いでいるが、構造的には壊れやすい |
+| Chromium 埋め込みのタイミング地雷 | `docs/architecture.md`（旧版の文書。削除済みで、git のタグ v0.34.0 にある） の「QWebEngineView タイミング制約」(PR #103〜#105 のセグフォ)。AST テストで防いでいるが、構造的には壊れやすい |
 | 依存関係の不整合リスク | PyQt6 と PyQt6-WebEngine のマイナーバージョン不一致による起動クラッシュ (PR #152) |
 | ロジックと UI が Qt シグナルで密結合 | `ChampionDetectorService(QObject)` が検知と UI 通知を兼ねているので、検知ロジックだけを純粋関数としてテストしにくい |
 | ポーリング | LCU を 2 秒間隔でポーリングしている。LCU には WebSocket（WAMP）のイベント購読があるのに使っていない |
@@ -35,7 +35,7 @@
 既に価値がある資産（新構成でも引き継ぐもの）:
 - LCU の検知ロジック・レーン推定・新マッチ判定の **仕様とテストケース**（`tests/test_lcu_detector.py`, `test_new_match_reset.py` など）
 - `champions.json` / `champion_lane.csv` とその更新ワークフロー
-- カラーパレット（`docs/architecture.md`）→ そのまま CSS 変数（デザイントークン）になる
+- カラーパレット（`docs/architecture.md`（旧版の文書。削除済みで、git のタグ v0.34.0 にある））→ そのまま CSS 変数（デザイントークン）になる
 - Feature Flag 運用、Conventional Commits を使った自動リリースの文化
 
 ---
@@ -292,7 +292,7 @@ flowchart TB
 
 | フェーズ | 内容 | 終わりの条件 |
 |---|---|---|
-| 0. 下ごしらえ（現リポジトリ） | 現行版で `tools/recorder` 相当の録画を数試合ぶん取る。仕様（`docs/features.md` のマッチアップ・新マッチ判定・watch モード）を「振る舞いの一覧」として整理する | シナリオ数本 + 振る舞いリスト |
+| 0. 下ごしらえ（現リポジトリ） | 現行版で `tools/recorder` 相当の録画を数試合ぶん取る。仕様（`docs/features.md`（同上） のマッチアップ・新マッチ判定・watch モード）を「振る舞いの一覧」として整理する | シナリオ数本 + 振る舞いリスト |
 | 1. 基盤 | モノレポ、`protocol`, `core`（reducer + 移植したテスト）、`fake-lcu`、Storybook + デザイントークン、PR プレビュー | シナリオを入れると正しい `MatchState` が出る / 主要な UI が story で見える |
 | 2. Web Viewer | `apps/web` を Fake Hub で動かす。サイドバー、マッチアップリスト、ビューアのヘッダー、設定画面 | ブラウザだけで現行 UI と同じ操作ができる |
 | 3. デスクトップの殻 | Electron main、`ExternalViewManager`、実 LCU アダプタ、Playwright Electron E2E、Windows スモーク | Windows で現行版と同じ機能が動く |

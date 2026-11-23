@@ -3,7 +3,7 @@ name: Next champion data
 # Regenerates next/packages/core/data/champions.json (ids, names, URL slugs,
 # per-rank spell cooldowns) from Data Dragon and opens a PR when a new patch
 # changed anything. The PR body lists every cooldown change for review.
-# Only next/ is touched, so merging it never triggers a Python release.
+# Only next/ is touched.
 
 on:
   schedule:

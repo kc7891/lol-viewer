@@ -1,12 +1,11 @@
 # LoL Viewer（新版 / Electron）
 
-Electron + TypeScript + React で作り直している LoL Viewer の新版。PoC から始まり、旧版（PyQt6 版）の機能を移植している。
+Electron + TypeScript + React で作られた LoL Viewer Next。旧版（PyQt6 版）の機能を移植した。旧版のソースは git のタグ `v0.34.0` に残っている。
 
 - 仕様と移植の資料は [`../docs/spec/`](../docs/spec/README.md)（まず README から読む）。新版の設計は [`new-app-design.md`](../docs/spec/new-app-design.md)、進み具合は [`progress.md`](../docs/spec/progress.md)。
 - 当初の構成案は [`../docs/design/next-architecture.md`](../docs/design/next-architecture.md)。
 
-Python 版とは完全に独立している（`next/` の中で閉じた pnpm workspace）。
-Python 版のワークフローは `next/**` だけの変更では動かず、この PoC 専用の CI は [`.github/workflows/next-ci.yml`](../.github/workflows/next-ci.yml)。
+`next/` の中で閉じた pnpm workspace。CI は [`.github/workflows/next-ci.yml`](../.github/workflows/next-ci.yml)。
 
 ## クイックスタート
 
@@ -74,7 +73,7 @@ Windows CI の runner は画面が 1024×768 なので、スクショの右側�
 ## 安全性（設計書 §6 のうち実装済みのもの）
 
 - LCU には GET と購読しかできない（汎用の `request()` は存在しない）。偽 LCU は書き込み要求を記録し、E2E で「0 件」を確認している。
-- TLS 検証を緩めるのは LCU へのループバック接続だけ（Python 版のようにプロセス全体では緩めない）。
+- TLS 検証を緩めるのは LCU へのループバック接続だけ（プロセス全体では緩めない）。
 - 外部ビュー: preload なし、sandbox、専用 session。`https` 以外は読み込まない（ホストは自由）。既知の分析サイト（lolalytics.com / u.gg / op.gg）かそのビューと同じサイト以外への遷移や、ポップアップは既定ブラウザに回す。
 - アプリ本体のウィンドウ: sandbox、contextIsolation、ナビゲーション禁止。IPC は送り元フレームを確認し、zod で検証する。本番ビルドは CSP を強制する。
 - Hub サーバ: 127.0.0.1 にだけ bind、トークン必須、`Origin` と `Host` を検証（DNS rebinding 対策）。テスト済み。

@@ -2,51 +2,9 @@
 #
 # Security alerts from the GitHub Advisory Database are raised independently of
 # this file; it controls the scheduled *version* update PRs.
-#
-# Direct dependencies are declared as PEP 735 dependency groups in
-# pyproject.toml. The requirements*.txt files are the compiled, hash-pinned
-# output, and they are what CI and the release build actually install.
-#
-# Dependabot updates pyproject.toml but cannot reproduce
-# `uv pip compile --universal`, so a Dependabot version bump would change a
-# `>=` floor without changing a single installed version. Routine version
-# movement is therefore owned by .github/workflows/lock-refresh.yml, which
-# recompiles the locks weekly and opens its own PR.
-#
-# See CONTRIBUTING.md ("依存関係の更新").
 version: 2
 
 updates:
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    # 0 disables *version* update PRs -- lock-refresh.yml handles those, and
-    # running both would produce two competing PRs for the same upgrade.
-    # Security update PRs are explicitly not subject to this limit, so
-    # vulnerability-driven bumps still come through.
-    open-pull-requests-limit: 0
-    commit-message:
-      prefix: "chore(deps)"
-    groups:
-      # PyQt6 and PyQt6-WebEngine must move together: a mismatched pair fails
-      # to import QtWebEngineWidgets at runtime.
-      pyqt:
-        patterns:
-          - "PyQt6"
-          - "PyQt6-*"
-      # Matched by name rather than by `dependency-type: development`: without a
-      # [project] table there is no production/development split for Dependabot
-      # to key off, so an explicit pattern list keeps the grouping predictable.
-      tooling:
-        patterns:
-          - "pytest"
-          - "pytest-*"
-          - "pyinstaller"
-          - "beautifulsoup4"
-          - "pip-audit"
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -59,7 +17,7 @@ updates:
         patterns:
           - "*"
 
-  # The new app (next/, pnpm workspace). Security updates only, like pip above:
+  # The new app (next/, pnpm workspace). Security updates only:
   # routine version movement is done by hand with the full next/ check suite
   # (typecheck, unit, Storybook and Electron E2E, Windows install test).
   - package-ecosystem: "npm"

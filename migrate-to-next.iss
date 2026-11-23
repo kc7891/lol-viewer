@@ -10,7 +10,7 @@
 #define MyAppName "LoL Viewer"
 #define MyAppPublisher "kc7891"
 #define MyAppURL "https://github.com/kc7891/lol-viewer"
-; AppId of the OLD app (lol-viewer.iss); "{{" in [Setup] is an escaped "{".
+; AppId of the OLD app (lol-viewer.iss at tag v0.34.0); "{{" in [Setup] is an escaped "{".
 #define OldAppUninstallKey "Software\Microsoft\Windows\CurrentVersion\Uninstall\{8F7A2B3C-4D5E-6F7A-8B9C-0D1E2F3A4B5C}_is1"
 
 [Setup]
@@ -31,7 +31,7 @@ DisableFinishedPage=yes
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
-SetupIconFile=assets\icons\app_icon.ico
+SetupIconFile=next\apps\desktop\assets\app_icon.ico
 ; Do not close running apps (Vanguard safety, same as the old installer).
 CloseApplications=no
 OutputDir=installer_output

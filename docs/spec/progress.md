@@ -1,6 +1,6 @@
 # 新版への移植の進み具合
 
-[旧機能インベントリ](./legacy-inventory/README.md) の各チェックリストが、新版（`next/`）でどうなったかをまとめる。
+旧機能インベントリ（git のタグ v0.34.0 の `docs/spec/legacy-inventory/`） の各チェックリストが、新版（`next/`）でどうなったかをまとめる。
 設計は [new-app-design.md](./new-app-design.md)、判断は [decisions.md](./decisions.md)。
 
 凡例: ✅ 実装済み（テストあり） / 🔶 一部 / ⏳ 未着手 / ➖ 移植しない（理由の決定番号）

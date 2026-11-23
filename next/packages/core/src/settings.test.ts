@@ -15,7 +15,7 @@ import {
 } from "./settings.ts";
 
 describe("defaults", () => {
-  it("match the schema defaults and the Python app", () => {
+  it("match the schema defaults", () => {
     expect(SettingsSchema.parse({})).toEqual(DEFAULT_SETTINGS);
     expect(DEFAULT_SETTINGS).toMatchObject({ uiSize: "medium", qrButton: true, sidebarWidth: 300, featureFlags: {} });
     expect(DEFAULT_URL_TEMPLATES.liveGame).toBe("https://u.gg/lol/lg-splash");
