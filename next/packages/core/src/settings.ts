@@ -60,6 +60,14 @@ export const FEATURE_FLAGS = {
       "item gold differences in the matchup, and rows moved to the real lanes. Off: no requests are made.",
     default: false,
   },
+  inGameOverlay: {
+    label: "In-game overlay (hold Tab)",
+    description:
+      "While you hold Tab in a game, show the matchup's item gold differences over the game window. " +
+      "Needs Live game data, Windows, and League's Window Mode set to Borderless (not shown over Full Screen). " +
+      "Off: the key is never read.",
+    default: false,
+  },
 } as const satisfies Record<string, FeatureFlagDef>;
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;
 export const FEATURE_FLAG_KEYS = Object.keys(FEATURE_FLAGS) as FeatureFlagKey[];

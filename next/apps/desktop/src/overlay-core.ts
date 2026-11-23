@@ -1,0 +1,132 @@
+/**
+ * In-game overlay gate (M-034): the Tab key is read only while the feature is on AND a game is in
+ * progress AND this OS has a key source. Off by default: nothing is read until the renderer turns it on.
+ * Electron-free so it can be unit-tested (like live-core / log-core).
+ */
+export const OVERLAY_POLL_MS = 50;
+/** Content size of the overlay window in CSS pixels (same numbers as apps/web/src/overlay/OverlayTable.tsx). */
+export const OVERLAY_SIZE = { width: 360, height: 204 } as const;
+/** The table sits this far down from the top of the game window, as a share of its height. */
+export const OVERLAY_TOP_RATIO = 0.08;
+
+export type Rect = { x: number; y: number; width: number; height: number };
+
+export type KeySource = {
+  /** Tab is down right now (GetAsyncKeyState, most significant bit). */
+  isTabDown(): boolean;
+  /** The foreground window is the League of Legends game. */
+  isGameForeground(): boolean;
+  /** Bounds of the foreground game window in screen pixels; null when unknown. */
+  gameRect?(): Rect | null;
+};
+
+export type OverlayGateDeps = {
+  /** The key source for this OS, created when first needed (null: nothing to do, e.g. not Windows). */
+  getKeys: () => KeySource | null;
+  /** Create the (hidden) overlay window. */
+  open(): void;
+  /** Close it. */
+  close(): void;
+  /** Place it on the game window and show it without taking focus. */
+  show(keys: KeySource): void;
+  hide(): void;
+  /** Called once when reading the key throws; polling stops. */
+  onError?(err: unknown): void;
+  setInterval: (fn: () => void, ms: number) => unknown;
+  clearInterval: (handle: any) => void;
+};
+
+export type OverlayGate = {
+  /** inGameOverlay && liveClientData (the renderer computes it). */
+  setEnabled(enabled: boolean): void;
+  setPhase(phase: string): void;
+  readonly enabled: boolean;
+  readonly polling: boolean;
+  readonly visible: boolean;
+  dispose(): void;
+};
+
+export function createOverlayGate(deps: OverlayGateDeps): OverlayGate {
+  let enabled = false;
+  let phase = "None";
+  let keys: KeySource | null | undefined; // undefined: not asked yet
+  let failed = false;
+  let timer: unknown = null;
+  let visible = false;
+
+  const stop = () => {
+    if (timer == null) return;
+    deps.clearInterval(timer);
+    timer = null;
+    if (visible) {
+      visible = false;
+      deps.hide();
+    }
+    deps.close();
+  };
+
+  const tick = () => {
+    if (!keys) return;
+    let want: boolean;
+    try {
+      want = keys.isTabDown() && keys.isGameForeground();
+    } catch (err) {
+      failed = true; // log once, stop: no 50 ms log flood
+      deps.onError?.(err);
+      sync();
+      return;
+    }
+    if (want === visible) return;
+    visible = want;
+    if (want) deps.show(keys);
+    else deps.hide();
+  };
+
+  function sync() {
+    const base = enabled && phase === "InProgress";
+    if (!base) failed = false;
+    if (base && !failed && timer == null) {
+      if (keys === undefined) keys = deps.getKeys();
+      if (keys) {
+        deps.open();
+        timer = deps.setInterval(tick, OVERLAY_POLL_MS);
+      }
+    } else if ((!base || failed) && timer != null) stop();
+  }
+
+  return {
+    setEnabled(v) {
+      if (v === enabled) return;
+      enabled = v;
+      sync();
+    },
+    setPhase(p) {
+      if (p === phase) return;
+      phase = p;
+      sync();
+    },
+    get enabled() {
+      return enabled;
+    },
+    get polling() {
+      return timer != null;
+    },
+    get visible() {
+      return visible;
+    },
+    dispose() {
+      enabled = false;
+      sync();
+    },
+  };
+}
+
+/** Top-center of the game window, OVERLAY_TOP_RATIO from its top. `game` is in DIPs (the caller converts). */
+export function overlayBounds(game: Rect, size: { width: number; height: number } = OVERLAY_SIZE): Rect {
+  return {
+    x: Math.round(game.x + (game.width - size.width) / 2),
+    y: Math.round(game.y + game.height * OVERLAY_TOP_RATIO),
+    width: size.width,
+    height: size.height,
+  };
+}

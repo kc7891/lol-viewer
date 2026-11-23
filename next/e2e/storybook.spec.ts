@@ -324,6 +324,12 @@ test("in game with live data: enemies moved to their lanes, gold and level diffs
   await expect(row("support").locator(".live-diff")).toHaveAttribute("data-trend", "even");
   await expect(row("bottom").locator(".live-diff .lvl")).toHaveText("Lv-1");
   await expect(row("support").locator(".lvl")).toHaveCount(0);
+  // Team total: every live player's item gold, ally minus enemy
+  const team = page.locator(".matchup-row.team-total");
+  await expect(team).toHaveAttribute("data-gold-diff", "450");
+  await expect(team.locator(".live-diff .gold")).toHaveText("+450");
+  await expect(team.locator(".live-diff")).toHaveAttribute("data-trend", "ahead");
+  await expect(team.locator(".team-gold")).toHaveText(["21.1k", "20.7k"]);
   await expect(page.getByRole("region", { name: "Cooldowns" }).locator(".cd-champ")).toContainText("Jayce");
 });
 
@@ -331,6 +337,7 @@ test("live data flag off: the table and cooldowns are as before", async ({ page 
   await open(page, "screens-app--in-game-live-flag-off");
   await expect(page.locator(".matchup-row .side.enemy .name")).toHaveText(["Jayce", "Karma", "Gragas", "Varus", "Pantheon"]);
   await expect(page.locator(".live-diff")).toHaveCount(0);
+  await expect(page.locator(".team-total")).toHaveCount(0);
   await expect(page.locator(".matchup-row .vs")).toHaveText(["vs", "vs", "vs", "vs", "vs"]);
   await expect(page.getByRole("region", { name: "Cooldowns" }).locator(".cd-champ")).toContainText("Gragas");
 });
@@ -349,6 +356,85 @@ test("Settings: the live data flag is off by default, toggles at once and resets
   await reset.click();
   await expect(sw).not.toBeChecked();
   await expect(page.locator(".toasts-floating .toast", { hasText: "Feature flags reset to defaults." })).toBeVisible();
+});
+
+// ── In-game overlay (feature flag inGameOverlay, M-034) ──
+
+test("Settings: the overlay flag is off by default, disabled without live data, then switchable (M-034)", async ({ page }) => {
+  await open(page, "components-settingscards--feature-flags");
+  const card = page.getByRole("region", { name: "Feature flags" });
+  const overlay = card.getByRole("switch", { name: "In-game overlay (hold Tab)" });
+  await expect(overlay).not.toBeChecked();
+  await expect(overlay).toBeDisabled();
+  await expect(card.getByTestId("flag-inGameOverlay-requires")).toHaveText("Requires Live game data");
+  await expect(card.getByTestId("flag-inGameOverlay-windows-only")).toHaveCount(0); // desktop app on Windows
+
+  await open(page, "components-settingscards--feature-flags-live-on");
+  const card2 = page.getByRole("region", { name: "Feature flags" });
+  const overlay2 = card2.getByRole("switch", { name: "In-game overlay (hold Tab)" });
+  await expect(overlay2).toBeEnabled();
+  await expect(overlay2).not.toBeChecked();
+  await expect(card2.getByTestId("flag-inGameOverlay-requires")).toHaveCount(0);
+  await overlay2.click();
+  await expect(overlay2).toBeChecked();
+  await card2.getByRole("button", { name: "Reset flags to defaults" }).click();
+  await expect(overlay2).not.toBeChecked();
+});
+
+test("Settings: the overlay flag says Windows only outside Windows and in a browser", async ({ page }) => {
+  await open(page, "components-settingscards--feature-flags-not-windows");
+  await expect(page.getByTestId("flag-inGameOverlay-windows-only")).toHaveText("Windows only");
+  await open(page, "components-settingscards--feature-flags-browser");
+  await expect(page.getByTestId("flag-inGameOverlay-windows-only")).toHaveText("Windows only");
+  await open(page, "components-settingscards--feature-flags-on");
+  await expect(page.getByRole("switch", { name: "In-game overlay (hold Tab)" })).toBeChecked();
+  await expect(page.getByTestId("flag-inGameOverlay-windows-only")).toHaveCount(0);
+});
+
+test("overlay table: same differences and team totals as the sidebar's Matchup (M-034)", async ({ page }) => {
+  await open(page, "components-sidebar--matchup-live");
+  const sidebar = {
+    gold: await page.locator(".matchup-row[data-lane] .live-diff .gold").allTextContents(),
+    teamDiff: await page.locator(".matchup-row.team-total .live-diff .gold").textContent(),
+    team: await page.locator(".matchup-row.team-total .team-gold").allTextContents(),
+  };
+  expect(sidebar.gold).toEqual(["+150", "+1.4k", "-150", "-950", "0"]);
+
+  await open(page, "overlay-overlaytable--live-mid");
+  const table = page.getByRole("region", { name: "Item gold differences" });
+  await expect(table.locator(".ov-row")).toHaveCount(6);
+  const ov = (lane: string) => table.locator(`.ov-row[data-lane="${lane}"] .ov-gold`);
+  await expect(ov("jungle")).toHaveText("+1.4k");
+  await expect(ov("jungle")).toHaveAttribute("data-trend", "ahead");
+  await expect(ov("middle")).toHaveText("-150");
+  await expect(ov("middle")).toHaveAttribute("data-trend", "behind");
+  await expect(ov("support")).toHaveText("0");
+  await expect(ov("support")).toHaveAttribute("data-trend", "even");
+  const team = table.locator(".ov-team");
+  await expect(team).toHaveAttribute("data-gold-diff", "450");
+  await expect(team.locator(".ov-gold")).toHaveText("+450");
+  await expect(team.locator(".ov-team-gold")).toHaveText(sidebar.team);
+  // Every lane's difference equals the sidebar's, in the same order
+  await expect(table.locator(".ov-row:not(.ov-team) .ov-gold")).toHaveText(sidebar.gold);
+  await expect(table.locator(".ov-team .ov-gold")).toHaveText(sidebar.teamDiff!);
+  // Levels of both sides
+  await expect(table.locator('.ov-row[data-lane="bottom"] .ov-level')).toHaveCount(2);
+});
+
+test("overlay table: early game (level 1) and my swap are kept", async ({ page }) => {
+  await open(page, "overlay-overlaytable--live-early");
+  const table = page.getByRole("region", { name: "Item gold differences" });
+  await expect(table.locator('.ov-row[data-lane="top"] .ov-level').first()).toHaveText("1");
+  await expect(table.locator(".ov-team")).toBeVisible();
+  await open(page, "overlay-overlaytable--live-swap-kept");
+  // The enemy in the top row is Karma after the swap: that row has no live partner at the same lane, so its difference is whatever its own entries give
+  await expect(page.getByRole("region", { name: "Item gold differences" }).locator(".ov-row")).toHaveCount(6);
+});
+
+test("overlay table: the background stays see-through", async ({ page }) => {
+  await open(page, "overlay-overlaytable--over-checkerboard");
+  const bg = await page.locator(".ov-table").evaluate((e) => getComputedStyle(e).backgroundColor);
+  expect(bg).toMatch(/^rgba\(13, 17, 23, 0\.82\)$/);
 });
 
 test("live data: my swap after the correction is kept", async ({ page }) => {

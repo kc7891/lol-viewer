@@ -1,4 +1,5 @@
 import { defineConfig, type Plugin } from "vite";
+import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 
 /**
@@ -30,5 +31,15 @@ export default defineConfig({
   // and from any sub-path on a static PR preview host.
   base: "./",
   server: { fs: { allow: ["../.."] } },
-  build: { outDir: "dist", emptyOutDir: true },
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+    // Two pages: the app and the in-game overlay window (M-034). Same CSP for both.
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL("./index.html", import.meta.url)),
+        overlay: fileURLToPath(new URL("./overlay.html", import.meta.url)),
+      },
+    },
+  },
 });

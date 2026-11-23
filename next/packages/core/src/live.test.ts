@@ -4,6 +4,7 @@ import type { LivePlayerFact } from "@lol-viewer/protocol";
 import {
   buildLivePlayers,
   championIdFromLive,
+  formatGold,
   formatGoldDiff,
   formatLevelDiff,
   goldTrend,
@@ -107,6 +108,9 @@ describe("formatting (§5.7)", () => {
     [0, "0"], [49, "0"], [50, "+50"], [-150, "-150"], [999, "+999"], [1000, "+1.0k"], [1400, "+1.4k"],
     [-12345, "-12k"], [9949, "+9.9k"], [9950, "+10k"],
   ])("formatGoldDiff(%s) = %s", (d, s) => expect(formatGoldDiff(d)).toBe(s));
+  it.each([
+    [0, "0"], [-5, "0"], [950, "950"], [1000, "1.0k"], [9949, "9.9k"], [9950, "10.0k"], [21349, "21.3k"], [21350, "21.4k"],
+  ])("formatGold(%s) = %s", (n, s) => expect(formatGold(n)).toBe(s));
   it("trend and level", () => {
     expect(goldTrend(49)).toBe("even");
     expect(goldTrend(50)).toBe("ahead");

@@ -393,13 +393,35 @@ export function defaultCooldownChampion(ws: Workspace): number | null {
 
 export type RowLiveDiff = { gold: number; level: number; ally: LivePlayer; enemy: LivePlayer };
 
-/** Ally minus enemy in one row, from the last MatchState's live list; null when either side is missing. */
-export function rowLiveDiff(ws: Workspace, index: number): RowLiveDiff | null {
-  const live = ws.last?.live;
-  const row = ws.rows[index];
+/** Ally minus enemy in row `index` of `rows`, from a live list; null when either side is missing or not in the list. */
+export function rowLiveDiffOf(rows: readonly MatchupRow[], live: readonly LivePlayer[] | null | undefined, index: number): RowLiveDiff | null {
+  const row = rows[index];
   if (!live || !row || row.ally == null || row.enemy == null) return null;
   const ally = live.find((p) => p.team === "ally" && p.championId === row.ally);
   const enemy = live.find((p) => p.team === "enemy" && p.championId === row.enemy);
   if (!ally || !enemy) return null;
   return { gold: ally.itemGold - enemy.itemGold, level: ally.level - enemy.level, ally, enemy };
 }
+
+/** Ally minus enemy in one row, from the last MatchState's live list; null when either side is missing. */
+export const rowLiveDiff = (ws: Workspace, index: number): RowLiveDiff | null => rowLiveDiffOf(ws.rows, ws.last?.live, index);
+
+export type TeamLiveDiff = { gold: number; allyGold: number; enemyGold: number; allyCount: number; enemyCount: number };
+
+/**
+ * Team totals of item gold, ally minus enemy, from a whole live list (every player the game
+ * reports, whether or not the table could place them). null without live data or with an empty side.
+ */
+export function teamLiveDiffOf(live: readonly LivePlayer[] | null | undefined): TeamLiveDiff | null {
+  if (!live) return null;
+  const allies = live.filter((p) => p.team === "ally");
+  const enemies = live.filter((p) => p.team === "enemy");
+  if (!allies.length || !enemies.length) return null;
+  const sum = (ps: readonly LivePlayer[]) => ps.reduce((n, p) => n + p.itemGold, 0);
+  const allyGold = sum(allies);
+  const enemyGold = sum(enemies);
+  return { gold: allyGold - enemyGold, allyGold, enemyGold, allyCount: allies.length, enemyCount: enemies.length };
+}
+
+/** Team totals from the last MatchState's live list (see teamLiveDiffOf). */
+export const teamLiveDiff = (ws: Workspace): TeamLiveDiff | null => teamLiveDiffOf(ws.last?.live);

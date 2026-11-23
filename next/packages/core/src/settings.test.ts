@@ -24,6 +24,8 @@ describe("defaults", () => {
     );
     expect(FEATURE_FLAGS.liveClientData.default).toBe(false);
     expect(isFeatureOn(DEFAULT_SETTINGS, "liveClientData")).toBe(false);
+    expect(FEATURE_FLAGS.inGameOverlay.default).toBe(false);
+    expect(isFeatureOn(DEFAULT_SETTINGS, "inGameOverlay")).toBe(false);
     expect(UI_SCALE).toEqual({ small: 0.9, medium: 1, large: 1.15 });
   });
 });
@@ -97,6 +99,11 @@ describe("feature flags (M-025)", () => {
     expect(isFeatureOn(on, "liveClientData")).toBe(true);
     expect(flagsAtDefaults(on)).toBe(false);
     expect(flagsAtDefaults(DEFAULT_SETTINGS)).toBe(true);
-    expect(resetFeatureFlags({ liveClientData: true, unknown: true })).toEqual({ liveClientData: false, unknown: true });
+    expect(resetFeatureFlags({ liveClientData: true, inGameOverlay: true, unknown: true })).toEqual({
+      liveClientData: false,
+      inGameOverlay: false,
+      unknown: true,
+    });
+    expect(flagsAtDefaults({ ...DEFAULT_SETTINGS, featureFlags: { inGameOverlay: true } })).toBe(false);
   });
 });

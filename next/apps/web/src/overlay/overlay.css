@@ -1,0 +1,91 @@
+/* In-game overlay table (M-034). Tokens come from ../styles.css. Fixed size: the overlay window has the same. */
+.ov-table {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  border-radius: var(--radius-l);
+  background: rgba(13, 17, 23, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-1);
+  font: 13px/1.2 var(--font);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+.ov-row {
+  display: grid;
+  grid-template-columns: 38px 28px 26px minmax(0, 1fr) 26px 28px;
+  align-items: center;
+  height: 30px;
+  gap: 4px;
+}
+.ov-lane {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-3);
+}
+.ov-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-s);
+  object-fit: cover;
+  justify-self: center;
+}
+.ov-empty {
+  display: block;
+  background: var(--bg-3);
+  opacity: 0.6;
+}
+.ov-level {
+  font-size: 12px;
+  color: var(--text-2);
+  text-align: center;
+}
+.ov-gold {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-3);
+}
+.ov-gold[data-trend="ahead"] {
+  color: var(--success);
+}
+.ov-gold[data-trend="behind"] {
+  color: var(--danger);
+}
+.ov-gold[data-trend="even"] {
+  color: var(--text-3);
+}
+.ov-vs {
+  text-align: center;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.ov-team {
+  height: 32px;
+  margin-top: 4px;
+  border-top: 1px solid var(--line-strong);
+  grid-template-columns: 38px 54px minmax(0, 1fr) 54px;
+}
+.ov-team-gold {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.ov-team-gold.enemy {
+  text-align: right;
+}
+.ov-team .ov-gold {
+  font-size: 16px;
+}
+
+/* The overlay window: nothing behind the table */
+html.overlay-page,
+html.overlay-page body,
+html.overlay-page #root {
+  background: transparent;
+  overflow: hidden;
+  height: auto;
+}
