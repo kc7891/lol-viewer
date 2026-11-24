@@ -255,40 +255,40 @@ export function FeatureFlagsCard({ notify }: { notify: (text: string, kind?: Toa
         const windowsOnly = needsLive && platform !== undefined && platform !== "win32";
         return (
           <Fragment key={k}>
-          <div className="setting-row flag-row">
-            <div className="flag-text">
-              <label className="setting-label" htmlFor={`flag-${k}`}>
-                {def.label}
-              </label>
-              <span className="hint" id={`flag-${k}-desc`}>
-                {def.description}
-              </span>
-              {blocked && (
-                <span className="hint flag-note" data-testid={`flag-${k}-requires`}>
-                  Requires Live game data
+            <div className="setting-row flag-row">
+              <div className="flag-text">
+                <label className="setting-label" htmlFor={`flag-${k}`}>
+                  {def.label}
+                </label>
+                <span className="hint" id={`flag-${k}-desc`}>
+                  {def.description}
                 </span>
-              )}
-              {windowsOnly && (
-                <span className="hint flag-note" data-testid={`flag-${k}-windows-only`}>
-                  Windows only
-                </span>
-              )}
+                {blocked && (
+                  <span className="hint flag-note" data-testid={`flag-${k}-requires`}>
+                    Requires Live game data
+                  </span>
+                )}
+                {windowsOnly && (
+                  <span className="hint flag-note" data-testid={`flag-${k}-windows-only`}>
+                    Windows only
+                  </span>
+                )}
+              </div>
+              <input
+                id={`flag-${k}`}
+                type="checkbox"
+                role="switch"
+                className="switch"
+                checked={on}
+                disabled={blocked}
+                aria-describedby={`flag-${k}-desc`}
+                onChange={(e) => {
+                  update({ featureFlags: { ...settings.featureFlags, [k]: e.target.checked } });
+                  notify(`${def.label}: ${e.target.checked ? "on" : "off"}.`, "success");
+                }}
+              />
             </div>
-            <input
-              id={`flag-${k}`}
-              type="checkbox"
-              role="switch"
-              className="switch"
-              checked={on}
-              disabled={blocked}
-              aria-describedby={`flag-${k}-desc`}
-              onChange={(e) => {
-                update({ featureFlags: { ...settings.featureFlags, [k]: e.target.checked } });
-                notify(`${def.label}: ${e.target.checked ? "on" : "off"}.`, "success");
-              }}
-            />
-          </div>
-          {needsLive && <OverlayPositionPicker disabled={!on} value={settings.overlayPosition} onChange={(overlayPosition) => update({ overlayPosition })} />}
+            {needsLive && <OverlayPositionPicker disabled={!on} value={settings.overlayPosition} onChange={(overlayPosition) => update({ overlayPosition })} />}
           </Fragment>
         );
       })}
