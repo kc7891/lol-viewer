@@ -7,7 +7,7 @@ import type { OverlayPosition } from "@lol-viewer/protocol";
 
 export const OVERLAY_POLL_MS = 50;
 /** Content size of the overlay window in CSS pixels (same numbers as apps/web/src/overlay/OverlayTable.tsx). */
-export const OVERLAY_SIZE = { width: 360, height: 204 } as const;
+export const OVERLAY_SIZE = { width: 400, height: 204 } as const;
 /** Gap between the table and the game window's edges, in DIPs (M-035, M-036). */
 export const OVERLAY_EDGE_MARGIN = 20;
 

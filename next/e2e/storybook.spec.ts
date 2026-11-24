@@ -419,6 +419,7 @@ test("overlay table: same differences and team totals as the sidebar's Matchup (
     gold: await page.locator(".matchup-row[data-lane] .live-diff .gold").allTextContents(),
     teamDiff: await page.locator(".matchup-row.team-total .live-diff .gold").textContent(),
     team: await page.locator(".matchup-row.team-total .team-gold").allTextContents(),
+    titles: await page.locator(".matchup-row[data-lane] .live-diff").evaluateAll((els) => els.map((e) => e.getAttribute("title") ?? "")),
   };
   expect(sidebar.gold).toEqual(["+150", "+1.4k", "-150", "-950", "0"]);
 
@@ -439,14 +440,31 @@ test("overlay table: same differences and team totals as the sidebar's Matchup (
   // Every lane's difference equals the sidebar's, in the same order
   await expect(table.locator(".ov-row:not(.ov-team) .ov-gold")).toHaveText(sidebar.gold);
   await expect(table.locator(".ov-team .ov-gold")).toHaveText(sidebar.teamDiff!);
-  // Levels of both sides
-  await expect(table.locator('.ov-row[data-lane="bottom"] .ov-level')).toHaveCount(2);
+  // Each side's own item gold and level (M-037), cross-checked with the sidebar's tooltip ("Item gold: A 4,500 vs B 3,000 · Level 11 vs 10")
+  const fmt = (n: number) => (n >= 1000 ? `${(Math.round(n / 100) / 10).toFixed(1)}k` : String(n));
+  const lanes = ["top", "jungle", "middle", "bottom", "support"];
+  for (const [i, lane] of lanes.entries()) {
+    const m = sidebar.titles[i]!.match(/ ([\d,]+) vs .* ([\d,]+) · Level (\d+) vs (\d+)/);
+    expect(m, `tooltip of ${lane}`).not.toBeNull();
+    const [allyGold, enemyGold] = [Number(m![1]!.replace(/,/g, "")), Number(m![2]!.replace(/,/g, ""))];
+    const row = table.locator(`.ov-row[data-lane="${lane}"]`);
+    await expect(row.locator(".ov-stat.ally .ov-stat-gold")).toHaveText(fmt(allyGold));
+    await expect(row.locator(".ov-stat.enemy .ov-stat-gold")).toHaveText(fmt(enemyGold));
+    await expect(row.locator(".ov-stat.ally .ov-stat-lvl")).toHaveText(`Lv ${m![3]}`);
+    await expect(row.locator(".ov-stat.enemy .ov-stat-lvl")).toHaveText(`Lv ${m![4]}`);
+    // ally minus enemy is the diff shown in the middle
+    await expect(row.locator(".ov-gold")).toHaveAttribute("data-gold-diff", String(allyGold - enemyGold));
+  }
+  const jg = table.locator('.ov-row[data-lane="jungle"]');
+  await expect(jg.locator(".ov-stat.ally")).toHaveCSS("text-align", "start");
+  await expect(jg.locator(".ov-stat.enemy")).toHaveCSS("text-align", "right");
+  await expect(table.locator('.ov-row[data-lane="bottom"] .ov-stat')).toHaveCount(2);
 });
 
 test("overlay table: early game (level 1) and my swap are kept", async ({ page }) => {
   await open(page, "overlay-overlaytable--live-early");
   const table = page.getByRole("region", { name: "Item gold differences" });
-  await expect(table.locator('.ov-row[data-lane="top"] .ov-level').first()).toHaveText("1");
+  await expect(table.locator('.ov-row[data-lane="top"] .ov-stat-lvl').first()).toHaveText("Lv 1");
   await expect(table.locator(".ov-team")).toBeVisible();
   await open(page, "overlay-overlaytable--live-swap-kept");
   // The enemy in the top row is Karma after the swap: that row has no live partner at the same lane, so its difference is whatever its own entries give

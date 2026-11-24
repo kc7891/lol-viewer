@@ -134,10 +134,10 @@ test("in a game the window is created hidden; Tab shows it without taking focus;
   expect(shown.alwaysOnTop).toBe(true);
   expect(shown.focusable).toBe(false);
   expect(await mainFocused()).toBe(focusBefore); // focus did not move
-  expect(shown.bounds).toMatchObject({ width: 360, height: 204 });
+  expect(shown.bounds).toMatchObject({ width: 400, height: 204 });
   // Default position: bottom-left of the primary display's work area, 20 px from the edges (M-036)
   const wa = await app.evaluate(({ screen }) => screen.getPrimaryDisplay().workArea);
-  expect(shown.bounds).toEqual({ x: wa.x + 20, y: wa.y + wa.height - 204 - 20, width: 360, height: 204 });
+  expect(shown.bounds).toEqual({ x: wa.x + 20, y: wa.y + wa.height - 204 - 20, width: 400, height: 204 });
 
   // Same values as the sidebar
   const op = overlayPage()!;
@@ -145,6 +145,9 @@ test("in a game the window is created hidden; Tab shows it without taking focus;
   await expect(op.locator(".ov-row:not(.ov-team) .ov-gold")).toHaveText(sidebar);
   await expect(op.locator('.ov-row[data-lane="jungle"] .ov-gold')).toHaveText("+1.4k");
   await expect(op.locator(".ov-team .ov-team-gold")).toHaveText(["21.1k", "20.7k"]);
+  // Each side's own item gold and level is in the real overlay window (M-037)
+  await expect(op.locator('.ov-row[data-lane="jungle"] .ov-stat.ally .ov-stat-gold')).toHaveText(/^(\d+\.\d)k$|^\d+$/);
+  await expect(op.locator('.ov-row[data-lane="jungle"] .ov-stat.ally .ov-stat-lvl')).toHaveText(/^Lv \d+$/);
   await page.waitForTimeout(300);
   grabScreen("overlay-screen");
   try {
@@ -165,7 +168,7 @@ test("in a game the window is created hidden; Tab shows it without taking focus;
   await expect(pos.getByRole("radio", { name: "Top right" })).toBeChecked();
   await expect
     .poll(async () => ((await overlayInfo()) as any).bounds, { timeout: 3000 })
-    .toEqual({ x: wa.x + wa.width - 360 - 20, y: wa.y + 20, width: 360, height: 204 });
+    .toEqual({ x: wa.x + wa.width - 400 - 20, y: wa.y + 20, width: 400, height: 204 });
   expect(((await overlayInfo()) as any).visible).toBe(true);
   expect(await mainFocused()).toBe(focusBefore);
   await toViewers();
