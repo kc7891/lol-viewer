@@ -64,7 +64,7 @@ export const FEATURE_FLAGS = {
     label: "In-game overlay (hold Tab)",
     description:
       "While you hold Tab in a game, show the matchup's item gold differences over the game window. " +
-      "Needs Live game data, Windows, and League's Window Mode set to Borderless (not shown over Full Screen). " +
+      "Needs Live game data, Windows, and League's Window Mode set to Windowed or Borderless (not shown over Full Screen). " +
       "Off: the key is never read.",
     default: false,
   },

@@ -54,7 +54,7 @@
 - `transparent: true` のウィンドウの透明な部分は、`setIgnoreMouseEvents(true)` を付けないとクリックを吸う。今回は全体をクリック透過にするので問題ない。
 - `alwaysOnTop` のレベルは `"screen-saver"` にする（通常のレベルだとゲームの下に回ることがある）。
 - `show()` はフォーカスを奪う。**必ず `showInactive()` を使い、`focusable: false` にする**。フォーカスを奪うとゲームが入力を受けなくなり、ボーダーレスでもゲームが最小化されることがある。
-- Discord のオーバーレイも「ボーダーレス / ウィンドウでは出るが、本当のフルスクリーンでは出ない」と案内している。同じ制約を受け入れ、Settings に「LoL の Window Mode を Borderless にしてください」と書く。
+- Discord のオーバーレイも「ボーダーレス / ウィンドウでは出るが、本当のフルスクリーンでは出ない」と案内している。同じ制約を受け入れ、Settings に「LoL の Window Mode を Windowed か Borderless にしてください」と書く。
 
 ### 3.2 Tab の検知
 
@@ -187,7 +187,7 @@ inGameOverlay: {
   label: "In-game overlay (hold Tab)",
   description:
     "While you hold Tab in a game, show the matchup's item gold differences over the game window. " +
-    "Needs Live game data, Windows, and League's Window Mode set to Borderless (not shown over Full Screen). " +
+    "Needs Live game data, Windows, and League's Window Mode set to Windowed or Borderless (not shown over Full Screen). " +
     "Off: the key is never read.",
   default: false,
 },
