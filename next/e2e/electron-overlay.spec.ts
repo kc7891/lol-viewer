@@ -135,6 +135,9 @@ test("in a game the window is created hidden; Tab shows it without taking focus;
   expect(shown.focusable).toBe(false);
   expect(await mainFocused()).toBe(focusBefore); // focus did not move
   expect(shown.bounds).toMatchObject({ width: 360, height: 204 });
+  // Default position: bottom-left of the primary display's work area, 20 px from the edges (M-036)
+  const wa = await app.evaluate(({ screen }) => screen.getPrimaryDisplay().workArea);
+  expect(shown.bounds).toEqual({ x: wa.x + 20, y: wa.y + wa.height - 204 - 20, width: 360, height: 204 });
 
   // Same values as the sidebar
   const op = overlayPage()!;
@@ -153,6 +156,19 @@ test("in a game the window is created hidden; Tab shows it without taking focus;
   } catch {
     /* best effort */
   }
+
+  // Choosing another position in Settings moves the visible overlay at once (M-036)
+  await toSettings();
+  const pos = page.getByRole("radiogroup", { name: "Overlay position" });
+  await expect(pos.getByRole("radio", { name: "Bottom left" })).toBeChecked();
+  await pos.getByRole("radio", { name: "Top right" }).click();
+  await expect(pos.getByRole("radio", { name: "Top right" })).toBeChecked();
+  await expect
+    .poll(async () => ((await overlayInfo()) as any).bounds, { timeout: 3000 })
+    .toEqual({ x: wa.x + wa.width - 360 - 20, y: wa.y + 20, width: 360, height: 204 });
+  expect(((await overlayInfo()) as any).visible).toBe(true);
+  expect(await mainFocused()).toBe(focusBefore);
+  await toViewers();
 
   press("none");
   await expect.poll(async () => (await overlayInfo() as any).visible, { timeout: 3000 }).toBe(false);

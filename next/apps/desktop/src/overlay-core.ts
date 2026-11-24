@@ -3,11 +3,16 @@
  * progress AND this OS has a key source. Off by default: nothing is read until the renderer turns it on.
  * Electron-free so it can be unit-tested (like live-core / log-core).
  */
+import type { OverlayPosition } from "@lol-viewer/protocol";
+
 export const OVERLAY_POLL_MS = 50;
 /** Content size of the overlay window in CSS pixels (same numbers as apps/web/src/overlay/OverlayTable.tsx). */
 export const OVERLAY_SIZE = { width: 360, height: 204 } as const;
-/** Gap between the table and the game window's left and bottom edges, in DIPs (M-035). */
+/** Gap between the table and the game window's edges, in DIPs (M-035, M-036). */
 export const OVERLAY_EDGE_MARGIN = 20;
+
+/** Bottom-left (M-035). */
+export const DEFAULT_OVERLAY_POSITION: OverlayPosition = { horizontal: "left", vertical: "bottom" };
 
 export type Rect = { x: number; y: number; width: number; height: number };
 
@@ -122,14 +127,17 @@ export function createOverlayGate(deps: OverlayGateDeps): OverlayGate {
 }
 
 /**
- * Bottom-left of the game window, OVERLAY_EDGE_MARGIN from its left and bottom edges (M-035).
- * Never above or left of the window when it is smaller than the table. `game` is in DIPs (the caller converts).
+ * Where the table goes on the game window (M-036): OVERLAY_EDGE_MARGIN from the chosen edges, centered
+ * horizontally for "center". Never above or left of the window when it is smaller than the table.
+ * `game` is in DIPs (the caller converts).
  */
-export function overlayBounds(game: Rect, size: { width: number; height: number } = OVERLAY_SIZE): Rect {
-  return {
-    x: Math.round(game.x + OVERLAY_EDGE_MARGIN),
-    y: Math.round(Math.max(game.y, game.y + game.height - size.height - OVERLAY_EDGE_MARGIN)),
-    width: size.width,
-    height: size.height,
-  };
+export function overlayBounds(
+  game: Rect,
+  pos: OverlayPosition = DEFAULT_OVERLAY_POSITION,
+  size: { width: number; height: number } = OVERLAY_SIZE,
+): Rect {
+  const M = OVERLAY_EDGE_MARGIN;
+  const x = pos.horizontal === "left" ? game.x + M : pos.horizontal === "right" ? game.x + game.width - size.width - M : game.x + (game.width - size.width) / 2;
+  const y = pos.vertical === "top" ? game.y + M : game.y + game.height - size.height - M;
+  return { x: Math.round(Math.max(x, game.x)), y: Math.round(Math.max(y, game.y)), width: size.width, height: size.height };
 }

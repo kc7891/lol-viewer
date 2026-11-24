@@ -314,11 +314,20 @@ export const OverlayRowsSchema = z
   .length(5);
 export type OverlayRows = z.infer<typeof OverlayRowsSchema>;
 
+/** Where the in-game overlay sits on the game window (M-036). */
+export const OverlayPositionSchema = z.object({
+  horizontal: z.enum(["left", "center", "right"]),
+  vertical: z.enum(["top", "bottom"]),
+});
+export type OverlayPosition = z.infer<typeof OverlayPositionSchema>;
+
 export interface OverlayControlApi {
   /** Feature flags liveClientData AND inGameOverlay (M-034): main reads the Tab key only while this is true, in a game, on Windows. */
   setEnabled(enabled: boolean): void;
   /** The matchup table as the main window shows it (after the lane correction and the user's swaps). */
   setRows(rows: OverlayRows): void;
+  /** Where the table sits on the game window (M-036); main moves the overlay at once when it is visible. */
+  setPosition(pos: OverlayPosition): void;
 }
 
 /** What the overlay window's own preload exposes: receive-only, nothing to send. */

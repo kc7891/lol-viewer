@@ -381,6 +381,28 @@ test("Settings: the overlay flag is off by default, disabled without live data, 
   await expect(overlay2).not.toBeChecked();
 });
 
+test("Settings: the overlay position picker defaults to Bottom left, saves at once, and is disabled while the overlay is off (M-036)", async ({ page }) => {
+  await open(page, "components-settingscards--feature-flags");
+  const off = page.getByRole("radiogroup", { name: "Overlay position" });
+  await expect(off.getByRole("radio")).toHaveCount(6);
+  await expect(off.getByRole("radio", { name: "Bottom left" })).toBeChecked();
+  await expect(off.getByRole("radio", { name: "Top right" })).toBeDisabled();
+
+  await open(page, "components-settingscards--feature-flags-on");
+  const on = page.getByRole("radiogroup", { name: "Overlay position" });
+  await expect(on.getByRole("radio", { name: "Top right" })).toBeChecked(); // the story's setting
+  await on.getByRole("radio", { name: "Bottom center" }).click();
+  await expect(on.getByRole("radio", { name: "Bottom center" })).toBeChecked();
+  await expect(on.getByRole("radio", { name: "Top right" })).not.toBeChecked();
+  await on.getByRole("radio", { name: "Top right" }).click();
+  await expect(on.getByRole("radio", { name: "Top right" })).toBeChecked();
+
+  await open(page, "components-settingscards--feature-flags-live-on"); // live on, overlay off: still disabled
+  const live = page.getByRole("radiogroup", { name: "Overlay position" });
+  await expect(live.getByRole("radio", { name: "Bottom left" })).toBeChecked();
+  await expect(live.getByRole("radio", { name: "Top right" })).toBeDisabled();
+});
+
 test("Settings: the overlay flag says Windows only outside Windows and in a browser", async ({ page }) => {
   await open(page, "components-settingscards--feature-flags-not-windows");
   await expect(page.getByTestId("flag-inGameOverlay-windows-only")).toHaveText("Windows only");

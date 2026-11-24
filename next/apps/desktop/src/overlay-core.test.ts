@@ -172,10 +172,37 @@ describe("overlay gate (key source throws)", () => {
 });
 
 describe("overlayBounds", () => {
-  it("bottom-left of the game window, 20 from its left and bottom edges", () => {
-    expect(overlayBounds({ x: 100, y: 50, width: 1920, height: 1080 })).toEqual({ x: 120, y: 50 + 1080 - 204 - 20, width: 360, height: 204 });
+  const game = { x: 100, y: 50, width: 1920, height: 1080 };
+  const left = 100 + 20;
+  const center = 100 + (1920 - 360) / 2;
+  const right = 100 + 1920 - 360 - 20;
+  const top = 50 + 20;
+  const bottom = 50 + 1080 - 204 - 20;
+  it("defaults to bottom-left, 20 from its left and bottom edges", () => {
+    expect(overlayBounds(game)).toEqual({ x: left, y: bottom, width: 360, height: 204 });
   });
-  it("never above the window when it is shorter than the table", () => {
+  it.each([
+    ["left", "top", left, top],
+    ["center", "top", center, top],
+    ["right", "top", right, top],
+    ["left", "bottom", left, bottom],
+    ["center", "bottom", center, bottom],
+    ["right", "bottom", right, bottom],
+  ] as const)("%s %s", (horizontal, vertical, x, y) => {
+    expect(overlayBounds(game, { horizontal, vertical })).toEqual({ x, y, width: 360, height: 204 });
+  });
+  it("rounds odd centers", () => {
+    expect(overlayBounds({ x: 0, y: 0, width: 1001, height: 600 }, { horizontal: "center", vertical: "top" }).x).toBe(321);
+  });
+  it("never above or left of the window when it is smaller than the table", () => {
+    const small = { x: 10, y: 30, width: 300, height: 150 };
+    for (const horizontal of ["left", "center", "right"] as const)
+      for (const vertical of ["top", "bottom"] as const) {
+        const b = overlayBounds(small, { horizontal, vertical });
+        expect(b.x).toBeGreaterThanOrEqual(10);
+        expect(b.y).toBeGreaterThanOrEqual(30);
+      }
+    expect(overlayBounds(small, { horizontal: "right", vertical: "bottom" })).toEqual({ x: 10, y: 30, width: 360, height: 204 });
     expect(overlayBounds({ x: 0, y: 30, width: 400, height: 150 })).toEqual({ x: 20, y: 30, width: 360, height: 204 });
   });
 });

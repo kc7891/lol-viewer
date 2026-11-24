@@ -3,7 +3,7 @@
  * Stored by the renderer (localStorage, M-014); a broken value only resets that one item.
  */
 import { z } from "zod";
-import { isAllowedViewUrl } from "@lol-viewer/protocol";
+import { isAllowedViewUrl, OverlayPositionSchema, type OverlayPosition } from "@lol-viewer/protocol";
 
 /** Default URL templates (carried over from the legacy app's defaults). */
 export const DEFAULT_URL_TEMPLATES = {
@@ -29,6 +29,10 @@ export const URL_TEMPLATE_KEYS = ["build", "matchup", "counter", "aram", "liveGa
 export const UiSizeSchema = z.enum(["small", "medium", "large"]);
 export type UiSize = z.infer<typeof UiSizeSchema>;
 
+export { OverlayPositionSchema, type OverlayPosition };
+/** Default overlay position: bottom-left (M-035, M-036). */
+export const DEFAULT_OVERLAY_POSITION: OverlayPosition = { horizontal: "left", vertical: "bottom" };
+
 export const SIDEBAR_WIDTH_MIN = 240;
 export const SIDEBAR_WIDTH_MAX = 480;
 
@@ -38,6 +42,7 @@ export const SettingsSchema = z.object({
   qrButton: z.boolean().default(true),
   sidebarWidth: z.number().min(SIDEBAR_WIDTH_MIN).max(SIDEBAR_WIDTH_MAX).default(300),
   featureFlags: z.record(z.string(), z.boolean()).default({}),
+  overlayPosition: OverlayPositionSchema.default({ ...DEFAULT_OVERLAY_POSITION }),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
@@ -47,6 +52,7 @@ export const DEFAULT_SETTINGS: Settings = {
   qrButton: true,
   sidebarWidth: 300,
   featureFlags: {},
+  overlayPosition: { ...DEFAULT_OVERLAY_POSITION },
 };
 
 export type FeatureFlagDef = { label: string; description: string; default: boolean };
@@ -108,12 +114,20 @@ export function parseSettings(input: unknown): Settings {
   if (isObject(raw.featureFlags)) {
     for (const [k, v] of Object.entries(raw.featureFlags)) if (typeof v === "boolean") featureFlags[k] = v;
   }
+  const rawPos = isObject(raw.overlayPosition) ? raw.overlayPosition : {};
+  const horizontal = OverlayPositionSchema.shape.horizontal.safeParse(rawPos.horizontal);
+  const vertical = OverlayPositionSchema.shape.vertical.safeParse(rawPos.vertical);
+  const overlayPosition: OverlayPosition = {
+    horizontal: horizontal.success ? horizontal.data : DEFAULT_OVERLAY_POSITION.horizontal,
+    vertical: vertical.success ? vertical.data : DEFAULT_OVERLAY_POSITION.vertical,
+  };
   return {
     urls,
     uiSize: uiSize.success ? uiSize.data : DEFAULT_SETTINGS.uiSize,
     qrButton: typeof raw.qrButton === "boolean" ? raw.qrButton : DEFAULT_SETTINGS.qrButton,
     sidebarWidth,
     featureFlags,
+    overlayPosition,
   };
 }
 

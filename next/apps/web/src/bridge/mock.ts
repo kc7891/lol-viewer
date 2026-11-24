@@ -126,6 +126,6 @@ export type StaticBridgeOptions = {
 export function staticBridge(state: MatchState, opts: StaticBridgeOptions = {}): LolViewerBridge {
   const lcu = opts.lcu === true ? { reconnect() {}, resync() {} } : opts.lcu;
   const live = opts.live === true ? { setEnabled() {} } : opts.live;
-  const overlay = opts.overlay === true ? { setEnabled() {}, setRows() {} } : opts.overlay;
+  const overlay = opts.overlay === true ? { setEnabled() {}, setRows() {}, setPosition() {} } : opts.overlay;
   return { kind: "mock", onState: (cb) => (cb(state), () => {}), ...(lcu ? { lcu } : {}), ...(live ? { live } : {}), ...(overlay ? { overlay } : {}), ...(opts.app ? { app: opts.app } : {}), ...(opts.updates ? { updates: opts.updates } : {}) };
 }
