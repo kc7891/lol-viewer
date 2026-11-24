@@ -172,7 +172,10 @@ describe("overlay gate (key source throws)", () => {
 });
 
 describe("overlayBounds", () => {
-  it("top-center of the game window, 8% from its top", () => {
-    expect(overlayBounds({ x: 100, y: 50, width: 1920, height: 1080 })).toEqual({ x: 100 + 780, y: 50 + 86, width: 360, height: 204 });
+  it("bottom-left of the game window, 20 from its left and bottom edges", () => {
+    expect(overlayBounds({ x: 100, y: 50, width: 1920, height: 1080 })).toEqual({ x: 120, y: 50 + 1080 - 204 - 20, width: 360, height: 204 });
+  });
+  it("never above the window when it is shorter than the table", () => {
+    expect(overlayBounds({ x: 0, y: 30, width: 400, height: 150 })).toEqual({ x: 20, y: 30, width: 360, height: 204 });
   });
 });

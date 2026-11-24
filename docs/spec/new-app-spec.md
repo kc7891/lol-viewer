@@ -256,7 +256,7 @@ MatchState が届くたびに、次の順に処理する。
 
 ### 3.7 ゲーム内オーバーレイ（M-034、Feature Flag `inGameOverlay`）
 
-設計は [ingame-overlay-design.md](./ingame-overlay-design.md)。試合中、LoL のゲームのウィンドウが前面にあり **Tab を押している間だけ**、ゲームの上端中央（上から 8%）にレーンごとのアイテムゴールド差の表を重ねる。
+設計は [ingame-overlay-design.md](./ingame-overlay-design.md)。試合中、LoL のゲームのウィンドウが前面にあり **Tab を押している間だけ**、ゲームのウィンドウの左下（左端と下端から 20px。M-035）にレーンごとのアイテムゴールド差の表を重ねる。LoL のチャット欄と重なるが、Tab を押している間だけなので許容する。
 - **前提**: `liveClientData` が ON、フラグ `inGameOverlay` が ON、Windows。LoL の Window Mode はボーダーレスかウィンドウ（フルスクリーンでは見えない）。位置は Tab を押した瞬間のゲームのウィンドウから決める（ウィンドウモードでも同じ）。表示したままゲームのウィンドウを動かしても追従せず、押し直すと新しい位置に出る。
 - **表**: 5 レーンの行（味方アイコン、レベル、差、レベル、敵アイコン）と `TEAM` 行（両チームの合計と差）。値と色はサイドバーの Matchup と同じ（`rowLiveDiffOf` / `teamLiveDiffOf`）。並びはメインウィンドウの対面表（補正とユーザーの入れ替えの後）。試合中のデータが無ければ何も描かない。
 - **ウィンドウ**: 透明、枠なし、フォーカスを取らない、タスクバーに出ない、最前面（`screen-saver`）、クリック透過。ゲームが始まって有効なとき隠したまま作り、終わるか無効になったら閉じる。`showInactive()` だけで出す。ナビゲーションと `window.open` は止める。専用の preload（`overlay-preload.ts`）は受信だけ（`onState`、`onRows`）。

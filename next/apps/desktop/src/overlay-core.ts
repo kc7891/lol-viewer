@@ -6,8 +6,8 @@
 export const OVERLAY_POLL_MS = 50;
 /** Content size of the overlay window in CSS pixels (same numbers as apps/web/src/overlay/OverlayTable.tsx). */
 export const OVERLAY_SIZE = { width: 360, height: 204 } as const;
-/** The table sits this far down from the top of the game window, as a share of its height. */
-export const OVERLAY_TOP_RATIO = 0.08;
+/** Gap between the table and the game window's left and bottom edges, in DIPs (M-035). */
+export const OVERLAY_EDGE_MARGIN = 20;
 
 export type Rect = { x: number; y: number; width: number; height: number };
 
@@ -121,11 +121,14 @@ export function createOverlayGate(deps: OverlayGateDeps): OverlayGate {
   };
 }
 
-/** Top-center of the game window, OVERLAY_TOP_RATIO from its top. `game` is in DIPs (the caller converts). */
+/**
+ * Bottom-left of the game window, OVERLAY_EDGE_MARGIN from its left and bottom edges (M-035).
+ * Never above or left of the window when it is smaller than the table. `game` is in DIPs (the caller converts).
+ */
 export function overlayBounds(game: Rect, size: { width: number; height: number } = OVERLAY_SIZE): Rect {
   return {
-    x: Math.round(game.x + (game.width - size.width) / 2),
-    y: Math.round(game.y + game.height * OVERLAY_TOP_RATIO),
+    x: Math.round(game.x + OVERLAY_EDGE_MARGIN),
+    y: Math.round(Math.max(game.y, game.y + game.height - size.height - OVERLAY_EDGE_MARGIN)),
     width: size.width,
     height: size.height,
   };
