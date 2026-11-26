@@ -14,7 +14,7 @@
 }
 .ov-row {
   display: grid;
-  grid-template-columns: 38px 28px 26px minmax(0, 1fr) 26px 28px;
+  grid-template-columns: 38px 28px 44px minmax(0, 1fr) 44px 28px;
   align-items: center;
   height: 30px;
   gap: 4px;
@@ -37,10 +37,26 @@
   background: var(--bg-3);
   opacity: 0.6;
 }
-.ov-level {
-  font-size: 12px;
-  color: var(--text-2);
-  text-align: center;
+.ov-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.ov-stat.enemy {
+  align-items: flex-end;
+  text-align: right;
+}
+.ov-stat-gold {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--text-1);
+}
+.ov-stat-lvl {
+  font-size: 10px;
+  line-height: 1.15;
+  color: var(--text-3);
 }
 .ov-gold {
   text-align: center;

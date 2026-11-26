@@ -36,7 +36,7 @@ describe("parseSettings", () => {
   });
 
   it("keeps good values", () => {
-    const s = { urls: { ...DEFAULT_URL_TEMPLATES, build: "https://x.test/{name}" }, uiSize: "large", qrButton: false, sidebarWidth: 400, featureFlags: { a: true } };
+    const s = { urls: { ...DEFAULT_URL_TEMPLATES, build: "https://x.test/{name}" }, uiSize: "large", qrButton: false, sidebarWidth: 400, featureFlags: { a: true }, overlayPosition: { horizontal: "right", vertical: "top" } };
     expect(parseSettings(s)).toEqual(s);
   });
 
@@ -47,6 +47,7 @@ describe("parseSettings", () => {
       qrButton: "yes",
       sidebarWidth: "wide",
       featureFlags: { ok: true, bad: 1 },
+      overlayPosition: { horizontal: "middle", vertical: "top" },
       unknown: 1,
     });
     expect(s).toEqual({
@@ -55,7 +56,17 @@ describe("parseSettings", () => {
       qrButton: true,
       sidebarWidth: 300,
       featureFlags: { ok: true },
+      overlayPosition: { horizontal: "left", vertical: "top" },
     });
+  });
+
+  it("overlayPosition: default is bottom-left; each field falls back on its own", () => {
+    expect(DEFAULT_SETTINGS.overlayPosition).toEqual({ horizontal: "left", vertical: "bottom" });
+    expect(parseSettings({ overlayPosition: "top" }).overlayPosition).toEqual(DEFAULT_SETTINGS.overlayPosition);
+    expect(parseSettings({ overlayPosition: null }).overlayPosition).toEqual(DEFAULT_SETTINGS.overlayPosition);
+    expect(parseSettings({ overlayPosition: { horizontal: "center" } }).overlayPosition).toEqual({ horizontal: "center", vertical: "bottom" });
+    expect(parseSettings({ overlayPosition: { horizontal: 3, vertical: "top" } }).overlayPosition).toEqual({ horizontal: "left", vertical: "top" });
+    expect(parseSettings({ overlayPosition: { horizontal: "right", vertical: "middle" } }).overlayPosition).toEqual({ horizontal: "right", vertical: "bottom" });
   });
 
   it.each([

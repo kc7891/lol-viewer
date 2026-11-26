@@ -21,10 +21,10 @@ import { app, BrowserWindow, ipcMain, Menu, screen, shell } from "electron";
 import { toLcuEvent } from "@lol-viewer/core";
 import { Hub, startHubServer } from "@lol-viewer/hub";
 import { startLcuConnector, startLiveClientPoller } from "@lol-viewer/lcu";
-import { OverlayRowsSchema, ViewCommandSchema, type OverlayRows } from "@lol-viewer/protocol";
+import { OverlayPositionSchema, OverlayRowsSchema, ViewCommandSchema, type OverlayPosition, type OverlayRows } from "@lol-viewer/protocol";
 import { ExternalViewManager } from "./external-views.ts";
 import { createLiveGate, LIVE_POLL_MS } from "./live-core.ts";
-import { createOverlayGate, overlayBounds, OVERLAY_SIZE } from "./overlay-core.ts";
+import { createOverlayGate, DEFAULT_OVERLAY_POSITION, overlayBounds, OVERLAY_SIZE } from "./overlay-core.ts";
 import { createKeySource } from "./win-keys.ts";
 import { RecordingController } from "./recording.ts";
 import { createUpdater } from "./updater.ts";
@@ -162,6 +162,8 @@ if (gotLock) void app.whenReady().then(async () => {
   // M-034: in-game overlay. A transparent, click-through window that never takes focus, shown only while Tab is held.
   let overlayWin: BrowserWindow | null = null;
   let overlayRows: OverlayRows | null = null;
+  let overlayPosition: OverlayPosition = DEFAULT_OVERLAY_POSITION; // M-036
+  let lastGameRect: Electron.Rectangle | null = null; // what show() last placed the overlay on
   const sendToOverlay = (channel: string, payload: unknown) => {
     if (overlayWin && !overlayWin.isDestroyed()) overlayWin.webContents.send(channel, payload);
   };
@@ -226,7 +228,8 @@ if (gotLock) void app.whenReady().then(async () => {
       } catch (err) {
         log.warn("overlay", "game window bounds not available", String(err));
       }
-      overlayWin.setBounds(overlayBounds(game));
+      lastGameRect = game;
+      overlayWin.setBounds(overlayBounds(game, overlayPosition));
       overlayWin.setAlwaysOnTop(true, "screen-saver");
       overlayWin.showInactive(); // never show(): that takes focus from the game
     },
@@ -250,6 +253,16 @@ if (gotLock) void app.whenReady().then(async () => {
     if (!rows.success) return void log.warn("overlay", "rejected rows", rows.error.issues[0]?.message);
     overlayRows = rows.data;
     sendToOverlay("overlay:rows", rows.data);
+  });
+  ipcMain.on("overlay:set-position", (e, raw: unknown) => {
+    if (!fromApp(e)) return;
+    const pos = OverlayPositionSchema.safeParse(raw);
+    if (!pos.success) return void log.warn("overlay", "rejected position", pos.error.issues[0]?.message);
+    overlayPosition = pos.data;
+    // Visible now: move it at once (no showInactive again).
+    if (overlay.visible && overlayWin && !overlayWin.isDestroyed()) {
+      overlayWin.setBounds(overlayBounds(lastGameRect ?? screen.getPrimaryDisplay().workArea, overlayPosition));
+    }
   });
   win.on("closed", () => overlay.dispose()); // the overlay window must not keep the app alive
   ipcMain.on("lcu:reconnect", (e) => {

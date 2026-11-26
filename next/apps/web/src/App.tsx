@@ -58,6 +58,11 @@ export function App({
   useEffect(() => {
     bridge.overlay?.setEnabled(overlayOn);
   }, [bridge, overlayOn]);
+  // M-036: where the overlay sits; sent when it turns on and whenever the choice changes.
+  const { horizontal: overlayH, vertical: overlayV } = settings.overlayPosition;
+  useEffect(() => {
+    if (overlayOn) bridge.overlay?.setPosition({ horizontal: overlayH, vertical: overlayV });
+  }, [bridge, overlayOn, overlayH, overlayV]);
   const updateStatus = useUpdateStatus();
   const updateDot = updateAvailable ?? (updateStatus?.state === "available" || updateStatus?.state === "downloaded");
   const [ws, dispatch] = useWorkspace(match, initialWs);

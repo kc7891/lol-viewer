@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type Dispatch } from "react";
+import { Fragment, useEffect, useRef, useState, type Dispatch } from "react";
 import {
   DEFAULT_URL_TEMPLATES,
   FEATURE_FLAGS,
@@ -19,7 +19,7 @@ import {
   type Workspace,
   type WorkspaceAction,
 } from "@lol-viewer/core";
-import { LANES, type ConnectionStatus, type UpdateStatus } from "@lol-viewer/protocol";
+import { LANES, type ConnectionStatus, type OverlayPosition, type UpdateStatus } from "@lol-viewer/protocol";
 import { useBridge, useUpdateStatus } from "../bridge/context.tsx";
 import { useSettings } from "../state/settings.tsx";
 import type { ToastKind } from "../state/toasts.tsx";
@@ -202,6 +202,40 @@ function usePlatform(): string | null | undefined {
   return platform;
 }
 
+const OVERLAY_HORIZONTAL = ["left", "center", "right"] as const;
+const OVERLAY_VERTICAL = ["top", "bottom"] as const;
+
+/** M-036: a small 16:9 screen with a 3x2 grid of radio buttons, one per overlay position. */
+function OverlayPositionPicker({ value, disabled, onChange }: { value: OverlayPosition; disabled: boolean; onChange: (p: OverlayPosition) => void }) {
+  return (
+    <div className="setting-row flag-row overlay-pos-row">
+      <div className="flag-text">
+        <span className="setting-label">Overlay position</span>
+        <span className="hint">Where the table appears over the game window. Top center covers the game's timer and score; bottom left covers the chat.</span>
+      </div>
+      <div className="overlay-pos" role="radiogroup" aria-label="Overlay position" data-disabled={disabled || undefined}>
+        {OVERLAY_VERTICAL.flatMap((vertical) =>
+          OVERLAY_HORIZONTAL.map((horizontal) => {
+            const checked = value.horizontal === horizontal && value.vertical === vertical;
+            return (
+              <label key={`${vertical}-${horizontal}`} className={`overlay-pos-cell${checked ? " on" : ""}`}>
+                <input
+                  type="radio"
+                  name="overlay-position"
+                  aria-label={`${vertical === "top" ? "Top" : "Bottom"} ${horizontal}`}
+                  checked={checked}
+                  disabled={disabled}
+                  onChange={() => onChange({ horizontal, vertical })}
+                />
+              </label>
+            );
+          }),
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function FeatureFlagsCard({ notify }: { notify: (text: string, kind?: ToastKind) => void }) {
   const { settings, update } = useSettings();
   const desktop = useBridge().live != null;
@@ -220,39 +254,42 @@ export function FeatureFlagsCard({ notify }: { notify: (text: string, kind?: Toa
         const on = isFeatureOn(settings, k) && !blocked;
         const windowsOnly = needsLive && platform !== undefined && platform !== "win32";
         return (
-          <div className="setting-row flag-row" key={k}>
-            <div className="flag-text">
-              <label className="setting-label" htmlFor={`flag-${k}`}>
-                {def.label}
-              </label>
-              <span className="hint" id={`flag-${k}-desc`}>
-                {def.description}
-              </span>
-              {blocked && (
-                <span className="hint flag-note" data-testid={`flag-${k}-requires`}>
-                  Requires Live game data
+          <Fragment key={k}>
+            <div className="setting-row flag-row">
+              <div className="flag-text">
+                <label className="setting-label" htmlFor={`flag-${k}`}>
+                  {def.label}
+                </label>
+                <span className="hint" id={`flag-${k}-desc`}>
+                  {def.description}
                 </span>
-              )}
-              {windowsOnly && (
-                <span className="hint flag-note" data-testid={`flag-${k}-windows-only`}>
-                  Windows only
-                </span>
-              )}
+                {blocked && (
+                  <span className="hint flag-note" data-testid={`flag-${k}-requires`}>
+                    Requires Live game data
+                  </span>
+                )}
+                {windowsOnly && (
+                  <span className="hint flag-note" data-testid={`flag-${k}-windows-only`}>
+                    Windows only
+                  </span>
+                )}
+              </div>
+              <input
+                id={`flag-${k}`}
+                type="checkbox"
+                role="switch"
+                className="switch"
+                checked={on}
+                disabled={blocked}
+                aria-describedby={`flag-${k}-desc`}
+                onChange={(e) => {
+                  update({ featureFlags: { ...settings.featureFlags, [k]: e.target.checked } });
+                  notify(`${def.label}: ${e.target.checked ? "on" : "off"}.`, "success");
+                }}
+              />
             </div>
-            <input
-              id={`flag-${k}`}
-              type="checkbox"
-              role="switch"
-              className="switch"
-              checked={on}
-              disabled={blocked}
-              aria-describedby={`flag-${k}-desc`}
-              onChange={(e) => {
-                update({ featureFlags: { ...settings.featureFlags, [k]: e.target.checked } });
-                notify(`${def.label}: ${e.target.checked ? "on" : "off"}.`, "success");
-              }}
-            />
-          </div>
+            {needsLive && <OverlayPositionPicker disabled={!on} value={settings.overlayPosition} onChange={(overlayPosition) => update({ overlayPosition })} />}
+          </Fragment>
         );
       })}
       {!desktop && <p className="desc muted">Live game data is read by the desktop app.</p>}

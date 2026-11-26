@@ -54,7 +54,7 @@
 - `transparent: true` のウィンドウの透明な部分は、`setIgnoreMouseEvents(true)` を付けないとクリックを吸う。今回は全体をクリック透過にするので問題ない。
 - `alwaysOnTop` のレベルは `"screen-saver"` にする（通常のレベルだとゲームの下に回ることがある）。
 - `show()` はフォーカスを奪う。**必ず `showInactive()` を使い、`focusable: false` にする**。フォーカスを奪うとゲームが入力を受けなくなり、ボーダーレスでもゲームが最小化されることがある。
-- Discord のオーバーレイも「ボーダーレス / ウィンドウでは出るが、本当のフルスクリーンでは出ない」と案内している。同じ制約を受け入れ、Settings に「LoL の Window Mode を Borderless にしてください」と書く。
+- Discord のオーバーレイも「ボーダーレス / ウィンドウでは出るが、本当のフルスクリーンでは出ない」と案内している。同じ制約を受け入れ、Settings に「LoL の Window Mode を Windowed か Borderless にしてください」と書く。
 
 ### 3.2 Tab の検知
 
@@ -187,7 +187,7 @@ inGameOverlay: {
   label: "In-game overlay (hold Tab)",
   description:
     "While you hold Tab in a game, show the matchup's item gold differences over the game window. " +
-    "Needs Live game data, Windows, and League's Window Mode set to Borderless (not shown over Full Screen). " +
+    "Needs Live game data, Windows, and League's Window Mode set to Windowed or Borderless (not shown over Full Screen). " +
     "Off: the key is never read.",
   default: false,
 },
@@ -198,6 +198,7 @@ inGameOverlay: {
 ## 5. 見た目
 
 ### 5.1 表
+- **改訂（M-037）: 各行の両側に、アイコンの隣へアイテムゴールド（上）とレベル（下）の 2 行を出す。表の大きさは 400 × 204 CSS px。** 以下の図と 360px は当初の案。
 ```
 ┌──────────────────────────────────┐
 │ TOP  [Garen] 11   +150   10 [Pantheon] │
@@ -214,8 +215,10 @@ inGameOverlay: {
 - 差が無い行は `vs`、試合中のデータが無ければオーバーレイは出さない（`live` が null）。
 
 ### 5.2 位置
-- 既定: ゲームのウィンドウの**上端中央、上から 8%**（LoL の Tab スコアボードは画面中央にあり、上端中央は試合時間・キル数の表示のすぐ下）。**実機でスコアボードと重ならないか確認し、重なるなら左上（味方の顔の右）に移す**（§11）。
-- 大きさ: 幅 360px 程度（CSS ピクセル。DPI は Electron に任せる）。高さは中身に合わせ、`win.setContentSize` で決める。
+- **改訂（M-035）: 持ち主の要望で、ゲームのウィンドウの左下、左端と下端から 20px に移した。** 以下は当初の案。
+- **改訂（M-036）: 固定の位置をやめ、Settings で左 / 中央 / 右 × 上 / 下の 6 か所から選べるようにした（既定は左下、端から 20px）。** `overlayBounds(game, pos)` が計算し、IPC `overlay:set-position` で main に渡す。
+- 当初の既定: ゲームのウィンドウの**上端中央、上から 8%**（LoL の Tab スコアボードは画面中央にあり、上端中央は試合時間・キル数の表示のすぐ下）。**実機でスコアボードと重ならないか確認し、重なるなら左上（味方の顔の右）に移す**（§11）。
+- 大きさ（M-037 で幅 400px に変更）: 幅 360px 程度（CSS ピクセル。DPI は Electron に任せる）。高さは中身に合わせ、`win.setContentSize` で決める。
 
 ---
 
@@ -299,7 +302,7 @@ inGameOverlay: {
 
 - **`koffi` は 3.3.5**（2026-10-28 公開）に固定し、`apps/desktop` の `dependencies` に足した。3.x は OS ごとのバイナリを `@koromix/koffi-*`（optionalDependencies）で配る。electron-builder は pnpm でインストールした OS 用のバイナリだけを同梱するので、Windows 用は Windows 上でインストールしたとき（Windows CI）に入る。`electron-builder.yml` は `koffi` と `@koromix` を `asarUnpack` する。Linux では `electron-builder --linux dir` で同梱とアンパックを確認した。Windows のパッケージは未確認。
 - **`OverlayGateDeps`**: `keys` を値ではなく `getKeys()`（最初に必要になったとき 1 回だけ呼ぶ）にした。フラグ OFF や Windows 以外で `koffi` を読まないため。ウィンドウの作成と破棄も同じゲートの `open()` / `close()` にして、単体テストで確かめられるようにした。`KeySource` には省略可能な `gameRect()` を足した（`GetWindowRect`、物理ピクセル。main が DIP に直す）。
-- **高さ**: `win.setContentSize` で中身に合わせる代わりに、表を固定サイズ（360 × 204 CSS px）にして main と renderer で同じ数字を持つ。オーバーレイ側から main へ送る手段を持たせないため。
+- **高さ**: `win.setContentSize` で中身に合わせる代わりに、表を固定サイズ（当初 360 × 204、M-037 で 400 × 204 CSS px）にして main と renderer で同じ数字を持つ。オーバーレイ側から main へ送る手段を持たせないため。
 - **IPC の初回送信**: `hub:get` の invoke は使わず、main がオーバーレイの読み込み完了時と、以後の変化ごとに `hub:state` / `overlay:rows` を送る。preload が最後の値を覚えるので、ページが遅れて購読しても受け取れる。
 - **Settings**: オーバーレイの switch は `liveClientData` が OFF の間は OFF 表示で無効にする（保存された値は残る）。「Windows only」の注記は `app.info().platform` が `win32` 以外、またはデスクトップ版でないときに出す。
 - **プロトコル**: `OverlayControlApi`、`OverlayRowsSchema`、`LolOverlayBridge` を `packages/protocol` に足した。

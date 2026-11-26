@@ -57,9 +57,13 @@ export const FeatureFlagsLiveOn: Story = {
     </Wrap>
   ),
 };
+/** Both flags on, Top right selected (M-036); with the flags off the position picker is disabled (see FeatureFlags). */
 export const FeatureFlagsOn: Story = {
   render: () => (
-    <Wrap options={{ live: true, overlay: true, app: win }} settings={{ ...DEFAULT_SETTINGS, featureFlags: { liveClientData: true, inGameOverlay: true } }}>
+    <Wrap
+      options={{ live: true, overlay: true, app: win }}
+      settings={{ ...DEFAULT_SETTINGS, featureFlags: { liveClientData: true, inGameOverlay: true }, overlayPosition: { horizontal: "right", vertical: "top" } }}
+    >
       <FeatureFlagsCard notify={() => {}} />
     </Wrap>
   ),
