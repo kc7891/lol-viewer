@@ -380,6 +380,8 @@ SUP  Erin    G4          SUP  Judy    S2
 
 ## 参考
 - LCU の一般的な説明: https://riot-api-libraries.readthedocs.io/en/latest/lcu.html 、https://hextechdocs.dev/lcu-the-league-client/
-- LCU API のコミュニティ資料: https://github.com/KebsCS/lcu-and-riotclient-api
+- LCU API のコミュニティ資料: https://github.com/KebsCS/lcu-and-riotclient-api （最新の一覧は lcu.kebs.dev とされる。未確認）
+- LCU の OpenAPI の定義（コミュニティ）: https://www.mingweisamuel.com/lcu-schema/lcu/openapi.json （§3.8・§3.9・§3.11 の API はここから。一部は要約で読んだので実機で確認）
+- Riot の公開 API の上限の参考: https://medium.com/the-esports-analyst-club-by-itero-gaming/becoming-a-lol-analyst-an-introduction-to-using-the-riot-api-bb145ec8eb50
 - OP.GG 公式 MCP サーバー: https://mcpservers.org/servers/opgginc/opgg-mcp
 - Riot 開発者ポリシー（自動取得不可、未確認）: https://support-developer.riotgames.com/hc/en-us/articles/22698698001939-League-of-Legends
