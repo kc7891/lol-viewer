@@ -1469,6 +1469,49 @@ code {
 .debug-result.bad {
   color: var(--warn);
 }
+.probe-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.7rem;
+}
+.probe-row .field {
+  flex: 1;
+  min-width: 12rem;
+}
+.probe-row .hint {
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--text-3);
+}
+.probe-row .hint.error {
+  color: var(--danger);
+  font-weight: 600;
+}
+.probe-check {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2rem;
+}
+.probe-report {
+  display: block;
+  width: 100%;
+  height: 16rem;
+  margin-bottom: 0.7rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--bg-0);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--text-1);
+  white-space: pre;
+  overflow: auto;
+  resize: vertical;
+}
 .recorder-row {
   display: flex;
   align-items: center;

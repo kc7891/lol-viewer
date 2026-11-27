@@ -346,7 +346,101 @@ export interface LcuControlApi {
   reconnect(): void;
   /** Matchup "Refresh": re-read every subscribed path (GET) and dispatch it again. */
   resync(): void;
+  /** Settings "LCU check" (M-039): GET the probe routes once each; the text holds no names or IDs. Desktop only. */
+  probe?(opts: LcuProbeOptions): Promise<LcuProbeResult>;
+  /** Progress of a running probe (steps done / total). */
+  onProbeProgress?(cb: (p: LcuProbeProgress) => void): () => void;
 }
+
+// ── LCU check (Settings; M-039) ──
+
+/** GET-only routes the LCU check may read. The path templates live in packages/lcu (PROBE_ROUTES). */
+export const PROBE_ROUTE_IDS = [
+  "currentSummoner",
+  "lobby",
+  "friendGroups",
+  "friendGroupFriends",
+  "friends",
+  "rankedStats",
+  "rankedStatsBatch",
+  "matches",
+  "game",
+  "recentlyPlayed",
+  "summonerByName",
+  "summonerByPuuid",
+  "summonerByPuuidCached",
+] as const;
+export type ProbeRouteId = (typeof PROBE_ROUTE_IDS)[number];
+
+/** How a list of PUUIDs is put into the query string (the LCU's real format is not known; the check tries all three). */
+export type ProbeListStyle = "json" | "comma" | "repeat";
+export type ProbeQueryValue = string | number | { list: string[]; style: ProbeListStyle };
+export type ProbeBuildArgs = { params?: Record<string, string | number>; query?: Record<string, ProbeQueryValue> };
+
+/** Result of one probe GET. status 0 = no HTTP response (see error). */
+export type ProbeResponse = {
+  status: number;
+  ms: number;
+  body: unknown | null;
+  error?: "timeout" | "network" | "bad-json";
+  /** The response had a Retry-After header (rate test). */
+  retryAfter?: boolean;
+};
+
+/** PUUID as the LCU sends it (78 chars of [A-Za-z0-9_-]); fake scenarios use `player-<n>`. */
+export const PROBE_PUUID_RE = /^[A-Za-z0-9_-]{1,100}$/;
+
+/** `name#tag`: name 1-32 chars, tag 1-8 chars, exactly one `#`, no control characters. */
+export function isValidRiotId(s: string): boolean {
+  if (/[\u0000-\u001f\u007f]/.test(s)) return false;
+  const parts = s.split("#");
+  if (parts.length !== 2) return false;
+  const [name, tag] = parts as [string, string];
+  return name.length >= 1 && name.length <= 32 && tag.length >= 1 && tag.length <= 8;
+}
+
+export const LcuProbeOptionsSchema = z.object({
+  riotId: z
+    .string()
+    .max(48)
+    .refine((s) => s === "" || isValidRiotId(s), "invalid Riot ID")
+    .optional(),
+  rateTest: z.boolean().default(false),
+});
+export type LcuProbeOptions = z.input<typeof LcuProbeOptionsSchema>;
+
+export type ProbeFactValue = string | number | boolean;
+export type ProbeStep = {
+  n: number;
+  name: string;
+  route: ProbeRouteId;
+  status: number | "skipped";
+  ms: number;
+  /** Fixed wording only (a skip reason, "not in a lobby"); never a value from the client. */
+  note?: string;
+  /** Structure of the JSON (keys and types, no personal values). */
+  shape?: string;
+  /** Counts, yes/no and allow-listed values. */
+  facts?: Record<string, ProbeFactValue>;
+};
+export type ProbeRate = {
+  requests: number;
+  /** HTTP status (or "err") -> how many. */
+  statusCounts: Record<string, number>;
+  minMs: number;
+  medianMs: number;
+  maxMs: number;
+  retryAfter: boolean;
+};
+export type LcuProbeReport = {
+  startedAt: string;
+  appVersion: string;
+  platform: string;
+  steps: ProbeStep[];
+  rate?: ProbeRate;
+};
+export type LcuProbeProgress = { done: number; total: number };
+export type LcuProbeResult = { text: string; report: LcuProbeReport };
 
 export const AppInfoSchema = z.object({
   version: z.string(),

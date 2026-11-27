@@ -19,7 +19,7 @@ import {
   type Workspace,
   type WorkspaceAction,
 } from "@lol-viewer/core";
-import { LANES, type ConnectionStatus, type OverlayPosition, type UpdateStatus } from "@lol-viewer/protocol";
+import { isValidRiotId, LANES, type ConnectionStatus, type OverlayPosition, type UpdateStatus } from "@lol-viewer/protocol";
 import { useBridge, useUpdateStatus } from "../bridge/context.tsx";
 import { useSettings } from "../state/settings.tsx";
 import type { ToastKind } from "../state/toasts.tsx";
@@ -468,6 +468,115 @@ export function DebugCard({
   );
 }
 
+export type LcuCheckCardProps = {
+  connection: ConnectionStatus;
+  /** Stories: start mid-run or with a finished report. */
+  initial?: { running?: { done: number; total: number }; text?: string };
+};
+
+/** Settings > LCU check (M-039): GET the planned League Client routes once each and show a report with no names or IDs. */
+export function LcuCheckCard({ connection, initial }: LcuCheckCardProps) {
+  const lcu = useBridge().lcu;
+  const probe = lcu?.probe;
+  const [riotId, setRiotId] = useState("");
+  const [rateTest, setRateTest] = useState(false);
+  const [running, setRunning] = useState<{ done: number; total: number } | null>(initial?.running ?? null);
+  const [text, setText] = useState<string | null>(initial?.text ?? null);
+  const [error, setError] = useState<string | null>(null);
+  const [copy, setCopy] = useState<"copied" | "manual" | null>(null);
+  const reportRef = useRef<HTMLTextAreaElement>(null);
+  const riotIdBad = riotId.trim() !== "" && !isValidRiotId(riotId.trim());
+  const connected = connection === "connected";
+
+  useEffect(() => {
+    if (!running || !lcu?.onProbeProgress) return;
+    return lcu.onProbeProgress(setRunning);
+  }, [lcu, running !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const run = async () => {
+    if (!probe) return;
+    setRunning({ done: 0, total: rateTest ? 21 : 20 });
+    setError(null);
+    setCopy(null);
+    try {
+      const r = await probe({ riotId: riotId.trim() || undefined, rateTest });
+      setText(r.text);
+    } catch {
+      setError("The check failed. Try again.");
+    } finally {
+      setRunning(null);
+    }
+  };
+  const copyReport = async () => {
+    if (text == null) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopy("copied");
+    } catch {
+      reportRef.current?.select();
+      setCopy("manual");
+    }
+  };
+
+  return (
+    <section className="card" aria-label="LCU check">
+      <h2>LCU check</h2>
+      <p className="desc">
+        Reads the League Client APIs planned for the Teams feature, once each, and shows what came back. Names and IDs are never shown. Copy the report and paste it to the developer.
+      </p>
+      {!probe ? (
+        <p className="desc muted">Only available in the desktop app.</p>
+      ) : (
+        <>
+          <div className="probe-row">
+            <div className="field" data-invalid={riotIdBad || undefined}>
+              <label htmlFor="probe-riot-id">Riot ID to look up (optional)</label>
+              <input
+                id="probe-riot-id"
+                type="text"
+                placeholder="name#tag"
+                value={riotId}
+                disabled={running !== null}
+                aria-invalid={riotIdBad}
+                onChange={(e) => setRiotId(e.target.value)}
+              />
+            </div>
+            <label className="probe-check">
+              <input type="checkbox" checked={rateTest} disabled={running !== null} onChange={(e) => setRateTest(e.target.checked)} />
+              Rate test (40 extra requests)
+            </label>
+          </div>
+          <div className="probe-row">
+            <button type="button" className="btn primary" disabled={running !== null || riotIdBad || !connected} onClick={() => void run()}>
+              Run check
+            </button>
+            {running && (
+              <span role="status">
+                {running.done} / {running.total} …
+              </span>
+            )}
+            {!connected && !running && <span className="hint">Connect to the League Client first.</span>}
+            {riotIdBad && <span className="hint error">Use name#tag.</span>}
+            {error && <span className="hint error">{error}</span>}
+          </div>
+          {text != null && (
+            <>
+              <textarea ref={reportRef} className="probe-report" aria-label="LCU check report" readOnly spellCheck={false} value={text} />
+              <div className="probe-row">
+                <button type="button" className="btn" onClick={() => void copyReport()}>
+                  Copy report
+                </button>
+                {copy === "copied" && <span role="status">Copied.</span>}
+                {copy === "manual" && <span role="status">Press Ctrl+C to copy.</span>}
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
 export type SettingsPageProps = {
   connection: ConnectionStatus;
   ws: Workspace;
@@ -495,6 +604,7 @@ export function SettingsPage({ connection, ws, dispatch, notify, onUrlsSaved, fo
         <FeatureFlagsCard notify={notify} />
         <VersionCard />
         <DebugCard ws={ws} dispatch={dispatch} />
+        <LcuCheckCard connection={connection} />
         <RecorderSection recorder={bridge.recorder} />
       </div>
     </div>
