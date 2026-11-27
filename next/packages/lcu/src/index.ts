@@ -35,6 +35,7 @@ export const READ_ONLY_PATHS = [
   "/lol-gameflow/v1/session",
   "/lol-champ-select/v1/session",
   "/lol-summoner/v1/current-summoner",
+  "/lol-lobby/v2/lobby", // Teams (M-038): custom lobby members
 ] as const;
 export type ReadOnlyPath = (typeof READ_ONLY_PATHS)[number];
 
@@ -356,7 +357,7 @@ export class LcuClient {
     });
   }
 
-  /** GET a probe path (built by buildProbePath). Unlike get(), reports the status and time, and waits up to 10 s. */
+  /** GET a probe path (built by buildProbePath). Also used by Teams (M-038). Unlike get(), reports the status and time, and waits up to 10 s. */
   probe(path: string): Promise<ProbeResponse> {
     if (!isProbePath(path)) return Promise.reject(new Error("path not allowed for probe"));
     const { port, protocol } = this.#creds;
@@ -499,7 +500,7 @@ export type LcuConnector = {
   reconnect: () => void;
   /** While connected: GET every path and emit it through onEvent again. */
   resync: () => Promise<void>;
-  /** While connected: GET one probe path. Not connected -> { status: 0, ms: 0, body: null, error: "network" }. Rejects a path buildProbePath cannot produce. */
+  /** While connected: GET one probe path (Settings LCU check, M-039; Teams, M-038). Not connected -> { status: 0, ms: 0, body: null, error: "network" }. Rejects a path buildProbePath cannot produce. */
   probe: (path: string) => Promise<ProbeResponse>;
 };
 

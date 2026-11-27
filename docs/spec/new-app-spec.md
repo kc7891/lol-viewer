@@ -5,7 +5,7 @@
 - 根拠はコード（`next/packages/core`、`next/apps/web`、`next/apps/desktop`、`next/packages/lcu`）とテスト（`*.test.ts`、`next/e2e/*.spec.ts`）。設計書（[new-app-design.md](./new-app-design.md)）と実装が食い違うときは実装を書き、§9.2 に差異として挙げた。
 - 見た目（色、px、ボタンの文言、ツールチップ）は M-008 により仕様の対象外。ここに書く文言は、操作を説明するための目安。
 - §8 の移植チェック表が、旧インベントリ（v0.34.0 時点の `legacy-inventory/01`〜`04` 末尾のチェックリスト。削除済みで git のタグ v0.34.0 にある）の全項目との対応表。
-- 最終確認: 2026-11-23（試合中のゴールド差と対面表の補正、Feature Flag を反映。実機のゲームでは未確認、§9.1）。前回 2026-11-22（更新とリリースの実装を反映）。更新は Windows CI で確認済み（0.0.1 → 0.0.2、§7.3）。リリースの公開ジョブは main でしか動かないので未実行（§7.2）。
+- 最終確認: 2026-11-27（Teams タブを §2.5・§3.8 に追加。実機の League Client では未確認、§9.1）。前回 2026-11-23（試合中のゴールド差と対面表の補正、Feature Flag を反映。実機のゲームでは未確認、§9.1）。前回 2026-11-22（更新とリリースの実装を反映）。更新は Windows CI で確認済み（0.0.1 → 0.0.2、§7.3）。リリースの公開ジョブは main でしか動かないので未実行（§7.2）。
 
 ---
 
@@ -14,7 +14,7 @@
 League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ内で複数並べて表示するデスクトップアプリ（Windows 向け）。League Client（LCU）を読み取り専用で監視し、チャンピオンセレクトの進行に合わせて、自分のピックのページを自動で開き、対面表（Matchup）を作り、敵のピックを Counter ページの候補として並べる。
 
 - 技術: Electron + TypeScript + React。外部サイトは `WebContentsView`（ネイティブ。iframe は使わない）で表示する。
-- LCU への操作は GET と WAMP の購読だけ。書き込み系は持たない（`packages/lcu` の許可パスは 4 つ。§3）。試合中は、Feature Flag `liveClientData` が ON のときだけ、ゲームの Live Client Data API（127.0.0.1:2999）の `/liveclientdata/playerlist` を 2 秒ごとに GET する（M-025。§3.6）。
+- LCU への操作は GET と WAMP の購読だけ。書き込み系は持たない（`packages/lcu` の購読と再取得の許可パスは 5 つ。§3。Teams は GET 専用の `probe` も使う。§3.8）。試合中は、Feature Flag `liveClientData` が ON のときだけ、ゲームの Live Client Data API（127.0.0.1:2999）の `/liveclientdata/playerlist` を 2 秒ごとに GET する（M-025。§3.6）。
 - 起動直後のビューアは 0 枚。ビューア、対面表、保留中の敵ピックは保存しない（再起動で消える）。
 
 ### 1.1 画面構成
@@ -31,7 +31,7 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 └──────────────────────┴──────────────────────────────────────────────────┘
 ```
 
-- ページは 3 つ: **Viewers**（既定）、**Live Game**、**Settings**。Sidebar とペイン列があるのは Viewers だけ。
+- ページは 3 つ: **Viewers**（既定）、**Live Game**、**Settings**。Feature Flag `teamBalancer` が ON のときだけ **Teams**（Live Game と Settings の間。§2.5）が加わる。Sidebar とペイン列があるのは Viewers だけ。
 - Settings の `●` は「新しいバージョンあり（またはダウンロード済みで再起動待ち）」の印（§2.1、§7）。
 
 ### 1.2 状態の持ち方
@@ -40,7 +40,8 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 |---|---|---|---|
 | MatchState | main の hub | LCU が言っていることだけ（接続、フェーズ、`matchSeq`、キュー、ARAM か、自分のピック、味方と敵）。試合中のデータ（`live`: チャンピオン、味方/敵、レーン、レベル、推定ゴールド。名前なし。フラグ ON の試合中だけ） | しない |
 | Workspace | renderer の純粋 reducer（`core/workspace.ts`） | ビューア一覧、対面表 5 行、保留中の敵ピック | しない |
-| Settings | renderer の `localStorage` | URL テンプレート 5 つ、UI サイズ、QR ボタン、サイドバー幅、Feature Flag（`liveClientData`） | する（§5） |
+| Settings | renderer の `localStorage` | URL テンプレート 5 つ、UI サイズ、QR ボタン、サイドバー幅、Feature Flag、オーバーレイの位置、Teams の手動の設定（`teamPlayers`、`teams`） | する（§5） |
+| Teams の状態 | main の `TeamsController`（`teams-core.ts`） | カスタムロビーの 3 つの枠（PUUID）、取得済みの人（ランク・レーン・推定）、取得中、事前取得の進み具合。MatchState には入れない（PUUID を Hub の外に出さないため） | キャッシュだけ `team-cache.json`（§3.8） |
 
 ---
 
@@ -51,6 +52,7 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 | 操作 / 状況 | 結果 |
 |---|---|
 | `Viewers` / `Live Game` / `Settings` を押す | そのページに切り替える。選択中のタブは強調される |
+| `Teams`（Feature Flag `teamBalancer` が ON のときだけ） | `Live Game` と `Settings` の間に出る。OFF にするとタブが消え、Teams を開いていたら Viewers に戻る（§2.5） |
 | 右端の接続表示 | `Connecting…`（点が脈動）/ `Connected` / `Disconnected` を出す。押すと Settings ページを開き、League Client カードまでスクロールする |
 | フェーズ表示 | 接続中（`Connected`）のときだけ、接続表示の左に出す。`None`→Idle、`Lobby`→Lobby、`Matchmaking`、`ReadyCheck`→Ready check、`ChampSelect`→Champ Select、`GameStart`→Game starting、`InProgress`→In Game、`Reconnect`、`WaitingForStats`→Waiting for stats、`PreEndOfGame` と `EndOfGame`→Game over。それ以外は生の文字列 |
 | Settings の赤い点 | 更新の状態が `available`（新しい版あり）か `downloaded`（再起動待ち）のとき出る。状態は main の更新処理から届く（§7）。デスクトップ版以外（ブラウザ、Storybook）では出ない |
@@ -172,8 +174,27 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 | Record session | `Start recording` / `Stop` / `Open recordings folder`。LCU のイベントをファイルへ保存する（他のプレイヤーの名前と ID は伏せる）。記録中は経過時間とイベント数を表示。デスクトップ版だけ（PoC で追加した機能） |
 | LCU check | `Run check` で、チーム分け用に調べたい LCU の GET を決まった手順で 1 回ずつ投げ、ステータス・時間・JSON の形のレポートを出す（名前・PUUID・ID は出さない）。Riot ID の入力（任意）、`Rate test`（任意、40 回の追加要求）、`Copy report`。デスクトップ版だけ。M-039、[lcu-probe-design.md](./lcu-probe-design.md) |
 
-- Feature Flag の定義（`FEATURE_FLAGS`）が 1 つ以上あるときカードを出す。今は `liveClientData` と `inGameOverlay`。保存と既定値は `core/settings.ts`。
+- Feature Flag の定義（`FEATURE_FLAGS`）が 1 つ以上あるときカードを出す。今は `liveClientData`、`inGameOverlay`、`teamBalancer`（`Teams (custom match balancer)`。M-038）。保存と既定値は `core/settings.ts`。
 - 保存先と既定値は §5。
+
+### 2.5 Teams ページ（M-038、Feature Flag `teamBalancer`）
+
+設計は [team-balancer-design.md](./team-balancer-design.md)（企画）と [teams-implementation.md](./teams-implementation.md)（実装）。カスタムロビーの人を、ランク（未ランクは推定）と得意レーン、手動の設定からチーム分けし、Discord に貼る文字列を作る。画面の文言は英語、Discord の文字列だけ日本語。デスクトップ版だけ（ブラウザでは「only available in the desktop app」）。フラグを OFF のとき、タブも取得もキャッシュのファイルもない。
+
+| 領域 | 内容と操作 |
+|---|---|
+| ロビーの行 | `Custom lobby · N people`（カスタムロビーにいるとき）。いないとき `Not in a custom lobby. …` |
+| Players (n) / Bench (n) | 左の 2 つのカード。ロビーのチームの枠の人は Players、観戦枠の人は Bench（ボットは出ない）。↓ / ↑ で移す（このロビーの間だけ。保存しない）。ロビーを出ると、ロビー由来の振り分けは消える。保存済みから足した人（`Added`）は Players に入り、ロビーを出ても残る |
+| 行 | 名前と `#タグ`、ランクの札（`G2` / `S2 (Flex)` / `~G3`（推定）/ `G1 (prev)` / `M 120LP`、`—` は不明。ホバーで根拠: ソロ・フレックス・前シーズン・推定の人数と試合数・取得日・失敗の理由）、得意レーン（太字 = メイン、薄い = サブ、手動の設定は色が変わる）、🔒 に相当する鍵のアイコン（レーン固定）、取得中のスピナー、`old`（3〜14 日前のデータ）、`!`（直近の失敗）、⚙（手動の設定） |
+| 手動の設定（⚙） | `Locked lane`（必ず守る）、`Preferred lanes (up to 2)`（自動の推定より優先）、`Avoid lanes`（NG）、`Rank override`（tier と division。Master 以上は LP）。`settings.teamPlayers` に保存（PUUID ごと）。保存済みから足した人には `Remove from this list` |
+| Proposals | `Rank first` / `Lanes first`、`Proposal 1 / 3`、◀ ▶、`More`（次の 3 件。最後まで行くと最初に戻る）。青と赤の表（10 人はレーンごとの行、6・8 人は並べて `(MID)` のようにメインのレーン）。チーム名の横に平均ランク。2 人を順にクリックすると入れ替わり、点数を出し直す（`Reset swaps` で戻す）。差の行: `Rank diff 10 · max lane gap 320 · ⚠ 1 NG lane · 2 unknown ranks`。2 つの見方の 1 位が同じなら `Same top pick in both views` |
+| 人数・衝突 | Players が 6・8・10 人でないとき `Pick 6, 8 or 10 players (now 9).`。同じレーンへの固定が 3 人以上のとき `Too many players are locked to Jungle.` |
+| Copy for Discord | 今見ている案（入れ替え後を含む）の文字列をクリップボードへ（`navigator.clipboard`。失敗したらテキストを選択して `Press Ctrl+C to copy.`）。下に同じ文字列を常に出す。`Show ranks`（既定オン）、`Show #tag`（既定オフ）は `settings.teams` に保存。文字列は 2000 文字以内（超えたらランク、次に名前の幅を減らす） |
+| Prefetch | 折りたためる欄。ロビーにいないときは開いている。タブ: `Friends`（グループのドロップダウン、`Include me`、一覧のチェック、最後に選んだグループを覚える）/ `Recent`（最近一緒に遊んだ人、名前で検索）/ `Riot IDs`（複数行。`name#tag` でない行は赤。`Resolve` で引き、行ごとに Found / Not found / Could not look up）/ `Lobby` / `Saved (n)`。`Fetch stale & new`（既定。新しいデータは取らない）/ `Fetch all again` / `Cancel`、進み具合（`12 / 30 · ~3 min · 1 failed`）、LCU に制限されたとき `The League Client is limiting requests. Resuming in 45 s.`。`Clear all cached data` は 2 度押す（`Click again to clear`。ネイティブの確認は使わない）。1 回の `prefetch` は 60 人まで（それ以上は分けて送る） |
+| Saved | キャッシュにいる人の一覧（名前の検索、並べ替え: 名前・ランク・取得日）。行を開くと、ランク 3 種、推定の根拠（人数・試合数・範囲・試合ごとの行）、レーンの横棒、手動の設定、`Add to players` / `Refresh` / `Forget` |
+
+- 参加 / 控えの状態、提案の見方・ページ・入れ替えはこのページの state（保存しない）。提案が変わる入力（人、ランク、手動の設定）が変わると、最良の案からやり直す。
+- 実装: `apps/web/src/components/teams/`（`model.ts` に純粋な関数、`TeamsPage` / `PlayerRow` / `PlayerPrefs` / `ProposalPanel` / `PrefetchPanel` / `SavedList`）、`state/teams.ts`（`useTeamsState`）。
 
 ---
 
@@ -265,6 +286,18 @@ MatchState が届くたびに、次の順に処理する。
 - **IPC**: `overlay:set-enabled`（真偽）、`overlay:rows`（5 行の `{ally, enemy}`、zod で検証）。どちらも本体ウィンドウからだけ受ける。
 - **テスト用**: 環境変数 `LOL_OVERLAY_FAKE_KEYS=<ファイル>`（中身 `tab` / `none`）で、Windows の代わりにそのファイルを読む（前面判定は常に真）。
 
+### 3.8 Teams の取得（M-038、Feature Flag `teamBalancer`）
+
+ロビーとランクなどの取得は `apps/desktop/src/teams-core.ts`（Electron に依存しない `TeamsController`）と `teams.ts`（ファイルと IPC の配線）が行う。**フラグ OFF（既定）**: ロビーのイベントを捨て、LCU にランク・戦績・名前を一切要求せず、`team-cache.json` を読みも書きもしない。
+- **ロビー**: `/lol-lobby/v2/lobby`（`READ_ONLY_PATHS` に追加。購読と再取得に入る）を、`main.ts` が **TeamsController だけ**に渡す（MatchState と Hub には入れない。PUUID を Hub の WebSocket に出さないため）。`parseCustomLobby` が `gameConfig.isCustom` のときだけ、チームの枠 2 つと観戦枠から `isBot` と PUUID なしを除いて読む。切断したらロビーは「なし」に戻す。
+- **自動取得（持ち主の判断、2026-11-27）**: フラグ ON でカスタムロビーにいると、**Teams タブを開いていなくても**、ロビーの全員（観戦枠も）を `TeamFetcher.ensure(…, { priority: "lobby", mode: "stale" })` で取る（新しいキャッシュの人は飛ばす。ランクと戦績の一覧が先、未ランクの人の推定が後）。メンバーが変わったときだけ取り直す。フレンド・最近の人・Riot ID・保存済みは、人が `Prefetch` を押したときだけ。フラグを ON にした瞬間に既にロビーにいる場合は、`connector.resync()` でロビーを取り直す。
+- **取得**: すべて `connector.probe(buildProbePath(...))`（GET だけ。テンプレート検査つき。M-039）を `TeamFetcher` 経由で使う。速さの調整（初期 1 秒に 5 回、同時 2、429 / 503 で半分に下げて待つ、3 回続けたら 60 秒止める）と接続待ち（未接続の間は止まって待つ。接続の変化で `setConnected`）は core にある。
+- **キャッシュ** `app.getPath("userData")/team-cache.json`: フラグを ON にしたときに読み、期限切れを捨てる（`pruneCache`）。変化から 1 秒後にまとめて、一時ファイル → `rename` で書く。`Clear all cached data` で消す（そのとき、ロビーにいればその人たちをもう一度取る）。フラグを OFF にするときと終了前（`before-quit`）に、書いていない変更を書く。ログは件数と状態の変化だけ（PUUID・名前・ランクは書かない）。
+- **renderer へ**: `teams:state`（変化から 200ms 以内にまとめて push）。`TeamsState` = `{ enabled, lobby, players, fetching, prefetch }`。
+- **IPC**（すべて本体ウィンドウからだけ。入力は protocol の zod で検査）: `teams:get-state`、`teams:set-enabled`、`teams:friends`（`friendGroups` と `friends` と `currentSummoner`。`gameTag` を `tagLine` に）、`teams:recent`（`recentlyPlayed` を PUUID で重ね、新しい順、最大 200）、`teams:resolve-riot-ids`（最大 30 行。`summonerByName` を 1 行ずつ。引けた人は `addedBy: "riotId"` で保存）、`teams:prefetch`（最大 60 人）、`teams:cancel-prefetch`、`teams:refresh`、`teams:forget`、`teams:clear-cache`。
+- E2E 用に `globalThis.__lolViewer.teams`（`TeamsController`）を出す。
+- テスト: core の単体（ランク・レーン・キャッシュ・推定・速さの調整・`TeamFetcher`・分け方・Discord）、desktop の `teams-core.test.ts`（ゲート、ロビー、保存のまとめ、IPC 相当の呼び出し）、`tools/fake-lcu` の合成シナリオ `scenarios/teams-custom-lobby.jsonl`（`pnpm make-teams-scenario` で作る。コミットするのは生成結果）、Electron E2E `e2e/electron-teams.spec.ts`、Storybook の `Screens/Teams`。
+
 ---
 
 ## 4. URL の組み立て
@@ -327,11 +360,15 @@ MatchState が届くたびに、次の順に処理する。
 | `uiSize` | `small` / `medium` / `large` | `medium` | 文字と余白の倍率 0.9 / 1 / 1.15。未知の値は `medium` |
 | `qrButton` | 真偽 | 真 | ペインと Live Game の QR ボタンの表示 |
 | `sidebarWidth` | 240〜480 | 300 | 範囲外は丸める |
-| `featureFlags` | 名前 → 真偽 | 空（既定は定義側が持つ） | 定義: `liveClientData`、`inGameOverlay`（どちらも既定 偽）。保存済みの未定義のキーは掃除しない（M-016） |
+| `featureFlags` | 名前 → 真偽 | 空（既定は定義側が持つ） | 定義: `liveClientData`、`inGameOverlay`、`teamBalancer`（いずれも既定 偽）。保存済みの未定義のキーは掃除しない（M-016） |
+| `overlayPosition` | 左・中央・右 × 上・下 | 左下 | M-036 |
+| `teamPlayers` | PUUID → `{ lock?, mains?（最大 2）, ng?, rankOverride? }` | 空 | Teams の手動の設定。最大 500 人。壊れた人・項目はその場で捨てる（M-038） |
+| `teams` | `{ discordWithRank, discordWithTag, lastGroupId }` | 真 / 偽 / なし | Teams の Discord のオプションと最後に選んだフレンドのグループ |
 
 **保存しないもの**: ウィンドウの位置とサイズ、ビューア、対面表、保留、Cooldowns の対象と折りたたみ、各ペインの幅、パネルの開閉。
 
 その他の保存先:
+- Teams のキャッシュ: `userData\\team-cache.json`（§3.8。他人のデータなので端末の外には出さない）。
 - ログ: §6.4。記録ファイル: 既定 `ドキュメント\LoL Viewer Next\recordings`。
 - 外部サイトの Cookie など: Electron のパーティション `persist:external`（永続）。
 
@@ -988,6 +1025,7 @@ CI（Linux の Xvfb と偽の LCU）では確かめられないもの。Windows 
 - **ダウンロード**: ページからのダウンロードには専用の処理が無い。Electron の既定の動作になるはず（旧版は未対応）。
 - **Live Client Data API（試合中のゴールド差と補正。M-025〜M-029）**: 本物のゲームの 2999（自己署名の https、Vanguard 環境での接続）、`position` の中身（ランク / ドラフトでは割り当てられたロールのはず。ロールを交換した人は誤る。ブラインド、ARAM、カスタムで `""` になるか）、日本語クライアントの `championName`、ロード画面中の応答（404 か部分的な一覧か）、Smite の内部名、アプリを試合中に起動したときの自分のチームの判定、ミラーで決まらないとき。
 - **インストーラと Vanguard**: 起動中にインストーラを実行したときの挙動、League や Vanguard が動いている状態での入れ替え。
+- **Teams（M-038）**: 本物のカスタムロビーでの `/lol-lobby/v2/lobby`（観戦枠の要素の形は未確認、実機の LCU check では観戦に人を入れられなかった）、観戦枠の人の取得、本物の LCU に断られる速さ（429 / 503 が出る回数と、速さの調整が合うか）、推定ランクの取得にかかる時間（見積もりは 1 人 20〜25 秒）、`recently-played-summoners` の `gameCreationDate` の形（数値か文字列か。両方読む）、Windows でのキャッシュの書き込み（`rename`）、実際の Discord に貼ったときの桁ずれ（フォントによる）。CI は合成のシナリオと偽の LCU で、ここまでの流れ（フラグ、自動取得、キャッシュ、提案、コピー）を確かめている。
 - **更新の実機確認**: 本物の GitHub Release（`app-latest`）からの確認、ダウンロード、再起動後の動作。CI は手元のフィードで確認する（§7.3）。
 - **AppUserModelID、High-DPI**: 明示的な設定はしていない。タスクバーや通知、高 DPI での表示は未確認。
 - 表示、操作の確認は Storybook の全 story のスクリーンショットと E2E で済んでいる。

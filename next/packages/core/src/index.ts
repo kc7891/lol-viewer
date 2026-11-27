@@ -7,3 +7,4 @@ export * from "./settings.ts";
 export * from "./workspace.ts";
 export * from "./live.ts";
 export * from "./lcu-probe.ts";
+export * from "./teams/index.ts";

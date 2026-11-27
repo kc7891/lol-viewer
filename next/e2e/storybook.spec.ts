@@ -509,3 +509,189 @@ test("live data: my swap after the correction is kept", async ({ page }) => {
   await open(page, "components-sidebar--matchup-live-swap-kept");
   await expect(page.locator(".matchup-row .side.enemy .name")).toHaveText(["Karma", "Gragas", "Jayce", "Varus", "Pantheon"]);
 });
+
+// ── Teams (M-038) ──
+
+const names = (n: number) => Array.from({ length: n }, (_, i) => `Player${i + 1}`);
+const discord = (page: Page) => page.getByLabel("Discord text");
+const slot = (page: Page, name: string) => page.locator(".proposal-table .slot-btn", { hasText: new RegExp(`^${name}(?!\\d)`) });
+
+test("Teams tab shows only with the feature flag, and the page lists the lobby", async ({ page }) => {
+  await open(page, "screens-app--waiting-for-champ-select");
+  await expect(page.getByRole("button", { name: "Teams", exact: true })).toHaveCount(0);
+  await open(page, "screens-app--teams-tab");
+  await expect(page.getByRole("button", { name: "Teams", exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Players" }).getByRole("heading")).toHaveText("Players (10)");
+  await expect(page.getByRole("region", { name: "Bench" }).getByRole("heading")).toHaveText("Bench (2)");
+  await expect(page.getByTestId("lobby-line")).toHaveText("Custom lobby · 12 people");
+});
+
+test("Teams: ten players give a table with five lanes and a Discord text with everyone", async ({ page }) => {
+  await open(page, "screens-teams--ten-players");
+  await expect(page.locator(".proposal-table tbody tr")).toHaveCount(5);
+  await expect(page.locator(".proposal-table .slot-btn")).toHaveCount(10);
+  await expect(page.getByTestId("proposal-diff")).toContainText("Rank diff");
+  await expect(page.getByTestId("proposal-count")).toHaveText("Proposal 1 / 3");
+  const text = await discord(page).inputValue();
+  expect(text).toContain("```");
+  expect(text).toContain("🟦 BLUE");
+  expect(text).toContain("チーム分け案（ランク重視 1）");
+  for (const n of names(10)) expect(text).toContain(n);
+  // The unranked player with too little data counts as unknown.
+  await expect(page.getByTestId("proposal-diff")).toContainText("1 unknown rank");
+});
+
+test("Teams: moving people changes the count, 9 players gives a message, 10 again gives proposals", async ({ page }) => {
+  await open(page, "screens-teams--ten-players");
+  await page.getByRole("button", { name: "Move Player1 to Bench" }).click();
+  await expect(page.getByRole("region", { name: "Players" }).getByRole("heading")).toHaveText("Players (9)");
+  await expect(page.getByRole("region", { name: "Bench" }).getByRole("heading")).toHaveText("Bench (3)");
+  await expect(page.getByTestId("proposal-problem")).toHaveText("Pick 6, 8 or 10 players (now 9).");
+  await page.getByRole("button", { name: "Move Player11 to Players" }).click();
+  await expect(page.getByRole("region", { name: "Players" }).getByRole("heading")).toHaveText("Players (10)");
+  await expect(page.getByTestId("proposal-problem")).toHaveCount(0);
+  expect(await discord(page).inputValue()).toContain("Player11");
+  expect(await discord(page).inputValue()).not.toContain("Player1 ");
+});
+
+test("Teams: eight players have no lane column, nine have a message, locks that clash say which lane", async ({ page }) => {
+  await open(page, "screens-teams--eight-players");
+  await expect(page.locator(".proposal-table tbody tr")).toHaveCount(4);
+  await expect(page.locator(".proposal-table[data-laned='false']")).toHaveCount(1);
+  expect(await discord(page).inputValue()).toMatch(/\((TOP|JG|MID|BOT|SUP)\)/);
+  await open(page, "screens-teams--nine-players");
+  await expect(page.getByTestId("proposal-problem")).toHaveText("Pick 6, 8 or 10 players (now 9).");
+  await open(page, "screens-teams--lock-clash");
+  await expect(page.getByTestId("proposal-problem")).toHaveText("Too many players are locked to Jungle.");
+});
+
+test("Teams: the view, the next proposal and More", async ({ page }) => {
+  await open(page, "screens-teams--ten-players");
+  await page.getByRole("button", { name: "Lanes first" }).click();
+  await expect(page.getByRole("button", { name: "Lanes first" })).toHaveAttribute("aria-pressed", "true");
+  expect(await discord(page).inputValue()).toContain("レーン重視 1");
+  await page.getByRole("button", { name: "Next proposal" }).click();
+  await expect(page.getByTestId("proposal-count")).toHaveText("Proposal 2 / 3");
+  expect(await discord(page).inputValue()).toContain("レーン重視 2");
+  await page.getByRole("button", { name: "More" }).click();
+  await expect(page.getByTestId("proposal-count")).toHaveText("Proposal 1 / 3");
+  expect(await discord(page).inputValue()).toContain("レーン重視 4");
+  await expect(page.getByText("set 2")).toBeVisible();
+});
+
+test("Teams: a manual lock puts the player on that lane in every proposal", async ({ page }) => {
+  await open(page, "screens-teams--ten-players");
+  const lane = page.locator('.proposal-table tr[data-lane="support"]');
+  // Player2 is a jungler; lock the player to Support.
+  await page.getByRole("button", { name: "Settings for Player2" }).click();
+  const group = page.getByRole("group", { name: "Locked lane" });
+  await group.getByRole("button", { name: "Support" }).click();
+  await expect(group.getByRole("button", { name: "Support" })).toHaveAttribute("aria-pressed", "true");
+  await expect(lane).toContainText("Player2");
+  await expect(page.getByRole("img", { name: "Locked to Support" })).toBeVisible();
+  await page.getByRole("button", { name: "Next proposal" }).click();
+  await expect(lane).toContainText("Player2");
+  await page.getByRole("button", { name: "Lanes first" }).click();
+  await expect(lane).toContainText("Player2");
+  // Taking the lock off again.
+  await group.getByRole("button", { name: "Support" }).click();
+  await expect(page.getByRole("img", { name: "Locked to Support" })).toHaveCount(0);
+});
+
+test("Teams: a rank override replaces the fetched rank", async ({ page }) => {
+  await open(page, "screens-teams--ten-players");
+  const row = page.locator('.team-row[data-puuid="fx-9"]');
+  await expect(row.locator(".rank-chip")).toHaveText("—");
+  await page.getByRole("button", { name: "Settings for Player9" }).click();
+  await row.getByRole("group", { name: "Rank override" }).getByLabel("Tier").selectOption("DIAMOND");
+  await expect(row.locator(".rank-chip")).toHaveText("D4");
+  await row.getByRole("group", { name: "Rank override" }).getByLabel("Division").selectOption("II");
+  await expect(row.locator(".rank-chip")).toHaveText("D2");
+  await expect(page.getByTestId("proposal-diff")).not.toContainText("unknown rank");
+});
+
+test("Teams: two players can be swapped by hand, and the swap can be undone", async ({ page }) => {
+  await open(page, "screens-teams--ten-players");
+  const before = await discord(page).inputValue();
+  const first = await page.locator(".proposal-table .slot-btn").nth(0).getAttribute("data-puuid");
+  const second = await page.locator(".proposal-table .slot-btn").nth(1).getAttribute("data-puuid");
+  await page.locator(`.slot-btn[data-puuid="${first}"]`).click();
+  await expect(page.getByText("Pick the second player to swap with.")).toBeVisible();
+  await page.locator(`.slot-btn[data-puuid="${second}"]`).click();
+  await expect(page.getByTestId("proposal-diff")).toContainText("swapped by hand");
+  expect(await discord(page).inputValue()).not.toBe(before);
+  await page.getByRole("button", { name: "Reset swaps" }).click();
+  await expect(page.getByTestId("proposal-diff")).not.toContainText("swapped by hand");
+  expect(await discord(page).inputValue()).toBe(before);
+});
+
+test("Teams: Copy for Discord copies, or selects the text when the browser refuses", async ({ page }) => {
+  await open(page, "screens-teams--ten-players");
+  await page.getByRole("button", { name: "Copy for Discord" }).click();
+  await expect(page.getByText(/^(Copied\.|Press Ctrl\+C to copy\.)$/)).toBeVisible();
+  await page.getByLabel("Show #tag").check();
+  expect(await discord(page).inputValue()).toMatch(/Player\d+#tag\d+/);
+  await page.getByLabel("Show ranks").uncheck();
+  expect(await discord(page).inputValue()).not.toContain("ランク差");
+});
+
+test("Teams: Prefetch checks Riot IDs before looking them up", async ({ page }) => {
+  await open(page, "screens-teams--no-lobby");
+  await page.getByRole("tab", { name: "Riot IDs" }).click();
+  const box = page.getByLabel(/Riot IDs, one per line/);
+  const resolve = page.getByRole("button", { name: "Resolve" });
+  await expect(resolve).toBeDisabled();
+  await box.fill("Player20#tag20\nno-tag-here");
+  await expect(page.getByText("Use name#tag")).toBeVisible();
+  await expect(resolve).toBeDisabled();
+  await box.fill("Player20#tag20, Player21#tag21\nPlayer99#tag99");
+  await expect(resolve).toBeEnabled();
+  await resolve.click();
+  const results = page.getByRole("list", { name: "Lookup results" });
+  await expect(results.locator("li")).toHaveCount(3);
+  await expect(results.locator("li").nth(0)).toContainText("Found");
+  await expect(results.locator("li").nth(2)).toContainText("Not found");
+  await expect(page.getByRole("button", { name: /Fetch stale & new \(2\)/ })).toBeEnabled();
+});
+
+test("Teams: Prefetch friends by group, Recent search, Saved details", async ({ page }) => {
+  await open(page, "screens-teams--no-lobby");
+  await expect(page.getByRole("button", { name: /Fetch stale & new \(15\)/ })).toBeVisible();
+  await page.getByLabel("Friend group").selectOption({ label: "Customs (7)" });
+  await expect(page.getByRole("button", { name: /Fetch stale & new \(7\)/ })).toBeVisible();
+  await page.getByLabel("Include me").check();
+  await expect(page.getByRole("button", { name: /Fetch stale & new \(8\)/ })).toBeVisible();
+  await page.getByRole("tab", { name: "Recent" }).click();
+  await page.getByLabel("Search recent players").fill("player2");
+  await expect(page.locator(".pick-row")).toHaveCount(5);
+  await page.getByRole("tab", { name: /Saved \(12\)/ }).click();
+  await page.getByRole("button", { name: /Player4/ }).click();
+  const est = page.getByRole("region", { name: "Estimate" });
+  await expect(est).toContainText("~G3");
+  await expect(est).toContainText("22 players in 8 games");
+  await expect(est.locator(".estimate-games li")).toHaveCount(8);
+  await expect(page.getByRole("region", { name: "Lanes" }).locator("li")).toHaveCount(5);
+  await page.getByLabel("Search saved players").fill("zzz");
+  await expect(page.getByText("No match for")).toBeVisible();
+});
+
+test("Teams: Clear all cached data needs a second click", async ({ page }) => {
+  await open(page, "screens-teams--ten-players");
+  await page.getByRole("button", { name: /^Prefetch/ }).click();
+  const clear = page.getByRole("button", { name: "Clear all cached data" });
+  await clear.click();
+  await expect(page.getByRole("button", { name: "Click again to clear" })).toBeVisible();
+});
+
+test("Teams: progress and the paused message while the client limits requests", async ({ page }) => {
+  await open(page, "screens-teams--prefetch-friends");
+  await expect(page.getByTestId("prefetch-progress")).toContainText("12 / 30");
+  await expect(page.getByRole("button", { name: "Cancel" })).toBeEnabled();
+  await open(page, "screens-teams--prefetch-paused");
+  await expect(page.getByText(/The League Client is limiting requests\. Resuming in \d+ s\./)).toBeVisible();
+});
+
+test("Teams: the browser build explains that it needs the desktop app", async ({ page }) => {
+  await open(page, "screens-teams--browser");
+  await expect(page.getByText("only available in the desktop app")).toBeVisible();
+});

@@ -36,7 +36,7 @@ describe("parseSettings", () => {
   });
 
   it("keeps good values", () => {
-    const s = { urls: { ...DEFAULT_URL_TEMPLATES, build: "https://x.test/{name}" }, uiSize: "large", qrButton: false, sidebarWidth: 400, featureFlags: { a: true }, overlayPosition: { horizontal: "right", vertical: "top" } };
+    const s = { urls: { ...DEFAULT_URL_TEMPLATES, build: "https://x.test/{name}" }, uiSize: "large", qrButton: false, sidebarWidth: 400, featureFlags: { a: true }, overlayPosition: { horizontal: "right", vertical: "top" }, teamPlayers: {}, teams: { discordWithRank: true, discordWithTag: false, lastGroupId: null } };
     expect(parseSettings(s)).toEqual(s);
   });
 
@@ -57,6 +57,8 @@ describe("parseSettings", () => {
       sidebarWidth: 300,
       featureFlags: { ok: true },
       overlayPosition: { horizontal: "left", vertical: "top" },
+      teamPlayers: {},
+      teams: { discordWithRank: true, discordWithTag: false, lastGroupId: null },
     });
   });
 
@@ -113,8 +115,50 @@ describe("feature flags (M-025)", () => {
     expect(resetFeatureFlags({ liveClientData: true, inGameOverlay: true, unknown: true })).toEqual({
       liveClientData: false,
       inGameOverlay: false,
+      teamBalancer: false,
       unknown: true,
     });
     expect(flagsAtDefaults({ ...DEFAULT_SETTINGS, featureFlags: { inGameOverlay: true } })).toBe(false);
+  });
+});
+
+describe("Teams settings (M-038)", () => {
+  it("has the teamBalancer flag, off by default", () => {
+    expect(FEATURE_FLAGS.teamBalancer.default).toBe(false);
+    expect(FEATURE_FLAGS.teamBalancer.label).toBe("Teams (custom match balancer)");
+    expect(isFeatureOn(DEFAULT_SETTINGS, "teamBalancer")).toBe(false);
+    expect(DEFAULT_SETTINGS.teamPlayers).toEqual({});
+    expect(DEFAULT_SETTINGS.teams).toEqual({ discordWithRank: true, discordWithTag: false, lastGroupId: null });
+  });
+  it("keeps good teamPlayers and teams", () => {
+    const s = parseSettings({
+      teamPlayers: { a: { lock: "jungle", mains: ["top", "middle"], ng: ["support"], rankOverride: 1450 } },
+      teams: { discordWithRank: false, discordWithTag: true, lastGroupId: 3 },
+    });
+    expect(s.teamPlayers).toEqual({ a: { lock: "jungle", mains: ["top", "middle"], ng: ["support"], rankOverride: 1450 } });
+    expect(s.teams).toEqual({ discordWithRank: false, discordWithTag: true, lastGroupId: 3 });
+    expect(parseSettings(s)).toEqual(s);
+  });
+  it("drops only the broken parts of a person, and broken people", () => {
+    const s = parseSettings({
+      teamPlayers: {
+        a: { lock: "mid", mains: ["top", "top", "x", "bottom", "support"], ng: "top", rankOverride: Number.NaN },
+        b: { lock: "support", rankOverride: 12.6 },
+        c: 5,
+        d: {},
+        e: null,
+      },
+      teams: { discordWithRank: "yes", lastGroupId: 1.5 },
+    });
+    expect(s.teamPlayers).toEqual({ a: { mains: ["top", "bottom"] }, b: { lock: "support", rankOverride: 13 } });
+    expect(s.teams).toEqual({ discordWithRank: true, discordWithTag: false, lastGroupId: null });
+    expect(parseSettings({ teamPlayers: [1], teams: "x" })).toMatchObject({ teamPlayers: {}, teams: { discordWithRank: true } });
+  });
+  it("keeps at most 500 people", () => {
+    const many = Object.fromEntries(Array.from({ length: 600 }, (_, i) => [`p${i}`, { lock: "top" }]));
+    expect(Object.keys(parseSettings({ teamPlayers: many }).teamPlayers)).toHaveLength(500);
+  });
+  it("matches the schema defaults", () => {
+    expect(SettingsSchema.parse({}).teams).toEqual(DEFAULT_SETTINGS.teams);
   });
 });

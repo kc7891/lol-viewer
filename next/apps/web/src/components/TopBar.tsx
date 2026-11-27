@@ -1,11 +1,12 @@
 import type { ConnectionStatus } from "@lol-viewer/protocol";
 import { phaseLabel } from "../ui/labels.ts";
 
-export type Page = "viewers" | "live" | "settings";
+export type Page = "viewers" | "live" | "teams" | "settings";
 
 const PAGES: { page: Page; label: string }[] = [
   { page: "viewers", label: "Viewers" },
   { page: "live", label: "Live Game" },
+  { page: "teams", label: "Teams" },
   { page: "settings", label: "Settings" },
 ];
 
@@ -20,6 +21,8 @@ export type TopBarProps = {
   onPage: (p: Page) => void;
   connection: ConnectionStatus;
   phase: string;
+  /** The Teams tab (feature flag teamBalancer, M-038). */
+  showTeams?: boolean;
   /** Red dot on Settings (a newer version exists). */
   updateAvailable?: boolean;
   /** Click on the connection status: go to Settings -> League Client. */
@@ -27,12 +30,12 @@ export type TopBarProps = {
   extra?: React.ReactNode;
 };
 
-export function TopBar({ page, onPage, connection, phase, updateAvailable = false, onConnectionClick, extra }: TopBarProps) {
+export function TopBar({ page, onPage, connection, phase, showTeams = false, updateAvailable = false, onConnectionClick, extra }: TopBarProps) {
   return (
     <header className="topbar">
       <div className="brand">LoL Viewer</div>
       <nav className="tabs" aria-label="Pages">
-        {PAGES.map((p) => (
+        {PAGES.filter((p) => p.page !== "teams" || showTeams).map((p) => (
           <button key={p.page} type="button" className="tab" aria-current={page === p.page ? "page" : undefined} onClick={() => onPage(p.page)}>
             {p.label}
             {p.page === "settings" && updateAvailable && <span className="update-dot" role="img" aria-label="Update available" />}

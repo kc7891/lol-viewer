@@ -86,10 +86,17 @@ describe("shapeOf", () => {
     expect(shapeOf({ Tier: "gold", QUEUEID: 5 })).toBe('{Tier:"gold", QUEUEID:5}');
   });
   it("hides map keys that look like IDs, and odd keys", () => {
-    const s = shapeOf({ ["a".repeat(78)]: { tier: "GOLD" }, ["b".repeat(78)]: { tier: "GOLD" }, "Alice #JP1": 1, "11111111-2222-3333-4444-555555555555": 2 });
+    const s = shapeOf({ ["a1".repeat(39)]: { tier: "GOLD" }, ["b-".repeat(39)]: { tier: "GOLD" }, "Alice #JP1": 1, "11111111-2222-3333-4444-555555555555": 2 });
     expect(s).toBe('{<id>:{tier:"GOLD"}, …+3}');
     expect(s).not.toContain("aaaa");
     expect(s).not.toContain("Alice");
+  });
+  it("keeps long letters-only field names, hides 30+ char keys with a digit or dash", () => {
+    expect(shapeOf({ highestCurrentSeasonReachedTierSR: "GOLD", previousSeasonEndDivision: "I" })).toBe(
+      "{highestCurrentSeasonReachedTierSR:str(4), previousSeasonEndDivision:str(1)}",
+    );
+    expect(shapeOf({ ["x1".repeat(15)]: 1 })).toBe("{<id>:num}");
+    expect(shapeOf({ ["x-".repeat(15)]: 1 })).toBe("{<id>:num}");
   });
   it("hides map keys that are numeric account / summoner ids", () => {
     const s = shapeOf({ "2817461234": { tier: "GOLD" }, "123456": 1, "420": { tier: "SILVER" } });

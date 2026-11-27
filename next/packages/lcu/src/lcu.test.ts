@@ -93,6 +93,7 @@ describe("startLcuConnector with fake LCU", () => {
 
   it("allow-lists current-summoner and the fake serves it", () => {
     expect(READ_ONLY_PATHS).toContain("/lol-summoner/v1/current-summoner");
+    expect(READ_ONLY_PATHS).toContain("/lol-lobby/v2/lobby"); // Teams (M-038)
   });
 
   it("connects, resyncs on demand, and reconnect() reconnects without duplicate events", async () => {

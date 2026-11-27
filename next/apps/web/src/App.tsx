@@ -6,6 +6,7 @@ import { LivePage } from "./components/LivePage.tsx";
 import { MatchupSection } from "./components/MatchupSection.tsx";
 import { PaneStrip } from "./components/PaneStrip.tsx";
 import { SettingsPage } from "./components/SettingsPage.tsx";
+import { TeamsPage, type TeamsPageInitial } from "./components/teams/TeamsPage.tsx";
 import { Sidebar } from "./components/Sidebar.tsx";
 import { Toasts } from "./components/Toasts.tsx";
 import { TopBar, type Page } from "./components/TopBar.tsx";
@@ -30,6 +31,7 @@ export type AppProps = {
   initialLiveQr?: boolean;
   urlsInitialDraft?: UrlTemplates;
   urlsInitialErrors?: UrlTemplateKey[];
+  teamsInitial?: TeamsPageInitial;
 };
 
 export function App({
@@ -43,6 +45,7 @@ export function App({
   initialLiveQr,
   urlsInitialDraft,
   urlsInitialErrors,
+  teamsInitial,
 }: AppProps) {
   const bridge = useBridge();
   const rawMatch = useMatchState();
@@ -63,6 +66,11 @@ export function App({
   useEffect(() => {
     if (overlayOn) bridge.overlay?.setPosition({ horizontal: overlayH, vertical: overlayV });
   }, [bridge, overlayOn, overlayH, overlayV]);
+  // M-038: Teams. Off (the default): no tab, and main neither fetches nor touches its cache file.
+  const teamsOn = isFeatureOn(settings, "teamBalancer");
+  useEffect(() => {
+    bridge.teams?.setEnabled(teamsOn);
+  }, [bridge, teamsOn]);
   const updateStatus = useUpdateStatus();
   const updateDot = updateAvailable ?? (updateStatus?.state === "available" || updateStatus?.state === "downloaded");
   const [ws, dispatch] = useWorkspace(match, initialWs);
@@ -72,7 +80,9 @@ export function App({
   }, [bridge, overlayOn, ws.rows]);
   const { toasts, push: notify, dismiss } = useToasts(initialToasts, autoDismissToasts);
 
-  const [page, setPage] = useState<Page>(initialPage);
+  const [pageChoice, setPage] = useState<Page>(initialPage);
+  // The flag turned off while Teams was open: back to the viewers.
+  const page: Page = pageChoice === "teams" && !teamsOn ? "viewers" : pageChoice;
   const [focusLcu, setFocusLcu] = useState(0);
   const [liveNav, setLiveNav] = useState(0);
 
@@ -133,6 +143,7 @@ export function App({
       <TopBar
         page={page}
         onPage={setPage}
+        showTeams={teamsOn}
         connection={match.connection}
         phase={match.phase}
         updateAvailable={updateDot}
@@ -192,6 +203,12 @@ export function App({
           notify={notify}
           initialQr={initialLiveQr}
         />
+
+        {teamsOn && (
+          <div className="page teams-wrap" hidden={page !== "teams"}>
+            <TeamsPage notify={notify} initial={teamsInitial} visible={page === "teams"} />
+          </div>
+        )}
 
         <div className="page settings-wrap" hidden={page !== "settings"}>
           <SettingsPage

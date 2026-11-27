@@ -32,6 +32,8 @@ export type FakeLcu = {
   lockfilePath: string;
   /** Requests that tried to mutate the client (must stay empty). */
   rejectedWrites: string[];
+  /** Every GET to the client's JSON API (path and query, no live client data). E2E: the Teams flag off must not read ranks or match history. */
+  getRequests: string[];
   /** Paths of GET requests to /liveclientdata/ (E2E: the feature flag off must leave this empty). */
   liveClientRequests: string[];
   play: () => void;
@@ -56,6 +58,7 @@ export async function startFakeLcu(opts: FakeLcuOptions): Promise<FakeLcu> {
   const current = new Map<string, unknown>();
   const rejectedWrites: string[] = [];
   const liveClientRequests: string[] = [];
+  const getRequests: string[] = [];
   const subs = new Map<WebSocket, Set<string>>();
 
   const server: Server = createServer((req, res) => {
@@ -78,6 +81,7 @@ export async function startFakeLcu(opts: FakeLcuOptions): Promise<FakeLcu> {
     const url = req.url ?? "";
     const path = url.split("?")[0] ?? "";
     if (isLiveClient) liveClientRequests.push(path);
+    else getRequests.push(url);
     if (!current.has(path) && path === CURRENT_SUMMONER_PATH) {
       // Synthetic: scenarios recorded before this endpoint existed have no line for it.
       res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(SYNTHETIC_SUMMONER));
@@ -159,6 +163,7 @@ export async function startFakeLcu(opts: FakeLcuOptions): Promise<FakeLcu> {
     lockfilePath,
     rejectedWrites,
     liveClientRequests,
+    getRequests,
     play,
     advanceTo,
     done,
