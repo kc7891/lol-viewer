@@ -304,6 +304,34 @@ test("Settings: Debug adds an ally to the first empty row, and says when full", 
   await expect(debug.getByRole("status")).toContainText("full"); // all five enemy rows are taken in this scene
 });
 
+test("Settings > LCU check: Run shows progress and a report; the Riot ID is validated; browsers get a notice (M-039)", async ({ page }) => {
+  await open(page, "components-settingscards--lcu-check-idle");
+  const card = page.getByRole("region", { name: "LCU check" });
+  await expect(card.getByRole("button", { name: "Run check" })).toBeEnabled();
+  await expect(card.getByLabel("LCU check report")).toHaveCount(0);
+  const riot = card.getByLabel("Riot ID to look up (optional)");
+  await riot.fill("no-tag");
+  await expect(card.getByRole("button", { name: "Run check" })).toBeDisabled();
+  await expect(card.getByText("Use name#tag.")).toBeVisible();
+  await riot.fill("Name#JP1");
+  await card.getByRole("button", { name: "Run check" }).click();
+  const report = card.getByLabel("LCU check report");
+  await expect(report).toHaveValue(/LoL Viewer LCU check/);
+  await expect(report).toHaveValue(/current-summoner +200/);
+  await expect(card.getByRole("button", { name: "Copy report" })).toBeVisible();
+
+  await open(page, "components-settingscards--lcu-check-running");
+  await expect(page.getByRole("region", { name: "LCU check" }).getByRole("status")).toHaveText("12 / 20 …");
+  await expect(page.getByRole("region", { name: "LCU check" }).getByRole("button", { name: "Run check" })).toBeDisabled();
+
+  await open(page, "components-settingscards--lcu-check-disconnected");
+  await expect(page.getByRole("region", { name: "LCU check" }).getByRole("button", { name: "Run check" })).toBeDisabled();
+  await expect(page.getByText("Connect to the League Client first.")).toBeVisible();
+
+  await open(page, "components-settingscards--lcu-check-browser");
+  await expect(page.getByRole("region", { name: "LCU check" }).getByText("Only available in the desktop app.")).toBeVisible();
+});
+
 test("Top bar: clicking the connection status goes to Settings", async ({ page }) => {
   await open(page, "screens-app--disconnected");
   await page.getByRole("button", { name: /Disconnected/ }).click();
