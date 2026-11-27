@@ -2,7 +2,7 @@
 
 [team-balancer-design.md](./team-balancer-design.md)（企画と持ち主の判断。以下「企画書」）を実装するための設計。**何を作るか・なぜかは企画書、どう作るかはこの文書**。実機の LCU の形は企画書 §3.12 と [lcu-probe-design.md](./lcu-probe-design.md) の結果に基づく。
 
-- 状態: 設計（2026-11-27）。実装は 2 回に分ける（§10）。
+- 状態: **実装済み**（2026-11-27。実装 A: ロジック層、実装 B: つなぎと画面。§10）。実機の League Client では未確認（[new-app-spec.md](./new-app-spec.md) §9.1）。
 - 決定: M-038（企画書 §11 の原案を decisions.md に確定させる。実装 A で追記）。
 
 ---
@@ -256,3 +256,21 @@ type Slot = { puuid: string; lane: Lane | null };
 - **protocol**: 設計どおり（`TeamsApi`、スキーマ、`LolViewerBridge.teams?`）。`z.record(LaneSchema, …)` は zod 4 では全レーンのキーが要るので、`LaneProfile.counts` は常に 5 レーン分を持つ。
 - **lcu-probe**: `ID_LIKE_KEY` の 30 文字以上の規則は、数字か `-` を含むときだけ ID とみなす。既存テストの「a を 78 回」のキーは `a1` の繰り返しなどに変えた。
 - decisions.md の M-038 は M-039 の後ろに追記した（番号順ではなく追記順）。
+
+---
+
+## 実装メモ（実装 B）
+
+実装 B（つなぎと画面）で設計から変えた点・足した点。仕様の本体は [new-app-spec.md](./new-app-spec.md) §2.5・§3.8。
+
+### 設計からの変更・補足
+- **main の分け方**: 設計は `teams.ts` に `TeamsController`、`teams-core.ts` に Electron に依存しない部分。実装は `TeamsController` そのものを `teams-core.ts` に置き（ファイル、LCU、タイマー、push はすべて注入）、`teams.ts` は `app.getPath("userData")/team-cache.json` の読み書き（一時ファイル → `rename`）と IPC の登録（`setupTeams`）だけにした。`overlay-core.ts` と同じ形で、ゲート・ロビー・保存のまとめ・IPC 相当の呼び出しまで単体テストできる（`teams-core.test.ts`）。
+- **A の API の変更はなし**（`TeamFetcher`、`balanceTeams` などはそのまま使った）。足したのは protocol の IPC 検査用のスキーマだけ: `TeamsPuuidSchema`、`TeamsPrefetchRequestSchema`、`TeamsRiotIdLinesSchema`（と上限の定数）。main が zod を直接持たずに検査できるようにするため（desktop の依存に zod が無い）。
+- **フラグを後から ON にしたとき**: フラグ OFF の間に来たロビーのイベントは捨てるので、ON にしてキャッシュを読み終えたあとに `connector.resync()` でロビーを取り直す（`onEnabled`）。フラグ OFF にするときは、書いていない変更を 1 度書いてから止める（取得中の作業は接続待ちのまま捨てる）。OFF → ON の間に前の書き込みが終わるのを待ってから読む。
+- **ロビーの扱い**: メンバーの組が変わったときだけ `ensure` を呼ぶ。切断するとロビーは「なし」に戻す。`Delete` のイベントは null として渡す。`Clear all cached data` のあと、ロビーにいればその人たちをもう一度取る（自動取得の約束を保つため）。
+- **事前取得の名前**: `prefetch` の IPC は PUUID だけなので、直前の `friends()` / `recentPlayers()` / Riot ID の引きで知った名前を main のメモリに最大 1000 件持ち、取得前に `upsertPlayer` で名前だけ先に入れる（保存済みの一覧にすぐ名前が出る）。
+- **E2E のシナリオの数**: 設計 §8 は「参加 8・控え 2」と書いたが、チームの枠は 5 + 4（ボット 1 を除く）= 9 人、観戦 2 人なので、実際は Players (9) / Bench (2)。控えの 1 人を参加に入れて 10 人。シナリオにはさらに t=2000 のロビー更新（観戦に 1 人増える）を入れ、WebSocket 経由の更新も確かめた。ゲームの日時は、E2E が実行日に合わせてずらす（キャッシュは 60 日以内の試合しか数えないので、固定の日時だと将来動かなくなる）。
+- **fake-lcu**: `FakeLcu.getRequests`（GET したパスとクエリの一覧）を足した。フラグ OFF のときにランクや戦績を一切読まないことを E2E で確かめるため。シナリオの生成は `tools/fake-lcu/src/make-teams-scenario.ts`（`pnpm make-teams-scenario`）。コミットした JSONL と生成結果が一致することをテストで確かめる。
+- **renderer**: 入れ替えは「クリック → クリック」（ドラッグではない）。参加 / 控えは ↓ ↑ のボタン（ドラッグではない）。見た目の 🔒 は SVG のアイコン。提案の「別の案」は `More`（次の 3 件。最後まで行くと最初に戻る）。main が push する状態は 200ms ごとに新しいオブジェクトになるので、提案は中身（`BalancePlayer` の JSON）が変わったときだけやり直す。Discord の文字列は常に画面に出す（コピーが拒否されたときの代わりも兼ねる）。
+- **Storybook の story**: `Screens/Teams`（ロビーなし / 保存済みを足した 8 人 / 10 人 / レーン重視 / 8 人 / 9 人 / lock の衝突 / 手動の設定 / 取得中 / 控えから移した後 / Prefetch の各タブ / 制限中 / Saved の詳細 / ブラウザ）、`Screens/App` の `TeamsTab`、`Components/TopBar` の `WithTeamsTab`。fixture は `apps/web/src/fixtures/teams.ts`（合成の 12 人。`Player1#tag1` 形式）。
+
