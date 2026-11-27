@@ -1,9 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DEFAULT_SETTINGS, DEFAULT_URL_TEMPLATES, type Settings } from "@lol-viewer/core";
-import { mockUpdates } from "../bridge/mock.ts";
+import { formatProbeReport } from "@lol-viewer/core";
+import { MOCK_PROBE_REPORT, mockUpdates } from "../bridge/mock.ts";
 import { scenes, updateStatuses } from "../fixtures.ts";
 import { Harness } from "../storyHelpers.tsx";
-import { DisplayCard, FeatureFlagsCard, LcuCard, UrlsCard, VersionCard } from "./SettingsPage.tsx";
+import { DisplayCard, FeatureFlagsCard, LcuCard, LcuCheckCard, UrlsCard, VersionCard } from "./SettingsPage.tsx";
 
 const Wrap = ({ children, options, settings }: { children: React.ReactNode; options?: Parameters<typeof Harness>[0]["bridgeOptions"]; settings?: Settings }) => (
   <Harness match={scenes.idle.match} bridgeOptions={options} settings={settings} height="auto" width={680}>
@@ -105,3 +106,30 @@ export const VersionReadyToInstall: Story = withUpdates("downloaded");
 export const VersionUpdateError: Story = withUpdates("error");
 /** Buttons play out a fake update (used by the Storybook e2e). */
 export const VersionUpdateFlow: Story = withUpdates("idle", true);
+
+// LCU check (M-039): the desktop bridge has probe(); the browser bridge does not.
+const reportText = formatProbeReport(MOCK_PROBE_REPORT);
+const withProbe = {
+  lcu: {
+    reconnect() {},
+    resync() {},
+    probe: async () => ({ text: reportText, report: MOCK_PROBE_REPORT }),
+  },
+};
+export const LcuCheckIdle: Story = { render: () => <Wrap options={withProbe}><LcuCheckCard connection="connected" /></Wrap> };
+export const LcuCheckDisconnected: Story = { render: () => <Wrap options={withProbe}><LcuCheckCard connection="disconnected" /></Wrap> };
+export const LcuCheckRunning: Story = {
+  render: () => (
+    <Wrap options={withProbe}>
+      <LcuCheckCard connection="connected" initial={{ running: { done: 12, total: 20 } }} />
+    </Wrap>
+  ),
+};
+export const LcuCheckResult: Story = {
+  render: () => (
+    <Wrap options={withProbe}>
+      <LcuCheckCard connection="connected" initial={{ text: reportText }} />
+    </Wrap>
+  ),
+};
+export const LcuCheckBrowser: Story = { render: () => <Wrap><LcuCheckCard connection="connected" /></Wrap> };

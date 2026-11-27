@@ -4,7 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFakeLcu, type FakeLcu } from "@lol-viewer/fake-lcu";
 import {
+  buildProbePath,
   findCredentials,
+  isProbePath,
+  PROBE_ROUTES,
   parseClientCommandLine,
   READ_ONLY_PATHS,
   startLcuConnector,
@@ -153,5 +156,141 @@ describe("startLcuConnector with fake LCU", () => {
     await until(() => calls >= 3);
     found = true;
     await until(() => statuses.includes("connected"));
+  });
+});
+
+describe("buildProbePath", () => {
+  it("fills and encodes path parameters", () => {
+    expect(buildProbePath("currentSummoner")).toBe("/lol-summoner/v1/current-summoner");
+    expect(buildProbePath("friendGroupFriends", { params: { id: 3 } })).toBe("/lol-chat/v1/friend-groups/3/friends");
+    expect(buildProbePath("rankedStats", { params: { puuid: "abc_DEF-1" } })).toBe("/lol-ranked/v1/ranked-stats/abc_DEF-1");
+    expect(buildProbePath("game", { params: { gameId: "123456789" } })).toBe("/lol-match-history/v1/games/123456789");
+    expect(buildProbePath("summonerByPuuid", { params: { puuid: "p" } })).toBe("/lol-summoner/v2/summoners/puuid/p");
+    expect(buildProbePath("summonerByPuuidCached", { params: { puuid: "p" } })).toBe("/lol-summoner/v1/summoners-by-puuid-cached/p");
+  });
+  it("builds queries: ints, Riot ID (# encoded) and the three list styles", () => {
+    expect(buildProbePath("matches", { params: { puuid: "p" }, query: { begIndex: 0, endIndex: 20 } })).toBe(
+      "/lol-match-history/v1/products/lol/p/matches?begIndex=0&endIndex=20",
+    );
+    expect(buildProbePath("summonerByName", { query: { name: "Some Name#JP1" } })).toBe("/lol-summoner/v1/summoners?name=Some+Name%23JP1");
+    const list = ["a", "b"];
+    expect(buildProbePath("rankedStatsBatch", { query: { puuids: { list, style: "json" } } })).toBe(
+      "/lol-ranked/v1/ranked-stats?puuids=" + encodeURIComponent('["a","b"]'),
+    );
+    expect(buildProbePath("rankedStatsBatch", { query: { puuids: { list, style: "comma" } } })).toBe("/lol-ranked/v1/ranked-stats?puuids=a%2Cb");
+    expect(buildProbePath("rankedStatsBatch", { query: { puuids: { list, style: "repeat" } } })).toBe("/lol-ranked/v1/ranked-stats?puuids=a&puuids=b");
+  });
+  it("throws on invalid input before anything is requested", () => {
+    expect(() => buildProbePath("rankedStats", { params: { puuid: "../x" } })).toThrow();
+    expect(() => buildProbePath("rankedStats", { params: { puuid: "" } })).toThrow();
+    expect(() => buildProbePath("rankedStats", {})).toThrow();
+    expect(() => buildProbePath("game", { params: { gameId: "12a" } })).toThrow();
+    expect(() => buildProbePath("game", { params: { gameId: -1 } })).toThrow();
+    expect(() => buildProbePath("game", { params: { gameId: 1.5 } })).toThrow();
+    expect(() => buildProbePath("currentSummoner", { params: { puuid: "p" } })).toThrow();
+    expect(() => buildProbePath("summonerByName", { query: { name: "a#b#c" } })).toThrow();
+    expect(() => buildProbePath("summonerByName", { query: { name: "noTag" } })).toThrow();
+    expect(() => buildProbePath("summonerByName", { query: { name: "#JP1" } })).toThrow();
+    expect(() => buildProbePath("summonerByName", { query: { name: "a#toolongtag" } })).toThrow();
+    expect(() => buildProbePath("summonerByName", { query: { name: "a\nb#JP1" } })).toThrow();
+    expect(() => buildProbePath("rankedStatsBatch", { query: { puuids: { list: [], style: "json" } } })).toThrow();
+    expect(() => buildProbePath("rankedStatsBatch", { query: { puuids: { list: Array.from({ length: 51 }, (_, i) => `p${i}`), style: "json" } } })).toThrow();
+    expect(() => buildProbePath("rankedStatsBatch", { query: { puuids: { list: ["a/b"], style: "comma" } } })).toThrow();
+    expect(() => buildProbePath("nope" as never)).toThrow();
+  });
+  it("accepts 50 PUUIDs", () => {
+    const list = Array.from({ length: 50 }, (_, i) => `p${i}`);
+    expect(buildProbePath("rankedStatsBatch", { query: { puuids: { list, style: "comma" } } })).toContain("puuids=");
+  });
+  it("every built path passes isProbePath; foreign paths do not", () => {
+    for (const p of [
+      buildProbePath("lobby"),
+      buildProbePath("friends"),
+      buildProbePath("recentlyPlayed"),
+      buildProbePath("rankedStats", { params: { puuid: "p" } }),
+      buildProbePath("matches", { params: { puuid: "p" }, query: { begIndex: 0, endIndex: 100 } }),
+      buildProbePath("summonerByName", { query: { name: "A b#JP1" } }),
+      buildProbePath("rankedStatsBatch", { query: { puuids: { list: ["a", "b"], style: "json" } } }),
+      buildProbePath("rankedStatsBatch", { query: { puuids: { list: ["a", "b"], style: "comma" } } }),
+      buildProbePath("rankedStatsBatch", { query: { puuids: { list: ["a", "b"], style: "repeat" } } }),
+      "/lol-gameflow/v1/gameflow-phase", // READ_ONLY_PATHS
+    ])
+      expect(isProbePath(p), p).toBe(true);
+    for (const p of [
+      "/lol-chat/v1/me",
+      "/lol-lobby/v2/lobby/members",
+      "/lol-ranked/v1/ranked-stats/a/b",
+      "/lol-ranked/v1/ranked-stats/..%2Fx",
+      "/lol-lobby/v2/lobby?x=1",
+      "/lol-match-history/v1/games/abc",
+      "/lol-lobby/v2/lobby#x",
+      "http://evil/lol-lobby/v2/lobby",
+      "",
+      // query values are checked too, not only the keys
+      "/lol-lobby/v2/lobby?",
+      "/lol-summoner/v1/summoners?name=%00anything&name=x",
+      "/lol-summoner/v1/summoners?name=noTag",
+      "/lol-summoner/v1/summoners",
+      "/lol-match-history/v1/products/lol/p/matches?begIndex=-5&endIndex=20",
+      "/lol-match-history/v1/products/lol/p/matches?begIndex=0",
+      "/lol-match-history/v1/products/lol/p/matches?begIndex=0&endIndex=20&begIndex=1",
+      "/lol-ranked/v1/ranked-stats?puuids=%5B%22a%22%2C%22..%2Fx%22%5D",
+      "/lol-ranked/v1/ranked-stats?puuids=a,,b",
+      "/lol-ranked/v1/ranked-stats?puuids=%5Bbroken",
+    ])
+      expect(isProbePath(p), p).toBe(false);
+  });
+  it("only has GET-shaped route templates", () => {
+    expect(Object.keys(PROBE_ROUTES)).toHaveLength(13);
+  });
+});
+
+describe("LcuClient probe with fake LCU", () => {
+  let fake: FakeLcu | null = null;
+  let stop: (() => void) | null = null;
+  afterEach(async () => {
+    stop?.();
+    stop = null;
+    await fake?.close();
+    fake = null;
+  });
+  const start = async (lines: { t: number; uri: string; eventType: "Update"; data: unknown }[]) => {
+    fake = await startFakeLcu({ lines });
+    await fake.done;
+    const statuses: string[] = [];
+    const conn = startLcuConnector({
+      findCredentials: () => findCredentials([fake!.lockfilePath]),
+      onEvent: () => {},
+      onStatus: (s) => statuses.push(s),
+      retryMs: 20,
+    });
+    stop = conn.stop;
+    return { conn, statuses };
+  };
+
+  it("reports status, time and body; matches path+query exactly; 404 has a body too", async () => {
+    const { conn, statuses } = await start([
+      { t: 0, uri: "/lol-ranked/v1/ranked-stats/player-1", eventType: "Update", data: { tier: "GOLD" } },
+      { t: 0, uri: "/lol-match-history/v1/products/lol/player-1/matches?begIndex=0&endIndex=20", eventType: "Update", data: { n: 20 } },
+    ]);
+    await until(() => statuses.includes("connected"));
+    const ok = await conn.probe(buildProbePath("rankedStats", { params: { puuid: "player-1" } }));
+    expect(ok).toMatchObject({ status: 200, body: { tier: "GOLD" } });
+    expect(ok.ms).toBeGreaterThanOrEqual(0);
+    const q = await conn.probe(buildProbePath("matches", { params: { puuid: "player-1" }, query: { begIndex: 0, endIndex: 20 } }));
+    expect(q.body).toEqual({ n: 20 });
+    const other = await conn.probe(buildProbePath("matches", { params: { puuid: "player-1" }, query: { begIndex: 20, endIndex: 40 } }));
+    expect(other.status).toBe(404);
+    expect(other.body).toEqual({ httpStatus: 404 });
+    expect(fake!.rejectedWrites).toEqual([]);
+  });
+
+  it("rejects paths that are neither READ_ONLY_PATHS nor probe routes, and reports network when not connected", async () => {
+    const { conn, statuses } = await start([]);
+    await expect(conn.probe("/lol-chat/v1/me")).rejects.toThrow();
+    await until(() => statuses.includes("connected"));
+    await expect(conn.probe("/lol-chat/v1/me")).rejects.toThrow();
+    conn.stop();
+    expect(await conn.probe("/lol-lobby/v2/lobby")).toEqual({ status: 0, ms: 0, body: null, error: "network" });
   });
 });

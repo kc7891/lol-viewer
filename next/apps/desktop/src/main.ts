@@ -18,10 +18,10 @@
  */
 import { join } from "node:path";
 import { app, BrowserWindow, ipcMain, Menu, screen, shell } from "electron";
-import { toLcuEvent } from "@lol-viewer/core";
+import { formatProbeReport, runLcuProbe, toLcuEvent } from "@lol-viewer/core";
 import { Hub, startHubServer } from "@lol-viewer/hub";
-import { startLcuConnector, startLiveClientPoller } from "@lol-viewer/lcu";
-import { OverlayPositionSchema, OverlayRowsSchema, ViewCommandSchema, type OverlayPosition, type OverlayRows } from "@lol-viewer/protocol";
+import { buildProbePath, startLcuConnector, startLiveClientPoller } from "@lol-viewer/lcu";
+import { LcuProbeOptionsSchema, OverlayPositionSchema, OverlayRowsSchema, ViewCommandSchema, type LcuProbeResult, type OverlayPosition, type OverlayRows } from "@lol-viewer/protocol";
 import { ExternalViewManager } from "./external-views.ts";
 import { createLiveGate, LIVE_POLL_MS } from "./live-core.ts";
 import { createOverlayGate, DEFAULT_OVERLAY_POSITION, overlayBounds, OVERLAY_SIZE } from "./overlay-core.ts";
@@ -270,6 +270,32 @@ if (gotLock) void app.whenReady().then(async () => {
   });
   ipcMain.on("lcu:resync", (e) => {
     if (fromApp(e)) void connector.resync();
+  });
+  // M-039: Settings "LCU check". GET only, one run at a time (a second call while running is rejected); the log gets counts only, never the report.
+  let probeRun: Promise<LcuProbeResult> | null = null;
+  ipcMain.handle("lcu:probe", (e, raw: unknown) => {
+    if (!fromApp(e)) return null;
+    if (probeRun) throw new Error("an LCU check is already running"); // its options would be silently dropped
+    const opts = LcuProbeOptionsSchema.safeParse(raw ?? {});
+    if (!opts.success) throw new Error("invalid LCU check options");
+    log.info("lcu", "LCU check started");
+    const run = runLcuProbe(
+      connector.probe,
+      buildProbePath,
+      { riotId: opts.data.riotId, rateTest: opts.data.rateTest, appVersion: app.getVersion(), platform: process.platform },
+      (done, total) => {
+        if (!win.isDestroyed()) win.webContents.send("lcu:probe-progress", { done, total });
+      },
+    )
+      .then((report) => {
+        log.info("lcu", `LCU check finished (${report.steps.length} steps)`);
+        return { text: formatProbeReport(report), report };
+      })
+      .finally(() => {
+        probeRun = null;
+      });
+    probeRun = run;
+    return run;
   });
   recording = new RecordingController(connector, (s) => {
     if (!win.isDestroyed()) win.webContents.send("recorder:status", s);

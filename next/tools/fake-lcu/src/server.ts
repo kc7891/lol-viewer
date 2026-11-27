@@ -5,7 +5,7 @@
  *
  * Differences from the real client (documented on purpose):
  *  - plain http/ws instead of https/wss (lockfile protocol field says "http")
- *  - only the endpoints in the scenario exist
+ *  - only the endpoints in the scenario exist (a GET matches `path?query` exactly first, then the path alone)
  */
 import { createServer, type Server } from "node:http";
 import { mkdtemp, writeFile } from "node:fs/promises";
@@ -75,18 +75,21 @@ export async function startFakeLcu(opts: FakeLcuOptions): Promise<FakeLcu> {
       res.writeHead(405).end();
       return;
     }
-    const path = (req.url ?? "").split("?")[0] ?? "";
+    const url = req.url ?? "";
+    const path = url.split("?")[0] ?? "";
     if (isLiveClient) liveClientRequests.push(path);
     if (!current.has(path) && path === CURRENT_SUMMONER_PATH) {
       // Synthetic: scenarios recorded before this endpoint existed have no line for it.
       res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(SYNTHETIC_SUMMONER));
       return;
     }
-    if (!current.has(path)) {
+    // Path + query exactly first (a scenario `uri` may carry a query), then the path alone.
+    const key = current.has(url) ? url : path;
+    if (!current.has(key)) {
       res.writeHead(404, { "Content-Type": "application/json" }).end('{"httpStatus":404}');
       return;
     }
-    res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(current.get(path)));
+    res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(current.get(key)));
   });
 
   const wss = new WebSocketServer({ noServer: true });

@@ -3,7 +3,7 @@
  * nothing else — no ipcRenderer, no Node. Inputs are validated again in main.
  */
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
-import type { AppInfo, LolViewerBridge, MatchState, OverlayPosition, OverlayRows, RecorderStatus, UpdateStatus, ViewCommand, ViewStatus } from "@lol-viewer/protocol";
+import type { AppInfo, LcuProbeOptions, LcuProbeProgress, LcuProbeResult, LolViewerBridge, MatchState, OverlayPosition, OverlayRows, RecorderStatus, UpdateStatus, ViewCommand, ViewStatus } from "@lol-viewer/protocol";
 
 function on<T>(channel: string, cb: (v: T) => void): () => void {
   const h = (_e: IpcRendererEvent, v: T) => cb(v);
@@ -25,6 +25,8 @@ const bridge: LolViewerBridge = {
   lcu: {
     reconnect: () => ipcRenderer.send("lcu:reconnect"),
     resync: () => ipcRenderer.send("lcu:resync"),
+    probe: (opts: LcuProbeOptions) => ipcRenderer.invoke("lcu:probe", opts) as Promise<LcuProbeResult>,
+    onProbeProgress: (cb: (p: LcuProbeProgress) => void) => on<LcuProbeProgress>("lcu:probe-progress", cb),
   },
   app: {
     info: () => ipcRenderer.invoke("app:info") as Promise<AppInfo>,

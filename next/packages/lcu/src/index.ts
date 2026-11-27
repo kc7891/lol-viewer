@@ -8,6 +8,8 @@
  *  - TLS verification is relaxed only for the loopback connection to the LCU
  *    (self-signed cert) and only on the sockets created here, never process-wide.
  *  - The auth token never leaves this module (not in events, not in logs).
+ *  - Settings "LCU check" (M-039) adds probe(): still GET only, and only to paths that
+ *    buildProbePath can produce from the fixed PROBE_ROUTES templates.
  */
 import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
@@ -16,7 +18,15 @@ import { request as httpsRequest } from "node:https";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import WebSocket from "ws";
-import type { ConnectionStatus } from "@lol-viewer/protocol";
+import {
+  isValidRiotId,
+  PROBE_PUUID_RE,
+  type ConnectionStatus,
+  type ProbeBuildArgs,
+  type ProbeQueryValue,
+  type ProbeResponse,
+  type ProbeRouteId,
+} from "@lol-viewer/protocol";
 
 const execFileAsync = promisify(execFile);
 
@@ -27,6 +37,148 @@ export const READ_ONLY_PATHS = [
   "/lol-summoner/v1/current-summoner",
 ] as const;
 export type ReadOnlyPath = (typeof READ_ONLY_PATHS)[number];
+
+type ParamKind = "int" | "puuid" | "puuidList" | "riotId";
+type ProbeRoute = { path: string; params?: Record<string, ParamKind>; query?: Record<string, ParamKind> };
+
+/** GET-only routes the Settings "LCU check" may read (M-039). Never subscribed, never resynced. */
+export const PROBE_ROUTES = {
+  currentSummoner: { path: "/lol-summoner/v1/current-summoner" },
+  lobby: { path: "/lol-lobby/v2/lobby" },
+  friendGroups: { path: "/lol-chat/v1/friend-groups" },
+  friendGroupFriends: { path: "/lol-chat/v1/friend-groups/{id}/friends", params: { id: "int" } },
+  friends: { path: "/lol-chat/v1/friends" },
+  rankedStats: { path: "/lol-ranked/v1/ranked-stats/{puuid}", params: { puuid: "puuid" } },
+  rankedStatsBatch: { path: "/lol-ranked/v1/ranked-stats", query: { puuids: "puuidList" } },
+  matches: {
+    path: "/lol-match-history/v1/products/lol/{puuid}/matches",
+    params: { puuid: "puuid" },
+    query: { begIndex: "int", endIndex: "int" },
+  },
+  game: { path: "/lol-match-history/v1/games/{gameId}", params: { gameId: "int" } },
+  recentlyPlayed: { path: "/lol-match-history/v1/recently-played-summoners" },
+  summonerByName: { path: "/lol-summoner/v1/summoners", query: { name: "riotId" } },
+  summonerByPuuid: { path: "/lol-summoner/v2/summoners/puuid/{puuid}", params: { puuid: "puuid" } },
+  summonerByPuuidCached: { path: "/lol-summoner/v1/summoners-by-puuid-cached/{puuid}", params: { puuid: "puuid" } },
+} as const satisfies Record<ProbeRouteId, ProbeRoute>;
+
+const ROUTES: Record<ProbeRouteId, ProbeRoute> = PROBE_ROUTES;
+
+function validParam(kind: ParamKind, v: unknown): boolean {
+  switch (kind) {
+    case "int":
+      return typeof v === "number" ? Number.isSafeInteger(v) && v >= 0 : typeof v === "string" && /^\d{1,19}$/.test(v);
+    case "puuid":
+      return typeof v === "string" && PROBE_PUUID_RE.test(v);
+    case "puuidList":
+      return false; // handled by buildQueryValue
+    case "riotId":
+      return typeof v === "string" && isValidRiotId(v);
+  }
+}
+
+/** Build the request path for a probe route. Throws on an unknown route or an invalid parameter (nothing is requested). */
+export function buildProbePath(id: ProbeRouteId, args: ProbeBuildArgs = {}): string {
+  const route = ROUTES[id] as ProbeRoute | undefined;
+  if (!route) throw new Error(`unknown probe route: ${String(id)}`);
+  const params = args.params ?? {};
+  const query = args.query ?? {};
+  for (const k of Object.keys(params)) if (!route.params || !(k in route.params)) throw new Error(`unexpected parameter: ${k}`);
+  for (const k of Object.keys(query)) if (!route.query || !(k in route.query)) throw new Error(`unexpected query: ${k}`);
+
+  const path = route.path.replace(/\{(\w+)\}/g, (_m, name: string) => {
+    const kind = route.params?.[name];
+    const v = params[name];
+    if (!kind || v === undefined || !validParam(kind, v)) throw new Error(`invalid parameter: ${name}`);
+    return encodeURIComponent(String(v));
+  });
+
+  const qs = new URLSearchParams();
+  for (const [name, kind] of Object.entries(route.query ?? {})) {
+    const v = query[name];
+    if (v === undefined) throw new Error(`missing query: ${name}`);
+    appendQuery(qs, name, kind, v);
+  }
+  const q = qs.toString();
+  return q ? `${path}?${q}` : path;
+}
+
+function appendQuery(qs: URLSearchParams, name: string, kind: ParamKind, v: ProbeQueryValue): void {
+  if (kind !== "puuidList") {
+    if (typeof v === "object" || !validParam(kind, v)) throw new Error(`invalid query: ${name}`);
+    qs.append(name, String(v));
+    return;
+  }
+  if (typeof v !== "object" || !Array.isArray(v.list)) throw new Error(`invalid query: ${name}`);
+  const { list, style } = v;
+  if (list.length < 1 || list.length > 50 || !list.every((x) => validParam("puuid", x))) throw new Error(`invalid query: ${name}`);
+  if (style === "json") qs.append(name, JSON.stringify(list));
+  else if (style === "comma") qs.append(name, list.join(","));
+  else if (style === "repeat") for (const x of list) qs.append(name, x);
+  else throw new Error(`invalid query: ${name}`);
+}
+
+/** The query values buildProbePath writes for a puuidList: json (`["a","b"]`), comma (`a,b`) or repeat (`a` `b`). */
+function validPuuidListValues(values: string[]): boolean {
+  let list: unknown = values;
+  if (values.length === 1) {
+    const v = values[0]!;
+    if (v.startsWith("[")) {
+      try {
+        list = JSON.parse(v);
+      } catch {
+        return false;
+      }
+    } else list = v.split(",");
+  }
+  return Array.isArray(list) && list.length >= 1 && list.length <= 50 && list.every((x) => validParam("puuid", x));
+}
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** One matcher per template: `{x}` matches one path segment. */
+const PROBE_MATCHERS = (Object.values(ROUTES) as ProbeRoute[]).map((r) => ({
+  route: r,
+  re: new RegExp("^" + r.path.split(/(\{\w+\})/).map((part) => (/^\{\w+\}$/.test(part) ? "([^/?#]+)" : escapeRe(part))).join("") + "$"),
+}));
+
+/** True when `path` is exactly what buildProbePath (or READ_ONLY_PATHS) can produce: right template, valid parameters, every declared query key once (a puuid list in one of its three styles) with a valid value, nothing else. */
+export function isProbePath(path: string): boolean {
+  if ((READ_ONLY_PATHS as readonly string[]).includes(path)) return true;
+  const qi = path.indexOf("?");
+  const p = qi < 0 ? path : path.slice(0, qi);
+  const q = qi < 0 ? "" : path.slice(qi + 1);
+  if (/[#\s]/.test(path)) return false;
+  for (const { route, re } of PROBE_MATCHERS) {
+    const m = re.exec(p);
+    if (!m) continue;
+    const names = [...route.path.matchAll(/\{(\w+)\}/g)].map((x) => x[1]!);
+    for (let i = 0; i < names.length; i++) {
+      let decoded: string;
+      try {
+        decoded = decodeURIComponent(m[i + 1]!);
+      } catch {
+        return false;
+      }
+      if (!validParam(route.params?.[names[i]!] ?? "puuid", decoded)) return false;
+    }
+    if (qi >= 0 && !q) return false; // a bare "?"
+    const sp = new URLSearchParams(q);
+    for (const k of sp.keys()) if (!route.query || !(k in route.query)) return false;
+    for (const [name, kind] of Object.entries(route.query ?? {})) {
+      const values = sp.getAll(name);
+      if (values.length === 0) return false; // buildProbePath requires every declared query
+      if (kind === "puuidList") {
+        if (!validPuuidListValues(values)) return false;
+      } else if (values.length !== 1 || !validParam(kind, values[0])) return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+const PROBE_TIMEOUT_MS = 10_000;
+const PROBE_MAX_BYTES = 5 * 1024 * 1024;
+const PROBE_NETWORK_ERROR: ProbeResponse = { status: 0, ms: 0, body: null, error: "network" };
 
 export type LcuCredentials = {
   port: number;
@@ -204,6 +356,66 @@ export class LcuClient {
     });
   }
 
+  /** GET a probe path (built by buildProbePath). Unlike get(), reports the status and time, and waits up to 10 s. */
+  probe(path: string): Promise<ProbeResponse> {
+    if (!isProbePath(path)) return Promise.reject(new Error("path not allowed for probe"));
+    const { port, protocol } = this.#creds;
+    const req = protocol === "https" ? httpsRequest : httpRequest;
+    const t0 = Date.now();
+    return new Promise((resolve) => {
+      let settled = false;
+      let timedOut = false;
+      const finish = (r: Omit<ProbeResponse, "ms">) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve({ ...r, ms: Date.now() - t0 });
+      };
+      const r = req(
+        {
+          host: "127.0.0.1",
+          port,
+          path,
+          method: "GET",
+          headers: { Authorization: this.#auth, Accept: "application/json" },
+          rejectUnauthorized: false, // loopback LCU self-signed cert; scoped to this request
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          let size = 0;
+          const status = res.statusCode ?? 0;
+          const retryAfter = res.headers["retry-after"] !== undefined;
+          res.on("data", (c: Buffer) => {
+            size += c.length;
+            if (size > PROBE_MAX_BYTES) {
+              finish({ status, body: null, error: "bad-json", retryAfter });
+              r.destroy();
+              return;
+            }
+            chunks.push(c);
+          });
+          res.on("end", () => {
+            const text = Buffer.concat(chunks).toString("utf8");
+            if (!text.trim()) return finish({ status, body: null, retryAfter });
+            try {
+              finish({ status, body: JSON.parse(text), retryAfter });
+            } catch {
+              finish({ status, body: null, ...(status >= 200 && status < 300 ? { error: "bad-json" as const } : {}), retryAfter });
+            }
+          });
+          res.on("error", () => finish({ status: 0, body: null, error: timedOut ? "timeout" : "network" }));
+        },
+      );
+      const timer = setTimeout(() => {
+        timedOut = true;
+        finish({ status: 0, body: null, error: "timeout" });
+        r.destroy();
+      }, PROBE_TIMEOUT_MS);
+      r.on("error", () => finish({ status: 0, body: null, error: timedOut ? "timeout" : "network" }));
+      r.end();
+    });
+  }
+
   /** Connect the event socket, then emit the current value of every path as a synthetic Update. */
   async connect(): Promise<void> {
     this.#opts.onStatus("connecting");
@@ -287,6 +499,8 @@ export type LcuConnector = {
   reconnect: () => void;
   /** While connected: GET every path and emit it through onEvent again. */
   resync: () => Promise<void>;
+  /** While connected: GET one probe path. Not connected -> { status: 0, ms: 0, body: null, error: "network" }. Rejects a path buildProbePath cannot produce. */
+  probe: (path: string) => Promise<ProbeResponse>;
 };
 
 /** Keeps an LcuClient connected: discover credentials, connect, back off (2s, 4s ... 60s) on failure. */
@@ -381,6 +595,11 @@ export function startLcuConnector(opts: LcuConnectorOptions): LcuConnector {
     resync: async () => {
       const c = client;
       if (c?.connected) await c.resync();
+    },
+    probe: (path) => {
+      if (!isProbePath(path)) return Promise.reject(new Error("path not allowed for probe"));
+      const c = client;
+      return c?.connected ? c.probe(path) : Promise.resolve({ ...PROBE_NETWORK_ERROR });
     },
     snapshot: async () => {
       const c = client;

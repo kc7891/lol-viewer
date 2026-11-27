@@ -11,6 +11,8 @@ LoL Viewer の仕様を、このディレクトリでまとめて管理する。
 | [new-app-spec.md](./new-app-spec.md) | 新版の機能仕様（実装に基づく）と移植チェック表 | 実装を変えたら更新する。設計書と食い違うときは、実装を書いて差異に挙げる |
 | [live-matchup-design.md](./live-matchup-design.md) | 試合中のゴールド差と対面表の補正（Live Client Data API、Feature Flag）の設計。決定 M-025〜M-029 の案を含む | 実装の手順書。実装を終えたら new-app-spec.md に反映し、この文書は設計の記録として残す |
 | [ingame-overlay-design.md](./ingame-overlay-design.md) | ゲーム内オーバーレイ（Tab でゴールド差の表、Feature Flag `inGameOverlay`）の調査と設計。決定 M-034 の案を含む。**未実装** | 持ち主の判断（§9）を待って実装する。実装を終えたら new-app-spec.md に反映する |
+| [team-balancer-design.md](./team-balancer-design.md) | カスタムマッチのチーム分け（Teams タブ、Feature Flag `teamBalancer`）の企画と設計。決定 M-038 の原案を含む。**未実装** | 持ち主の判断（§10）を反映済み。実装する。実装を終えたら new-app-spec.md に反映する |
+| [lcu-probe-design.md](./lcu-probe-design.md) | LCU の確認（Settings → LCU check）。チーム分けで使う LCU の API が本物のクライアントで読めるかを調べる確認用の機能の設計。決定 M-039 | 実装したら new-app-spec.md に反映する |
 | [progress.md](./progress.md) | 新版への移植の進み具合（インベントリのチェックリストとの対応） | 作業のたびに更新する |
 
 ## 運用ルール
