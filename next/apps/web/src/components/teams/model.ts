@@ -2,6 +2,9 @@
 import {
   effectiveRank,
   freshness,
+  hasPref,
+  laneState,
+  type LaneState,
   mainLanes,
   rankLabel,
   rankPoints,
@@ -65,6 +68,14 @@ export function overLockedLane(players: readonly BalancePlayer[]): Lane | null {
   return null;
 }
 
+/** Replace one person's preference as a whole (what a chip click or a rank pick makes); an empty one removes the person. */
+export function withPrefValue(prefs: Readonly<Record<string, TeamPlayerPref>>, puuid: string, pref: TeamPlayerPref): Record<string, TeamPlayerPref> {
+  const next: Record<string, TeamPlayerPref> = { ...prefs };
+  if (hasPref(pref)) next[puuid] = pref;
+  else delete next[puuid];
+  return next;
+}
+
 /** Add `patch` to one person's settings; a person left with nothing is removed. */
 export function withPref(prefs: Readonly<Record<string, TeamPlayerPref>>, puuid: string, patch: Partial<Record<keyof TeamPlayerPref, TeamPlayerPref[keyof TeamPlayerPref] | undefined>>): Record<string, TeamPlayerPref> {
   const next: Record<string, TeamPlayerPref> = { ...prefs };
@@ -76,13 +87,6 @@ export function withPref(prefs: Readonly<Record<string, TeamPlayerPref>>, puuid:
   if (Object.keys(merged).length === 0) delete next[puuid];
   else next[puuid] = merged as TeamPlayerPref;
   return next;
-}
-
-/** Toggle a lane in a list; with `max`, a new lane pushes the oldest one out. */
-export function toggleLane(list: readonly Lane[] | undefined, lane: Lane, max = 5): Lane[] {
-  const cur = list ?? [];
-  if (cur.includes(lane)) return cur.filter((l) => l !== lane);
-  return [...cur, lane].slice(-max);
 }
 
 export const OVERRIDE_TIERS = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"] as const;
@@ -148,3 +152,65 @@ export function remainingText(done: number, total: number, elapsedMs: number): s
 
 /** The lock of `lane` that cannot be kept, as a sentence. */
 export const tooManyLocksText = (lane: Lane): string => `Too many players are locked to ${LANE_LABEL[lane]}.`;
+
+/** Names sort A-Z (any case); equal names by puuid, so the order never jumps. */
+export const byName = (a: TeamPlayer | undefined, b: TeamPlayer | undefined, ap = "", bp = ""): number =>
+  (a?.gameName ?? "").localeCompare(b?.gameName ?? "", "en", { sensitivity: "base", numeric: true }) || (a?.tagLine ?? "").localeCompare(b?.tagLine ?? "", "en", { sensitivity: "base", numeric: true }) || ap.localeCompare(bp);
+
+const ORIGIN_ORDER: Record<Origin, number> = { team: 0, spectator: 1, added: 2 };
+/** The Match list: team slots, then spectators, then the people added by hand; by name inside each group. */
+export function sortCandidates(list: readonly Candidate[], players: Readonly<Record<string, TeamPlayer>> | undefined): Candidate[] {
+  return [...list].sort((a, b) => ORIGIN_ORDER[a.origin] - ORIGIN_ORDER[b.origin] || byName(players?.[a.puuid], players?.[b.puuid], a.puuid, b.puuid));
+}
+
+/** The newest time any of a person's data was fetched (0 = names only). */
+export const fetchedAtOf = (p: TeamPlayer): number => Math.max(p.rank?.fetchedAt ?? 0, p.lanes?.fetchedAt ?? 0, p.estimate?.fetchedAt ?? 0);
+
+/** Missing or old: nothing fetched yet, the data is older than 3 days, or the last fetch failed. */
+export function needsFetch(p: TeamPlayer, now: number): boolean {
+  const at = fetchedAtOf(p);
+  return at === 0 || freshness(at, now) !== "fresh" || p.error !== null;
+}
+
+/** What the lane chips show from the match history: the main lane, the sub lane and each lane's share. */
+export function historyOf(p: TeamPlayer | undefined): { main: Lane | null; sub: Lane | null; share: Partial<Record<Lane, number>>; games: number } {
+  const auto = mainLanes(p?.lanes);
+  const games = p?.lanes?.games ?? 0;
+  const share: Partial<Record<Lane, number>> = {};
+  for (const l of LANES) {
+    const n = p?.lanes?.counts[l] ?? 0;
+    if (games > 0 && n > 0) share[l] = Math.round((n / games) * 100);
+  }
+  return { main: auto.main, sub: auto.sub, share, games };
+}
+
+export const LANE_STATE_WORD: Record<LaneState, string> = { none: "not set", prefer: "preferred", lock: "locked", avoid: "avoided" };
+export const LANE_CHIP_HINT = "Click: ★ prefer → 🔒 lock → ✕ avoid → clear. Right-click to clear.";
+/** "Player1 Jungle: locked" */
+export const laneChipLabel = (name: string, lane: Lane, pref: TeamPlayerPref | undefined): string => `${name} ${LANE_LABEL[lane]}: ${LANE_STATE_WORD[laneState(pref, lane)]}`;
+
+/** Why a preferences file was refused, as a sentence. */
+export const PREFS_ERROR_TEXT: Record<"json" | "kind" | "version" | "size", string> = {
+  json: "That file is not valid JSON, so nothing was imported.",
+  kind: "That is not a LoL Viewer team preferences file, so nothing was imported.",
+  version: "That preferences file has an unsupported version (expected 1), so nothing was imported.",
+  size: "That file is larger than 1 MB, so nothing was imported.",
+};
+
+export type ImportPlan = {
+  matched: { puuid: string; pref: TeamPlayerPref }[];
+  notFound: string[];
+  /** How many of the matched people already have a preference that will be replaced. */
+  replacing: number;
+  /** People found by a Riot ID lookup (not saved before): fetched after the import. */
+  resolved?: string[];
+};
+
+export const importBarText = (plan: ImportPlan): string => {
+  const n = plan.matched.length;
+  const parts = [`${plan.replacing} will replace current preferences`, `${plan.notFound.length} not found`].filter((_, i) => (i === 0 ? plan.replacing > 0 : plan.notFound.length > 0));
+  return `Import ${n} ${n === 1 ? "person" : "people"}?${parts.length ? ` ${parts.join(", ")}.` : ""}`;
+};
+
+/** "Player99#tag9", or the first three and a count. */
+export const namesText = (names: readonly string[]): string => (names.length <= 3 ? names.join(", ") : `${names.slice(0, 3).join(", ")} and ${names.length - 3} more`);

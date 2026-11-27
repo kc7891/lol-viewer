@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { balanceTeams, formatForDiscord, rankLabel, scoreProposal, type BalancePlayer, type BalanceView, type DiscordName, type DiscordRank, type Proposal, type Slot } from "@lol-viewer/core";
 import { LANES, type Lane } from "@lol-viewer/protocol";
 import { useSettings } from "../../state/settings.tsx";
-import { IconBack, IconCopy, IconForward } from "../../ui/icons.tsx";
+import { IconBack, IconChevron, IconCopy, IconForward } from "../../ui/icons.tsx";
 import { LANE_LABEL, LANE_SHORT } from "../../ui/labels.ts";
 import { overLockedLane, tooManyLocksText } from "./model.ts";
-
+import { MenuButton } from "./Popover.tsx";
 export type PersonInfo = { name: DiscordName; rank: DiscordRank & { source?: string }; main: Lane | null };
 
 export type ProposalPanelProps = {
@@ -14,34 +14,34 @@ export type ProposalPanelProps = {
   info: Record<string, PersonInfo | undefined>;
   notify: (text: string, kind?: "info" | "success" | "warn") => void;
   /** Stories / tests. */
-  initialView?: BalanceView;
+  initialPriority?: BalanceView;
+  initialPreview?: boolean;
 };
 
-const VIEW_LABEL: Record<BalanceView, { en: string; ja: string }> = {
-  rankFirst: { en: "Rank first", ja: "ランク重視" },
-  laneFirst: { en: "Lanes first", ja: "レーン重視" },
+const PRIORITY: Record<BalanceView, { en: string; ja: string }> = {
+  rankFirst: { en: "Rank", ja: "ランク重視" },
+  laneFirst: { en: "Lanes", ja: "レーン重視" },
 };
-const PAGE = 3;
 const sig = (p: Proposal | undefined) => (p ? [...p.blue, ...p.red].map((s) => `${s.puuid}:${s.lane}`).join(",") : "");
 type Edit = { blue: Slot[]; red: Slot[] };
 
-export function ProposalPanel({ players: given, info, notify, initialView = "rankFirst" }: ProposalPanelProps) {
+/** The proposals, one at a time: Priority (Rank / Lanes), ◀ n / N ▶, a swap by hand (then "Edited" and Reset), Copy for Discord with a Preview. */
+export function ProposalPanel({ players: given, info, notify, initialPriority = "rankFirst", initialPreview = false }: ProposalPanelProps) {
   const { settings, update } = useSettings();
   // main pushes a new state object about every 200 ms while it fetches: only a real change starts the proposals over.
   const content = JSON.stringify(given);
   const players = useMemo(() => given, [content]); // eslint-disable-line react-hooks/exhaustive-deps
   const result = useMemo(() => balanceTeams(players), [players]);
-  const [view, setView] = useState<BalanceView>(initialView);
-  const [page, setPage] = useState(0);
+  const [view, setView] = useState<BalanceView>(initialPriority);
   const [cur, setCur] = useState(0);
   const [edits, setEdits] = useState<Record<string, Edit>>({});
   const [pick, setPick] = useState<string | null>(null);
   const [copy, setCopy] = useState<"copied" | "manual" | null>(null);
+  const [preview, setPreview] = useState(initialPreview);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   // New people, ranks or settings: the proposals are new, so start from the best again.
   useEffect(() => {
-    setPage(0);
     setCur(0);
     setEdits({});
     setPick(null);
@@ -49,8 +49,7 @@ export function ProposalPanel({ players: given, info, notify, initialView = "ran
   }, [result]);
 
   const list = result[view];
-  const pageItems = list.slice(page * PAGE, page * PAGE + PAGE);
-  const index = page * PAGE + Math.min(cur, Math.max(0, pageItems.length - 1));
+  const index = Math.min(cur, Math.max(0, list.length - 1));
   const base = list[index];
   const key = `${view}:${index}`;
   const edit = edits[key];
@@ -69,25 +68,23 @@ export function ProposalPanel({ players: given, info, notify, initialView = "ran
       ranks[id] = i.rank;
       mains[id] = i.main;
     }
-    const title = `チーム分け案（${VIEW_LABEL[view].ja} ${index + 1}${edit ? "・入れ替え後" : ""}）`;
+    const title = `チーム分け案（${PRIORITY[view].ja} ${index + 1}${edit ? "・入れ替え後" : ""}）`;
     return formatForDiscord(shown, names, ranks, { title, withRank, withTag, mains });
   }, [shown, info, view, index, edit, withRank, withTag]);
   useEffect(() => setCopy(null), [text]);
+  // The browser refused to copy: the text is shown and selected, so Ctrl+C works.
+  useEffect(() => {
+    if (copy === "manual") textRef.current?.select();
+  }, [copy, preview]);
 
   const setTeams = (patch: Partial<typeof settings.teams>) => update({ teams: { ...settings.teams, ...patch } });
   const switchView = (v: BalanceView) => {
     setView(v);
-    setPage(0);
     setCur(0);
     setPick(null);
   };
   const step = (d: number) => {
-    setCur((c) => (c + d + pageItems.length) % pageItems.length);
-    setPick(null);
-  };
-  const more = () => {
-    setPage((p) => ((p + 1) * PAGE < list.length ? p + 1 : 0));
-    setCur(0);
+    setCur((c) => (Math.min(c, list.length - 1) + d + list.length) % list.length);
     setPick(null);
   };
   const choose = (puuid: string) => {
@@ -110,7 +107,7 @@ export function ProposalPanel({ players: given, info, notify, initialView = "ran
       setCopy("copied");
       notify("Copied to clipboard", "success");
     } catch {
-      textRef.current?.select();
+      setPreview(true);
       setCopy("manual");
     }
   };
@@ -128,15 +125,43 @@ export function ProposalPanel({ players: given, info, notify, initialView = "ran
   return (
     <section className="card teams-proposals" aria-label="Proposals">
       <div className="proposal-head">
-        <h2>Proposals</h2>
+        <h2>Proposal</h2>
         {!problem && (
-          <div className="seg" role="group" aria-label="View">
-            {(["rankFirst", "laneFirst"] as const).map((v) => (
-              <button key={v} type="button" aria-pressed={view === v} onClick={() => switchView(v)}>
-                {VIEW_LABEL[v].en}
+          <>
+            <div className="prio" role="group" aria-label="Priority">
+              <span className="prio-label">Priority</span>
+              <div className="seg">
+                {(["rankFirst", "laneFirst"] as const).map((v) => (
+                  <button key={v} type="button" aria-pressed={view === v} onClick={() => switchView(v)}>
+                    {PRIORITY[v].en}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <span className="spacer" />
+            <div className="proposal-nav" role="group" aria-label="Proposal">
+              <button type="button" className="icon-btn" aria-label="Previous proposal" disabled={list.length < 2} onClick={() => step(-1)}>
+                <IconBack />
               </button>
-            ))}
-          </div>
+              {edit ? (
+                <span className="proposal-count" data-testid="proposal-count" data-edited>
+                  Edited
+                </span>
+              ) : (
+                <span className="proposal-count" data-testid="proposal-count">
+                  {index + 1} / {list.length}
+                </span>
+              )}
+              <button type="button" className="icon-btn" aria-label="Next proposal" disabled={list.length < 2} onClick={() => step(1)}>
+                <IconForward />
+              </button>
+              {edit && (
+                <button type="button" className="btn ghost" onClick={resetEdit}>
+                  Reset
+                </button>
+              )}
+            </div>
+          </>
         )}
       </div>
       {problem && (
@@ -146,37 +171,23 @@ export function ProposalPanel({ players: given, info, notify, initialView = "ran
       )}
       {!problem && shown && (
         <>
-          <div className="proposal-nav">
-            <span className="proposal-count" data-testid="proposal-count">
-              Proposal {Math.min(cur, pageItems.length - 1) + 1} / {pageItems.length}
-            </span>
-            <button type="button" className="icon-btn" aria-label="Previous proposal" disabled={pageItems.length < 2} onClick={() => step(-1)}>
-              <IconBack />
-            </button>
-            <button type="button" className="icon-btn" aria-label="Next proposal" disabled={pageItems.length < 2} onClick={() => step(1)}>
-              <IconForward />
-            </button>
-            <button type="button" className="btn" disabled={list.length <= PAGE} onClick={more}>
-              More
-            </button>
-            {page > 0 && <span className="muted">set {page + 1}</span>}
-            {sameTop && index === 0 && <span className="muted">Same top pick in both views</span>}
-            <span className="spacer" />
-            {edit && (
-              <button type="button" className="btn ghost" onClick={resetEdit}>
-                Reset swaps
-              </button>
-            )}
-          </div>
+          {sameTop && index === 0 && !edit && <p className="muted small same-top">Same as {PRIORITY[view === "rankFirst" ? "laneFirst" : "rankFirst"].en} priority</p>}
           <ProposalTable proposal={shown} info={info} pick={pick} onPick={choose} />
           <p className="proposal-diff" data-testid="proposal-diff">
             <span>Rank diff {Math.round(shown.rankDiff)}</span>
-            {shown.maxMatchupDiff !== null && <span> · max lane gap {Math.round(shown.maxMatchupDiff)}</span>}
+            {shown.maxMatchupDiff !== null && <span> · lane gap {Math.round(shown.maxMatchupDiff)}</span>}
             {shown.brokenNg > 0 && (
-              <span className="warn-text"> · ⚠ {shown.brokenNg} NG lane{shown.brokenNg > 1 ? "s" : ""}</span>
+              <span className="warn-text">
+                {" "}
+                · ⚠ {shown.brokenNg} avoided lane{shown.brokenNg > 1 ? "s" : ""}
+              </span>
             )}
-            {shown.unknownRanks > 0 && <span> · {shown.unknownRanks} unknown rank{shown.unknownRanks > 1 ? "s" : ""}</span>}
-            {edit && <span> · swapped by hand</span>}
+            {shown.unknownRanks > 0 && (
+              <span className="warn-text">
+                {" "}
+                · ⚠ {shown.unknownRanks} unknown rank{shown.unknownRanks > 1 ? "s" : ""}
+              </span>
+            )}
           </p>
           <p className="hint small">{pick ? "Pick the second player to swap with." : "To swap two players, click one and then the other."}</p>
           <div className="discord-box">
@@ -184,18 +195,22 @@ export function ProposalPanel({ players: given, info, notify, initialView = "ran
               <button type="button" className="btn primary" onClick={() => void doCopy()}>
                 <IconCopy /> Copy for Discord
               </button>
-              <label className="probe-check">
-                <input type="checkbox" checked={withRank} onChange={(e) => setTeams({ discordWithRank: e.target.checked })} />
-                Show ranks
-              </label>
-              <label className="probe-check">
-                <input type="checkbox" checked={withTag} onChange={(e) => setTeams({ discordWithTag: e.target.checked })} />
-                Show #tag
-              </label>
+              <MenuButton
+                label="Discord options"
+                title="Discord options"
+                className="icon-btn"
+                align="left"
+                trigger={<IconChevron />}
+                items={[
+                  { label: "Show ranks", checked: withRank, onSelect: () => setTeams({ discordWithRank: !withRank }) },
+                  { label: "Show #tag", checked: withTag, onSelect: () => setTeams({ discordWithTag: !withTag }) },
+                  { label: "Preview", checked: preview, onSelect: () => setPreview(!preview), separatorBefore: true },
+                ]}
+              />
               {copy === "copied" && <span role="status">Copied.</span>}
               {copy === "manual" && <span role="status">Press Ctrl+C to copy.</span>}
             </div>
-            <textarea ref={textRef} className="discord-text" aria-label="Discord text" readOnly spellCheck={false} rows={Math.min(9, text.split("\n").length)} value={text} />
+            {preview && <textarea ref={textRef} className="discord-text" aria-label="Discord text" readOnly spellCheck={false} rows={Math.min(9, text.split("\n").length)} value={text} />}
           </div>
         </>
       )}
