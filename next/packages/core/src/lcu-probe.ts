@@ -44,7 +44,8 @@ export const PROBE_VALUE_KEYS: ReadonlySet<string> = new Set(
 );
 
 const SAFE_STRING = /^[A-Z0-9_.]{1,24}$/i; // "." so that gameVersion (13.24.1) is readable
-const ID_LIKE_KEY = /^[A-Za-z0-9_-]{30,}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Maps keyed by PUUID, UUID or a numeric account / summoner id (6+ digits) must not print the key.
+const ID_LIKE_KEY = /^[A-Za-z0-9_-]{30,}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$|^\d{6,}$/i;
 const PLAIN_KEY = /^[A-Za-z0-9_.$-]{1,40}$/;
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);

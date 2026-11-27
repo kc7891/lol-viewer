@@ -91,6 +91,12 @@ describe("shapeOf", () => {
     expect(s).not.toContain("aaaa");
     expect(s).not.toContain("Alice");
   });
+  it("hides map keys that are numeric account / summoner ids", () => {
+    const s = shapeOf({ "2817461234": { tier: "GOLD" }, "123456": 1, "420": { tier: "SILVER" } });
+    expect(s).toBe('{420:{tier:"SILVER"}, <id>:num, …+1}'); // integer keys come first, ascending
+    expect(s).not.toContain("2817461234");
+    expect(s).not.toContain("123456");
+  });
   it("limits depth, keys and length", () => {
     expect(shapeOf({ a: { b: { c: { d: { e: 1 } } } } })).toBe("{a:{b:{c:{d:{…}}}}}");
     expect(shapeOf({ a: [[1]], b: [{ c: 1 }] }, { depth: 1 })).toBe("{a:[1], b:[1]}");
