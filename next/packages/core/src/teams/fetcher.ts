@@ -16,7 +16,7 @@ import {
   type TeamPlayer,
 } from "@lol-viewer/protocol";
 import type { ProbeBuild } from "../lcu-probe.ts";
-import { freshness, MAX_PLAYER_GAMES, type PlayerGame, type TeamCacheFile } from "./cache.ts";
+import { freshness, FRESH_MS, MAX_PLAYER_GAMES, type PlayerGame, type TeamCacheFile } from "./cache.ts";
 import { coRankPoints, ESTIMATE_MAX_SAMPLES, estimateGameIds, estimateRank } from "./estimate.ts";
 import { laneOf, laneProfileFromGames } from "./lanes.ts";
 import { parseRankedStats } from "./rank.ts";
@@ -44,9 +44,14 @@ export type EnsureOptions = {
   addedBy?: TeamPlayer["addedBy"];
 };
 
-type Task = { kind: "light" | "estimate"; puuid: string; cls: 0 | 1 | 2; force: boolean; epoch: number };
+/** `gen`: the cache generation the task was queued in (clearCache bumps it); `dead`: set by forget(), the task stops without writing. */
+type Task = { kind: "light" | "estimate"; puuid: string; cls: 0 | 1 | 2; force: boolean; epoch: number; gen: number; dead?: boolean };
 class Cancelled extends Error {}
 
+/** Prefetch chunks that arrive within this long after the previous work ended belong to the same user action. */
+const PREFETCH_CHUNK_MS = 1000;
+/** A game this much newer than the newest one in the estimate counts as new. */
+const NEW_GAME_MS = 60_000;
 const ERR_NO_ANSWER = "League Client did not answer";
 const ERR_LIMITED = "League Client is limiting requests";
 const ERR_INVALID = "Invalid request";
@@ -73,6 +78,11 @@ export class TeamFetcher {
   #active = new Map<string, Task>();
   #running = 0;
   #epoch = 0;
+  /** Bumped by clearCache: running tasks of an older generation stop without writing. */
+  #gen = 0;
+  #disposed = false;
+  /** When the last prefetch work finished (progress of chunks in one user action is summed). */
+  #endedAt: number | null = null;
   #connected = true;
   #connWaiters: (() => void)[] = [];
   #idleWaiters: (() => void)[] = [];
@@ -121,6 +131,7 @@ export class TeamFetcher {
 
   /** The League Client connected / disconnected. While disconnected nothing is requested and the work waits. */
   setConnected(connected: boolean): void {
+    if (this.#disposed) return;
     this.#connected = connected;
     if (connected) this.#wakeConn();
   }
@@ -133,26 +144,38 @@ export class TeamFetcher {
 
   /** Fetch these people. "stale": only what is not fresh; "all": everything again (the estimate too). */
   ensure(puuids: readonly string[], o: EnsureOptions): void {
+    if (this.#disposed) return;
     const now = this.#now();
     const ids = [...new Set(puuids.filter(validPuuid))];
     const prefetch = o.priority === "prefetch";
-    if (prefetch && this.#batch.size === 0) this.#done = this.#total = this.#failed = 0;
+    // Chunks of one user action (sent one after another) add up; a prefetch that starts later begins at 0.
+    if (prefetch && this.#batch.size === 0 && (this.#endedAt === null || now - this.#endedAt > PREFETCH_CHUNK_MS)) this.#done = this.#total = this.#failed = 0;
     const force = o.mode === "all";
     for (const id of ids) {
       const p = this.#player(id, o.addedBy);
-      const needLight = force || !p.rank || !p.lanes || freshness(p.rank.fetchedAt, now) !== "fresh";
+      const needLight = force || !p.rank || !p.lanes || !p.gameName || !!p.error || freshness(p.rank.fetchedAt, now) !== "fresh";
       const cls = prefetch ? 2 : 0;
       let queued = false;
-      if (needLight) queued = this.#enqueue({ kind: "light", puuid: id, cls, force, epoch: this.#epoch });
-      else if (this.#estimateNeeded(p, force)) queued = this.#enqueue({ kind: "estimate", puuid: id, cls: prefetch ? 2 : 1, force, epoch: this.#epoch });
+      if (needLight) queued = this.#enqueue({ kind: "light", puuid: id, cls, force, epoch: this.#epoch, gen: this.#gen });
+      else if (this.#estimateNeeded(p, force)) queued = this.#enqueue({ kind: "estimate", puuid: id, cls: prefetch ? 2 : 1, force, epoch: this.#epoch, gen: this.#gen });
       if (prefetch && !this.#batch.has(id)) {
         this.#total++;
         if (queued || this.#active.has(id)) this.#batch.add(id);
         else this.#done++;
       }
     }
+    if (prefetch && this.#batch.size === 0) this.#endedAt = now;
     this.#changed();
     this.#kick();
+  }
+
+  /** Stop all work for good: nothing is queued, running tasks end without another request, later calls do nothing. */
+  dispose(): void {
+    this.#disposed = true;
+    this.#queue = [];
+    this.#batch.clear();
+    this.#wakeConn();
+    this.#checkIdle();
   }
 
   /** Stop the prefetch: queued prefetch work is dropped, running work stops at its next request. Data already fetched stays. */
@@ -161,6 +184,7 @@ export class TeamFetcher {
     this.#queue = this.#queue.filter((t) => t.cls !== 2);
     this.#batch.clear();
     this.#done = this.#total = this.#failed = 0;
+    this.#endedAt = null;
     this.#wakeConn();
     this.#changed();
     this.#checkIdle();
@@ -168,9 +192,9 @@ export class TeamFetcher {
 
   /** Fetch one person again, the estimate too. */
   refresh(puuid: string): void {
-    if (!validPuuid(puuid)) return;
+    if (this.#disposed || !validPuuid(puuid)) return;
     this.#player(puuid);
-    this.#enqueue({ kind: "light", puuid, cls: 0, force: true, epoch: this.#epoch });
+    this.#enqueue({ kind: "light", puuid, cls: 0, force: true, epoch: this.#epoch, gen: this.#gen });
     this.#changed();
     this.#kick();
   }
@@ -178,6 +202,8 @@ export class TeamFetcher {
   /** Remove one person (the shared game and co-player data stay). */
   forget(puuid: string): void {
     this.#queue = this.#queue.filter((t) => t.puuid !== puuid);
+    const running = this.#active.get(puuid);
+    if (running) running.dead = true; // stops at its next request and writes nothing more
     if (this.#batch.delete(puuid)) this.#total = Math.max(0, this.#total - 1);
     delete this.#file.players[puuid];
     delete this.#file.playerGames[puuid];
@@ -189,8 +215,10 @@ export class TeamFetcher {
   clearCache(): void {
     this.#queue = [];
     this.#epoch++;
+    this.#gen++;
     this.#batch.clear();
     this.#done = this.#total = this.#failed = 0;
+    this.#endedAt = null;
     for (const k of ["players", "playerGames", "games", "coRanks"] as const) for (const id of Object.keys(this.#file[k])) delete this.#file[k][id];
     this.#wakeConn();
     this.#changed();
@@ -199,7 +227,7 @@ export class TeamFetcher {
 
   /** Add or update a person whose name is already known (friends, recent players, Riot ID lookups). */
   upsertPlayer(info: { puuid: string; gameName: string; tagLine: string }, addedBy?: TeamPlayer["addedBy"]): void {
-    if (!validPuuid(info.puuid)) return;
+    if (this.#disposed || !validPuuid(info.puuid)) return;
     const p = this.#player(info.puuid, addedBy);
     this.#setName(p, info.gameName, info.tagLine);
     this.#changed();
@@ -207,13 +235,17 @@ export class TeamFetcher {
 
   /** One rate-limited GET for callers outside the fetcher (friends, recently played, Riot ID lookups). Waits while disconnected. */
   request(route: ProbeRouteId, args?: ProbeBuildArgs): Promise<ProbeResponse> {
-    return this.#req(null, route, args);
+    return this.#req(null, route, args).catch((e): ProbeResponse => {
+      if (e instanceof Cancelled) return { status: -1, ms: 0, body: null };
+      throw e;
+    });
   }
 
   // ── queue ────────────────────────────────────────────────────────
 
   /** Returns true when the work is (now) queued or already running. `front`: ahead of the others of its class (an estimate follows its person's light task). */
   #enqueue(t: Task, front = false): boolean {
+    if (this.#disposed) return false;
     const dup = this.#queue.find((q) => q.kind === t.kind && q.puuid === t.puuid);
     if (dup) {
       if (t.cls < dup.cls) dup.cls = t.cls;
@@ -221,7 +253,7 @@ export class TeamFetcher {
       return true;
     }
     const running = this.#active.get(t.puuid);
-    if (running && running.kind === t.kind && !t.force) return true;
+    if (running && running.kind === t.kind && !t.force && running.gen === this.#gen && !running.dead) return true;
     const at = this.#queue.findIndex((q) => (front ? q.cls >= t.cls : q.cls > t.cls));
     if (at < 0) this.#queue.push(t);
     else this.#queue.splice(at, 0, t);
@@ -239,6 +271,7 @@ export class TeamFetcher {
   }
 
   #kick(): void {
+    if (this.#disposed) return;
     while (this.#running < this.#workers) {
       const t = this.#next();
       if (!t) break;
@@ -258,6 +291,7 @@ export class TeamFetcher {
   #afterTask(t: Task): void {
     if (!this.#batch.has(t.puuid) || this.#queue.some((q) => q.puuid === t.puuid)) return;
     this.#batch.delete(t.puuid);
+    if (this.#batch.size === 0) this.#endedAt = this.#now();
     this.#done++;
     if (this.#file.players[t.puuid]?.error) this.#failed++;
   }
@@ -278,7 +312,9 @@ export class TeamFetcher {
   // ── requests ─────────────────────────────────────────────────────
 
   #cancelled(t: Task | null): boolean {
-    return !!t && t.cls === 2 && t.epoch !== this.#epoch;
+    if (this.#disposed) return true;
+    if (!t) return false;
+    return t.dead === true || t.gen !== this.#gen || (t.cls === 2 && t.epoch !== this.#epoch);
   }
 
   async #waitConnected(): Promise<void> {
@@ -286,6 +322,7 @@ export class TeamFetcher {
       this.#connWaiters.push(resolve);
       if (this.#pollMs !== undefined) {
         void this.#sleep(this.#pollMs).then(() => {
+          if (this.#disposed) return;
           this.#connected = true; // try again; a failure marks it disconnected once more
           this.#wakeConn();
         });
@@ -306,7 +343,7 @@ export class TeamFetcher {
         await this.#waitConnected();
       }
       if (this.#cancelled(t)) throw new Cancelled();
-      const r = await this.#limiter.run(() => this.#get(path).catch((): ProbeResponse => ({ status: -1, ms: 0, body: null })));
+      const r = await this.#limiter.run(() => (this.#cancelled(t) ? Promise.resolve<ProbeResponse>({ status: -1, ms: 0, body: null }) : this.#get(path).catch((): ProbeResponse => ({ status: -1, ms: 0, body: null }))));
       if (this.#cancelled(t)) throw new Cancelled();
       if (r.status === 0 && r.error === "network") {
         this.#connected = false;
@@ -353,13 +390,18 @@ export class TeamFetcher {
   #estimateNeeded(p: TeamPlayer, force: boolean): boolean {
     if (force) return true;
     if (!p.rank || p.rank.solo || p.rank.flex) return false;
-    return !p.estimate || freshness(p.estimate.fetchedAt, this.#now()) !== "fresh";
+    if (!p.estimate || freshness(p.estimate.fetchedAt, this.#now()) !== "fresh") return true;
+    // New games since it was computed.
+    const newest = estimateGameIds(p.puuid, this.#file, this.#now())[0];
+    const row = newest === undefined ? undefined : this.#file.playerGames[p.puuid]?.find((g) => g.gameId === newest);
+    return !!row && row.at > (p.estimate.perGame[0]?.at ?? -Infinity) + NEW_GAME_MS;
   }
 
   async #light(t: Task): Promise<void> {
     const id = t.puuid;
     const p = this.#player(id);
     let err: string | null = null;
+    let matchesOk = false;
 
     const rn = await this.#req(t, "summonerByPuuid", { params: { puuid: id } });
     if (ok(rn) && isObj(rn.body)) {
@@ -375,14 +417,16 @@ export class TeamFetcher {
 
     const rm = await this.#req(t, "matches", { params: { puuid: id }, query: { begIndex: 0, endIndex: 20 } });
     if (ok(rm)) {
+      matchesOk = true;
       this.#mergeMatches(id, rm.body);
       p.lanes = laneProfileFromGames(this.#file.playerGames[id] ?? [], this.#now());
       this.#changed();
     } else err ??= errorText(rm);
 
     p.error = err;
-    if (this.#estimateNeeded(p, t.force)) {
-      this.#enqueue({ kind: "estimate", puuid: id, cls: t.cls === 0 ? 1 : t.cls, force: t.force, epoch: t.epoch }, true);
+    // Without the match list there are no games to estimate from: wait for the next successful fetch.
+    if (matchesOk && this.#estimateNeeded(p, t.force)) {
+      this.#enqueue({ kind: "estimate", puuid: id, cls: t.cls === 0 ? 1 : t.cls, force: t.force, epoch: t.epoch, gen: t.gen }, true);
     }
   }
 
@@ -440,9 +484,15 @@ export class TeamFetcher {
       counted += others.filter((x) => typeof coRankPoints(this.#file, x, this.#now()) === "number").length;
       if (counted >= ESTIMATE_MAX_SAMPLES) break;
     }
-    p.estimate = estimateRank(id, this.#file, this.#now());
-    if (failure) p.error = failure;
-    else if (p.error === ERR_PARTIAL) p.error = null;
+    const estimate = estimateRank(id, this.#file, this.#now());
+    if (failure) {
+      // An input is missing: keep what was computed, but mark it as already stale (the failure marker) so the next fetch tries again.
+      p.estimate = { ...estimate, fetchedAt: this.#now() - FRESH_MS - 1 };
+      p.error = failure;
+    } else {
+      p.estimate = estimate;
+      if (p.error === ERR_PARTIAL) p.error = null;
+    }
   }
 
   #parseGame(body: unknown, target: string, gameId: number): { at: number; queueId: number; participants: { puuid: string; teamId: number }[] } | undefined {

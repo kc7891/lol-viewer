@@ -37,6 +37,8 @@ export const STATE_PUSH_MS = 200;
 export const SAVE_DEBOUNCE_MS = 1000;
 /** While the client is unreachable the fetcher tries again this often. */
 export const RECONNECT_POLL_MS = 30_000;
+/** A failed cache write is tried again this many times (each one debounce later). */
+export const SAVE_RETRIES = 3;
 export const RECENT_MAX = 200;
 /** Names seen in friends / recent lists, kept in memory so a prefetch can show a name before its fetch. */
 const NAMES_MAX = 1000;
@@ -100,6 +102,11 @@ export class TeamsController {
   #saveTimer: unknown = null;
   #dirty = false;
   #saving: Promise<void> = Promise.resolve();
+  /** Writes that have started and not ended. */
+  #inflight = 0;
+  /** The text of a write that failed, tried again with the next debounce. */
+  #failedText: string | null = null;
+  #failures = 0;
   #names = new Map<string, { gameName: string; tagLine: string }>();
   #wasRunning = false;
 
@@ -112,7 +119,7 @@ export class TeamsController {
   }
   /** True while a change waits for the debounced save (main flushes before quitting). */
   get dirty(): boolean {
-    return this.#dirty;
+    return this.#dirty || this.#inflight > 0 || this.#failedText !== null;
   }
   /** Resolves when the cache has been loaded after enabling (tests, E2E). */
   get ready(): Promise<void> {
@@ -191,11 +198,11 @@ export class TeamsController {
     this.#sendTimer = null;
     // Data fetched while the flag was on is kept: write what is pending.
     if (this.#dirty && this.#file) void this.#save();
+    else if (this.#failedText !== null) void this.#save();
     this.#clear(this.#saveTimer);
     this.#saveTimer = null;
     if (f) {
-      f.cancelPrefetch();
-      f.setConnected(false); // running work waits for a connection that never comes; the fetcher is dropped
+      f.dispose(); // queued and running work ends without another request; the fetcher is dropped
     }
     this.#fetcher = null;
     this.#file = null;
@@ -344,6 +351,8 @@ export class TeamsController {
     this.#clear(this.#saveTimer);
     this.#saveTimer = null;
     this.#dirty = false;
+    this.#failedText = null;
+    this.#failures = 0;
     await this.#saving;
     try {
       await this.#d.storage.remove();
@@ -359,8 +368,11 @@ export class TeamsController {
   async flush(): Promise<void> {
     this.#clear(this.#saveTimer);
     this.#saveTimer = null;
-    await this.#save();
-    await this.#saving;
+    for (let i = 0; i <= SAVE_RETRIES; i++) {
+      await this.#save();
+      await this.#saving;
+      if (this.#failedText === null && !this.#dirty) break;
+    }
   }
 
   // ── internals ────────────────────────────────────────────────────
@@ -401,13 +413,38 @@ export class TeamsController {
 
   async #save(): Promise<void> {
     const file = this.#file;
-    if (!file || !this.#dirty) return;
+    let text: string;
+    if (file && this.#dirty) text = JSON.stringify(pruneCache(file, this.#d.now()));
+    else if (this.#failedText !== null) text = this.#failedText;
+    else return;
     this.#dirty = false;
-    const text = JSON.stringify(pruneCache(file, this.#d.now()));
+    this.#failedText = null;
+    this.#inflight++;
     this.#saving = this.#saving
       .then(() => this.#d.storage.save(text))
+      .then(() => {
+        this.#failures = 0;
+      })
       .catch(() => {
-        this.#d.log("cache file could not be saved");
+        if (this.#dirty && this.#file) return; // a newer write is already due and will replace this one
+        this.#failedText = text;
+        if (++this.#failures >= SAVE_RETRIES) {
+          this.#d.log("cache file could not be saved; giving up for now");
+          this.#failures = 0;
+          this.#failedText = null;
+          if (this.#file) this.#dirty = true; // the next change or the quit writes it again
+          return;
+        }
+        this.#d.log(`cache file could not be saved (try ${this.#failures} of ${SAVE_RETRIES})`);
+        if (this.#saveTimer === null) {
+          this.#saveTimer = this.#d.setTimer(() => {
+            this.#saveTimer = null;
+            void this.#save();
+          }, SAVE_DEBOUNCE_MS);
+        }
+      })
+      .finally(() => {
+        this.#inflight--;
       });
     await this.#saving;
   }

@@ -87,6 +87,9 @@ test("flag on: the lobby is fetched at once, ranks and estimates appear", async 
   await expect(tab("Teams")).toBeVisible();
   // Not opened yet: the fetching started anyway (Owner decision: custom lobby players are read on their own).
   await expect.poll(() => fake.getRequests.some((u) => u.startsWith("/lol-ranked/v1/ranked-stats/player-1")), { timeout: 15_000 }).toBe(true);
+  // The Teams tab was never opened: no friends, friend groups or recently played were read without a user action.
+  await page.waitForTimeout(1000);
+  expect(fake.getRequests.filter((u) => /friend|recently-played/.test(u))).toEqual([]);
   await tab("Teams").click();
 
   await expect(playersHeading()).toHaveText("Players (9)"); // 5 blue + 4 red; the bot is not listed

@@ -274,3 +274,16 @@ type Slot = { puuid: string; lane: Lane | null };
 - **renderer**: 入れ替えは「クリック → クリック」（ドラッグではない）。参加 / 控えは ↓ ↑ のボタン（ドラッグではない）。見た目の 🔒 は SVG のアイコン。提案の「別の案」は `More`（次の 3 件。最後まで行くと最初に戻る）。main が push する状態は 200ms ごとに新しいオブジェクトになるので、提案は中身（`BalancePlayer` の JSON）が変わったときだけやり直す。Discord の文字列は常に画面に出す（コピーが拒否されたときの代わりも兼ねる）。
 - **Storybook の story**: `Screens/Teams`（ロビーなし / 保存済みを足した 8 人 / 10 人 / レーン重視 / 8 人 / 9 人 / lock の衝突 / 手動の設定 / 取得中 / 控えから移した後 / Prefetch の各タブ / 制限中 / Saved の詳細 / ブラウザ）、`Screens/App` の `TeamsTab`、`Components/TopBar` の `WithTeamsTab`。fixture は `apps/web/src/fixtures/teams.ts`（合成の 12 人。`Player1#tag1` 形式）。
 
+
+## レビュー対応（2026-11-27）
+
+レビューで確かめられた指摘への修正。再現スクリプトは回帰テストにした。
+
+- **フラグ OFF で取得が止まらない**: `TeamFetcher.dispose()` を追加。キューを空にし、接続待ちを起こし、実行中・待機中のすべての要求（`request()` を含む）を取り消し扱いで終える。以後 GET は一切出ない。`TeamsController` はフラグ OFF で `dispose()` を呼び、ON で新しい fetcher を作る。30 秒の再接続ポーリングも dispose 後は接続済みに戻さない。（`fetcher.test.ts` の dispose、`teams-core.test.ts` の「flag off while a lobby fetch runs」）
+- **clearCache / forget 中の取得**: キャッシュの世代カウンタを追加。`clearCache()` が世代を上げ、古い世代のタスクは次の要求で止まり、何も書かない。`#enqueue` は古い世代の実行中タスクとは重複扱いにしない（クリア後のロビー再取得が実際に走る）。`forget()` は実行中のタスクに `dead` を付けて止める（他の人のタスクは止めない）。
+- **試合一覧の失敗でレート推定が 3 日止まる**: 試合一覧が成功したときだけ推定を積む。入力のどれかが失敗した推定は、`fetchedAt` を「新鮮ではない」時刻にして保存する（失敗の印）ので、次の取得でやり直す。`#estimateNeeded` は、保存済みの推定より新しい試合があるときも true。
+- **名前の取得失敗**: 名前が空、または前回の取得がエラーだった人は、ランクが新鮮でも light を取り直す。
+- **Prefetch の進み具合**: 同じ操作のチャンク（直前の作業の終了から 1 秒以内）は done / total を足し合わせる。前の Prefetch が終わってしばらくたった後、またはキャンセル後は 0 から。
+- **Friends / Recent を操作なしで読む**: `TeamsPage` に `visible` を追加し（App が現在のページから渡す）、Teams ページが見えている、Prefetch パネルが開いている、該当タブが選ばれている、の 3 つが揃ったときだけ読む。E2E（`electron-teams.spec.ts`）で、Teams タブを一度も開かないときに friends / friend-groups / recently-played を GET しないことを確かめる。
+- **保存**: 保存中の書き込みも `dirty` に含め（終了時に main が待つ）、`flush()` は書き込みの終了を待つ。書き込み・rename の失敗は、次のデバウンスで最大 3 回やり直す（ログは回数のみ）。3 回失敗したら諦めて dirty に戻し、次の変更か終了時に書く。
+- **記録ツール**: `/lol-lobby/v2/lobby` の合成ペイロード（puuid / summonerId / 名前など）が `findUnmaskedPii` で空になるテストを追加。伏せ方の変更は不要だった。

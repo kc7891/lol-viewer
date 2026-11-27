@@ -206,7 +206,7 @@ export function App({
 
         {teamsOn && (
           <div className="page teams-wrap" hidden={page !== "teams"}>
-            <TeamsPage notify={notify} initial={teamsInitial} />
+            <TeamsPage notify={notify} initial={teamsInitial} visible={page === "teams"} />
           </div>
         )}
 

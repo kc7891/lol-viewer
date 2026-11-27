@@ -27,9 +27,22 @@ function setup(o: { stored?: string | null; routes?: Record<string, (args: any) 
   const saved: string[] = [];
   let stored: string | null = o.stored ?? null;
   const calls = { load: 0, save: 0, remove: 0, onEnabled: 0 };
+  /** While set, every GET waits for it (after being counted); likewise every save. */
+  let hold: Promise<void> | null = null;
+  let saveHold: Promise<void> | null = null;
+  let failSaves = 0;
   const storage: TeamsStorage = {
     load: async () => (calls.load++, stored),
-    save: async (text) => (calls.save++, saved.push(text), void (stored = text)),
+    save: async (text) => {
+      calls.save++;
+      if (saveHold) await saveHold;
+      if (failSaves > 0) {
+        failSaves--;
+        throw new Error("rename failed");
+      }
+      saved.push(text);
+      stored = text;
+    },
     remove: async () => (calls.remove++, void (stored = null)),
   };
   const routes = o.routes ?? {};
@@ -37,6 +50,7 @@ function setup(o: { stored?: string | null; routes?: Record<string, (args: any) 
     get: async (path) => {
       const { id, args } = JSON.parse(path) as { id: string; args: any };
       gets.push({ id, args });
+      if (hold) await hold;
       const h = routes[id];
       if (h) return h(args);
       if (id === "summonerByPuuid") return ok({ gameName: `n-${args.params.puuid}`, tagLine: "t" });
@@ -74,7 +88,32 @@ function setup(o: { stored?: string | null; routes?: Record<string, (args: any) 
     await c.fetcher?.idle();
     await new Promise((r) => setImmediate(r));
   };
-  return { c, gets, sent, logs, saved, calls, tick, settle, stored: () => stored, timers, now: () => t };
+  const later = () => {
+    let release!: () => void;
+    const p = new Promise<void>((r) => (release = r));
+    return { p, release };
+  };
+  return {
+    c, gets, sent, logs, saved, calls, tick, settle, stored: () => stored, timers, now: () => t,
+    /** Hold the GETs; the returned function lets them go. */
+    holdGets: () => {
+      const h = later();
+      hold = h.p;
+      return () => {
+        hold = null;
+        h.release();
+      };
+    },
+    holdSaves: () => {
+      const h = later();
+      saveHold = h.p;
+      return () => {
+        saveHold = null;
+        h.release();
+      };
+    },
+    failSaves: (n: number) => void (failSaves = n),
+  };
 }
 const count = (s: ReturnType<typeof setup>, id: string) => s.gets.filter((g) => g.id === id).length;
 
@@ -380,5 +419,138 @@ describe("renderer calls", () => {
     expect(s.c.dirty).toBe(true); // the lobby is being fetched again
     await s.settle();
     expect(Object.keys(s.c.state().players).sort()).toEqual(["a", "b"]);
+  });
+});
+
+const spin = async (n = 5) => {
+  for (let i = 0; i < n; i++) await new Promise((r) => setImmediate(r));
+};
+
+describe("review fixes", () => {
+  it("flag off while a lobby fetch runs: no GET afterwards, not even after the reconnect poll; on again: only the new fetcher asks", async () => {
+    const s = setup();
+    s.c.setConnected(true);
+    s.c.setEnabled(true);
+    await s.c.ready;
+    const release = s.holdGets();
+    s.c.onLobby(lobbyBody(["a", "b", "c"], [], []));
+    await spin();
+    expect(s.gets.length).toBeGreaterThan(0);
+    s.c.setEnabled(false);
+    const atOff = s.gets.length;
+    release();
+    await spin();
+    s.tick(120_000); // longer than the 30 s reconnect poll
+    await spin();
+    expect(s.gets.length).toBe(atOff);
+    expect(s.c.state().players).toEqual({});
+
+    // On again: the old fetcher stays silent, the new one fetches the lobby once.
+    s.c.setEnabled(true);
+    await s.c.ready;
+    s.c.onLobby(lobbyBody(["a"], [], []));
+    await s.settle();
+    expect(count(s, "rankedStats")).toBe(1); // none from the old fetcher
+    expect(s.c.state().players.a?.rank).not.toBeNull();
+  });
+
+  it("clearCache during a lobby fetch: the lobby is fetched again and ends with name and rank", async () => {
+    const s = setup();
+    s.c.setConnected(true);
+    s.c.setEnabled(true);
+    await s.c.ready;
+    const release = s.holdGets();
+    s.c.onLobby(lobbyBody(["a", "b"], [], []));
+    await spin();
+    const cleared = s.c.clearCache();
+    release();
+    await cleared;
+    await s.settle();
+    for (const id of ["a", "b"]) {
+      const p = s.c.state().players[id];
+      expect(p?.gameName).toBe(`n-${id}`);
+      expect(p?.rank).not.toBeNull();
+    }
+  });
+
+  it("forget during a fetch: nothing of that person is in the saved file afterwards", async () => {
+    const own = (puuid: string) => ({ gameId: 7, gameCreation: NOW0 - 1000, queueId: 420, participants: [{ timeline: { lane: "TOP", role: "SOLO" } }], participantIdentities: [{ player: { puuid } }] });
+    const s = setup({ routes: { matches: (args) => ok({ games: { games: [own(args.params.puuid)] } }) } });
+    s.c.setConnected(true);
+    s.c.setEnabled(true);
+    await s.c.ready;
+    const release = s.holdGets();
+    s.c.onLobby(lobbyBody(["a", "b"], [], []));
+    await spin();
+    s.c.forget("a");
+    release();
+    await s.settle();
+    s.tick(SAVE_DEBOUNCE_MS);
+    await spin();
+    const file = parseCacheFile(JSON.parse(s.saved.at(-1)!));
+    expect(Object.keys(file.players)).toEqual(["b"]);
+    expect(Object.keys(file.playerGames)).toEqual(["b"]);
+    expect(s.saved.at(-1)).not.toContain('"a"');
+    expect(s.c.state().players.a).toBeUndefined();
+  });
+
+  it("a save that is in flight counts as unsaved, and flush() waits for it", async () => {
+    const s = setup();
+    s.c.setConnected(true);
+    s.c.setEnabled(true);
+    await s.c.ready;
+    const release = s.holdSaves();
+    s.c.onLobby(lobbyBody(["a"], [], []));
+    await s.settle();
+    s.tick(SAVE_DEBOUNCE_MS);
+    await spin();
+    expect(s.calls.save).toBe(1);
+    expect(s.c.dirty).toBe(true); // main would not wait for it otherwise
+    let done = false;
+    const f = s.c.flush().then(() => void (done = true));
+    await spin();
+    expect(done).toBe(false);
+    release();
+    await f;
+    expect(s.saved).toHaveLength(1);
+    expect(s.c.dirty).toBe(false);
+  });
+
+  it("a failed write is tried again with the next debounce (three tries), counts only in the log", async () => {
+    const s = setup();
+    s.c.setConnected(true);
+    s.c.setEnabled(true);
+    await s.c.ready;
+    s.failSaves(2);
+    s.c.onLobby(lobbyBody(["a"], [], []));
+    await s.settle();
+    for (let i = 0; i < 3; i++) {
+      s.tick(SAVE_DEBOUNCE_MS);
+      await spin();
+    }
+    expect(s.calls.save).toBe(3);
+    expect(s.saved).toHaveLength(1);
+    expect(parseCacheFile(JSON.parse(s.saved[0]!)).players.a).toBeDefined();
+    expect(s.c.dirty).toBe(false);
+    expect(s.logs.filter((m) => /could not be saved/.test(m))).toHaveLength(2);
+  });
+
+  it("gives up after three failed tries, and the quit writes it once more", async () => {
+    const s = setup();
+    s.c.setConnected(true);
+    s.c.setEnabled(true);
+    await s.c.ready;
+    s.failSaves(3);
+    s.c.onLobby(lobbyBody(["a"], [], []));
+    await s.settle();
+    for (let i = 0; i < 6; i++) {
+      s.tick(SAVE_DEBOUNCE_MS);
+      await spin();
+    }
+    expect(s.calls.save).toBe(3);
+    expect(s.c.dirty).toBe(true);
+    await s.c.flush();
+    expect(s.saved).toHaveLength(1);
+    expect(s.c.dirty).toBe(false);
   });
 });

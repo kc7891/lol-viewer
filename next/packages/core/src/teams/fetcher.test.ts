@@ -21,7 +21,7 @@ const UNRANKED = { queueMap: { RANKED_SOLO_5x5: { tier: "", division: "NA" }, RA
 type Call = { id: ProbeRouteId; args: ProbeBuildArgs };
 type Handler = (c: Call) => ProbeResponse | Promise<ProbeResponse>;
 
-function setup(handlers: Partial<Record<ProbeRouteId, Handler>>, o: { workers?: number; file?: TeamCacheFile; pollMs?: number } = {}) {
+function setup(handlers: Partial<Record<ProbeRouteId, Handler>>, o: { workers?: number; file?: TeamCacheFile; pollMs?: number; sleep?: (ms: number) => Promise<void> } = {}) {
   let t = NOW0;
   const calls: Call[] = [];
   const changes: number[] = [];
@@ -35,7 +35,7 @@ function setup(handlers: Partial<Record<ProbeRouteId, Handler>>, o: { workers?: 
     },
     build,
     now: () => t,
-    sleep: async (ms) => { t += ms; },
+    sleep: o.sleep ?? (async (ms) => { t += ms; }),
     file,
     onChange: () => changes.push(t),
     workers: o.workers ?? 1,
@@ -352,5 +352,201 @@ describe("TeamFetcher upkeep", () => {
     await s.fetcher.idle();
     expect(s.fetcher.status()).toMatchObject({ running: false, done: 2, total: 2, current: null });
     expect(s.fetcher.status().rate.requests).toBe(6);
+  });
+});
+
+/** A GET that waits until `release()` is called. */
+function gate() {
+  let release!: () => void;
+  const open = new Promise<void>((r) => (release = r));
+  return { open, release };
+}
+
+describe("TeamFetcher dispose (flag off)", () => {
+  it("sends no further GET: running work ends, queued work is dropped, request() answers -1", async () => {
+    const g = gate();
+    const s = setup({ ...base("u1"), summonerByPuuid: async () => (await g.open, ok({ gameName: "Alice", tagLine: "JP1" })) }, { workers: 1, pollMs: 30_000 });
+    s.fetcher.ensure(["u1", "u2"], { priority: "lobby", mode: "stale" });
+    await flush();
+    expect(s.calls).toHaveLength(1); // u1's name is in flight, u2 is queued
+    s.fetcher.dispose();
+    g.release();
+    await s.fetcher.idle();
+    await flush();
+    s.advance(120_000);
+    await flush();
+    expect(s.calls).toHaveLength(1);
+    expect((await s.fetcher.request("friends")).status).toBe(-1);
+    s.fetcher.ensure(["u3"], { priority: "lobby", mode: "stale" });
+    await flush();
+    expect(s.calls).toHaveLength(1);
+    expect(s.file.players.u1!.rank).toBeNull(); // nothing is written after the dispose
+  });
+
+  it("does not come back after the poll interval when the client was unreachable", async () => {
+    const wake: (() => void)[] = [];
+    const s = setup({ ...base("u1"), summonerByPuuid: () => ({ status: 0, ms: 1, body: null, error: "network" }) }, { workers: 1, pollMs: 30_000, sleep: () => new Promise<void>((r) => wake.push(r)) });
+    s.fetcher.ensure(["u1"], { priority: "lobby", mode: "stale" });
+    await flush();
+    expect(s.calls).toHaveLength(1); // unreachable: now waiting for the poll timer
+    s.fetcher.dispose();
+    for (const w of wake.splice(0)) w(); // the 30 s timer fires
+    await flush();
+    await s.fetcher.idle();
+    await flush();
+    expect(s.calls).toHaveLength(1);
+  });
+
+  it("ends a request() that waits for the connection", async () => {
+    const s = setup({}, { pollMs: 30_000, sleep: () => new Promise<void>(() => {}) });
+    s.fetcher.setConnected(false);
+    const r = s.fetcher.request("friends");
+    await flush();
+    s.fetcher.dispose();
+    expect((await r).status).toBe(-1);
+    expect(s.calls).toHaveLength(0);
+  });
+});
+
+describe("TeamFetcher clearCache and forget during a fetch", () => {
+  it("clearCache while a lobby fetch runs: the running task writes nothing, and the fetch after it runs and fills the cache", async () => {
+    const g = gate();
+    let first = true;
+    const s = setup({
+      ...base("u1"),
+      summonerByPuuid: async () => {
+        if (first) {
+          first = false;
+          await g.open;
+        }
+        return ok({ gameName: "Alice", tagLine: "JP1" });
+      },
+    });
+    s.fetcher.ensure(["u1"], { priority: "lobby", mode: "stale" });
+    await flush();
+    s.fetcher.clearCache();
+    s.fetcher.ensure(["u1"], { priority: "lobby", mode: "stale" }); // what the controller does after clearing
+    g.release();
+    await s.fetcher.idle();
+    const p = s.fetcher.file.players.u1!;
+    expect(p.gameName).toBe("Alice");
+    expect(p.rank).not.toBeNull();
+    expect(p.lanes).not.toBeNull();
+    expect(s.count("rankedStats")).toBe(1); // the old task stopped before its next request
+  });
+
+  it("forget while a fetch runs: nothing of that person is written afterwards", async () => {
+    const g = gate();
+    const s = setup({ ...base("u1"), rankedStats: async () => (await g.open, ok(rankBody("GOLD"))) });
+    s.fetcher.ensure(["u1"], { priority: "lobby", mode: "stale" });
+    await flush();
+    s.fetcher.forget("u1");
+    g.release();
+    await s.fetcher.idle();
+    await flush();
+    expect(s.count("matches")).toBe(0);
+    expect(JSON.stringify(s.file)).not.toContain("u1");
+    expect(s.fetcher.fetching()).toEqual([]);
+  });
+});
+
+describe("TeamFetcher estimate inputs", () => {
+  it("a failed match list does not freeze the estimate: it is computed once the list can be read", async () => {
+    let up = false;
+    const others = Array.from({ length: 9 }, (_, k) => `o${k}`);
+    const s = setup(
+      {
+        summonerByPuuid: () => ok({ gameName: "Alice", tagLine: "JP1" }),
+        rankedStats: (c) => ok(c.args.params!.puuid === "u1" ? UNRANKED : rankBody("GOLD", "II", 0)),
+        matches: () => (up ? matchList([1, 2, 3].map((n) => matchRow(n, 400, n, "TOP", "SOLO", "u1"))) : { status: 503, ms: 1, body: null }),
+        game: (c) => {
+          const ids = ["u1", ...others];
+          return ok({
+            queueId: 400, gameCreation: NOW0 - Number(c.args.params!.gameId) * DAY,
+            participants: ids.map((_, i) => ({ participantId: i + 1, teamId: i < 5 ? 100 : 200 })),
+            participantIdentities: ids.map((p, i) => ({ participantId: i + 1, player: { puuid: p } })),
+          });
+        },
+      },
+      { workers: 1 },
+    );
+    s.fetcher.ensure(["u1"], { priority: "lobby", mode: "stale" });
+    await s.fetcher.idle();
+    expect(s.file.players.u1!.estimate).toBeNull(); // not stamped from nothing
+    up = true;
+    s.advance(60_000);
+    s.fetcher.ensure(["u1"], { priority: "lobby", mode: "stale" });
+    await s.fetcher.idle();
+    expect(s.file.players.u1!.lanes?.games).toBe(3);
+    expect(s.file.players.u1!.estimate!.samples).toBeGreaterThan(0);
+  });
+
+  it("an estimate made with a failed input is retried by the next ensure, and a new game makes a fresh one outdated", async () => {
+    let gameUp = false;
+    const s = setup(
+      {
+        summonerByPuuid: () => ok({ gameName: "Alice", tagLine: "JP1" }),
+        rankedStats: (c) => ok(c.args.params!.puuid === "u1" ? UNRANKED : rankBody("GOLD", "II", 0)),
+        matches: () => matchList([matchRow(1, 400, 1, "TOP", "SOLO", "u1")]),
+        game: (c) => (gameUp ? gameBody(Number(c.args.params!.gameId), "u1") : { status: 500, ms: 1, body: null }),
+      },
+      { workers: 1 },
+    );
+    s.fetcher.ensure(["u1"], { priority: "lobby", mode: "stale" });
+    await s.fetcher.idle();
+    expect(s.file.players.u1!.error).toBe("League Client returned 500");
+    gameUp = true;
+    s.fetcher.ensure(["u1"], { priority: "lobby", mode: "stale" });
+    await s.fetcher.idle();
+    expect(s.file.players.u1!.estimate!.samples).toBeGreaterThan(0);
+    expect(s.file.players.u1!.error).toBeNull();
+    const games = s.count("game");
+    s.fetcher.ensure(["u1"], { priority: "lobby", mode: "stale" });
+    await s.fetcher.idle();
+    expect(s.count("game")).toBe(games); // complete and fresh: left alone
+    // A newer game appears in the match list (the light data is refreshed by hand).
+    s.file.playerGames.u1!.unshift({ gameId: 9, at: NOW0, queueId: 400, lane: "top" });
+    s.fetcher.ensure(["u1"], { priority: "lobby", mode: "stale" });
+    await s.fetcher.idle();
+    expect(s.seq("game", "gameId")).toContain("9");
+  });
+});
+
+describe("TeamFetcher retries and progress", () => {
+  it("fetches again a person whose name lookup failed, or whose last fetch had an error", async () => {
+    let nameUp = false;
+    const s = setup({ ...base("u1"), summonerByPuuid: () => (nameUp ? ok({ gameName: "Alice", tagLine: "JP1" }) : { status: 500, ms: 1, body: null }) });
+    s.fetcher.ensure(["u1"], { priority: "lobby", mode: "stale" });
+    await s.fetcher.idle();
+    expect(s.file.players.u1!.gameName).toBe("");
+    expect(s.file.players.u1!.rank).not.toBeNull(); // rank and lanes are fresh, only the name is missing
+    nameUp = true;
+    s.fetcher.ensure(["u1"], { priority: "lobby", mode: "stale" });
+    await s.fetcher.idle();
+    expect(s.file.players.u1!.gameName).toBe("Alice");
+    expect(s.file.players.u1!.error).toBeNull();
+    const n = s.count("summonerByPuuid");
+    s.fetcher.ensure(["u1"], { priority: "lobby", mode: "stale" });
+    await s.fetcher.idle();
+    expect(s.count("summonerByPuuid")).toBe(n); // healthy and fresh: left alone
+  });
+
+  it("adds up the chunks of one prefetch action, and starts again at 0 for a later one", async () => {
+    const s = setup(base("u1"));
+    s.fetcher.ensure(["u1", "u2"], { priority: "prefetch", mode: "stale" });
+    await s.fetcher.idle();
+    s.fetcher.ensure(["u3", "u4", "u5"], { priority: "prefetch", mode: "stale" }); // the next chunk of the same click
+    expect(s.fetcher.status()).toMatchObject({ done: 2, total: 5 });
+    await s.fetcher.idle();
+    expect(s.fetcher.status()).toMatchObject({ running: false, done: 5, total: 5 });
+    s.advance(60_000);
+    s.fetcher.ensure(["u6"], { priority: "prefetch", mode: "stale" });
+    expect(s.fetcher.status()).toMatchObject({ done: 0, total: 1 });
+    await s.fetcher.idle();
+    s.fetcher.ensure(["u7", "u8"], { priority: "prefetch", mode: "stale" });
+    s.fetcher.cancelPrefetch();
+    s.fetcher.ensure(["u9"], { priority: "prefetch", mode: "stale" });
+    expect(s.fetcher.status()).toMatchObject({ done: 0, total: 1 });
+    await s.fetcher.idle();
   });
 });

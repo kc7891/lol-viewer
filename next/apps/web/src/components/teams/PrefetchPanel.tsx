@@ -20,6 +20,8 @@ export type PrefetchPanelProps = {
   api: TeamsApi;
   state: TeamsState;
   now: number;
+  /** The Teams page is shown. Friends and recent players are loaded only then, with the panel open and their tab selected. Default true. */
+  visible?: boolean;
   open: boolean;
   onToggle: () => void;
   tab: PrefetchTab;
@@ -88,7 +90,7 @@ export function PrefetchPanel(p: PrefetchPanelProps) {
     );
   };
   useEffect(() => {
-    if (!p.open) return;
+    if (!p.open || p.visible === false) return;
     if (p.tab === "friends" && friends.state === "idle") loadFriends();
     if (p.tab === "recent" && recent.state === "idle") loadRecent();
   }); // eslint-disable-line react-hooks/exhaustive-deps

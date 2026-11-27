@@ -25,10 +25,12 @@ export type TeamsPageInitial = {
 export type TeamsPageProps = {
   notify: (text: string, kind?: ToastKind) => void;
   initial?: TeamsPageInitial;
+  /** False while another page is shown (the page stays mounted): nothing is requested from the League Client then. Default true. */
+  visible?: boolean;
 };
 
 /** Teams (M-038): who plays, manual settings, proposals, Copy for Discord, and the prefetch panel. */
-export function TeamsPage({ notify, initial }: TeamsPageProps) {
+export function TeamsPage({ notify, initial, visible = true }: TeamsPageProps) {
   const api = useBridge().teams;
   const state = useTeamsState(api);
   const { settings, update } = useSettings();
@@ -138,6 +140,7 @@ export function TeamsPage({ notify, initial }: TeamsPageProps) {
           api={api}
           state={state}
           now={now}
+          visible={visible}
           open={prefetchOpen ?? lobby === null}
           onToggle={() => setPrefetchOpen(!(prefetchOpen ?? lobby === null))}
           tab={tab}
