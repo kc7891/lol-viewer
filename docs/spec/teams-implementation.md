@@ -234,3 +234,25 @@ type Slot = { puuid: string; lane: Lane | null };
 ## 10. 実装の分け方
 - **実装 A（ロジック層）**: §2・§3・§4（core の teams 一式、settings、lcu-probe の修正）と §8 の core 単体テスト、decisions.md の M-038。UI と main は触らない。
 - **実装 B（つなぎと画面）**: §5・§6・§7 と §8 の残り（desktop、E2E、stories）、§9 の残り。A の API をそのまま使う。A の API を変える必要が出たら、変えた理由をこの文書の末尾の「実装メモ」に書く。
+
+---
+
+## 実装メモ（実装 A）
+
+実装 A（ロジック層）で設計から変えた点・足した点。実装 B はこれを前提にする。コードは `next/packages/core/src/teams/`（`index.ts` が全部を出し、`core/src/index.ts` から再エクスポート）。
+
+### 設計からの変更・補足
+- **`TeamFetcher` に足した API**: `file`（getter）、`setConnected(boolean)`、`idle()`、`fetching(): string[]`、`forget(puuid)`、`clearCache()`（ファイルのオブジェクトはそのまま、中身を空にする）、`upsertPlayer({puuid,gameName,tagLine}, addedBy?)`、`request(route, args?)`（レートリミッターと接続待ちを通る GET。friends / recentlyPlayed / `summonerByName` に main が使う）。コンストラクタに `limiter?`、`workers?`（既定 2）、`pollMs?`（未設定なら `setConnected(true)` まで待つ。main は安全のため 30000 などを渡してよい）を足した。`ensure` のオプションに `addedBy?` を足した（§3 の `prefetch` の `addedBy` に対応）。
+- **接続の扱い**: `get` が `{ status: 0, error: "network" }`（コネクタが未接続のときの応答）を返すと、その要求は止まって待つ。main は LCU の接続状態の変化で `setConnected(true/false)` を呼ぶこと。`PrefetchStatus.running` は「事前取得の人が残っている」間 true（未接続で待っている間も true）。ロビーの取得中は `fetching()`（TeamsState の `fetching`）で見る。
+- **進み具合**: `done` / `total` は事前取得の 1 回のまとまりの人数。取得が要らない（新しい）人もすぐ done に数える。`cancelPrefetch()` は数を 0 に戻す。
+- **`BalancePlayer` に `thin?: boolean` を足した**（その他のレーンのペナルティを 40 にする。`mainLanes(profile).thin` を渡す）。proposal はどちらの見方でも全件（10 人で 126 件）を返す。10 人のレーンの割り当てはチームごとにペナルティ最小のものから、対面の差が小さくなる組を選ぶ（同点の候補は 24 個まで）。6・8 人でレーンの「同じ main」は `lock ?? mains[0]` で見る。
+- **`scoreProposal(slots, players, view)`**: 手で入れ替えた案の点数の出し直し。入れ替えで lock が破れるとレーンのペナルティ 1000 を足す（案は隠さない）。
+- **`formatForDiscord(p, names, ranks, opts)`** の引数: `names: Record<puuid, {gameName, tagLine}>`、`ranks: Record<puuid, {label, points}>`（`label` は `rankLabel`、`points` は青赤の平均用）、`opts` に `mains?: Record<puuid, Lane|null>` を足した（6・8 人の `(MID)` 用）。1 行目は `**{title}** ランク差 N`（`withRank` のとき）。
+- **`effectiveRank`**: 手動の上書きは `prefs.rankOverride`（settings の `teamPlayers[puuid].rankOverride`）。ソロ / フレックス / 前シーズンも 14 日より古ければ使わない（設計は推定だけに書いてあったが、§3.7.3 の表に合わせた）。
+- **推定の打ち切り**: 40 人は「その試合まで数えて 40 人以上になったら次の試合を取らない」（試合の途中では切らない。最大 48 人になりうる）。
+- **キャッシュ**: `parseCacheFile` は `players` のキーと `puuid` が違う項目を捨てる。`pruneCache` は新しいオブジェクトを返す。名前だけ（データなし）の人は `nameSeenAt` から 30 日で消える。
+- **`parseCustomLobby`**（`lobby.ts`）、`parseRiotIdLines` と `lookupRiotId(request, input)`（`riotId.ts`）を足した。`parseRiotIdLines` は `{input, valid}[]` を返す（不正な行は呼び出し側が `error: "format"` にする。`lookupRiotId` は不正なら `format` を返す）。
+- **settings**: `parseTeamPlayers`、`TeamPlayerPref`、`TeamsSettings`、`DEFAULT_TEAMS_SETTINGS`、`TEAM_PLAYERS_MAX` を足した。`mains` は最大 2、`rankOverride` は 0 以上の整数に丸める。
+- **protocol**: 設計どおり（`TeamsApi`、スキーマ、`LolViewerBridge.teams?`）。`z.record(LaneSchema, …)` は zod 4 では全レーンのキーが要るので、`LaneProfile.counts` は常に 5 レーン分を持つ。
+- **lcu-probe**: `ID_LIKE_KEY` の 30 文字以上の規則は、数字か `-` を含むときだけ ID とみなす。既存テストの「a を 78 回」のキーは `a1` の繰り返しなどに変えた。
+- decisions.md の M-038 は M-039 の後ろに追記した（番号順ではなく追記順）。
