@@ -13,6 +13,7 @@ LoL Viewer の仕様を、このディレクトリでまとめて管理する。
 | [ingame-overlay-design.md](./ingame-overlay-design.md) | ゲーム内オーバーレイ（Tab でゴールド差の表、Feature Flag `inGameOverlay`）の調査と設計。決定 M-034 の案を含む。**未実装** | 持ち主の判断（§9）を待って実装する。実装を終えたら new-app-spec.md に反映する |
 | [team-balancer-design.md](./team-balancer-design.md) | カスタムマッチのチーム分け（Teams タブ、Feature Flag `teamBalancer`）の企画と設計。決定 M-038 の原案を含む。**実装済み**（2026-11-27） | 持ち主の判断（§10）を反映して作った。仕様の実際は new-app-spec.md §2.5・§3.8 |
 | [teams-implementation.md](./teams-implementation.md) | Teams タブ（チーム分け）の実装設計。企画書 team-balancer-design.md を、どのパッケージに何を作るかに落としたもの | 実装の手順書（**実装済み**）。差異は末尾の実装メモ（A・B）に書いた |
+| [teams-ui-v2-design.md](./teams-ui-v2-design.md) | Teams タブの UI の見直し（Match / People、行の中のレーンのチップ、ランクの札）と、人ごとの好みの JSON の書き出し / 読み込み。決定 M-040 | 実装したら new-app-spec.md に反映し、差異は末尾の実装メモに書く |
 | [lcu-probe-design.md](./lcu-probe-design.md) | LCU の確認（Settings → LCU check）。チーム分けで使う LCU の API が本物のクライアントで読めるかを調べる確認用の機能の設計。決定 M-039 | 実装したら new-app-spec.md に反映する |
 | [progress.md](./progress.md) | 新版への移植の進み具合（インベントリのチェックリストとの対応） | 作業のたびに更新する |
 
