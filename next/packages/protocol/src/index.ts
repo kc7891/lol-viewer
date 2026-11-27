@@ -648,6 +648,17 @@ export const RiotIdResultSchema = z.object({
 });
 export type RiotIdResult = z.infer<typeof RiotIdResultSchema>;
 
+/** IPC input checks for Teams (main validates every call; M-038). */
+export const TeamsPuuidSchema = z.string().regex(PROBE_PUUID_RE);
+export const TEAMS_PREFETCH_MAX = 60;
+export const TEAMS_RIOT_ID_LINES_MAX = 30;
+export const TeamsPrefetchRequestSchema = z.object({
+  puuids: z.array(TeamsPuuidSchema).max(TEAMS_PREFETCH_MAX),
+  mode: z.enum(["stale", "all"]),
+  addedBy: z.enum(["friend", "recent", "lobby"]).optional(),
+});
+export const TeamsRiotIdLinesSchema = z.array(z.string().max(100)).max(TEAMS_RIOT_ID_LINES_MAX);
+
 export interface TeamsApi {
   getState(): Promise<TeamsState>;
   onState(cb: (s: TeamsState) => void): () => void;

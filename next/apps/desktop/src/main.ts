@@ -28,6 +28,8 @@ import { createOverlayGate, DEFAULT_OVERLAY_POSITION, overlayBounds, OVERLAY_SIZ
 import { createKeySource } from "./win-keys.ts";
 import { RecordingController } from "./recording.ts";
 import { createUpdater } from "./updater.ts";
+import { LOBBY_URI } from "./teams-core.ts";
+import { setupTeams } from "./teams.ts";
 import { attachRendererLogging, initLogging, installProcessHandlers, log } from "./log.ts";
 
 // Before anything reads app paths (logs, single-instance lock, localStorage, sessions).
@@ -129,14 +131,29 @@ if (gotLock) void app.whenReady().then(async () => {
   });
 
   let recording: RecordingController | null = null;
+  let teams: ReturnType<typeof setupTeams> | null = null;
   const connector = startLcuConnector({
     onEvent: (raw) => {
       recording?.onLcuEvent(raw);
+      // M-038: the lobby goes to Teams only. It carries PUUIDs, so it never enters MatchState / the Hub.
+      if (raw.uri === LOBBY_URI) return void teams?.onLobby(raw.eventType === "Delete" ? null : raw.data);
       const e = toLcuEvent(raw);
       if (e) hub.dispatch(e);
     },
-    onStatus: (status) => hub.dispatch({ type: "connection", status }),
+    onStatus: (status) => {
+      hub.dispatch({ type: "connection", status });
+      teams?.setConnected(status === "connected");
+    },
   });
+  // M-038: Teams (feature flag teamBalancer). Off by default: no requests, no cache file access.
+  const teamsCtl = setupTeams({
+    connector,
+    fromApp,
+    push: (channel, state) => {
+      if (!win.isDestroyed()) win.webContents.send(channel, state);
+    },
+  });
+  teams = teamsCtl;
   // M-025: Live Client Data API, only while the feature flag is on and a game is in progress (GET, 127.0.0.1 only).
   const live = createLiveGate({
     start: () => {
@@ -315,16 +332,16 @@ if (gotLock) void app.whenReady().then(async () => {
   }
 
   if (process.env.LOL_VIEWER_E2E === "1") {
-    (globalThis as Record<string, unknown>).__lolViewer = { hub, views, recording: rec, live, overlay, overlayWindow: () => overlayWin, createKeySource };
+    (globalThis as Record<string, unknown>).__lolViewer = { hub, views, recording: rec, live, overlay, teams: teamsCtl, overlayWindow: () => overlayWin, createKeySource };
   }
 
   // Finish (flush and close) an active recording before quitting.
   let finishing = false;
   app.on("before-quit", (ev) => {
-    if (!finishing && rec.status().recording) {
+    if (!finishing && (rec.status().recording || teamsCtl.dirty)) {
       ev.preventDefault();
       finishing = true;
-      void rec.stop().finally(() => app.quit());
+      void Promise.all([rec.status().recording ? rec.stop() : undefined, teamsCtl.flush()]).finally(() => app.quit());
       return;
     }
     live.dispose();

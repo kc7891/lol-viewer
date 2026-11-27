@@ -3,13 +3,37 @@
  * nothing else — no ipcRenderer, no Node. Inputs are validated again in main.
  */
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
-import type { AppInfo, LcuProbeOptions, LcuProbeProgress, LcuProbeResult, LolViewerBridge, MatchState, OverlayPosition, OverlayRows, RecorderStatus, UpdateStatus, ViewCommand, ViewStatus } from "@lol-viewer/protocol";
+import type { AppInfo, LcuProbeOptions, LcuProbeProgress, LcuProbeResult, LolViewerBridge, MatchState, OverlayPosition, OverlayRows, RecorderStatus, TeamsApi, TeamsState, UpdateStatus, ViewCommand, ViewStatus } from "@lol-viewer/protocol";
 
 function on<T>(channel: string, cb: (v: T) => void): () => void {
   const h = (_e: IpcRendererEvent, v: T) => cb(v);
   ipcRenderer.on(channel, h);
   return () => ipcRenderer.removeListener(channel, h);
 }
+
+const teams: TeamsApi = {
+  getState: () => ipcRenderer.invoke("teams:get-state") as Promise<TeamsState>,
+  onState(cb) {
+    let pushed = false;
+    const off = on<TeamsState>("teams:state", (s) => {
+      pushed = true;
+      cb(s);
+    });
+    void ipcRenderer.invoke("teams:get-state").then((s: TeamsState | null) => {
+      if (s && !pushed) cb(s); // a push that arrived first is newer
+    });
+    return off;
+  },
+  setEnabled: (enabled: boolean) => ipcRenderer.send("teams:set-enabled", enabled === true),
+  friends: () => ipcRenderer.invoke("teams:friends") as ReturnType<TeamsApi["friends"]>,
+  recentPlayers: () => ipcRenderer.invoke("teams:recent") as ReturnType<TeamsApi["recentPlayers"]>,
+  resolveRiotIds: (lines: string[]) => ipcRenderer.invoke("teams:resolve-riot-ids", lines) as ReturnType<TeamsApi["resolveRiotIds"]>,
+  prefetch: (req) => ipcRenderer.send("teams:prefetch", req),
+  cancelPrefetch: () => ipcRenderer.send("teams:cancel-prefetch"),
+  refresh: (puuid: string) => ipcRenderer.send("teams:refresh", puuid),
+  forget: (puuid: string) => ipcRenderer.send("teams:forget", puuid),
+  clearCache: () => ipcRenderer.send("teams:clear-cache"),
+};
 
 const bridge: LolViewerBridge = {
   kind: "electron",
@@ -53,6 +77,7 @@ const bridge: LolViewerBridge = {
     openFolder: () => ipcRenderer.send("recorder:open-folder"),
     onStatus: (cb: (s: RecorderStatus) => void) => on<RecorderStatus>("recorder:status", cb),
   },
+  teams,
 };
 
 contextBridge.exposeInMainWorld("lolViewer", bridge);

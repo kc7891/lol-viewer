@@ -4,7 +4,7 @@
  * It has no `views` (ExternalViewSlot shows a placeholder) and no `app` (Settings shows "dev").
  */
 import { formatProbeReport, initialDetectorState, initialMatchState, parseScenario, reduce, toLcuEvent, type DetectorState, type ScenarioLine } from "@lol-viewer/core";
-import type { AppApi, LcuControlApi, LcuProbeProgress, LcuProbeReport, LcuProbeResult, LiveClientControlApi, LolViewerBridge, MatchState, OverlayControlApi, UpdateStatus, UpdatesApi } from "@lol-viewer/protocol";
+import type { AppApi, LcuControlApi, LcuProbeProgress, LcuProbeReport, LcuProbeResult, LiveClientControlApi, LolViewerBridge, MatchState, OverlayControlApi, TeamsApi, UpdateStatus, UpdatesApi } from "@lol-viewer/protocol";
 import scenarioText from "../../../../scenarios/ranked-two-matches.jsonl?raw";
 
 export type MockPlayer = LolViewerBridge & {
@@ -152,6 +152,8 @@ export type StaticBridgeOptions = {
   live?: LiveClientControlApi | true;
   /** Give the bridge the desktop in-game overlay switch (Settings > Feature flags). */
   overlay?: OverlayControlApi | true;
+  /** Give the bridge the desktop Teams API (Teams page, Settings > Feature flags). */
+  teams?: TeamsApi;
 };
 
 /** A bridge pinned to one state — for stories and screenshots. */
@@ -159,5 +161,5 @@ export function staticBridge(state: MatchState, opts: StaticBridgeOptions = {}):
   const lcu = opts.lcu === true ? { reconnect() {}, resync() {} } : opts.lcu;
   const live = opts.live === true ? { setEnabled() {} } : opts.live;
   const overlay = opts.overlay === true ? { setEnabled() {}, setRows() {}, setPosition() {} } : opts.overlay;
-  return { kind: "mock", onState: (cb) => (cb(state), () => {}), ...(lcu ? { lcu } : {}), ...(live ? { live } : {}), ...(overlay ? { overlay } : {}), ...(opts.app ? { app: opts.app } : {}), ...(opts.updates ? { updates: opts.updates } : {}) };
+  return { kind: "mock", onState: (cb) => (cb(state), () => {}), ...(lcu ? { lcu } : {}), ...(live ? { live } : {}), ...(overlay ? { overlay } : {}), ...(opts.app ? { app: opts.app } : {}), ...(opts.updates ? { updates: opts.updates } : {}), ...(opts.teams ? { teams: opts.teams } : {}) };
 }

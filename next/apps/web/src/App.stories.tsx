@@ -2,11 +2,12 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DEFAULT_SETTINGS, DEFAULT_URL_TEMPLATES, type Settings } from "@lol-viewer/core";
 import { App, type AppProps } from "./App.tsx";
 import { mockUpdates } from "./bridge/mock.ts";
+import { fixtureTeamsApi, teamsState } from "./fixtures/teams.ts";
 import { emptyViewer, firstViewer, liveScenes, manualViewers, scenes, threeViewers, updateStatuses, viewerLimit, withHidden, type Scene } from "./fixtures.ts";
 import { Harness } from "./storyHelpers.tsx";
 import type { Toast } from "./state/toasts.tsx";
 
-type Args = { scene: Scene; settings?: Settings; app?: AppProps; updates?: keyof typeof updateStatuses };
+type Args = { scene: Scene; settings?: Settings; app?: AppProps; updates?: keyof typeof updateStatuses; teams?: boolean };
 
 const meta = {
   title: "Screens/App",
@@ -16,12 +17,12 @@ export default meta;
 type Story = StoryObj<Args>;
 
 /** Stories render from closures (not args): Storybook would clone and re-serialize big Scene objects. */
-const story = ({ scene, settings, app, updates }: Args): Story => ({
+const story = ({ scene, settings, app, updates, teams }: Args): Story => ({
   render: () => (
     <Harness
       match={scene.match}
       settings={settings}
-      bridgeOptions={{ lcu: true, ...(updates ? { updates: mockUpdates(updateStatuses[updates]) } : {}) }}
+      bridgeOptions={{ lcu: true, ...(updates ? { updates: mockUpdates(updateStatuses[updates]) } : {}), ...(teams ? { teams: fixtureTeamsApi(teamsState()) } : {}) }}
     >
       <App initialWorkspace={scene.ws} autoDismissToasts={false} {...app} />
     </Harness>
@@ -69,6 +70,13 @@ export const SettingsUrlErrors: Story = story({
     urlsInitialDraft: { ...DEFAULT_URL_TEMPLATES, counter: "", liveGame: "  " },
     urlsInitialErrors: ["counter", "liveGame"],
   },
+});
+/** Feature flag teamBalancer on (M-038): the Teams tab is in the top bar, the page shows the lobby and the first proposals. */
+export const TeamsTab: Story = story({
+  scene: scenes.idle,
+  settings: { ...DEFAULT_SETTINGS, featureFlags: { teamBalancer: true } },
+  teams: true,
+  app: { initialPage: "teams", teamsInitial: { prefetchOpen: false } },
 });
 export const SettingsUpdateBadge: Story = story({ scene: scenes.idle, app: { updateAvailable: true } });
 /** Desktop app: a newer version was found at startup. The dot comes from the bridge, not from a prop. */
