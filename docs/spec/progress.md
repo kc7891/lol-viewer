@@ -42,6 +42,7 @@
 | Settings: UI サイズ（すぐ反映）、QR | ✅ | | M-012、M-009 |
 | Settings: Feature Flag の仕組みと画面 | ✅ | `core/settings.ts`、Settings の `Feature flags` カード | `liveClientData`（既定オフ）。即保存・即反映。旧版の再起動の注意は出さない |
 | Settings: Debug（対面表へ手動追加） | ✅ | | |
+| Settings: LCU check（LCU の API の確認用レポート） | ✅ | M-039。実際の League Client での確認は持ち主が行う | |
 | QR | ✅ | ペインの QR ボタン | 常時表示はしない（M-009） |
 | 外部ページ: 許可ホスト外は既定ブラウザ、ポップアップ、右クリックメニュー、戻る/進む | ✅ | `ExternalViewManager` | M-013 |
 | チャンピオンデータの生成（1 本化、Wukong、レーン適性のマージ、週次更新） | ✅ | `tools/champion-data` | M-004、M-015 |

@@ -2,7 +2,7 @@
 
 チーム分け（[team-balancer-design.md](./team-balancer-design.md)）で使う予定の LCU の API が、**本物の League Client で本当に読めるか、どんな形で返るか、どれくらい速いか**を、持ち主が Windows で 1 回押すだけで調べられる確認用の機能。結果は**個人情報を含まない文字列**で、そのまま開発者（AI）に貼って渡せる。
 
-- 状態: **設計済み・実装待ち**（2026-11-27）。
+- 状態: **実装済み**（2026-11-27）。実機（本物の League Client）での確認は持ち主が行う。
 - ゾーン: `packages/lcu`（🔴）と `apps/desktop`（🔴）に手を入れる。**人間のレビューが必要**。書き込み系（POST/PUT/PATCH/DELETE）は足さない。
 - 決定番号: M-039（§10。decisions.md に追記する）。
 
@@ -258,3 +258,17 @@ pnpm desktop:build && xvfb-run -a pnpm e2e:electron
 ```
 - E2E（`e2e/electron-lcu-probe.spec.ts`、新規）: fake-lcu を `scenarios/lcu-probe.jsonl` で起動 → Settings → LCU check → Run → レポートに `current-summoner` の `200`、`lobby` の `404`、`friends` の件数が出る。レポートにシナリオの名前・PUUID の文字列が出ない。`fake.rejectedWrites` が空。
 - 実機での確認は持ち主が行う（このカードの目的そのもの）。
+
+---
+
+## 12. 実装メモ（設計からの差異）
+- `ProbeResponse` に任意の `retryAfter?: boolean` を足した（§4 の rate test が `Retry-After` の有無を出すため。ヘッダーの値は読まない）。
+- `shapeOf` の値の正規表現は `/^[A-Z0-9_.]{1,24}$/i`（`.` を足した）。`gameVersion`（`14.1.1` など）を読めるようにするため。許可リストのキーの値にだけ使う。
+- 型（`ProbeRouteId`、`ProbeQueryValue`、`ProbeBuildArgs`、`isValidRiotId`、`PROBE_PUUID_RE`）は、core と lcu の両方が使うので protocol に置いた。`PROBE_ROUTES` は `satisfies Record<ProbeRouteId, …>` で protocol の id の一覧と揃えている。
+- `LcuClient.probe` と `connector.probe` の両方が `isProbePath`（テンプレートの照合、パラメータの再検査、宣言されたクエリのキーだけ）で検査する。`READ_ONLY_PATHS` の固定パスも通す。
+- `runLcuProbe` の `opts` に `appVersion` / `platform` を足した（main が渡す）。Riot ID が不正なら、最初の要求の前に例外を投げる。
+- フレンドグループは、`count` / `size` / `total` を含む数値のキーが正のものを優先して選び、無ければ最初の `id` が整数のもの。
+- 手順 8 は、フレンドがいなければ自分だけで試す。手順 9 の人数は 1 / 5 / 10 / 20 を「有るだけ」に丸めて重複を除く。
+- 進み具合の `total` は 20（Rate test のときは 21）。手順 8・9 は複数の要求でも 1 手順として数える。
+- `e2e/playwright.electron.config.ts` の `testMatch` を `electron-lcu-probe.spec.ts` も拾うように、ハイフンを複数含む名前に広げた。
+- E2E の Riot ID 入力には、シナリオの合成 Riot ID（`player-2#tag-1`）を使い、レポートにも出ないことを確かめている。

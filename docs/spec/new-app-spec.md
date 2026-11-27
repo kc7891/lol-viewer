@@ -170,6 +170,7 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 | Version | 現在のバージョンとプラットフォーム（例 `0.0.1 (win32)`）。ブラウザ（モック）では `dev` と「Updates are available in the desktop app.」。デスクトップ版では、`Latest version`（確認中は `Checking…`、未確認は `—`）、状態の文、ボタンを出す。状態の文: `Not checked yet.` / `Checking…` / `You have the latest version.` / `A new version is available.` / `Downloading… n%`（進行バー付き）/ `Ready to install. The app restarts.` / 失敗時は短い理由（下記）/ `Update checks are off in this build.`。ボタン: 未確認・最新・失敗のとき `Check for updates`（確認中は無効）、新しい版があるとき `Download`（ダウンロード中は無効）、ダウンロード済みのとき `Restart and update`、無効なビルドでは出さない。詳細は §7 |
 | Debug | チャンピオンを検索して選び、`Add ally` / `Add enemy`。対面表の**その側の最初の空き行**に入れる（レーン適性も重複も見ない）。成功すると結果を表示して入力を消す。その側が埋まっていれば「full」と表示 |
 | Record session | `Start recording` / `Stop` / `Open recordings folder`。LCU のイベントをファイルへ保存する（他のプレイヤーの名前と ID は伏せる）。記録中は経過時間とイベント数を表示。デスクトップ版だけ（PoC で追加した機能） |
+| LCU check | `Run check` で、チーム分け用に調べたい LCU の GET を決まった手順で 1 回ずつ投げ、ステータス・時間・JSON の形のレポートを出す（名前・PUUID・ID は出さない）。Riot ID の入力（任意）、`Rate test`（任意、40 回の追加要求）、`Copy report`。デスクトップ版だけ。M-039、[lcu-probe-design.md](./lcu-probe-design.md) |
 
 - Feature Flag の定義（`FEATURE_FLAGS`）が 1 つ以上あるときカードを出す。今は `liveClientData` と `inGameOverlay`。保存と既定値は `core/settings.ts`。
 - 保存先と既定値は §5。
