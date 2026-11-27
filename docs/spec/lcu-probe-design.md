@@ -233,7 +233,7 @@ LCU check
   - `LcuProbeOptionsSchema = z.object({ riotId: z.string().max(48).optional(), rateTest: z.boolean().default(false) })`
   - `LcuProbeReport` の型（§4）と、`ProbeResponse` の型（lcu と core の両方が使うので protocol に置く）。
   - `LcuControlApi` に `probe?(opts): Promise<{ text: string; report: LcuProbeReport }>` と `onProbeProgress?(cb): () => void` を足す（モックやハブでは省略可）。
-- desktop（🔴、最小限）: `ipcMain.handle("lcu:probe", …)` — `fromApp` を確かめ、`LcuProbeOptionsSchema.safeParse`、同時に 1 つしか走らせない（走っている間の 2 回目は同じ Promise を返す）。`runLcuProbe(connector.probe, buildProbePath, { ...opts, appVersion })` の結果を `formatProbeReport` して返す。進み具合は `win.webContents.send("lcu:probe-progress", { done, total })`。ログには「LCU check started / finished (n steps)」だけ書く（結果の中身は書かない）。
+- desktop（🔴、最小限）: `ipcMain.handle("lcu:probe", …)` — `fromApp` を確かめ、`LcuProbeOptionsSchema.safeParse`、同時に 1 つしか走らせない（走っている間の 2 回目はエラーで断る。同じ Promise を返すと、2 回目の Riot ID と Rate test の指定が黙って捨てられるため。レビューで改訂）。`runLcuProbe(connector.probe, buildProbePath, { ...opts, appVersion })` の結果を `formatProbeReport` して返す。進み具合は `win.webContents.send("lcu:probe-progress", { done, total })`。ログには「LCU check started / finished (n steps)」だけ書く（結果の中身は書かない）。
 - preload: `lcu.probe`、`lcu.onProbeProgress` を足す。
 - mock bridge（`apps/web/src/bridge/mock.ts`）: 固定の合成レポートを 1 秒後に返す `probe` を足す（Storybook と web:dev 用）。
 
@@ -265,10 +265,17 @@ pnpm desktop:build && xvfb-run -a pnpm e2e:electron
 - `ProbeResponse` に任意の `retryAfter?: boolean` を足した（§4 の rate test が `Retry-After` の有無を出すため。ヘッダーの値は読まない）。
 - `shapeOf` の値の正規表現は `/^[A-Z0-9_.]{1,24}$/i`（`.` を足した）。`gameVersion`（`14.1.1` など）を読めるようにするため。許可リストのキーの値にだけ使う。
 - 型（`ProbeRouteId`、`ProbeQueryValue`、`ProbeBuildArgs`、`isValidRiotId`、`PROBE_PUUID_RE`）は、core と lcu の両方が使うので protocol に置いた。`PROBE_ROUTES` は `satisfies Record<ProbeRouteId, …>` で protocol の id の一覧と揃えている。
-- `LcuClient.probe` と `connector.probe` の両方が `isProbePath`（テンプレートの照合、パラメータの再検査、宣言されたクエリのキーだけ）で検査する。`READ_ONLY_PATHS` の固定パスも通す。
+- `LcuClient.probe` と `connector.probe` の両方が `isProbePath` で検査する: テンプレートの照合、パス中のパラメータの再検査、宣言されたクエリが各 1 回ずつあり値が正しいこと（puuid の一覧は json / comma / repeat のどれか）、余計なキーや空の `?` が無いこと。`READ_ONLY_PATHS` の固定パスも通す。
 - `runLcuProbe` の `opts` に `appVersion` / `platform` を足した（main が渡す）。Riot ID が不正なら、最初の要求の前に例外を投げる。
 - フレンドグループは、`count` / `size` / `total` を含む数値のキーが正のものを優先して選び、無ければ最初の `id` が整数のもの。
 - 手順 8 は、フレンドがいなければ自分だけで試す。手順 9 の人数は 1 / 5 / 10 / 20 を「有るだけ」に丸めて重複を除く。
 - 進み具合の `total` は 20（Rate test のときは 21）。手順 8・9 は複数の要求でも 1 手順として数える。
 - `e2e/playwright.electron.config.ts` の `testMatch` を `electron-lcu-probe.spec.ts` も拾うように、ハイフンを複数含む名前に広げた。
 - E2E の Riot ID 入力には、シナリオの合成 Riot ID（`player-2#tag-1`）を使い、レポートにも出ないことを確かめている。
+- レビュー（2026-11-27）で直したこと:
+  - **マップ状のオブジェクトのキーを隠す**: 2 個以上の値がすべて同じキーの組のオブジェクトである場合（プレイヤー名や ID をキーにしたマップの形）、そのキーは `<key>` にする。キューの名前（`RANKED_SOLO_5x5` など、`SAFE_MAP_KEYS`）だけは出す。短い名前（`Faker` など）がキーになっていても出ないように。値が数値や文字列のマップ（`{名前: 数}`）は、この判定では見分けられない（残る弱点。今回の手順の API では見つかっていない）。
+  - 6 桁以上の数字だけのキー（アカウント / サモナーの ID）も `<id>` にする。
+  - `isProbePath` がクエリの値も検査するようにした（上記）。
+  - レポートを 30,000 文字で切るとき、閉じのコードフェンスを残す。
+  - 手順 16 で、手順 1 の PUUID が無いときは `mismatch` ではなく `unknown` と出す。
+  - 2 回目の実行が失敗したとき、前回のレポートを消す（古いレポートをコピーしないように）。

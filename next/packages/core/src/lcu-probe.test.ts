@@ -97,6 +97,15 @@ describe("shapeOf", () => {
     expect(s).not.toContain("2817461234");
     expect(s).not.toContain("123456");
   });
+  it("hides the keys of map-like objects (e.g. keyed by player name), but not queue names", () => {
+    const byName = shapeOf({ Faker: { tier: "GOLD", wins: 1 }, Bob: { tier: "SILVER", wins: 2 }, alice: { tier: "IRON", wins: 3 } });
+    expect(byName).toBe('{<key>:{tier:"GOLD", wins:num}, …+2}');
+    for (const n of ["Faker", "Bob", "alice"]) expect(byName).not.toContain(n);
+    const queues = shapeOf({ queueMap: { RANKED_SOLO_5x5: { tier: "GOLD" }, RANKED_FLEX_SR: { tier: "SILVER" } } });
+    expect(queues).toBe('{queueMap:{RANKED_SOLO_5x5:{tier:"GOLD"}, RANKED_FLEX_SR:{tier:"SILVER"}}}');
+    // A schema object with different children keeps its keys.
+    expect(shapeOf({ gameConfig: { isCustom: true }, members: [] })).toBe("{gameConfig:{isCustom:true}, members:[0]}");
+  });
   it("limits depth, keys and length", () => {
     expect(shapeOf({ a: { b: { c: { d: { e: 1 } } } } })).toBe("{a:{b:{c:{d:{…}}}}}");
     expect(shapeOf({ a: [[1]], b: [{ c: 1 }] }, { depth: 1 })).toBe("{a:[1], b:[1]}");
@@ -147,6 +156,12 @@ describe("runLcuProbe", () => {
     expect(skipped.find((s) => s.n === 17)!.note).toBe("no Riot ID entered");
     expect(report.steps.find((s) => s.n === 20)!.status).toBe(200);
     expect(report.steps.find((s) => s.n === 1)!.status).toBe(500);
+  });
+
+  it("step 16 says unknown (not mismatch) when step 1 had no usable PUUID", async () => {
+    const h = harness({ currentSummoner: () => ok({ puuid: "not a puuid!", gameName: "SecretName0", tagLine: "JP1" }) });
+    const report = await runLcuProbe(h.get, build, h.opts);
+    expect(report.steps.find((s) => s.n === 16)!.facts).toEqual({ puuid: "unknown" });
   });
 
   it("reports timeouts and network errors without values", async () => {
@@ -209,5 +224,12 @@ describe("formatProbeReport", () => {
     const text = formatProbeReport({ startedAt: "2026-11-27T12:34:56.000Z", appVersion: "1", platform: "win32", steps });
     expect(text.length).toBeLessThanOrEqual(30_000);
     expect(text).toContain("…");
+  });
+  it("keeps both code fences when even the shortest shapes do not fit", () => {
+    const steps = Array.from({ length: 400 }, (_, i) => ({ n: i + 1, name: `step ${i}`, route: "friends" as const, status: 200, ms: 5, note: "x".repeat(100) }));
+    const text = formatProbeReport({ startedAt: "2026-11-27T12:34:56.000Z", appVersion: "1", platform: "win32", steps });
+    expect(text.length).toBeLessThanOrEqual(30_000);
+    expect(text.startsWith("```\n")).toBe(true);
+    expect(text.endsWith("\n```")).toBe(true);
   });
 });

@@ -118,6 +118,22 @@ function appendQuery(qs: URLSearchParams, name: string, kind: ParamKind, v: Prob
   else throw new Error(`invalid query: ${name}`);
 }
 
+/** The query values buildProbePath writes for a puuidList: json (`["a","b"]`), comma (`a,b`) or repeat (`a` `b`). */
+function validPuuidListValues(values: string[]): boolean {
+  let list: unknown = values;
+  if (values.length === 1) {
+    const v = values[0]!;
+    if (v.startsWith("[")) {
+      try {
+        list = JSON.parse(v);
+      } catch {
+        return false;
+      }
+    } else list = v.split(",");
+  }
+  return Array.isArray(list) && list.length >= 1 && list.length <= 50 && list.every((x) => validParam("puuid", x));
+}
+
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /** One matcher per template: `{x}` matches one path segment. */
 const PROBE_MATCHERS = (Object.values(ROUTES) as ProbeRoute[]).map((r) => ({
@@ -125,7 +141,7 @@ const PROBE_MATCHERS = (Object.values(ROUTES) as ProbeRoute[]).map((r) => ({
   re: new RegExp("^" + r.path.split(/(\{\w+\})/).map((part) => (/^\{\w+\}$/.test(part) ? "([^/?#]+)" : escapeRe(part))).join("") + "$"),
 }));
 
-/** True when `path` is exactly what buildProbePath (or READ_ONLY_PATHS) can produce: right template, valid parameters, only declared query keys. */
+/** True when `path` is exactly what buildProbePath (or READ_ONLY_PATHS) can produce: right template, valid parameters, every declared query key once (a puuid list in one of its three styles) with a valid value, nothing else. */
 export function isProbePath(path: string): boolean {
   if ((READ_ONLY_PATHS as readonly string[]).includes(path)) return true;
   const qi = path.indexOf("?");
@@ -145,9 +161,15 @@ export function isProbePath(path: string): boolean {
       }
       if (!validParam(route.params?.[names[i]!] ?? "puuid", decoded)) return false;
     }
-    if (q) {
-      if (!route.query) return false;
-      for (const k of new URLSearchParams(q).keys()) if (!(k in route.query)) return false;
+    if (qi >= 0 && !q) return false; // a bare "?"
+    const sp = new URLSearchParams(q);
+    for (const k of sp.keys()) if (!route.query || !(k in route.query)) return false;
+    for (const [name, kind] of Object.entries(route.query ?? {})) {
+      const values = sp.getAll(name);
+      if (values.length === 0) return false; // buildProbePath requires every declared query
+      if (kind === "puuidList") {
+        if (!validPuuidListValues(values)) return false;
+      } else if (values.length !== 1 || !validParam(kind, values[0])) return false;
     }
     return true;
   }

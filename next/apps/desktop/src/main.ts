@@ -271,11 +271,11 @@ if (gotLock) void app.whenReady().then(async () => {
   ipcMain.on("lcu:resync", (e) => {
     if (fromApp(e)) void connector.resync();
   });
-  // M-039: Settings "LCU check". GET only, one run at a time; the log gets counts only, never the report.
+  // M-039: Settings "LCU check". GET only, one run at a time (a second call while running is rejected); the log gets counts only, never the report.
   let probeRun: Promise<LcuProbeResult> | null = null;
   ipcMain.handle("lcu:probe", (e, raw: unknown) => {
     if (!fromApp(e)) return null;
-    if (probeRun) return probeRun;
+    if (probeRun) throw new Error("an LCU check is already running"); // its options would be silently dropped
     const opts = LcuProbeOptionsSchema.safeParse(raw ?? {});
     if (!opts.success) throw new Error("invalid LCU check options");
     log.info("lcu", "LCU check started");

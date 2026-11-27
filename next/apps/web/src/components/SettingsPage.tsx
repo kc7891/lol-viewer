@@ -498,6 +498,7 @@ export function LcuCheckCard({ connection, initial }: LcuCheckCardProps) {
     setRunning({ done: 0, total: rateTest ? 21 : 20 });
     setError(null);
     setCopy(null);
+    setText(null); // a failed re-run must not leave the previous report to be copied
     try {
       const r = await probe({ riotId: riotId.trim() || undefined, rateTest });
       setText(r.text);

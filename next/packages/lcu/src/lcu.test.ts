@@ -211,6 +211,8 @@ describe("buildProbePath", () => {
       buildProbePath("matches", { params: { puuid: "p" }, query: { begIndex: 0, endIndex: 100 } }),
       buildProbePath("summonerByName", { query: { name: "A b#JP1" } }),
       buildProbePath("rankedStatsBatch", { query: { puuids: { list: ["a", "b"], style: "json" } } }),
+      buildProbePath("rankedStatsBatch", { query: { puuids: { list: ["a", "b"], style: "comma" } } }),
+      buildProbePath("rankedStatsBatch", { query: { puuids: { list: ["a", "b"], style: "repeat" } } }),
       "/lol-gameflow/v1/gameflow-phase", // READ_ONLY_PATHS
     ])
       expect(isProbePath(p), p).toBe(true);
@@ -224,6 +226,17 @@ describe("buildProbePath", () => {
       "/lol-lobby/v2/lobby#x",
       "http://evil/lol-lobby/v2/lobby",
       "",
+      // query values are checked too, not only the keys
+      "/lol-lobby/v2/lobby?",
+      "/lol-summoner/v1/summoners?name=%00anything&name=x",
+      "/lol-summoner/v1/summoners?name=noTag",
+      "/lol-summoner/v1/summoners",
+      "/lol-match-history/v1/products/lol/p/matches?begIndex=-5&endIndex=20",
+      "/lol-match-history/v1/products/lol/p/matches?begIndex=0",
+      "/lol-match-history/v1/products/lol/p/matches?begIndex=0&endIndex=20&begIndex=1",
+      "/lol-ranked/v1/ranked-stats?puuids=%5B%22a%22%2C%22..%2Fx%22%5D",
+      "/lol-ranked/v1/ranked-stats?puuids=a,,b",
+      "/lol-ranked/v1/ranked-stats?puuids=%5Bbroken",
     ])
       expect(isProbePath(p), p).toBe(false);
   });

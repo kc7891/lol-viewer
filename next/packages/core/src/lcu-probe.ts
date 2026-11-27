@@ -50,10 +50,27 @@ const PLAIN_KEY = /^[A-Za-z0-9_.$-]{1,40}$/;
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
+/** Map keys that may be shown: queue names (queueMap). Every other key of a map-like object is hidden. */
+const SAFE_MAP_KEYS: ReadonlySet<string> = new Set([
+  "RANKED_SOLO_5x5", "RANKED_FLEX_SR", "RANKED_FLEX_TT", "RANKED_TFT", "RANKED_TFT_TURBO", "RANKED_TFT_DOUBLE_UP", "CHERRY",
+]);
+
 /** A key as shown: ID-like keys (maps keyed by PUUID) and odd keys are hidden. */
 function shownKey(k: string): string {
   if (ID_LIKE_KEY.test(k)) return "<id>";
   return PLAIN_KEY.test(k) ? k : "<key>";
+}
+
+/**
+ * Map-like: 2+ keys whose values are all objects with the same key set (e.g. a map keyed by
+ * player name or id). Its keys are data, not schema, so they are hidden unless they are known queue names.
+ */
+function isMapLike(v: Record<string, unknown>): boolean {
+  const vals = Object.values(v);
+  if (vals.length < 2 || !vals.every(isObj)) return false;
+  const sig = (o: Record<string, unknown>) => Object.keys(o).sort().join(",");
+  const first = sig(vals[0] as Record<string, unknown>);
+  return vals.every((x) => sig(x as Record<string, unknown>) === first);
 }
 
 /** A value that may be shown for an allow-listed key; undefined for everything else. */
@@ -93,8 +110,9 @@ function shape(v: unknown, key: string | null, depth: number, maxKeys: number): 
     const parts: string[] = [];
     let hidden = 0;
     let idShown = false;
+    const mapLike = isMapLike(v);
     for (const [k, child] of Object.entries(v)) {
-      const name = shownKey(k);
+      const name = mapLike && !SAFE_MAP_KEYS.has(k) ? "<key>" : shownKey(k);
       if (name.startsWith("<")) {
         // Keys that look like IDs all collapse into one entry.
         if (idShown) {
@@ -434,7 +452,7 @@ export async function runLcuProbe(
   else {
     const r = await req("summonerByName", { query: { name: `${gameName}#${tagLine}` } });
     const got = asString(at(okBody(r), "puuid"));
-    const same = !got ? "none" : got === selfPuuid ? "match" : "mismatch";
+    const same = !got ? "none" : !selfPuuid ? "unknown" : got === selfPuuid ? "match" : "mismatch";
     record(16, "summoners?name (self)", "summonerByName", r, { facts: { puuid: same } });
   }
   finishStep();
@@ -524,7 +542,7 @@ function line(step: ProbeStep, shapeCap: number): string[] {
   return [head + facts];
 }
 
-function render(report: LcuProbeReport, shapeCap: number): string {
+function render(report: LcuProbeReport, shapeCap: number, maxInner = Infinity): string {
   const lines = [`LoL Viewer LCU check · app ${report.appVersion} · ${report.platform} · ${report.startedAt.replace(/\.\d+Z$/, "Z")}`];
   for (const s of report.steps) lines.push(...line(s, shapeCap).map((l) => l.trimEnd()));
   if (report.rate) {
@@ -535,7 +553,9 @@ function render(report: LcuProbeReport, shapeCap: number): string {
     const has429 = "429" in r.statusCounts ? "" : " · 429 ×0";
     lines.push(`21 rate test (${r.requests}) ${counts}${has429} · ms min ${r.minMs} / median ${r.medianMs} / max ${r.maxMs} · retry-after: ${r.retryAfter ? "yes" : "no"}`);
   }
-  return "```\n" + lines.join("\n") + "\n```";
+  let inner = lines.join("\n");
+  if (inner.length > maxInner) inner = inner.slice(0, Math.max(0, maxInner - 1)) + "…";
+  return "```\n" + inner + "\n```";
 }
 
 /** The report as a code-fenced text block (at most 30,000 characters; shapes are shortened until it fits). */
@@ -544,5 +564,5 @@ export function formatProbeReport(report: LcuProbeReport): string {
     const text = render(report, cap);
     if (text.length <= MAX_REPORT_CHARS) return text;
   }
-  return render(report, 0).slice(0, MAX_REPORT_CHARS);
+  return render(report, 0, MAX_REPORT_CHARS - 8); // keep both fences ("```\n" + "\n```")
 }
