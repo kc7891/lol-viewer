@@ -2,7 +2,7 @@
 
 M-038 で入れた Teams タブ（[teams-implementation.md](./teams-implementation.md)）を、持ち主が実際に触った感想をもとに作り直す。
 
-- 状態: 設計（2026-11-27）。実装待ち。
+- 状態: **実装済み**（2026-11-27）。実機の League Client では未確認（[new-app-spec.md](./new-app-spec.md) §9.1）。差異は末尾の実装メモ。
 - 決定番号: M-040（§9。decisions.md に追記する）。
 - 持ち主の声（2026-11-27）:
   - 手動の設定が「開いて入れて閉じて」の繰り返しで、かなり面倒。
@@ -190,3 +190,19 @@ Custom lobby · 12 people                       Fetching 3 / 10 …
 - 手動の設定は ⚙ のパネルをやめ、行の中のレーンのチップ（クリックで ★ 得意 → 🔒 固定 → ✕ NG → なし）とランクの札のポップオーバーで直接入れる。
 - 参加 / 控えは 1 つの一覧のチェックボックスにする。提案は `Priority: Rank / Lanes` と `◀ n / N ▶` の 1 案ずつにする。Discord の文字列はプレビューを開いたときだけ出す。
 - 人ごとの好みを JSON ファイルに書き出し / 読み込みできる（puuid → Riot ID の順で照合。ファイルにいる人だけ置き換える）。
+
+---
+
+## 実装メモ
+
+実装で設計から変えた点・足した点。仕様の本体は [new-app-spec.md](./new-app-spec.md) §2.5。
+
+- **core**: `lanePrefs.ts`（`laneState` / `cycleLane` / `clearLane`、足したもの: `hasPref`、`CYCLE`）、`prefsFile.ts`（`exportPrefs` / `parsePrefsFile` / `matchPrefsEntries` / `rankFromLabel` / `rankToLabel`、足したもの: `buildPrefsFile`（オブジェクトのまま。書き出した人数を数えるため）、`applyPrefsImport`（ファイルにいる人だけ置き換える）、定数 `PREFS_FILE_MAX_BYTES`）。`PrefsFileEntry` は `{ riotId?, puuid?, pref }`（`pref` は settings の `TeamPlayerPref` の形。ファイルの `prefer` は `mains`、`avoid` は `ng`、`rank` は `rankOverride`）。`unresolved` は Riot ID、名前のない項目は puuid。`rankToLabel` は Master 以上をすべて `MASTER LP` と書く（点数から GM / Challenger は区別できない）。ファイルを読むとき、固定のレーンは得意・NG から外し、得意のレーンは NG から外す。1MB はバイト数で数える。
+- **protocol**: `TeamsApi.exportPrefs` に加え、検査用の `TEAMS_PREFS_MAX_BYTES` と `TeamsPrefsTextSchema`。
+- **desktop（最小限）**: `teams:export-prefs`（`fromApp`、zod、バイト数も 1MB、`dialog.showSaveDialog`、`writeFile`）と preload の 1 行だけ。E2E 用の保存先 `LOL_VIEWER_E2E_SAVE_PATH` は `LOL_VIEWER_E2E=1` のときだけ（判定は `teams-core.ts` の `e2eSavePath`、既定のファイル名は `prefsFileName`。どちらも単体テストあり）。「前回の場所」は、今の起動の間だけ覚える（保存しない）。
+- **読み込み**: 保存されていない人の Riot ID は、ファイルを選んだ時点（確認の帯の前）に `resolveRiotIds` で引く（LCU に GET が出るのはファイルを選んだときだけ）。引けた人は確認後に取得を始める。つながっていなければ「見つからない」に数える。
+- **ランクの札のポップオーバー**: tier のボタンは選ぶだけで、division のボタンで決まって閉じる。Master 以上は LP の入力と `Set`。GM と C のボタンは Master と同じ点数（`2800 + LP`）になり、開き直すと M として出る。
+- **Match**: `Fetching 3 / 10 …` の代わりに `Fetching n people …`。行の `⋯` に `Fetch again` を足した（手で足した人は `Remove from this list` も）。提案の `Edited` の間は `Same as … priority` を出さない。差の行の `unknown rank` も黄色にした。`max lane gap` は `lane gap` にした。
+- **People**: 表の `Est.` は保存されている推定そのもの（ランクの札は推定を含む実効ランク）。`Fetch missing & old (n)` は「未取得・3 日より古い・直近が失敗」の人だけ。名前順は数字を数として並べる（Player2 は Player10 の前）。
+- **Add のパネル**: Riot ID は `Add & fetch` で引いて取得までを 1 回で行い、結果を見せるため開いたまま（`Close`）。Friend group と Recent は押すと取得を始めて閉じる。パネルは `visible`（Teams ページが見えている）のときだけ読む。
+- **TeamsPage**: Match と People は両方マウントしたまま `hidden` で切り替える（提案の状態を保つ）。`PlayerPrefs` / `PrefetchPanel` / `SavedList` と、その story・E2E は削除した。メニューとポップオーバーの共通部品は `Popover.tsx`（`MenuButton`、`useDismiss`）。

@@ -2,7 +2,7 @@
 
 [team-balancer-design.md](./team-balancer-design.md)（企画と持ち主の判断。以下「企画書」）を実装するための設計。**何を作るか・なぜかは企画書、どう作るかはこの文書**。実機の LCU の形は企画書 §3.12 と [lcu-probe-design.md](./lcu-probe-design.md) の結果に基づく。
 
-- 状態: **実装済み**（2026-11-27。実装 A: ロジック層、実装 B: つなぎと画面。§10）。実機の League Client では未確認（[new-app-spec.md](./new-app-spec.md) §9.1）。
+- 状態: **実装済み**（2026-11-27。画面（§6.2）は [teams-ui-v2-design.md](./teams-ui-v2-design.md) で作り直した。実装 A: ロジック層、実装 B: つなぎと画面。§10）。実機の League Client では未確認（[new-app-spec.md](./new-app-spec.md) §9.1）。
 - 決定: M-038（企画書 §11 の原案を decisions.md に確定させる。実装 A で追記）。
 
 ---

@@ -177,24 +177,41 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 - Feature Flag の定義（`FEATURE_FLAGS`）が 1 つ以上あるときカードを出す。今は `liveClientData`、`inGameOverlay`、`teamBalancer`（`Teams (custom match balancer)`。M-038）。保存と既定値は `core/settings.ts`。
 - 保存先と既定値は §5。
 
-### 2.5 Teams ページ（M-038、Feature Flag `teamBalancer`）
+### 2.5 Teams ページ（M-038、見直し M-040、Feature Flag `teamBalancer`）
 
-設計は [team-balancer-design.md](./team-balancer-design.md)（企画）と [teams-implementation.md](./teams-implementation.md)（実装）。カスタムロビーの人を、ランク（未ランクは推定）と得意レーン、手動の設定からチーム分けし、Discord に貼る文字列を作る。画面の文言は英語、Discord の文字列だけ日本語。デスクトップ版だけ（ブラウザでは「only available in the desktop app」）。フラグを OFF のとき、タブも取得もキャッシュのファイルもない。
+設計は [team-balancer-design.md](./team-balancer-design.md)（企画）、[teams-implementation.md](./teams-implementation.md)（実装）、[teams-ui-v2-design.md](./teams-ui-v2-design.md)（UI の見直しと好みのファイル）。カスタムロビーの人を、ランク（未ランクは推定）と得意レーン、手動の設定からチーム分けし、Discord に貼る文字列を作る。画面の文言は英語、Discord の文字列だけ日本語。デスクトップ版だけ（ブラウザでは「only available in the desktop app」）。フラグを OFF のとき、タブも取得もキャッシュのファイルもない。
+
+ページの上に `Match` と `People (n)` の 2 つのタブと、凡例 1 行（`★ prefer · 🔒 lock · ✕ avoid · underline = from match history`）。両方ともマウントしたまま切り替える（Match の提案の状態は People を見ても消えない）。
+
+**レーンのチップとランクの札**（Match と People で同じ部品）
+
+| 部品 | 内容と操作 |
+|---|---|
+| レーンのチップ `TOP JG MID BOT SUP` | ボタン。クリックで なし → ★ prefer（`mains`、2 つまで。3 つ目で古い方が外れる）→ 🔒 lock（1 人 1 つ。別のレーンを 🔒 にすると前は外れる）→ ✕ avoid（`ng`）→ なし。右クリック・Delete・Backspace でそのチップを「なし」に。Enter / Space で進む。`aria-label` は `Player1 Jungle: locked`（`not set` / `preferred` / `locked` / `avoided`）。ツールチップ `Click: ★ prefer → 🔒 lock → ✕ avoid → clear. Right-click to clear.` と戦績の割合（`MID 67% of 12 recent games`）。戦績のメインは太い下線、サブは細い下線 |
+| ランクの札 | ボタン（`G2` / `S2 (Flex)` / `~G3` / `G1 (prev)` / `M 120LP` / `—`）。クリックでポップオーバー（`Auto (fetched rank)`、tier のボタン 10 個 I B S G P E D M GM C、division IV〜I。division を選ぶと決まって閉じる。Master 以上は LP の入力と `Set`）。Esc で閉じる。手動の上書き中は金の枠でツールチップ `Manual (fetched: G4)`、ランクなしは点線の枠 |
+| 保存 | `settings.teamPlayers`（PUUID ごと。§5）。ファイルは書き出し / 読み込みのための手段で、保存場所ではない |
+
+**Match**
 
 | 領域 | 内容と操作 |
 |---|---|
-| ロビーの行 | `Custom lobby · N people`（カスタムロビーにいるとき）。いないとき `Not in a custom lobby. …` |
-| Players (n) / Bench (n) | 左の 2 つのカード。ロビーのチームの枠の人は Players、観戦枠の人は Bench（ボットは出ない）。↓ / ↑ で移す（このロビーの間だけ。保存しない）。ロビーを出ると、ロビー由来の振り分けは消える。保存済みから足した人（`Added`）は Players に入り、ロビーを出ても残る |
-| 行 | 名前と `#タグ`、ランクの札（`G2` / `S2 (Flex)` / `~G3`（推定）/ `G1 (prev)` / `M 120LP`、`—` は不明。ホバーで根拠: ソロ・フレックス・前シーズン・推定の人数と試合数・取得日・失敗の理由）、得意レーン（太字 = メイン、薄い = サブ、手動の設定は色が変わる）、🔒 に相当する鍵のアイコン（レーン固定）、取得中のスピナー、`old`（3〜14 日前のデータ）、`!`（直近の失敗）、⚙（手動の設定） |
-| 手動の設定（⚙） | `Locked lane`（必ず守る）、`Preferred lanes (up to 2)`（自動の推定より優先）、`Avoid lanes`（NG）、`Rank override`（tier と division。Master 以上は LP）。`settings.teamPlayers` に保存（PUUID ごと）。保存済みから足した人には `Remove from this list` |
-| Proposals | `Rank first` / `Lanes first`、`Proposal 1 / 3`、◀ ▶、`More`（次の 3 件。最後まで行くと最初に戻る）。青と赤の表（10 人はレーンごとの行、6・8 人は並べて `(MID)` のようにメインのレーン）。チーム名の横に平均ランク。2 人を順にクリックすると入れ替わり、点数を出し直す（`Reset swaps` で戻す）。差の行: `Rank diff 10 · max lane gap 320 · ⚠ 1 NG lane · 2 unknown ranks`。2 つの見方の 1 位が同じなら `Same top pick in both views` |
-| 人数・衝突 | Players が 6・8・10 人でないとき `Pick 6, 8 or 10 players (now 9).`。同じレーンへの固定が 3 人以上のとき `Too many players are locked to Jungle.` |
-| Copy for Discord | 今見ている案（入れ替え後を含む）の文字列をクリップボードへ（`navigator.clipboard`。失敗したらテキストを選択して `Press Ctrl+C to copy.`）。下に同じ文字列を常に出す。`Show ranks`（既定オン）、`Show #tag`（既定オフ）は `settings.teams` に保存。文字列は 2000 文字以内（超えたらランク、次に名前の幅を減らす） |
-| Prefetch | 折りたためる欄。ロビーにいないときは開いている。タブ: `Friends`（グループのドロップダウン、`Include me`、一覧のチェック、最後に選んだグループを覚える）/ `Recent`（最近一緒に遊んだ人、名前で検索）/ `Riot IDs`（複数行。`name#tag` でない行は赤。`Resolve` で引き、行ごとに Found / Not found / Could not look up）/ `Lobby` / `Saved (n)`。`Fetch stale & new`（既定。新しいデータは取らない）/ `Fetch all again` / `Cancel`、進み具合（`12 / 30 · ~3 min · 1 failed`）、LCU に制限されたとき `The League Client is limiting requests. Resuming in 45 s.`。`Clear all cached data` は 2 度押す（`Click again to clear`。ネイティブの確認は使わない）。1 回の `prefetch` は 60 人まで（それ以上は分けて送る） |
-| Saved | キャッシュにいる人の一覧（名前の検索、並べ替え: 名前・ランク・取得日）。行を開くと、ランク 3 種、推定の根拠（人数・試合数・範囲・試合ごとの行）、レーンの横棒、手動の設定、`Add to players` / `Refresh` / `Forget` |
+| ロビーの行 | `Custom lobby · N people`（いないとき `Not in a custom lobby. …`）。取得中は `Fetching n people …` |
+| Players n of m | 参加と控えは 1 つの一覧。行頭のチェックボックス（`Include Player1`）で参加を切り替える。並びは チームの枠 → 観戦 → 手で足した人（`Added`）、中は名前順（数字は数の順）。行は動かない。観戦枠の人は既定で外れている。このロビーの間だけの状態で、保存しない。人数が 6・8・10 人でないとき見出しの横に `Pick 6, 8 or 10`。行の `⋯`: `Fetch again`、手で足した人は `Remove from this list` |
+| `+ Add people` | People に保存されている人（この一覧にいない人）の検索つきの一覧。選ぶと参加者として加わる。ロビーにいないときもこれで人を足す |
+| Proposal | `Priority [Rank] [Lanes]`（M-038 の 2 つの見方）と `◀ 1 / 126 ▶`（1 案ずつ。端で回る）。青と赤の表（10 人はレーンごとの行、6・8 人は並べて `(MID)`）、チーム名の横に平均ランク。2 人を順にクリックで入れ替え → 番号の代わりに `Edited` と `Reset`。差の行: `Rank diff 10 · lane gap 320 · ⚠ 1 avoided lane · ⚠ 2 unknown ranks`。1 位が両方の見方で同じなら `Same as Lanes priority`（`Rank`）。人数の誤りは `Pick 6, 8 or 10 players (now 9).`、衝突は `Too many players are locked to Jungle.` |
+| Copy for Discord | 今の案（入れ替え後を含む）の文字列をクリップボードへ。失敗したら Preview を開いて全選択し `Press Ctrl+C to copy.`。横の `▾` のメニュー: `Show ranks`（既定オン）、`Show #tag`（既定オフ）は `settings.teams` に保存、`Preview`（文字列の欄。既定は閉じている）。文字列は 2000 文字以内 |
 
-- 参加 / 控えの状態、提案の見方・ページ・入れ替えはこのページの state（保存しない）。提案が変わる入力（人、ランク、手動の設定）が変わると、最良の案からやり直す。
-- 実装: `apps/web/src/components/teams/`（`model.ts` に純粋な関数、`TeamsPage` / `PlayerRow` / `PlayerPrefs` / `ProposalPanel` / `PrefetchPanel` / `SavedList`）、`state/teams.ts`（`useTeamsState`）。
+**People**（保存されている全員の表）
+
+| 領域 | 内容と操作 |
+|---|---|
+| 上の帯 | `+ Add ▾`（`From a friend group…` / `From recent players…` / `By Riot ID…`）、`Fetch missing & old (n)`（表に出ている人のうち未取得・3 日より古い・直近が失敗の人だけ）、`Cancel`、進み具合（`12 / 30 · ~3 min · 1 failed`）、LCU に制限されたとき `The League Client is limiting requests. Resuming in 45 s.`、`⋯`（`Fetch all again`、`Export preferences…`、`Import preferences…`、`Clear all cached data`（2 度押す。`Click again to clear`）） |
+| 絞り込み | 検索、`All / In lobby / Old/missing`（件数つき）、並べ替え `Name / Rank / Fetched` |
+| 表 | Name、Rank（ランクの札）、Est.（推定）、Lanes（レーンのチップ）、Fetched（新しい = 緑、古い = 橙、使わない = 赤、`Name only`、`Fetching…`）、`▸`（詳細）、`⋯`（`Refresh` / `Forget`）。詳細: ランク 3 種、推定の根拠と試合ごとの行、レーンの横棒、前の名前、直近の失敗 |
+| Add の 3 つのパネル | ページに重ねる（Esc で閉じる）。Friend group: グループのドロップダウン、`Include me`、チェックの一覧、`Add & fetch (n)`。Recent: 検索、チェックの一覧。Riot ID: 複数行（`name#tag` でない行は赤）、`Add & fetch` で引き、行ごとに ✓ / エラー。**フレンドと最近の人は、パネルを開いたときだけ LCU から読む**（M-038 の「操作したときだけ」）。1 回の `prefetch` は 60 人まで |
+| 好みのファイル | `Export preferences…`: 保存ダイアログ（既定名 `lol-viewer-team-preferences-YYYYMMDD.json`）→ toast `Saved preferences for 12 people.`。`Import preferences…`: ファイル選択（1MB まで）→ 帯 `Import 12 people? 3 will replace current preferences, 1 not found.` `[Import] [Cancel]` → toast `Imported preferences for 11 people. 1 not found: Player99#tag9`。照合は puuid → Riot ID（大文字小文字を区別しない）→ 保存されていない人は LCU で Riot ID を引いて足す。ファイルにいる人の好みは置き換え、いない人は触らない。壊れたファイルは理由を toast で出す（JSON でない / `kind` が違う / `version` が 1 でない / 1MB 超） |
+
+- 実装: `apps/web/src/components/teams/`（`model.ts` に純粋な関数、`TeamsPage`（Match / People の切り替えと参加・追加の state）、`MatchView`、`PlayerRow`、`ProposalPanel`、`PeopleView`、`AddPeoplePanel`、`LaneChips`、`RankBadge`、`Popover`（メニューと Esc / 外クリックで閉じる））、`state/teams.ts`（`useTeamsState`）。core: `teams/lanePrefs.ts`（チップの状態）、`teams/prefsFile.ts`（ファイルの書き出し・読み込み・照合）。
 
 ---
 
@@ -294,9 +311,9 @@ MatchState が届くたびに、次の順に処理する。
 - **取得**: すべて `connector.probe(buildProbePath(...))`（GET だけ。テンプレート検査つき。M-039）を `TeamFetcher` 経由で使う。速さの調整（初期 1 秒に 5 回、同時 2、429 / 503 で半分に下げて待つ、3 回続けたら 60 秒止める）と接続待ち（未接続の間は止まって待つ。接続の変化で `setConnected`）は core にある。
 - **キャッシュ** `app.getPath("userData")/team-cache.json`: フラグを ON にしたときに読み、期限切れを捨てる（`pruneCache`）。変化から 1 秒後にまとめて、一時ファイル → `rename` で書く。`Clear all cached data` で消す（そのとき、ロビーにいればその人たちをもう一度取る）。フラグを OFF にするときと終了前（`before-quit`）に、書いていない変更を書く。ログは件数と状態の変化だけ（PUUID・名前・ランクは書かない）。
 - **renderer へ**: `teams:state`（変化から 200ms 以内にまとめて push）。`TeamsState` = `{ enabled, lobby, players, fetching, prefetch }`。
-- **IPC**（すべて本体ウィンドウからだけ。入力は protocol の zod で検査）: `teams:get-state`、`teams:set-enabled`、`teams:friends`（`friendGroups` と `friends` と `currentSummoner`。`gameTag` を `tagLine` に）、`teams:recent`（`recentlyPlayed` を PUUID で重ね、新しい順、最大 200）、`teams:resolve-riot-ids`（最大 30 行。`summonerByName` を 1 行ずつ。引けた人は `addedBy: "riotId"` で保存）、`teams:prefetch`（最大 60 人）、`teams:cancel-prefetch`、`teams:refresh`、`teams:forget`、`teams:clear-cache`。
+- **IPC**（すべて本体ウィンドウからだけ。入力は protocol の zod で検査）: `teams:get-state`、`teams:set-enabled`、`teams:friends`（`friendGroups` と `friends` と `currentSummoner`。`gameTag` を `tagLine` に）、`teams:recent`（`recentlyPlayed` を PUUID で重ね、新しい順、最大 200）、`teams:resolve-riot-ids`（最大 30 行。`summonerByName` を 1 行ずつ。引けた人は `addedBy: "riotId"` で保存）、`teams:prefetch`（最大 60 人）、`teams:cancel-prefetch`、`teams:refresh`、`teams:forget`、`teams:clear-cache`、`teams:export-prefs`（好みのファイルの保存。1MB まで。保存ダイアログ → `writeFile`。E2E だけ `LOL_VIEWER_E2E=1` かつ `LOL_VIEWER_E2E_SAVE_PATH` のときダイアログを飛ばす）。
 - E2E 用に `globalThis.__lolViewer.teams`（`TeamsController`）を出す。
-- テスト: core の単体（ランク・レーン・キャッシュ・推定・速さの調整・`TeamFetcher`・分け方・Discord）、desktop の `teams-core.test.ts`（ゲート、ロビー、保存のまとめ、IPC 相当の呼び出し）、`tools/fake-lcu` の合成シナリオ `scenarios/teams-custom-lobby.jsonl`（`pnpm make-teams-scenario` で作る。コミットするのは生成結果）、Electron E2E `e2e/electron-teams.spec.ts`、Storybook の `Screens/Teams`。
+- テスト: core の単体（ランク・レーン・キャッシュ・推定・速さの調整・`TeamFetcher`・分け方・Discord）、desktop の `teams-core.test.ts`（ゲート、ロビー、保存のまとめ、IPC 相当の呼び出し）、`tools/fake-lcu` の合成シナリオ `scenarios/teams-custom-lobby.jsonl`（`pnpm make-teams-scenario` で作る。コミットするのは生成結果）、Electron E2E `e2e/electron-teams.spec.ts`（好みのチップ → 提案 → 書き出し → 消す → 読み込み → 戻る、を含む）、Storybook の `Screens/Teams`、core の `lanePrefs.test.ts` / `prefsFile.test.ts`。
 
 ---
 
@@ -362,7 +379,7 @@ MatchState が届くたびに、次の順に処理する。
 | `sidebarWidth` | 240〜480 | 300 | 範囲外は丸める |
 | `featureFlags` | 名前 → 真偽 | 空（既定は定義側が持つ） | 定義: `liveClientData`、`inGameOverlay`、`teamBalancer`（いずれも既定 偽）。保存済みの未定義のキーは掃除しない（M-016） |
 | `overlayPosition` | 左・中央・右 × 上・下 | 左下 | M-036 |
-| `teamPlayers` | PUUID → `{ lock?, mains?（最大 2）, ng?, rankOverride? }` | 空 | Teams の手動の設定。最大 500 人。壊れた人・項目はその場で捨てる（M-038） |
+| `teamPlayers` | PUUID → `{ lock?, mains?（最大 2）, ng?, rankOverride? }` | 空 | Teams のレーンのチップとランクの札の設定（M-038、M-040）。最大 500 人。壊れた人・項目はその場で捨てる。JSON ファイルに書き出し / 読み込みできる |
 | `teams` | `{ discordWithRank, discordWithTag, lastGroupId }` | 真 / 偽 / なし | Teams の Discord のオプションと最後に選んだフレンドのグループ |
 
 **保存しないもの**: ウィンドウの位置とサイズ、ビューア、対面表、保留、Cooldowns の対象と折りたたみ、各ペインの幅、パネルの開閉。

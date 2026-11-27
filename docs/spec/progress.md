@@ -7,7 +7,7 @@
 
 テスト: core / lcu / hub / desktop の単体テスト（Vitest）、Storybook の全 story のスクショと操作の E2E、Electron 本体を偽 LCU で動かす E2E（外部ビューの位置・表示、2 試合目のリセットなど）。
 
-最終更新: 2026-11-27（Teams タブを追加）
+最終更新: 2026-11-27（Teams タブを Match / People に見直し、好みのファイルを追加）
 
 ## 1. 機能
 
@@ -31,7 +31,7 @@
 | Cooldowns（PoC で追加した機能） | ✅ | Sidebar | 旧版にはない。既定の対象は `YOU` の行の敵（M-028） |
 | 試合中のゴールド差と対面表の補正（Live Client Data API、Feature Flag） | ✅ | `core/live.ts`、`core/workspace.ts`、`apps/desktop/src/live-core.ts` | M-025〜M-029。既定オフ。実機のゲームでは未確認。チーム合計の差（`TEAM` 行、M-033）も同じフラグで出る |
 | ゲーム内オーバーレイ（Tab を押している間だけ、ゲームの上にゴールド差の表。Feature Flag `inGameOverlay`） | 🔶 | `apps/desktop/src/overlay-core.ts`、`win-keys.ts`、`overlay-preload.ts`、`main.ts`、`apps/web/src/overlay/` | M-034。既定オフ、Windows だけ。ゲートの単体テスト、Storybook、偽のキーでの Electron E2E は済み。**実機（Windows + 本物の LoL）と Windows CI のパッケージ版では未確認**（設計書 §11） |
-| Teams: カスタムロビーのチーム分け（ランクと推定、得意レーン、手動の設定、Discord へのコピー、事前取得とキャッシュ。Feature Flag `teamBalancer`） | 🔶 | `core/teams/`、`apps/desktop/src/teams-core.ts`、`teams.ts`、`apps/web/src/components/teams/`、`scenarios/teams-custom-lobby.jsonl` | M-038。既定オフ。ロビーの人はタブを開かなくても自動で取る。core と desktop の単体テスト、Storybook の操作 E2E、偽の LCU の Electron E2E（フラグ、自動取得、キャッシュ、提案、コピー、Prefetch）は済み。**実機（本物のカスタムロビー、観戦枠、LCU の速さの上限）では未確認**（spec §9.1） |
+| Teams: カスタムロビーのチーム分け（ランクと推定、得意レーン、手動の設定、Discord へのコピー、事前取得とキャッシュ。Feature Flag `teamBalancer`） | 🔶 | `core/teams/`、`apps/desktop/src/teams-core.ts`、`teams.ts`、`apps/web/src/components/teams/`、`scenarios/teams-custom-lobby.jsonl` | M-038、UI は M-040 で Match / People に見直し（行の中のレーンのチップとランクの札、1 案ずつの提案、人の表、好みの JSON の書き出し / 読み込み）。既定オフ。ロビーの人はタブを開かなくても自動で取る。core と desktop の単体テスト、Storybook の操作 E2E、偽の LCU の Electron E2E（フラグ、自動取得、キャッシュ、提案、コピー、People の追加、好みの書き出し → 消す → 読み込み）は済み。**実機（本物のカスタムロビー、観戦枠、LCU の速さの上限）では未確認**（spec §9.1） |
 | LCU 接続（プロセスのコマンドライン、lockfile、Basic 認証、TLS はループバックだけ緩める） | ✅ | `packages/lcu` | |
 | 再接続とバックオフ（上限 60 秒）、手動 Reconnect | ✅ | `startLcuConnector` | |
 | ポーリング間隔、ウォッチモード、10 体そろった後の一時停止 | ➖ | | WAMP 購読に置き換え（M-010） |
