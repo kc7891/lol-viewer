@@ -306,6 +306,8 @@ export interface LolViewerBridge {
   readonly live?: LiveClientControlApi;
   /** Present only in the desktop app. */
   readonly overlay?: OverlayControlApi;
+  /** Present only in the desktop app (Teams, M-038). */
+  readonly teams?: TeamsApi;
 }
 
 /** Matchup rows the in-game overlay draws: champion ids in lane order (top, jungle, middle, bottom, support). */
@@ -561,4 +563,106 @@ export interface RecorderApi {
   status(): Promise<RecorderStatus>;
   openFolder(): void;
   onStatus(cb: (s: RecorderStatus) => void): () => void;
+}
+
+// ── Teams (custom match balancer; M-038) ──
+
+export const RankEntrySchema = z.object({ tier: z.string(), division: z.string(), lp: z.number().int(), points: z.number() });
+export type RankEntry = z.infer<typeof RankEntrySchema>;
+export const PlayerRankSchema = z.object({
+  solo: RankEntrySchema.nullable(),
+  flex: RankEntrySchema.nullable(),
+  prevSeason: RankEntrySchema.nullable(),
+  fetchedAt: z.number(),
+});
+export type PlayerRank = z.infer<typeof PlayerRankSchema>;
+export const LaneProfileSchema = z.object({
+  /** Counted games per lane. */
+  counts: z.record(LaneSchema, z.number().int().nonnegative()),
+  games: z.number().int().nonnegative(),
+  fetchedAt: z.number(),
+});
+export type LaneProfile = z.infer<typeof LaneProfileSchema>;
+export const RankEstimateSchema = z.object({
+  /** null = too little data. */
+  points: z.number().nullable(),
+  samples: z.number().int(),
+  games: z.number().int(),
+  min: z.number().nullable(),
+  max: z.number().nullable(),
+  perGame: z.array(z.object({ at: z.number(), queueId: z.number().int(), median: z.number().nullable(), samples: z.number().int() })),
+  fetchedAt: z.number(),
+});
+export type RankEstimate = z.infer<typeof RankEstimateSchema>;
+export const TeamPlayerSchema = z.object({
+  puuid: z.string(),
+  gameName: z.string(),
+  tagLine: z.string(),
+  nameSeenAt: z.number(),
+  /** "name#tag", newest first, at most 3. */
+  previousNames: z.array(z.string()).default([]),
+  addedBy: z.enum(["lobby", "friend", "riotId", "recent"]).optional(),
+  rank: PlayerRankSchema.nullable(),
+  lanes: LaneProfileSchema.nullable(),
+  estimate: RankEstimateSchema.nullable(),
+  /** Last failure (fixed wording). */
+  error: z.string().nullable().default(null),
+});
+export type TeamPlayer = z.infer<typeof TeamPlayerSchema>;
+export const CustomLobbySchema = z.object({
+  team100: z.array(z.string()),
+  team200: z.array(z.string()),
+  spectators: z.array(z.string()),
+});
+export type CustomLobby = z.infer<typeof CustomLobbySchema>;
+export const PrefetchStatusSchema = z.object({
+  running: z.boolean(),
+  done: z.number().int(),
+  total: z.number().int(),
+  /** PUUID being fetched. */
+  current: z.string().nullable(),
+  failed: z.number().int(),
+  pausedUntil: z.number().nullable(),
+  rate: z.object({ requests: z.number().int(), throttled: z.number().int(), avgMs: z.number(), perSec: z.number() }),
+});
+export type PrefetchStatus = z.infer<typeof PrefetchStatusSchema>;
+export const TeamsStateSchema = z.object({
+  enabled: z.boolean(),
+  /** null when not in a custom lobby. */
+  lobby: CustomLobbySchema.nullable(),
+  players: z.record(z.string(), TeamPlayerSchema),
+  fetching: z.array(z.string()),
+  prefetch: PrefetchStatusSchema,
+});
+export type TeamsState = z.infer<typeof TeamsStateSchema>;
+export const FriendEntrySchema = z.object({ puuid: z.string(), gameName: z.string(), tagLine: z.string(), groupId: z.number().int(), groupName: z.string() });
+export type FriendEntry = z.infer<typeof FriendEntrySchema>;
+export const FriendGroupSchema = z.object({ id: z.number().int(), name: z.string() });
+export type FriendGroup = z.infer<typeof FriendGroupSchema>;
+export const RecentPlayerSchema = z.object({ puuid: z.string(), gameName: z.string(), tagLine: z.string(), lastPlayedAt: z.number() });
+export type RecentPlayer = z.infer<typeof RecentPlayerSchema>;
+export const RiotIdResultSchema = z.object({
+  input: z.string(),
+  puuid: z.string().nullable(),
+  error: z.enum(["format", "not-found", "failed"]).nullable(),
+});
+export type RiotIdResult = z.infer<typeof RiotIdResultSchema>;
+
+export interface TeamsApi {
+  getState(): Promise<TeamsState>;
+  onState(cb: (s: TeamsState) => void): () => void;
+  /** Feature flag teamBalancer (from the renderer's settings). */
+  setEnabled(enabled: boolean): void;
+  friends(): Promise<{ groups: FriendGroup[]; friends: FriendEntry[]; self: { puuid: string; gameName: string; tagLine: string } | null }>;
+  /** Deduplicated, newest first. */
+  recentPlayers(): Promise<RecentPlayer[]>;
+  /** At most 30 lines. Resolved people join `players` with addedBy "riotId". */
+  resolveRiotIds(lines: string[]): Promise<RiotIdResult[]>;
+  /** At most 60 people. */
+  prefetch(req: { puuids: string[]; mode: "stale" | "all"; addedBy?: "friend" | "recent" | "lobby" }): void;
+  cancelPrefetch(): void;
+  /** Fetch this person again (the estimate too). */
+  refresh(puuid: string): void;
+  forget(puuid: string): void;
+  clearCache(): void;
 }
