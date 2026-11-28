@@ -1,6 +1,6 @@
 # Teams: 気に入ったチーム分けの保存（Matchups タブ）とメンバーの組の保存 設計書
 
-- 状態: 設計（2026-11-28）。実装待ち。
+- 状態: 実装済み（2026-11-28）。
 - 決定番号: M-042（§7。decisions.md に追記する）。
 - 前提: [teams-ui-v2-design.md](./teams-ui-v2-design.md)（M-040 の Match / People）、M-041（Add people のモーダル）。
 - 持ち主の声（2026-11-28）:
@@ -36,7 +36,8 @@ type SavedRoster = { id: string; name: string; puuids: string[]; savedAt: number
 - Players の見出しの右に `Rosters ▾`（メニューボタン）。中身:
   - `Save current as…` → 小さなモーダル（名前の入力。既定 `Roster 11/28`。同じ名前があれば「`Friday 8` を上書きします」と出して `Overwrite` ボタンに変わる）。参加者が 0 人なら無効。
   - 保存した組の一覧（新しい順、最大 10 件を表示。`n people` を添える）→ 選ぶと**読み込み**。
-  - `Manage rosters…` → モーダルで全件の一覧（名前の変更・削除・人数・保存日）。
+  - `Manage rosters…` → モーダルで全件の一覧（名前の変更・複製・削除・人数・保存日）。
+    - `Duplicate`: 同じ人の組を `<名前> (copy)`（あれば `(copy 2)`、`(copy 3)` …。大文字小文字を区別せず、40 文字に収まるよう元の名前を切る）で作り、保存日は今。一覧の先頭に出て、名前の欄が開いてフォーカスされる（そのまま名前を付けられる。Esc で自動の名前のまま残る）。上限 50 を超えるときは保存と同じく一番古いものを捨てるが、複製元は捨てない。
 - 読み込み:
   - 組にいる人 = 参加（☑）、それ以外の候補 = 控え（☐）。
   - 組にいて今の候補にいない人は、People に保存されていれば「足した人」として一覧に加える（M-040 の Add people と同じ）。People にもいない人は加えられないので、toast で `2 people in "Friday 8" are not in People. Add them from People › Add.` と出す。
@@ -84,6 +85,7 @@ type SavedMatchup = {
 - `teams/saved.ts`（新）:
   - `normalizeName(name)`、`findByName(list, name)`（大文字小文字を無視）。
   - `upsertRoster(list, { name, puuids }, now, id?)` / `renameRoster` / `deleteRoster`（Matchup も同様）。上限を超えたら一番古いものを捨てる。
+  - `duplicateRoster(list, id, now)`: 名前の付け方と上限は §2.2。
   - `applyRoster(candidates, roster, savedPlayers)`: `{ moved, extras, missing }`（Match のチェックと足した人、People にいない人）。
   - `sameMatchup(a, b)`: 青赤の入れ替えとチーム内の並びを無視して比べる。
   - `matchupFromProposal(proposal, info, view, name, now)`。
@@ -110,3 +112,19 @@ type SavedMatchup = {
 - Match で、参加にチェックした人の組（Roster）に名前を付けて保存し、`Rosters ▾` から読み込める。保存するのは人の一覧だけ。
 - Match の提案を `☆ Save` で名前を付けて保存できる（手で入れ替えた案も）。保存したチーム分けは新しいサブタブ **Matchups** に一覧で出し、`Copy for Discord`、`Open in Match`、名前の変更、削除ができる。表示用に保存時の名前とランクの札を控えておく。
 - 保存先は renderer の settings（localStorage）。Roster は最大 50、Matchup は最大 100。デスクトップ（main）と LCU の変更は無い。
+
+---
+
+## 実装メモ（2026-11-28）
+
+設計から変えた点・補った点:
+- **`SavedPerson` に `points?: number | null` を足した**（§3.1 の型に無い）。Matchups の `Copy for Discord` が平均ランクとランク差（`ランク差 n`）を保存時の値で出せるようにするため。無い（古いデータ）ときは平均が出ない。
+- **戻り値**: `upsertRoster` / `upsertMatchup` / `duplicateRoster` は `{ list, item, replaced }` を返す（`item` は保存・複製されたもの。名前や人数が不正なら `null` で一覧はそのまま）。`matchupFromProposal` は `id` の無い保存用の値を返し、`upsertMatchup` が `id` と `savedAt` を付ける。`matchupDiscordText(matchup, options)`、`missingPeopleText(name, n)`、`defaultRosterName` / `defaultMatchupName` も `teams/saved.ts` にある。
+- **上書きの名前**: 同じ名前（大文字小文字を区別しない）で保存すると、入力した綴りの名前で置き換える（`TEN PEOPLE` で上書きすると名前も `TEN PEOPLE` になる）。id は保つ。
+- **共通の `Modal`**（`Modal.tsx`）にまとめ、Add people もそれを使う。名前を聞く `NameDialog`（Roster の保存・Matchup の保存と名前の変更）と `RosterManager`（Manage rosters…）を足した。Roster の名前の変更は一覧の行の中で行う（モーダルの重なりを避ける）。名前の欄の Esc は欄だけを閉じ、モーダルは閉じない。
+- **`★ Saved as "…"`** は押せる。押すと保存のモーダルが保存済みの名前で開く（`Overwrite` になる）。
+- **`Open in Match` の提案**は、Priority の切り替え・`◀ ▶`・`Reset` のどれかで通常の提案に戻る（Reset は保存した分け方の Priority の提案に戻る）。チェックを変えて人が変わっても戻る。入れ替えは `Edited` と同じ（見出しは `Saved: <名前> (edited)`）。
+- **ロビーが変わったときの Roster のチェック**は、これまでの `moved` の規則のまま（ロビーの人が変わっても保つ。ロビーから出たときだけロビー由来の選択を捨てる）。読み込んだ組に戻るための特別な記憶は持たない。
+- **Matchups の `Copy for Discord`** は保存した名前とランクの札で作る。6・8 人の `(MID)` だけは今の得意レーンから出す。Clipboard が断られたらカードの中に文字列を出して全選択する。
+- 保存日の表示は `Nov 28` の形（端末の地域設定の日付）。
+- 上限（Roster 50 / Matchup 100）は、読み込み（tolerant parse）でも保存でも、一番古いものから捨てる。

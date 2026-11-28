@@ -244,6 +244,12 @@ lolalytics を実際のブラウザ（Playwright）で開いた結果: `/lol/ahr
 - 開いている間に何人でも足せる（足した人は一覧から消える）。閉じ方: `Done`、`×`、Esc、背景のクリック。閉じたらフォーカスは `Add people` のボタンに戻り、検索欄は次に開いたとき空。
 - ダイアログは Match の画面の中（Players の枠の外）に置く。ページや People に切り替えると一緒に隠れる。Tab はダイアログの中だけを回る。
 
+## M-042 Teams のメンバーの組とチーム分けの保存（2026-11-28）
+- Match で、参加にチェックした人の組（Roster）に名前を付けて保存し、`Rosters ▾` から読み込める。保存するのは人の一覧だけ。Roster は複製できる（`Manage rosters…` の `Duplicate`。`<名前> (copy)`、`(copy 2)` … の名前で作り、すぐ名前の変更に入る）。
+- Match の提案を `☆ Save` で名前を付けて保存できる（手で入れ替えた案も）。保存したチーム分けは新しいサブタブ **Matchups** に一覧で出し、`Copy for Discord`、`Open in Match`、名前の変更、削除ができる。表示用に保存時の名前とランクの札を控えておく。
+- 保存先は renderer の settings（localStorage）。Roster は最大 50、Matchup は最大 100。デスクトップ（main）と LCU の変更は無い。
+- 設計: [teams-saved-design.md](./teams-saved-design.md)。
+
 ---
 
 ## 未決事項
