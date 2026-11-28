@@ -50,59 +50,64 @@ export function MatchView({ state, now, prefs, candidates, moved, notify, onTogg
   const n = playing.length;
   const countOk = n === 6 || n === 8 || n === 10;
   const people = candidates.filter((c) => c.origin !== "added").length;
+  // The Add people dialog is rendered here: outside the Players section, but inside the Match panel so it hides with the page (M-041).
+  const [modalHost, setModalHost] = useState<HTMLDivElement | null>(null);
   return (
-    <div className="teams-grid">
-      <div className="teams-left">
-        <div className="lobby-row">
-          <p className="lobby-line" data-testid="lobby-line">
-            {lobby ? `Custom lobby · ${people} people` : "Not in a custom lobby. Add people from your saved list, or enter a custom lobby."}
-          </p>
-          {fetching.size > 0 && (
-            <span className="muted" role="status" data-testid="fetching-line">
-              Fetching {fetching.size} {fetching.size === 1 ? "person" : "people"} …
-            </span>
-          )}
-        </div>
-        <section className="card team-list" aria-label="Players">
-          <div className="list-head">
-            <h2>
-              Players {n} of {candidates.length}
-            </h2>
-            {!countOk && (
-              <span className="warn-text" data-testid="count-hint">
-                Pick 6, 8 or 10
+    <>
+      <div className="teams-grid">
+        <div className="teams-left">
+          <div className="lobby-row">
+            <p className="lobby-line" data-testid="lobby-line">
+              {lobby ? `Custom lobby · ${people} people` : "Not in a custom lobby. Add people from your saved list, or enter a custom lobby."}
+            </p>
+            {fetching.size > 0 && (
+              <span className="muted" role="status" data-testid="fetching-line">
+                Fetching {fetching.size} {fetching.size === 1 ? "person" : "people"} …
               </span>
             )}
           </div>
-          {candidates.length === 0 ? (
-            <p className="muted">Nobody yet.</p>
-          ) : (
-            <ul>
-              {candidates.map((c) => (
-                <PlayerRow
-                  key={c.puuid}
-                  puuid={c.puuid}
-                  player={players[c.puuid]}
-                  pref={prefs[c.puuid]}
-                  origin={c.origin}
-                  playing={membershipOf(c, moved) === "in"}
-                  fetching={fetching.has(c.puuid)}
-                  now={now}
-                  onToggle={(on) => onToggle(c.puuid, on)}
-                  onPref={(pref) => onPref(c.puuid, pref)}
-                  onRank={(points) => onRank(c.puuid, points)}
-                  onRefresh={() => onRefresh(c.puuid)}
-                  onRemove={c.origin === "added" ? () => onRemove(c.puuid) : undefined}
-                  initialRankOpen={initial?.rankOpen === c.puuid}
-                />
-              ))}
-            </ul>
-          )}
-          <AddPeople state={state} now={now} listed={new Set(candidates.map((c) => c.puuid))} prefs={prefs} onAdd={onAdd} initialOpen={initial?.addOpen} />
-        </section>
+          <section className="card team-list" aria-label="Players">
+            <div className="list-head">
+              <h2>
+                Players {n} of {candidates.length}
+              </h2>
+              {!countOk && (
+                <span className="warn-text" data-testid="count-hint">
+                  Pick 6, 8 or 10
+                </span>
+              )}
+            </div>
+            {candidates.length === 0 ? (
+              <p className="muted">Nobody yet.</p>
+            ) : (
+              <ul>
+                {candidates.map((c) => (
+                  <PlayerRow
+                    key={c.puuid}
+                    puuid={c.puuid}
+                    player={players[c.puuid]}
+                    pref={prefs[c.puuid]}
+                    origin={c.origin}
+                    playing={membershipOf(c, moved) === "in"}
+                    fetching={fetching.has(c.puuid)}
+                    now={now}
+                    onToggle={(on) => onToggle(c.puuid, on)}
+                    onPref={(pref) => onPref(c.puuid, pref)}
+                    onRank={(points) => onRank(c.puuid, points)}
+                    onRefresh={() => onRefresh(c.puuid)}
+                    onRemove={c.origin === "added" ? () => onRemove(c.puuid) : undefined}
+                    initialRankOpen={initial?.rankOpen === c.puuid}
+                  />
+                ))}
+              </ul>
+            )}
+            <AddPeople state={state} now={now} listed={new Set(candidates.map((c) => c.puuid))} prefs={prefs} onAdd={onAdd} initialOpen={initial?.addOpen} host={modalHost} />
+          </section>
+        </div>
+        <ProposalPanel players={balancePlayers} info={info} notify={notify} initialPriority={initial?.priority} initialPreview={initial?.preview} />
       </div>
-      <ProposalPanel players={balancePlayers} info={info} notify={notify} initialPriority={initial?.priority} initialPreview={initial?.preview} />
-    </div>
+      <div ref={setModalHost} />
+    </>
   );
 }
 
@@ -110,7 +115,7 @@ export function MatchView({ state, now, prefs, candidates, moved, notify, onTogg
  * "+ Add people": pick from the people saved in People (search). They join the list and play.
  * A modal over the page (M-041), so the list of players does not move while people are added; it stays open for several picks.
  */
-function AddPeople({ state, now, listed, prefs, onAdd, initialOpen = false }: { state: TeamsState; now: number; listed: ReadonlySet<string>; prefs: Record<string, TeamPlayerPref>; onAdd: (puuid: string) => void; initialOpen?: boolean }) {
+function AddPeople({ state, now, listed, prefs, onAdd, initialOpen = false, host }: { state: TeamsState; now: number; listed: ReadonlySet<string>; prefs: Record<string, TeamPlayerPref>; onAdd: (puuid: string) => void; initialOpen?: boolean; host: HTMLElement | null }) {
   const [open, setOpen] = useState(initialOpen);
   const [query, setQuery] = useState("");
   const wrap = useRef<HTMLDivElement>(null);
@@ -127,15 +132,40 @@ function AddPeople({ state, now, listed, prefs, onAdd, initialOpen = false }: { 
     dismiss();
     btn.current?.focus();
   };
+  // Keep Tab inside the dialog (aria-modal): from the last control back to the first, and the other way.
+  const trapTab = (e: React.KeyboardEvent) => {
+    if (e.key !== "Tab" || !wrap.current) return;
+    const items = [...wrap.current.querySelectorAll<HTMLElement>("button:not([disabled]), input:not([disabled])")];
+    if (items.length === 0) return;
+    const first = items[0]!;
+    const last = items[items.length - 1]!;
+    const at = document.activeElement;
+    if (e.shiftKey && (at === first || !wrap.current.contains(at))) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && (at === last || !wrap.current.contains(at))) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
   return (
     <div className="add-people">
       <button ref={btn} type="button" className="btn" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
         <IconPlus /> Add people
       </button>
       {open &&
+        host &&
         createPortal(
-          <div className="overlay-backdrop">
-            <div ref={wrap} className="add-dialog card add-people-panel" role="dialog" aria-modal="true" aria-label="Add saved people">
+          <div
+            className="overlay-backdrop"
+            onMouseDown={(e) => {
+              // A click on the dimmed backdrop closes, and the focus goes back to the button (not to the page).
+              if (e.target !== e.currentTarget) return;
+              e.preventDefault();
+              close();
+            }}
+          >
+            <div ref={wrap} className="add-dialog card add-people-panel" role="dialog" aria-modal="true" aria-label="Add saved people" onKeyDown={trapTab}>
               <div className="add-head">
                 <h2>Add people</h2>
                 <button type="button" className="icon-btn" aria-label="Close" onClick={close}>
@@ -173,7 +203,7 @@ function AddPeople({ state, now, listed, prefs, onAdd, initialOpen = false }: { 
               </div>
             </div>
           </div>,
-          document.body, // outside the Players section, so the dialog is not part of it (headings, landmarks)
+          host,
         )}
     </div>
   );

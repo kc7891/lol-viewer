@@ -751,10 +751,18 @@ test("Teams Match: + Add people lists the saved people who are not on the list, 
   await expect(page.getByLabel("Search saved people")).toHaveValue("");
   await dialog.getByRole("button", { name: "Done" }).click();
   await expect(dialog).toHaveCount(0);
-  // A click on the dimmed backdrop closes it.
+  // Tab stays inside the dialog (search → ... → Done → × → search).
   await page.getByRole("button", { name: "Add people" }).click();
+  for (let i = 0; i < 8; i++) {
+    await page.keyboard.press("Tab");
+    expect(await dialog.evaluate((d) => d.contains(document.activeElement))).toBe(true);
+  }
+  await page.keyboard.press("Shift+Tab");
+  expect(await dialog.evaluate((d) => d.contains(document.activeElement))).toBe(true);
+  // A click on the dimmed backdrop closes it, and the focus goes back to the button.
   await page.mouse.click(5, 5);
   await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Add people" })).toBeFocused();
   // Added people can be removed from the list again (the row menu).
   await page.getByRole("button", { name: "More for Player12" }).click();
   await page.getByRole("menuitem", { name: "Remove from this list" }).click();
