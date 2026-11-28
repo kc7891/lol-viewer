@@ -1,15 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { applyPrefsImport, type BalanceView, type TeamPlayerPref } from "@lol-viewer/core";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { applyPrefsImport, applyRoster, missingPeopleText, type BalanceView, type SavedMatchup, type SavedRoster, type TeamPlayerPref } from "@lol-viewer/core";
 import { useBridge } from "../../bridge/context.tsx";
 import { useSettings } from "../../state/settings.tsx";
 import { useTeamsState } from "../../state/teams.ts";
 import type { ToastKind } from "../../state/toasts.tsx";
 import type { AddMode } from "./AddPeoplePanel.tsx";
 import { MatchView } from "./MatchView.tsx";
-import { candidatesOf, sortCandidates, withPrefValue, type ImportPlan, type Membership } from "./model.ts";
+import { MatchupsView } from "./MatchupsView.tsx";
+import { candidatesOf, sortCandidates, withPrefValue, type ImportPlan, type LoadedRoster, type Membership, type SavedOpen } from "./model.ts";
 import { PeopleView, type PeopleFilter, type PeopleSort } from "./PeopleView.tsx";
 
-export type TeamsSubPage = "match" | "people";
+export type TeamsSubPage = "match" | "people" | "matchups";
 
 /** Stories and tests only: start the page in a given state. */
 export type TeamsPageInitial = {
@@ -28,6 +29,15 @@ export type TeamsPageInitial = {
   riotIds?: string;
   menuOpen?: boolean;
   importPlan?: ImportPlan;
+  /** Match: the Rosters menu open, or its Save / Manage dialog; with `rosterEditing` the manage row of that roster is in rename. */
+  rosters?: "menu" | "save" | "manage";
+  rosterEditing?: string;
+  saveMatchupOpen?: boolean;
+  /** Open this saved matchup in Match once the page has its state (as Open in Match does). */
+  openMatchupId?: string;
+  /** Matchups: the card menu of this matchup open. */
+  matchupMenuId?: string;
+  matchupQuery?: string;
 };
 
 export type TeamsPageProps = {
@@ -51,6 +61,11 @@ export function TeamsPage({ notify, initial, visible = true }: TeamsPageProps) {
   const [moved, setMoved] = useState<Record<string, Membership>>(initial?.moved ?? {});
   const [extras, setExtras] = useState<string[]>(initial?.extras ?? []);
 
+  const [loadedRoster, setLoadedRoster] = useState<LoadedRoster | null>(null);
+  const [opened, setOpened] = useState<SavedOpen | null>(null);
+  const clearOpened = useCallback(() => setOpened(null), []);
+  const token = useRef(0);
+
   const lobby = state?.lobby ?? null;
   const players = state?.players;
   // Leaving the lobby drops the lobby-derived choices (the people added by hand stay).
@@ -60,6 +75,34 @@ export function TeamsPage({ notify, initial, visible = true }: TeamsPageProps) {
 
   const now = useMemo(() => Date.now(), [state]); // eslint-disable-line react-hooks/exhaustive-deps
   const candidates = useMemo(() => sortCandidates(candidatesOf(lobby, extras.filter((id) => players?.[id])), players), [lobby, extras, players]);
+
+  // Put the people of a roster or a saved matchup into Match: they play, the rest sit out, saved people not listed join (M-042).
+  const place = (name: string, puuids: readonly string[]): { applied: string[]; missing: number } => {
+    const r = applyRoster(candidates, { puuids }, players ?? {});
+    setMoved(r.moved);
+    setExtras((e) => [...e, ...r.extras.filter((id) => !e.includes(id))]);
+    setPage("match");
+    if (r.missing.length) notify(missingPeopleText(name, r.missing.length), "warn");
+    return { applied: Object.keys(r.moved).filter((id) => r.moved[id] === "in"), missing: r.missing.length };
+  };
+  const loadRoster = (roster: SavedRoster) => {
+    const { applied } = place(roster.name, roster.puuids);
+    setLoadedRoster({ name: roster.name, applied });
+    setOpened(null);
+  };
+  const openMatchup = (m: SavedMatchup) => {
+    const { missing } = place(m.name, [...m.blue, ...m.red].map((s) => s.puuid));
+    setLoadedRoster(null);
+    // With people missing there is no such proposal: Match shows the usual ones.
+    setOpened(missing ? null : { token: ++token.current, id: m.id, name: m.name, blue: m.blue, red: m.red, priority: m.priority });
+  };
+  const openFromStory = useRef(initial?.openMatchupId);
+  useEffect(() => {
+    if (!state || !openFromStory.current) return;
+    const m = settings.teamMatchups.find((x) => x.id === openFromStory.current);
+    openFromStory.current = undefined;
+    if (m) openMatchup(m);
+  }); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setPref = useCallback((puuid: string, pref: TeamPlayerPref) => update({ teamPlayers: withPrefValue(settings.teamPlayers, puuid, pref) }), [settings.teamPlayers, update]);
   const setRank = useCallback(
@@ -106,6 +149,7 @@ export function TeamsPage({ notify, initial, visible = true }: TeamsPageProps) {
   const tabs: { id: TeamsSubPage; label: string; count?: number }[] = [
     { id: "match", label: "Match" },
     { id: "people", label: "People", count: Object.keys(state.players).length },
+    { id: "matchups", label: "Matchups", count: settings.teamMatchups.length },
   ];
   return (
     <div className="teams-page">
@@ -137,7 +181,11 @@ export function TeamsPage({ notify, initial, visible = true }: TeamsPageProps) {
             onRefresh={(puuid) => api.refresh(puuid)}
             onAdd={add}
             onRemove={removeExtra}
-            initial={{ priority: initial?.priority, preview: initial?.preview, addOpen: initial?.addPeopleOpen, rankOpen: initial?.page === "people" ? undefined : initial?.rankOpen }}
+            onLoadRoster={loadRoster}
+            loadedRoster={loadedRoster}
+            openedMatchup={opened}
+            onClearOpened={clearOpened}
+            initial={{ priority: initial?.priority, preview: initial?.preview, addOpen: initial?.addPeopleOpen, rankOpen: initial?.page === "people" ? undefined : initial?.rankOpen, rosters: initial?.rosters, rosterEditing: initial?.rosterEditing, saveMatchup: initial?.saveMatchupOpen }}
           />
         </div>
         <div id="teams-panel-people" role="tabpanel" aria-labelledby="teams-tab-people" hidden={page !== "people"}>
@@ -156,6 +204,9 @@ export function TeamsPage({ notify, initial, visible = true }: TeamsPageProps) {
             notify={notify}
             initial={{ ...initial, rankOpen: initial?.page === "people" ? initial.rankOpen : undefined }}
           />
+        </div>
+        <div id="teams-panel-matchups" role="tabpanel" aria-labelledby="teams-tab-matchups" hidden={page !== "matchups"}>
+          <MatchupsView state={state} now={now} prefs={prefs} notify={notify} onOpen={openMatchup} initial={{ menuId: initial?.matchupMenuId, query: initial?.matchupQuery }} />
         </div>
       </div>
     </div>

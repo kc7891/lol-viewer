@@ -2505,3 +2505,149 @@ code {
   border-radius: var(--radius);
   color: var(--text-1);
 }
+
+/* Rosters and Matchups (M-042) */
+.list-head .spacer {
+  flex: 1;
+}
+.roster-line {
+  margin: 0 0 0.3rem;
+}
+.save-btn {
+  white-space: nowrap;
+}
+.save-btn[data-saved] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.proposal-count.saved {
+  min-width: 0;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--accent);
+}
+.proposal-count.saved[data-edited] {
+  color: var(--warn);
+}
+.name-dialog {
+  width: min(26rem, 100%);
+}
+.name-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.name-form .field input {
+  width: 100%;
+}
+.name-form p {
+  margin: 0;
+}
+.roster-manager {
+  width: min(36rem, 100%);
+}
+.roster-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.roster-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.8rem;
+  padding: 0.4rem 0.2rem;
+  border-bottom: 1px solid var(--line);
+}
+.roster-name {
+  flex: 1 1 8rem;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.roster-meta {
+  white-space: nowrap;
+}
+.roster-actions {
+  display: flex;
+  gap: 0.2rem;
+}
+.roster-edit {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  width: 100%;
+}
+.roster-edit input {
+  flex: 1 1 12rem;
+  height: 1.9rem;
+  padding: 0 0.5rem;
+  background: var(--bg-0);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--text-1);
+}
+.roster-edit input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.matchups-title {
+  margin: 0;
+}
+.matchup-search {
+  width: min(20rem, 100%);
+}
+.matchup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 27rem), 1fr));
+  gap: 0.8rem;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.matchup-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+  background: var(--bg-1);
+}
+.matchup-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem 0.7rem;
+}
+.matchup-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+.matchup-head .menu-wrap {
+  align-self: center;
+}
+.slot-static {
+  cursor: default;
+}
+.slot-static:hover {
+  background: var(--bg-1);
+}
+.slot-now {
+  color: var(--text-3);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.matchup-card .proposal-diff {
+  margin: 0.2rem 0 0;
+}
+.matchup-actions {
+  margin-top: 0.2rem;
+}
+.name-form .field input,
+.roster-edit input {
+  font: inherit;
+}

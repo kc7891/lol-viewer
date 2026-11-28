@@ -10,3 +10,4 @@ export * from "./riotId.ts";
 export * from "./lobby.ts";
 export * from "./lanePrefs.ts";
 export * from "./prefsFile.ts";
+export * from "./saved.ts";
