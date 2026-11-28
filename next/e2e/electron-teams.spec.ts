@@ -7,6 +7,7 @@
  *  - People over the real IPC: the Add panels (friends, recent players, Riot ID lookup)
  *  - lane chips and the rank badge set preferences, the proposal follows, Export writes the preferences file (LOL_VIEWER_E2E_SAVE_PATH),
  *    clearing the preferences and importing the file again restores them (M-040)
+ *  - saved Rosters and Matchups (M-042) are kept in the app's settings: saved, the app is closed and started again, and they are still there
  *  - flag off again: the tab goes and the fetching stops
  * Game dates in the scenario are moved to the day the test runs (the cache only counts the last 60 days).
  */
@@ -46,7 +47,7 @@ let fake: FakeLcu;
 
 const playersHeading = () => page.getByRole("region", { name: "Players" }).getByRole("heading");
 const chip = (name: string) => page.getByRole("button", { name, exact: true });
-const subTab = (name: string | RegExp) => page.getByRole("tab", { name });
+const subTab = (name: string | RegExp) => page.getByRole("tab", { name, exact: typeof name === "string" });
 const toast = () => page.locator(".toast").last();
 const flagSwitch = () => page.getByRole("region", { name: "Feature flags" }).getByRole("switch", { name: "Teams (custom match balancer)" });
 const tab = (name: string) => page.getByRole("button", { name, exact: true });
@@ -57,6 +58,11 @@ test.describe.configure({ mode: "serial" });
 test.beforeAll(async () => {
   fake = await startFakeLcu({ lines, autoplay: false });
   fake.advanceTo(1000); // everything the client knows, and the lobby (t=300); the update at t=2000 comes later
+  await launch();
+});
+
+/** Start the app on the same user data directory (settings and the cache stay between launches). */
+async function launch() {
   const exe = process.env.LOL_VIEWER_EXE;
   const sandboxArgs = process.platform === "linux" ? ["--no-sandbox"] : [];
   app = await electron.launch({
@@ -72,7 +78,7 @@ test.beforeAll(async () => {
   });
   page = await app.firstWindow();
   await page.setViewportSize({ width: 1500, height: 1000 });
-});
+}
 
 test.afterAll(async () => {
   await app?.close();
@@ -248,6 +254,51 @@ test("preferences: chips and the rank badge change the proposal, Export writes t
   await expect(page.getByRole("button", { name: `${name} rank: D2` })).toHaveAttribute("data-source", "manual");
   await subTab("Match").click();
   await expect(support).toContainText(name);
+  expect(fake.rejectedWrites).toEqual([]);
+});
+
+test("saved Rosters and Matchups stay after the app is closed and started again", async () => {
+  await subTab("Match").click();
+  await expect(playersHeading()).toHaveText("Players 10 of 12");
+  // A roster of the ten who play, and the proposal on screen.
+  await page.getByRole("button", { name: "Rosters", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Save current as…" }).click();
+  const rosterDlg = page.getByRole("dialog", { name: "Save roster" });
+  await rosterDlg.getByLabel("Roster name").fill("E2E ten");
+  await rosterDlg.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("button", { name: "☆ Save" }).click();
+  const matchDlg = page.getByRole("dialog", { name: "Save matchup" });
+  await matchDlg.getByLabel("Matchup name").fill("E2E split");
+  await matchDlg.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByRole("button", { name: "★ Saved as “E2E split”" })).toBeVisible();
+  await expect(subTab(/^Matchups/)).toContainText("1");
+  const split = await page.getByRole("region", { name: "Proposals" }).locator(".proposal-table").innerText();
+
+  await app.close();
+  await launch();
+  await expect(page.locator(".conn")).toHaveAttribute("data-status", "connected", { timeout: 15_000 });
+  await tab("Teams").click();
+  await expect(subTab(/^Matchups/)).toContainText("1");
+  // Who plays is not saved: the spectator who was ticked in sits out again.
+  await expect(playersHeading()).toHaveText("Players 9 of 12", { timeout: 30_000 });
+  await page.getByRole("button", { name: "Rosters", exact: true }).click();
+  await expect(page.getByRole("menuitem", { name: "E2E ten · 10 people" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await subTab(/^Matchups/).click();
+  const card = page.getByRole("listitem", { name: "E2E split" });
+  await expect(card).toBeVisible();
+  await expect(card.locator(".slot-btn")).toHaveCount(10);
+  await page.screenshot({ path: `${shots}teams-matchups.png`, fullPage: true });
+  // The roster loads and the matchup opens the same split as before the restart.
+  await card.getByRole("button", { name: "Open in Match" }).click();
+  await expect(page.getByTestId("proposal-count")).toHaveText("Saved: E2E split");
+  await expect(playersHeading()).toHaveText("Players 10 of 12");
+  expect(await page.getByRole("region", { name: "Proposals" }).locator(".proposal-table").innerText()).toBe(split);
+  await page.screenshot({ path: `${shots}teams-matchup-opened.png`, fullPage: true });
+  await page.getByRole("button", { name: "Rosters", exact: true }).click();
+  await page.getByRole("menuitem", { name: "E2E ten · 10 people" }).click();
+  await expect(playersHeading()).toHaveText("Players 10 of 12");
+  await expect(page.getByTestId("roster-line")).toHaveText("Roster: E2E ten");
   expect(fake.rejectedWrites).toEqual([]);
 });
 

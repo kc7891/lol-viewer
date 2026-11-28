@@ -4,7 +4,8 @@
  * Flex only, one whose data is a few days old. Nothing here is a real person.
  */
 import type { CustomLobby, FriendEntry, FriendGroup, PrefetchStatus, RecentPlayer, RiotIdResult, TeamPlayer, TeamsApi, TeamsState } from "@lol-viewer/protocol";
-import type { TeamPlayerPref } from "@lol-viewer/core";
+import { effectiveRank, rankLabel, type SavedMatchup, type SavedRoster, type TeamPlayerPref } from "@lol-viewer/core";
+import { LANES } from "@lol-viewer/protocol";
 import { isValidRiotId } from "@lol-viewer/protocol";
 
 const DAY = 86_400_000;
@@ -150,3 +151,34 @@ export function fixtureTeamsApi(state: TeamsState, overrides: Partial<TeamsApi> 
     ...overrides,
   };
 }
+
+// ── Saved rosters and matchups (M-042) ──
+const roster = (id: string, name: string, ids: number[], daysAgo: number): SavedRoster => ({ id, name, puuids: ids.map(fx), savedAt: Date.now() - daysAgo * DAY });
+/** Three rosters: the usual ten, a Friday eight, and one with a guest (Player99) who is not in People. */
+export const FIXTURE_ROSTERS: SavedRoster[] = [
+  roster("ro-usual", "The usual 10", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 1),
+  roster("ro-friday", "Friday 8", [1, 2, 3, 5, 6, 8, 10, 11], 3),
+  roster("ro-guest", "Weekend with guest", [1, 2, 3, 4, 5, 6, 7, 8, 99], 9),
+];
+
+/**
+ * A saved split of the fixture people, the labels they had when it was saved. Lanes go top → support in the order given
+ * (none for 6 or 8 people). `was` changes the label of a person ("it was G2 then"), `gone` are people who are not in People any more.
+ */
+export function fixtureMatchup(id: string, name: string, blue: number[], red: number[], o: { daysAgo?: number; priority?: "rankFirst" | "laneFirst"; was?: Record<number, string> } = {}): SavedMatchup {
+  const laned = blue.length === 5;
+  const slot = (n: number, i: number) => ({ puuid: fx(n), lane: laned ? LANES[i]! : null });
+  const people: SavedMatchup["people"] = {};
+  for (const n of [...blue, ...red]) {
+    const p = SPECS[n] ? fixturePlayer(n) : undefined;
+    const eff = effectiveRank(p, undefined, Date.now());
+    people[fx(n)] = { gameName: fxName(n), tagLine: `tag${n}`, rankLabel: o.was?.[n] ?? (eff ? rankLabel(eff.points, eff.source) : "—"), points: eff?.points ?? null };
+  }
+  return { id, name, savedAt: Date.now() - (o.daysAgo ?? 0) * DAY, blue: blue.map(slot), red: red.map(slot), people, priority: o.priority ?? "rankFirst" };
+}
+/** Three matchups: ten people (Player3 was Gold 2 when it was saved), eight people without lanes, and six people with a guest (Player99) who is gone. */
+export const FIXTURE_MATCHUPS: SavedMatchup[] = [
+  fixtureMatchup("mu-ten", "Friday 5v5", [1, 7, 3, 5, 6], [2, 8, 11, 10, 12], { daysAgo: 1, was: { 3: "G2" } }),
+  fixtureMatchup("mu-eight", "Quick 4v4", [11, 6, 2, 12], [3, 8, 1, 7], { daysAgo: 4, priority: "laneFirst" }),
+  fixtureMatchup("mu-guest", "With a guest", [1, 3, 99], [2, 4, 5], { daysAgo: 12 }),
+];
