@@ -76,7 +76,7 @@ export const TeamsTab: Story = story({
   scene: scenes.idle,
   settings: { ...DEFAULT_SETTINGS, featureFlags: { teamBalancer: true } },
   teams: true,
-  app: { initialPage: "teams", teamsInitial: { prefetchOpen: false } },
+  app: { initialPage: "teams" },
 });
 export const SettingsUpdateBadge: Story = story({ scene: scenes.idle, app: { updateAvailable: true } });
 /** Desktop app: a newer version was found at startup. The dot comes from the bridge, not from a prop. */

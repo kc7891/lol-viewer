@@ -16,7 +16,7 @@ const POINTS: Record<string, number> = { IRON: 0, BRONZE: 400, SILVER: 800, GOLD
 const DIV: Record<string, number> = { IV: 0, III: 100, II: 200, I: 300 };
 const entry = ([tier, division, lp]: Tier) => ({ tier, division, lp, points: POINTS[tier]! + DIV[division]! + lp });
 
-type Spec = { solo?: Tier; flex?: Tier; prev?: Tier; lanes: Partial<Record<"top" | "jungle" | "middle" | "bottom" | "support", number>>; estimate?: { points: number | null; samples: number; games: number }; ageDays?: number };
+type Spec = { nameOnly?: boolean; error?: string; solo?: Tier; flex?: Tier; prev?: Tier; lanes: Partial<Record<"top" | "jungle" | "middle" | "bottom" | "support", number>>; estimate?: { points: number | null; samples: number; games: number }; ageDays?: number };
 const SPECS: Record<number, Spec> = {
   1: { solo: ["GOLD", "II", 40], lanes: { top: 9, jungle: 2, middle: 1 } },
   2: { solo: ["SILVER", "I", 75], lanes: { jungle: 10, middle: 2 } },
@@ -30,6 +30,10 @@ const SPECS: Record<number, Spec> = {
   10: { solo: ["PLATINUM", "II", 22], lanes: { bottom: 8, middle: 3 } },
   11: { solo: ["DIAMOND", "IV", 0], lanes: { middle: 9, jungle: 2 } },
   12: { solo: ["SILVER", "IV", 14], lanes: { support: 6, bottom: 4 }, ageDays: 6 },
+  /** Saved from a friend group, only the name is known. */
+  13: { nameOnly: true, lanes: {} },
+  /** The last fetch failed, and the old data is past the limit for use. */
+  14: { solo: ["GOLD", "III", 20], lanes: { top: 5, jungle: 5 }, ageDays: 20, error: "League Client did not answer" },
 };
 
 export function fixturePlayer(n: number, now = Date.now()): TeamPlayer {
@@ -45,6 +49,7 @@ export function fixturePlayer(n: number, now = Date.now()): TeamPlayer {
     addedBy: n <= 12 ? "lobby" : "friend",
     rank: { solo: s.solo ? entry(s.solo) : null, flex: s.flex ? entry(s.flex) : null, prevSeason: s.prev ? entry(s.prev) : null, fetchedAt: at },
     lanes: { counts: { top: 0, jungle: 0, middle: 0, bottom: 0, support: 0, ...s.lanes }, games, fetchedAt: at },
+    ...(s.nameOnly ? { rank: null, lanes: null } : {}),
     estimate: s.estimate
       ? {
           points: s.estimate.points,
@@ -61,7 +66,7 @@ export function fixturePlayer(n: number, now = Date.now()): TeamPlayer {
           fetchedAt: at,
         }
       : null,
-    error: null,
+    error: s.error ?? null,
   };
 }
 
@@ -92,6 +97,15 @@ export function teamsState(o: TeamsFixture = {}): TeamsState {
 
 /** Manual settings used by the stories: three players locked to the same lane (the balancer cannot keep that). */
 export const JUNGLE_CLASH: Record<string, TeamPlayerPref> = { [fx(2)]: { lock: "jungle" }, [fx(8)]: { lock: "jungle" }, [fx(5)]: { lock: "jungle" } };
+/** Every chip state: stars (two on one player), a lock, avoided lanes, and a rank set by hand (Player9 is unranked, Player6 has a better one). */
+export const CHIP_STATES: Record<string, TeamPlayerPref> = {
+  [fx(1)]: { mains: ["top", "jungle"] },
+  [fx(2)]: { lock: "jungle", ng: ["support", "top"] },
+  [fx(3)]: { lock: "middle" },
+  [fx(5)]: { mains: ["bottom"], ng: ["middle"] },
+  [fx(6)]: { ng: ["bottom"], mains: ["support"], rankOverride: 2100 },
+  [fx(9)]: { rankOverride: 1700 },
+};
 /** One locked player and one who avoids a lane. */
 export const SOME_PREFS: Record<string, TeamPlayerPref> = { [fx(3)]: { lock: "middle", mains: ["middle"] }, [fx(6)]: { ng: ["bottom"] } };
 
@@ -132,6 +146,7 @@ export function fixtureTeamsApi(state: TeamsState, overrides: Partial<TeamsApi> 
     refresh() {},
     forget() {},
     clearCache() {},
+    exportPrefs: async () => ({ saved: true }),
     ...overrides,
   };
 }

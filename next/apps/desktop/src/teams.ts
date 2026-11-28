@@ -5,11 +5,11 @@
  */
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { app, ipcMain } from "electron";
+import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import { buildProbePath, type LcuConnector } from "@lol-viewer/lcu";
-import { TeamsPrefetchRequestSchema, TeamsPuuidSchema, TeamsRiotIdLinesSchema, type TeamsState } from "@lol-viewer/protocol";
+import { TEAMS_PREFS_MAX_BYTES, TeamsPrefetchRequestSchema, TeamsPrefsTextSchema, TeamsPuuidSchema, TeamsRiotIdLinesSchema, type TeamsState } from "@lol-viewer/protocol";
 import { log } from "./log.ts";
-import { TeamsController, type TeamsStorage } from "./teams-core.ts";
+import { e2eSavePath, prefsFileName, TeamsController, type TeamsStorage } from "./teams-core.ts";
 
 const cacheFile = () => join(app.getPath("userData"), "team-cache.json");
 
@@ -88,6 +88,30 @@ export function setupTeams({ connector, fromApp, push }: TeamsSetup): TeamsContr
   onePuuid("teams:forget", (id) => teams.forget(id));
   ipcMain.on("teams:clear-cache", (e) => {
     if (fromApp(e)) void teams.clearCache();
+  });
+
+  // M-040: save the per-person preferences file. The renderer sends the text; the save dialog and the write are here.
+  let lastDir: string | null = null; // the folder of the last save (this run only)
+  ipcMain.handle("teams:export-prefs", async (e, raw: unknown): Promise<{ saved: boolean; path?: string }> => {
+    if (!fromApp(e)) return { saved: false };
+    const text = TeamsPrefsTextSchema.safeParse(raw);
+    if (!text.success || Buffer.byteLength(text.data, "utf8") > TEAMS_PREFS_MAX_BYTES) throw new Error("invalid preferences text");
+    let path = e2eSavePath(process.env);
+    if (!path) {
+      const parent = BrowserWindow.fromWebContents(e.sender);
+      const options = {
+        title: "Save team preferences",
+        defaultPath: join(lastDir ?? app.getPath("documents"), prefsFileName(new Date())),
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      };
+      const picked = parent ? await dialog.showSaveDialog(parent, options) : await dialog.showSaveDialog(options);
+      if (picked.canceled || !picked.filePath) return { saved: false };
+      path = picked.filePath;
+      lastDir = dirname(path);
+    }
+    await writeFile(path, text.data, "utf8");
+    log.info("teams", "saved the preferences file");
+    return { saved: true, path };
   });
   return teams;
 }

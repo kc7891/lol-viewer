@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DEFAULT_SETTINGS, type Settings, type TeamPlayerPref } from "@lol-viewer/core";
-import { fx, fixtureTeamsApi, JUNGLE_CLASH, SOME_PREFS, teamsState, type TeamsFixture } from "../../fixtures/teams.ts";
+import { CHIP_STATES, fx, fixtureTeamsApi, JUNGLE_CLASH, SOME_PREFS, teamsState, type TeamsFixture } from "../../fixtures/teams.ts";
 import { scenes } from "../../fixtures.ts";
 import { Harness } from "../../storyHelpers.tsx";
+import type { ImportPlan } from "./model.ts";
 import { TeamsPage, type TeamsPageInitial } from "./TeamsPage.tsx";
 
 const meta = { title: "Screens/Teams", parameters: { layout: "fullscreen" } } satisfies Meta;
@@ -25,38 +26,60 @@ const story = ({ state = {}, prefs = {}, initial, browser = false }: Args = {}):
   },
 });
 
-/** Not in a custom lobby: nobody listed, the Prefetch panel is open. */
-export const NoLobby: Story = story({ state: { lobby: "none" } });
-/** Not in a lobby, but eight saved people were added to Players by hand. */
-export const NoLobbyAddedPeople: Story = story({
-  state: { lobby: "none" },
-  initial: { prefetchOpen: false, extras: [1, 2, 3, 4, 6, 7, 8, 10].map(fx) },
-});
-/** Ten in the team slots, two spectators on the Bench: the first proposals. */
-export const TenPlayers: Story = story({ initial: { prefetchOpen: false } });
-export const TenPlayersLanesFirst: Story = story({ initial: { prefetchOpen: false, view: "laneFirst" } });
-/** Eight in the team slots: no lanes, each player's main lane in brackets. */
-export const EightPlayers: Story = story({ state: { lobby: "eight" }, initial: { prefetchOpen: false } });
-/** Nine in the team slots: no proposal, the message says how many. */
-export const NinePlayers: Story = story({ state: { lobby: "nine" }, initial: { prefetchOpen: false } });
-/** Three players locked to Jungle: the balancer cannot keep that. */
-export const LockClash: Story = story({ prefs: JUNGLE_CLASH, initial: { prefetchOpen: false } });
-/** A player's manual settings are open (lock, preferred lanes, avoid, rank override). */
-export const ManualSettings: Story = story({ prefs: { ...SOME_PREFS, [fx(2)]: { lock: "jungle", ng: ["support", "top"], rankOverride: 1500 } }, initial: { prefetchOpen: false, prefsOpen: fx(2) } });
-/** Two players just arrived in the lobby: spinners, the rest is already there. */
-export const Fetching: Story = story({ state: { fetching: [3, 7] }, initial: { prefetchOpen: false } });
-/** Someone from the Bench was moved to Players. */
-export const BenchMovedIn: Story = story({ initial: { prefetchOpen: false, moved: { [fx(11)]: "in", [fx(10)]: "out" } } });
+const EVERYONE = { players: Array.from({ length: 14 }, (_, i) => i + 1) };
 
+// ── Match ──
+/** Ten in the team slots, two spectators unticked: the first proposal (priority Rank). */
+export const MatchTenPlayers: Story = story();
+export const MatchLanesPriority: Story = story({ initial: { priority: "laneFirst" } });
+/** Every chip state: star (two on Player1), lock, avoid, a rank set by hand (gold frame), and the history lines under the chips. */
+export const MatchChipStates: Story = story({ prefs: CHIP_STATES });
+/** Eight in the team slots: no lanes, each player's main lane in brackets. */
+export const MatchEightPlayers: Story = story({ state: { lobby: "eight" } });
+/** Nine in the team slots: no proposal, "Pick 6, 8 or 10" next to the heading. */
+export const MatchNinePlayers: Story = story({ state: { lobby: "nine" } });
+/** Three players locked to Jungle: the balancer cannot keep that. */
+export const MatchLockClash: Story = story({ prefs: JUNGLE_CLASH });
+export const MatchFetching: Story = story({ state: { fetching: [3, 7] } });
+/** Two spectators ticked in, two team players unticked. */
+export const MatchSpectatorsIncluded: Story = story({ initial: { moved: { [fx(11)]: "in", [fx(12)]: "in", [fx(10)]: "out", [fx(5)]: "out" } } });
+/** Not in a lobby: nobody listed yet. */
+export const MatchNoLobby: Story = story({ state: { lobby: "none" } });
+/** Not in a lobby, eight saved people were added by hand. */
+export const MatchNoLobbyAddedPeople: Story = story({ state: { lobby: "none" }, initial: { extras: [1, 2, 3, 4, 6, 7, 8, 10].map(fx) } });
+/** "+ Add people" is open: the saved people who are not on the list (search). */
+export const MatchAddPeopleOpen: Story = story({ state: EVERYONE, initial: { addPeopleOpen: true } });
+/** The rank popover of Player9 (unranked, no estimate): Auto, tier, division. */
+export const MatchRankPopover: Story = story({ initial: { rankOpen: fx(9) } });
+/** The Discord text is shown only in Preview. */
+export const MatchDiscordPreview: Story = story({ initial: { preview: true } });
+/** A hand-swapped proposal shows "Edited" and Reset: see the Storybook E2E. */
+export const MatchNoPreferences: Story = story({ prefs: {} });
+
+// ── People ──
 const running = { running: true, done: 12, total: 30, failed: 1, current: fx(7) };
-export const PrefetchFriends: Story = story({ state: { lobby: "none", prefetch: running }, initial: { tab: "friends" } });
-export const PrefetchRecent: Story = story({ state: { lobby: "none" }, initial: { tab: "recent" } });
-export const PrefetchRiotIds: Story = story({ state: { lobby: "none" }, initial: { tab: "riotIds", riotIds: "Player20#tag20\nPlayer21#tag21\nPlayer22#tag22\nno-tag-here" } });
-export const PrefetchLobby: Story = story({ initial: { prefetchOpen: true, tab: "lobby" } });
-export const PrefetchPaused: Story = story({ state: { prefetch: { ...running, pausedUntil: Date.now() + 45_000 } }, initial: { prefetchOpen: true, tab: "lobby" } });
-export const PrefetchSaved: Story = story({ initial: { prefetchOpen: true, tab: "saved" } });
-/** A saved player with a rank estimate: the games it came from, lane bars, manual settings, Refresh / Forget. */
-export const SavedDetails: Story = story({ prefs: SOME_PREFS, initial: { prefetchOpen: true, tab: "saved", savedOpen: fx(4) } });
+/** Everybody saved (14): same chips and badge as Match, a name-only person, one whose last fetch failed. */
+export const PeopleTable: Story = story({ state: EVERYONE, prefs: CHIP_STATES, initial: { page: "people" } });
+export const PeopleSortedByRank: Story = story({ state: EVERYONE, prefs: CHIP_STATES, initial: { page: "people", sort: "rank" } });
+export const PeopleOldMissing: Story = story({ state: EVERYONE, initial: { page: "people", filter: "old" } });
+export const PeopleInLobby: Story = story({ state: EVERYONE, initial: { page: "people", filter: "lobby" } });
+export const PeopleSearch: Story = story({ state: EVERYONE, initial: { page: "people", query: "player1" } });
+/** A person's details: three ranks, the estimate and the games it came from, the lane shares. */
+export const PeopleDetails: Story = story({ state: EVERYONE, prefs: SOME_PREFS, initial: { page: "people", detailsOpen: fx(4) } });
+export const PeopleRankPopover: Story = story({ state: EVERYONE, initial: { page: "people", rankOpen: fx(13) } });
+export const PeopleFetching: Story = story({ state: { ...EVERYONE, prefetch: running, fetching: [7] }, initial: { page: "people", filter: "old" } });
+export const PeoplePaused: Story = story({ state: { ...EVERYONE, prefetch: { ...running, pausedUntil: Date.now() + 45_000 } }, initial: { page: "people" } });
+/** The ⋯ menu: Fetch all again, Export / Import preferences…, Clear all cached data. */
+export const PeopleMenu: Story = story({ state: EVERYONE, prefs: CHIP_STATES, initial: { page: "people", menuOpen: true } });
+const plan: ImportPlan = { matched: [fx(1), fx(2), fx(3), fx(8)].map((puuid) => ({ puuid, pref: { lock: "top" } })), notFound: ["Player99#tag9"], replacing: 2 };
+/** Importing a preferences file: the confirm bar says how many people, how many replace, how many were not found. */
+export const PeopleImportConfirm: Story = story({ state: EVERYONE, prefs: CHIP_STATES, initial: { page: "people", importPlan: plan } });
+export const PeopleEmpty: Story = story({ state: { players: [], lobby: "none" }, initial: { page: "people" } });
+
+// ── Add people ──
+export const AddFromFriendGroup: Story = story({ state: { lobby: "none", ...EVERYONE }, initial: { page: "people", addMode: "friends" } });
+export const AddFromRecent: Story = story({ state: { lobby: "none" }, initial: { page: "people", addMode: "recent" } });
+export const AddByRiotId: Story = story({ state: { lobby: "none" }, initial: { page: "people", addMode: "riotIds", riotIds: "Player20#tag20\nPlayer21#tag21\nPlayer22#tag22\nno-tag-here" } });
 
 /** The browser build has no League Client: Teams says so. */
 export const Browser: Story = story({ browser: true });

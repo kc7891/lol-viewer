@@ -658,6 +658,9 @@ export const TeamsPrefetchRequestSchema = z.object({
   addedBy: z.enum(["friend", "recent", "lobby"]).optional(),
 });
 export const TeamsRiotIdLinesSchema = z.array(z.string().max(100)).max(TEAMS_RIOT_ID_LINES_MAX);
+/** The preferences file text main is asked to save (M-040): at most 1 MB (main also counts bytes). */
+export const TEAMS_PREFS_MAX_BYTES = 1_000_000;
+export const TeamsPrefsTextSchema = z.string().max(TEAMS_PREFS_MAX_BYTES);
 
 export interface TeamsApi {
   getState(): Promise<TeamsState>;
@@ -676,4 +679,6 @@ export interface TeamsApi {
   refresh(puuid: string): void;
   forget(puuid: string): void;
   clearCache(): void;
+  /** Save the preferences file (M-040): main asks where with a save dialog and writes `json`. saved is false when the person cancels. */
+  exportPrefs(json: string): Promise<{ saved: boolean; path?: string }>;
 }

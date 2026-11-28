@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ProbeResponse, TeamsState } from "@lol-viewer/protocol";
 import { emptyCache, parseCacheFile, type TeamCacheFile } from "@lol-viewer/core";
-import { RECENT_MAX, SAVE_DEBOUNCE_MS, STATE_PUSH_MS, TeamsController, type TeamsStorage } from "./teams-core.ts";
+import { e2eSavePath, prefsFileName, RECENT_MAX, SAVE_DEBOUNCE_MS, STATE_PUSH_MS, TeamsController, type TeamsStorage } from "./teams-core.ts";
 
 const NOW0 = 1_700_000_000_000;
 const ok = (body: unknown): ProbeResponse => ({ status: 200, ms: 1, body });
@@ -552,5 +552,19 @@ describe("review fixes", () => {
     await s.c.flush();
     expect(s.saved).toHaveLength(1);
     expect(s.c.dirty).toBe(false);
+  });
+});
+
+describe("the preferences file (M-040)", () => {
+  it("is named by the day, local time", () => {
+    expect(prefsFileName(new Date(2026, 10, 7))).toBe("lol-viewer-team-preferences-20261107.json");
+    expect(prefsFileName(new Date(2026, 11, 31))).toBe("lol-viewer-team-preferences-20261231.json");
+  });
+  it("the test save path is honoured only in an E2E run", () => {
+    expect(e2eSavePath({ LOL_VIEWER_E2E: "1", LOL_VIEWER_E2E_SAVE_PATH: "/tmp/x.json" })).toBe("/tmp/x.json");
+    expect(e2eSavePath({ LOL_VIEWER_E2E_SAVE_PATH: "/tmp/x.json" })).toBeNull();
+    expect(e2eSavePath({ LOL_VIEWER_E2E: "0", LOL_VIEWER_E2E_SAVE_PATH: "/tmp/x.json" })).toBeNull();
+    expect(e2eSavePath({ LOL_VIEWER_E2E: "1" })).toBeNull();
+    expect(e2eSavePath({ LOL_VIEWER_E2E: "1", LOL_VIEWER_E2E_SAVE_PATH: "" })).toBeNull();
   });
 });

@@ -40,6 +40,13 @@ export const RECONNECT_POLL_MS = 30_000;
 /** A failed cache write is tried again this many times (each one debounce later). */
 export const SAVE_RETRIES = 3;
 export const RECENT_MAX = 200;
+
+/** The preferences file (M-040): its default name, and where a save goes when the test hook is on. Pure, so they are tested without Electron. */
+export const prefsFileName = (d: Date): string =>
+  `lol-viewer-team-preferences-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}.json`;
+/** `LOL_VIEWER_E2E_SAVE_PATH` skips the save dialog, but only in an E2E run (LOL_VIEWER_E2E=1). Otherwise null: ask the person. */
+export const e2eSavePath = (env: Record<string, string | undefined>): string | null => (env.LOL_VIEWER_E2E === "1" && env.LOL_VIEWER_E2E_SAVE_PATH ? env.LOL_VIEWER_E2E_SAVE_PATH : null);
+
 /** Names seen in friends / recent lists, kept in memory so a prefetch can show a name before its fetch. */
 const NAMES_MAX = 1000;
 

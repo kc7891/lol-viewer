@@ -231,6 +231,14 @@ lolalytics を実際のブラウザ（Playwright）で開いた結果: `/lol/ahr
 - データは LCU の GET だけ（M-039 の `probe` と `buildProbePath` を使い、購読は `/lol-lobby/v2/lobby` を足す）。LCU への書き込み（チームの移動を含む）、外部サイトの読み取り、外部への送信はしない。PUUID・名前・ランクはログに書かず、MatchState（Hub の WebSocket）にも載せない。
 - 設計: [team-balancer-design.md](./team-balancer-design.md)（企画）、[teams-implementation.md](./teams-implementation.md)（実装）。
 
+## M-040 Teams の UI の見直しと、好みのファイル（2026-11-27）
+- Teams タブを `Match`（チーム分け）と `People`（人の管理）に分ける。Prefetch のパネルと Saved は People に作り直す。ロビーのタブは無くす。
+- 手動の設定は ⚙ のパネルをやめ、行の中のレーンのチップ（クリックで ★ 得意 → 🔒 固定 → ✕ NG → なし）とランクの札のポップオーバーで直接入れる。
+- 参加 / 控えは 1 つの一覧のチェックボックスにする。提案は `Priority: Rank / Lanes` と `◀ n / N ▶` の 1 案ずつにする。Discord の文字列はプレビューを開いたときだけ出す。
+- 人ごとの好みを JSON ファイルに書き出し / 読み込みできる（puuid → Riot ID の順で照合。ファイルにいる人だけ置き換える）。
+- M-038 の取得・推定・提案の計算と、持ち主の判断（ロビーの人は自動で取る、フレンド・最近の人は操作したときだけ、フラグ OFF は何もしない）は変えない。デスクトップの変更は IPC `teams:export-prefs`（`fromApp`、zod、1MB、保存ダイアログ。E2E だけ `LOL_VIEWER_E2E=1` の環境変数で保存先を指定）だけ。
+- 設計: [teams-ui-v2-design.md](./teams-ui-v2-design.md)。
+
 ---
 
 ## 未決事項

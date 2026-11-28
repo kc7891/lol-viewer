@@ -33,6 +33,7 @@ const teams: TeamsApi = {
   refresh: (puuid: string) => ipcRenderer.send("teams:refresh", puuid),
   forget: (puuid: string) => ipcRenderer.send("teams:forget", puuid),
   clearCache: () => ipcRenderer.send("teams:clear-cache"),
+  exportPrefs: (json: string) => ipcRenderer.invoke("teams:export-prefs", json) as ReturnType<TeamsApi["exportPrefs"]>,
 };
 
 const bridge: LolViewerBridge = {

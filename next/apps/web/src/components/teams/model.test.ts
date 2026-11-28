@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { TeamPlayer } from "@lol-viewer/protocol";
-import { ageLabel, balancePlayerOf, candidatesOf, entryText, lanesOf, membershipOf, overLockedLane, overridePoints, rankDetails, remainingText, tierOfPoints, toggleLane, withPref } from "./model.ts";
+import {
+  ageLabel, balancePlayerOf, candidatesOf, entryText, fetchedAtOf, historyOf, importBarText, laneChipLabel, lanesOf, membershipOf, namesText, needsFetch, overLockedLane, overridePoints, rankDetails,
+  remainingText, sortCandidates, tierOfPoints, withPref, withPrefValue,
+} from "./model.ts";
 
 const NOW = 1_700_000_000_000;
 const counts = (o: Partial<Record<"top" | "jungle" | "middle" | "bottom" | "support", number>>) => ({ top: 0, jungle: 0, middle: 0, bottom: 0, support: 0, ...o });
@@ -59,11 +62,6 @@ describe("per-player settings", () => {
     expect(prefs).toEqual({});
     expect(withPref({ b: { lock: "top" } }, "a", {})).toEqual({ b: { lock: "top" } });
   });
-  it("toggles lanes; with a limit the oldest goes", () => {
-    expect(toggleLane(undefined, "top", 2)).toEqual(["top"]);
-    expect(toggleLane(["top", "jungle"], "middle", 2)).toEqual(["jungle", "middle"]);
-    expect(toggleLane(["top", "jungle"], "top", 2)).toEqual(["jungle"]);
-  });
   it("turns points into a tier and back", () => {
     expect(tierOfPoints(1440)).toEqual({ tier: "GOLD", division: "II", lp: 0 });
     expect(tierOfPoints(0)).toEqual({ tier: "IRON", division: "IV", lp: 0 });
@@ -99,5 +97,66 @@ describe("wording", () => {
     expect(remainingText(10, 10, 5000)).toBeNull();
     expect(remainingText(12, 30, 12 * 10_000)).toBe("~3 min");
     expect(remainingText(5, 6, 1000)).toBe("<1 min");
+  });
+});
+
+describe("the Match list order", () => {
+  const named = (gameName: string, puuid: string) => player({ puuid, gameName });
+  const players = { a: named("Zed", "a"), b: named("amy", "b"), c: named("Player10", "c"), d: named("Player2", "d"), e: named("Bob", "e") };
+  it("is team slots, spectators, added people; by name (any case, numbers in order) inside each group", () => {
+    const list = candidatesOf({ team100: ["a", "c"], team200: ["b", "d"], spectators: ["e"] }, []);
+    expect(sortCandidates(list, players).map((c) => c.puuid)).toEqual(["b", "d", "c", "a", "e"]);
+    expect(sortCandidates(candidatesOf(null, ["a", "b"]), players).map((c) => c.puuid)).toEqual(["b", "a"]);
+  });
+  it("does not change its input, and copes with people it knows nothing about", () => {
+    const list = candidatesOf(null, ["x", "a"]);
+    expect(sortCandidates(list, players).map((c) => c.puuid)).toEqual(["x", "a"]);
+    expect(list.map((c) => c.puuid)).toEqual(["x", "a"]);
+  });
+});
+
+describe("what needs fetching", () => {
+  it("is nobody fetched, data past 3 days, or a failed fetch", () => {
+    expect(needsFetch(player(), NOW)).toBe(false);
+    expect(needsFetch(player({ rank: null, lanes: null, estimate: null }), NOW)).toBe(true);
+    const old = { ...player().rank!, fetchedAt: NOW - 4 * 86_400_000 };
+    expect(needsFetch(player({ rank: old, lanes: { ...player().lanes!, fetchedAt: old.fetchedAt } }), NOW)).toBe(true);
+    expect(needsFetch(player({ error: "League Client did not answer" }), NOW)).toBe(true);
+  });
+  it("the fetched time is the newest of rank, lanes and estimate", () => {
+    expect(fetchedAtOf(player({ rank: null, lanes: null }))).toBe(0);
+    expect(fetchedAtOf(player({ lanes: { ...player().lanes!, fetchedAt: NOW + 5 } }))).toBe(NOW + 5);
+  });
+});
+
+describe("lane chips", () => {
+  it("shows the history: main, sub and each lane's share", () => {
+    expect(historyOf(player())).toEqual({ main: "jungle", sub: "top", share: { jungle: 67, top: 33 }, games: 12 });
+    expect(historyOf(undefined)).toEqual({ main: null, sub: null, share: {}, games: 0 });
+  });
+  it("names a chip for a screen reader", () => {
+    expect(laneChipLabel("Player1", "jungle", { lock: "jungle" })).toBe("Player1 Jungle: locked");
+    expect(laneChipLabel("Player1", "middle", { mains: ["middle"] })).toBe("Player1 Mid: preferred");
+    expect(laneChipLabel("Player1", "support", { ng: ["support"] })).toBe("Player1 Support: avoided");
+    expect(laneChipLabel("Player1", "top", undefined)).toBe("Player1 Top: not set");
+  });
+  it("a whole preference replaces the old one; an empty one removes the person", () => {
+    expect(withPrefValue({ a: { lock: "top" } }, "a", { mains: ["jungle"] })).toEqual({ a: { mains: ["jungle"] } });
+    expect(withPrefValue({ a: { lock: "top" }, b: { ng: ["top"] } }, "a", {})).toEqual({ b: { ng: ["top"] } });
+    expect(withPrefValue({}, "a", { rankOverride: 0 })).toEqual({ a: { rankOverride: 0 } });
+  });
+});
+
+describe("the import bar", () => {
+  it("says how many people, how many replace, how many were not found", () => {
+    const m = (n: number) => Array.from({ length: n }, (_, i) => ({ puuid: `p${i}`, pref: {} }));
+    expect(importBarText({ matched: m(12), notFound: ["a#1"], replacing: 3 })).toBe("Import 12 people? 3 will replace current preferences, 1 not found.");
+    expect(importBarText({ matched: m(1), notFound: [], replacing: 0 })).toBe("Import 1 person?");
+    expect(importBarText({ matched: m(2), notFound: ["a#1", "b#2"], replacing: 0 })).toBe("Import 2 people? 2 not found.");
+    expect(importBarText({ matched: m(2), notFound: [], replacing: 1 })).toBe("Import 2 people? 1 will replace current preferences.");
+  });
+  it("lists a few names, then a count", () => {
+    expect(namesText(["a#1", "b#2"])).toBe("a#1, b#2");
+    expect(namesText(["a", "b", "c", "d", "e"])).toBe("a, b, c and 2 more");
   });
 });
