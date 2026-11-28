@@ -197,7 +197,7 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 |---|---|
 | ロビーの行 | `Custom lobby · N people`（いないとき `Not in a custom lobby. …`）。取得中は `Fetching n people …` |
 | Players n of m | 参加と控えは 1 つの一覧。行頭のチェックボックス（`Include Player1`）で参加を切り替える。並びは チームの枠 → 観戦 → 手で足した人（`Added`）、中は名前順（数字は数の順）。行は動かない。観戦枠の人は既定で外れている。このロビーの間だけの状態で、保存しない。人数が 6・8・10 人でないとき見出しの横に `Pick 6, 8 or 10`。行の `⋯`: `Fetch again`、手で足した人は `Remove from this list` |
-| `+ Add people` | People に保存されている人（この一覧にいない人）の検索つきの一覧。選ぶと参加者として加わる。ロビーにいないときもこれで人を足す |
+| `+ Add people` | People に保存されている人（この一覧にいない人）の検索つきの一覧を、**ページの上に重ねるモーダル**で開く（M-041。一覧は動かない）。選ぶと参加者として加わり、モーダルは開いたまま続けて足せる。`Done` / `×` / Esc / 背景のクリックで閉じる。ロビーにいないときもこれで人を足す |
 | Proposal | `Priority [Rank] [Lanes]`（M-038 の 2 つの見方）と `◀ 1 / 126 ▶`（1 案ずつ。端で回る）。青と赤の表（10 人はレーンごとの行、6・8 人は並べて `(MID)`）、チーム名の横に平均ランク。2 人を順にクリックで入れ替え → 番号の代わりに `Edited` と `Reset`。差の行: `Rank diff 10 · lane gap 320 · ⚠ 1 avoided lane · ⚠ 2 unknown ranks`。1 位が両方の見方で同じなら `Same as Lanes priority`（`Rank`）。人数の誤りは `Pick 6, 8 or 10 players (now 9).`、衝突は `Too many players are locked to Jungle.` |
 | Copy for Discord | 今の案（入れ替え後を含む）の文字列をクリップボードへ。失敗したら Preview を開いて全選択し `Press Ctrl+C to copy.`。横の `▾` のメニュー: `Show ranks`（既定オン）、`Show #tag`（既定オフ）は `settings.teams` に保存、`Preview`（文字列の欄。既定は閉じている）。文字列は 2000 文字以内 |
 

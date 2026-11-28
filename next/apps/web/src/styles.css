@@ -2027,17 +2027,13 @@ code {
 .add-people {
   margin-top: 0.7rem;
 }
-.add-people-panel {
-  margin-top: 0.6rem;
-  padding: 0.7rem 0.8rem;
-  background: var(--bg-1);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+.add-dialog.add-people-panel {
+  width: min(32rem, 100%);
 }
-.add-people-list {
-  max-height: 13rem;
+.add-people-panel .add-people-list {
+  max-height: 55vh;
   overflow-y: auto;
-  margin-top: 0.5rem;
+  margin-top: 0;
 }
 .add-person {
   display: flex;

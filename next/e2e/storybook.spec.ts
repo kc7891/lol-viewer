@@ -730,14 +730,39 @@ test("Teams Match: + Add people lists the saved people who are not on the list, 
   await open(page, "screens-teams--match-no-lobby");
   await expect(page.getByTestId("lobby-line")).toContainText("Not in a custom lobby");
   await expect(playersHeading(page)).toHaveText("Players 0 of 0");
+  const listTop = async () => (await playersHeading(page).boundingBox())!.y;
+  const before = await listTop();
   await page.getByRole("button", { name: "Add people" }).click();
+  // A modal over the page (M-041): the players list does not move, and the search has the focus.
+  const dialog = page.getByRole("dialog", { name: "Add saved people" });
+  await expect(dialog).toBeVisible();
+  await expect(page.getByLabel("Search saved people")).toBeFocused();
+  expect(await listTop()).toBe(before);
   await page.getByLabel("Search saved people").fill("player1");
   await expect(page.locator(".add-person")).toHaveCount(4); // 1, 10, 11, 12
   await page.getByRole("button", { name: "Add Player12" }).click();
   await expect(playersHeading(page)).toHaveText("Players 1 of 1");
-  await expect(page.locator(".add-person")).toHaveCount(3);
+  await expect(page.locator(".add-person")).toHaveCount(3); // stays open for more picks
   await page.keyboard.press("Escape");
   await expect(page.locator(".add-people-panel")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Add people" })).toBeFocused();
+  // Done closes it too, and the search starts empty next time.
+  await page.getByRole("button", { name: "Add people" }).click();
+  await expect(page.getByLabel("Search saved people")).toHaveValue("");
+  await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(dialog).toHaveCount(0);
+  // Tab stays inside the dialog (search → ... → Done → × → search).
+  await page.getByRole("button", { name: "Add people" }).click();
+  for (let i = 0; i < 8; i++) {
+    await page.keyboard.press("Tab");
+    expect(await dialog.evaluate((d) => d.contains(document.activeElement))).toBe(true);
+  }
+  await page.keyboard.press("Shift+Tab");
+  expect(await dialog.evaluate((d) => d.contains(document.activeElement))).toBe(true);
+  // A click on the dimmed backdrop closes it, and the focus goes back to the button.
+  await page.mouse.click(5, 5);
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Add people" })).toBeFocused();
   // Added people can be removed from the list again (the row menu).
   await page.getByRole("button", { name: "More for Player12" }).click();
   await page.getByRole("menuitem", { name: "Remove from this list" }).click();
