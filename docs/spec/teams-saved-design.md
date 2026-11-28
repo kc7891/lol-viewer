@@ -124,7 +124,19 @@ type SavedMatchup = {
 - **共通の `Modal`**（`Modal.tsx`）にまとめ、Add people もそれを使う。名前を聞く `NameDialog`（Roster の保存・Matchup の保存と名前の変更）と `RosterManager`（Manage rosters…）を足した。Roster の名前の変更は一覧の行の中で行う（モーダルの重なりを避ける）。名前の欄の Esc は欄だけを閉じ、モーダルは閉じない。
 - **`★ Saved as "…"`** は押せる。押すと保存のモーダルが保存済みの名前で開く（`Overwrite` になる）。
 - **`Open in Match` の提案**は、Priority の切り替え・`◀ ▶`・`Reset` のどれかで通常の提案に戻る（Reset は保存した分け方の Priority の提案に戻る）。チェックを変えて人が変わっても戻る。入れ替えは `Edited` と同じ（見出しは `Saved: <名前> (edited)`）。
-- **ロビーが変わったときの Roster のチェック**は、これまでの `moved` の規則のまま（ロビーの人が変わっても保つ。ロビーから出たときだけロビー由来の選択を捨てる）。読み込んだ組に戻るための特別な記憶は持たない。
+- **ロビーが変わったときの Roster のチェック**は §2.2 のとおり保つ。Roster / `Open in Match` を適用すると、その人のうち People に保存されている人は全員「足した人」（`extras`）にも入れ、`moved` の選択も覚える（ロビーが `null` になっても、戻っても残る。ロビーと足した人の両方にいる人は 1 行でロビー由来の表示）。その後ロビーに新しく入った人は既定どおり。
 - **Matchups の `Copy for Discord`** は保存した名前とランクの札で作る。6・8 人の `(MID)` だけは今の得意レーンから出す。Clipboard が断られたらカードの中に文字列を出して全選択する。
 - 保存日の表示は `Nov 28` の形（端末の地域設定の日付）。
 - 上限（Roster 50 / Matchup 100）は、読み込み（tolerant parse）でも保存でも、一番古いものから捨てる。
+
+### レビュー対応（2026-11-28）
+1. 読み込んだ Roster / `Open in Match` の人と選択は、ロビーを出ても戻ってもそのまま（上の項目）。`TeamsPage` が `kept` を持つ。
+2. Matchups の Delete の「もう一度」は、メニューが閉じたら（Esc・外クリック）解除する（`MenuButton` に `onClose`）。
+3. `Open in Match` の Priority は、提案を `◀ ▶` で動かす・人を変える・Matchup を消すなどで保存した分け方が外れても保つ。
+4. `Saved: …` と `Roster: …` の名前は設定から id で引く（名前の変更に追随し、削除されたら消える）。
+5. 名前の 40 文字は Unicode のコードポイントで数える（`nameLength`。絵文字は 1）。`duplicateRoster` の切り詰めもコードポイント単位。設定の読み込みも同じ規則。
+6. 21 人以上チェックしていると `Save current as…` は無効になり、理由（`Rosters hold up to 20 people`）をメニューとダイアログに出す。
+7. 既定の名前（`Roster 11/28`、Matchup）はダイアログを開いた時刻で付ける。
+8. Manage rosters の名前欄で、使われている名前のまま Enter を押しても欄は閉じず、メッセージを出したままにする。
+9. 提案の見出し: `☆ Save` を `◀ n / N ▶` と同じ行にまとめた（狭いときはまとめて折り返す）。
+10. Matchups の検索欄を他の入力と同じ見た目にした。
