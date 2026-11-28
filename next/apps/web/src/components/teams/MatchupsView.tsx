@@ -77,6 +77,7 @@ export function MatchupsView({ state, now, prefs, notify, onOpen, initial }: Mat
               onCopy={() => void copy(m)}
               onOpen={() => onOpen(m)}
               onRename={() => setRenaming(m)}
+              onMenuClose={() => setArmed((a) => (a === m.id ? null : a))}
               onDelete={() => {
                 if (armed !== m.id) return setArmed(m.id);
                 setArmed(null);
@@ -120,6 +121,7 @@ function MatchupCard({
   onCopy,
   onOpen,
   onRename,
+  onMenuClose,
   onDelete,
 }: {
   m: SavedMatchup;
@@ -132,6 +134,8 @@ function MatchupCard({
   onCopy: () => void;
   onOpen: () => void;
   onRename: () => void;
+  /** The ⋯ menu closed: a Delete that was waiting for its second click is cancelled. */
+  onMenuClose: () => void;
   onDelete: () => void;
 }) {
   const laned = [...m.blue, ...m.red].every((s) => s.lane !== null);
@@ -180,6 +184,7 @@ function MatchupCard({
           label={`More for ${m.name}`}
           trigger={<IconMore />}
           initialOpen={menuOpen}
+          onClose={onMenuClose}
           items={[
             { label: "Rename", onSelect: onRename },
             { label: armed ? "Click again to delete" : "Delete", danger: true, keepOpen: !armed, onSelect: onDelete, separatorBefore: true },

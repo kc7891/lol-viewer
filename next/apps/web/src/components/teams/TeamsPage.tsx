@@ -61,38 +61,54 @@ export function TeamsPage({ notify, initial, visible = true }: TeamsPageProps) {
   const [moved, setMoved] = useState<Record<string, Membership>>(initial?.moved ?? {});
   const [extras, setExtras] = useState<string[]>(initial?.extras ?? []);
 
-  const [loadedRoster, setLoadedRoster] = useState<LoadedRoster | null>(null);
-  const [opened, setOpened] = useState<SavedOpen | null>(null);
+  // People whose choice a loaded roster / Open in Match made: it stays when the lobby goes away (M-042, design 2.2).
+  const [kept, setKept] = useState<string[]>([]);
+  const [loaded, setLoaded] = useState<{ id: string; applied: string[] } | null>(null);
+  const [openedRaw, setOpened] = useState<SavedOpen | null>(null);
   const clearOpened = useCallback(() => setOpened(null), []);
   const token = useRef(0);
 
   const lobby = state?.lobby ?? null;
   const players = state?.players;
-  // Leaving the lobby drops the lobby-derived choices (the people added by hand stay).
+  // Leaving the lobby drops the lobby-derived choices; the people added by hand and the ones a loaded roster placed stay.
   useEffect(() => {
-    if (lobby === null) setMoved((m) => (Object.keys(m).length ? Object.fromEntries(Object.entries(m).filter(([id]) => extras.includes(id))) : m));
-  }, [lobby, extras]);
+    if (lobby === null) setMoved((m) => (Object.keys(m).length ? Object.fromEntries(Object.entries(m).filter(([id]) => extras.includes(id) || kept.includes(id))) : m));
+  }, [lobby, extras, kept]);
+
+  // The names shown follow the saved lists: a renamed roster / matchup shows its new name, a deleted one is gone.
+  const loadedRoster: LoadedRoster | null = useMemo(() => {
+    const r = loaded && settings.teamRosters.find((x) => x.id === loaded.id);
+    return loaded && r ? { name: r.name, applied: loaded.applied } : null;
+  }, [loaded, settings.teamRosters]);
+  const opened: SavedOpen | null = useMemo(() => {
+    const m = openedRaw && settings.teamMatchups.find((x) => x.id === openedRaw.id);
+    return openedRaw && m ? { ...openedRaw, name: m.name } : null;
+  }, [openedRaw, settings.teamMatchups]);
 
   const now = useMemo(() => Date.now(), [state]); // eslint-disable-line react-hooks/exhaustive-deps
   const candidates = useMemo(() => sortCandidates(candidatesOf(lobby, extras.filter((id) => players?.[id])), players), [lobby, extras, players]);
 
   // Put the people of a roster or a saved matchup into Match: they play, the rest sit out, saved people not listed join (M-042).
+  // Every member saved in People is also kept in `extras`, so the list and the checks stay when the lobby changes (a lobby person
+  // who is also an extra shows once, as a lobby person).
   const place = (name: string, puuids: readonly string[]): { applied: string[]; missing: number } => {
     const r = applyRoster(candidates, { puuids }, players ?? {});
     setMoved(r.moved);
-    setExtras((e) => [...e, ...r.extras.filter((id) => !e.includes(id))]);
+    setKept(Object.keys(r.moved));
+    const members = puuids.filter((id) => players && Object.hasOwn(players, id));
+    setExtras((e) => [...e, ...members.filter((id) => !e.includes(id))]);
     setPage("match");
     if (r.missing.length) notify(missingPeopleText(name, r.missing.length), "warn");
     return { applied: Object.keys(r.moved).filter((id) => r.moved[id] === "in"), missing: r.missing.length };
   };
   const loadRoster = (roster: SavedRoster) => {
     const { applied } = place(roster.name, roster.puuids);
-    setLoadedRoster({ name: roster.name, applied });
+    setLoaded({ id: roster.id, applied });
     setOpened(null);
   };
   const openMatchup = (m: SavedMatchup) => {
     const { missing } = place(m.name, [...m.blue, ...m.red].map((s) => s.puuid));
-    setLoadedRoster(null);
+    setLoaded(null);
     // With people missing there is no such proposal: Match shows the usual ones.
     setOpened(missing ? null : { token: ++token.current, id: m.id, name: m.name, blue: m.blue, red: m.red, priority: m.priority });
   };
@@ -116,7 +132,10 @@ export function TeamsPage({ notify, initial, visible = true }: TeamsPageProps) {
     setExtras((e) => (e.includes(puuid) ? e : [...e, puuid]));
     setMoved((m) => ({ ...m, [puuid]: "in" }));
   };
-  const removeExtra = (puuid: string) => setExtras((e) => e.filter((x) => x !== puuid));
+  const removeExtra = (puuid: string) => {
+    setExtras((e) => e.filter((x) => x !== puuid));
+    setKept((k) => k.filter((x) => x !== puuid));
+  };
   const forget = (puuid: string) => {
     api?.forget(puuid);
     removeExtra(puuid);

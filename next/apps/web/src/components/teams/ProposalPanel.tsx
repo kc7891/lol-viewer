@@ -47,7 +47,6 @@ export function ProposalPanel({ players: given, info, notify, initialPriority = 
   const [copy, setCopy] = useState<"copied" | "manual" | null>(null);
   const [preview, setPreview] = useState(initialPreview);
   const [saving, setSaving] = useState(initialSaveOpen);
-  const nowRef = useRef(Date.now());
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   // New people, ranks or settings: the proposals are new, so start from the best again.
@@ -57,6 +56,13 @@ export function ProposalPanel({ players: given, info, notify, initialPriority = 
     setPick(null);
     setCopy(null);
   }, [result]);
+
+  // A saved matchup opened in Match: its Priority stays selected when it goes away (◀ ▶, a change of people, deleting it).
+  const savedToken = saved?.token;
+  const savedPriority = saved?.priority;
+  useEffect(() => {
+    if (savedPriority) setView(savedPriority);
+  }, [savedToken, savedPriority]);
 
   const list = result[view];
   const index = Math.min(cur, Math.max(0, list.length - 1));
@@ -123,7 +129,7 @@ export function ProposalPanel({ players: given, info, notify, initialPriority = 
   const alreadySaved = shown ? matchups.find((m) => sameMatchup(m, shown)) : undefined;
   const saveAs = (name: string) => {
     if (!shown) return;
-    const r = upsertMatchup(matchups, matchupFromProposal(shown, info, view, name, nowRef.current), Date.now());
+    const r = upsertMatchup(matchups, matchupFromProposal(shown, info, view, name, Date.now()), Date.now());
     if (!r.item) return;
     update({ teamMatchups: r.list });
     setSaving(false);
@@ -166,7 +172,7 @@ export function ProposalPanel({ players: given, info, notify, initialPriority = 
                 ))}
               </div>
             </div>
-            <span className="spacer" />
+            <div className="proposal-actions">
             <div className="proposal-nav" role="group" aria-label="Proposal">
               <button type="button" className="icon-btn" aria-label="Previous proposal" disabled={list.length < 2} onClick={() => step(-1)}>
                 <IconBack />
@@ -197,6 +203,7 @@ export function ProposalPanel({ players: given, info, notify, initialPriority = 
             <button type="button" className="btn save-btn" data-saved={alreadySaved ? true : undefined} aria-haspopup="dialog" disabled={!shown} title={alreadySaved ? "This split is already saved. Click to save it again under a name." : "Save this split in Matchups"} onClick={() => setSaving(true)}>
               {alreadySaved ? `★ Saved as “${alreadySaved.name}”` : "☆ Save"}
             </button>
+            </div>
           </>
         )}
       </div>
@@ -256,7 +263,7 @@ export function ProposalPanel({ players: given, info, notify, initialPriority = 
           host={modalHost}
           title="Save matchup"
           label="Matchup name"
-          initial={alreadySaved?.name ?? defaultMatchupName(matchups, nowRef.current)}
+          initial={alreadySaved?.name ?? defaultMatchupName(matchups, Date.now())}
           list={matchups}
           mode="save"
           hint="Saved in Matchups with the names and ranks as they are now."

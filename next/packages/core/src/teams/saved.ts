@@ -8,6 +8,7 @@ import {
   ROSTERS_MAX,
   ROSTER_PUUIDS_MAX,
   SAVED_NAME_MAX,
+  nameLength,
   type SavedMatchup,
   type SavedPerson,
   type SavedRoster,
@@ -21,10 +22,10 @@ type Named = { id: string; name: string; savedAt: number };
 /** The name as saved: leading and trailing spaces removed. */
 export const normalizeName = (name: string): string => name.trim();
 
-/** Why a name cannot be saved: empty (after trimming) or longer than 40 characters. */
+/** Why a name cannot be saved: empty (after trimming) or longer than 40 characters (Unicode code points, so an emoji counts 1). */
 export const nameProblem = (name: string): "empty" | "long" | null => {
   const n = normalizeName(name);
-  return n === "" ? "empty" : n.length > SAVED_NAME_MAX ? "long" : null;
+  return n === "" ? "empty" : nameLength(n) > SAVED_NAME_MAX ? "long" : null;
 };
 
 /** The item with this name (leading / trailing spaces and letter case do not matter). */
@@ -82,7 +83,7 @@ export const renameRoster = (list: readonly SavedRoster[], id: string, name: str
 export const deleteRoster = (list: readonly SavedRoster[], id: string): SavedRoster[] => without(list, id);
 
 /**
- * A copy of a roster: the same people, saved now, named `<name> (copy)`, then `(copy 2)`, `(copy 3)` ... (the base is cut so the name
+ * A copy of a roster: the same people, saved now, named `<name> (copy)`, then `(copy 2)`, `(copy 3)` ... (the base is cut by code points so the name
  * fits in 40 characters). Over the cap the oldest go, but never the roster that was copied.
  */
 export function duplicateRoster(list: readonly SavedRoster[], id: string, now: number, newIdValue?: string): UpsertResult<SavedRoster> {
@@ -91,7 +92,8 @@ export function duplicateRoster(list: readonly SavedRoster[], id: string, now: n
   let name = "";
   for (let n = 1; ; n++) {
     const suffix = n === 1 ? " (copy)" : ` (copy ${n})`;
-    name = `${src.name.slice(0, Math.max(1, SAVED_NAME_MAX - suffix.length)).trimEnd()}${suffix}`;
+    // Cut by code points, never inside a surrogate pair; the suffix is ASCII.
+    name = `${Array.from(src.name).slice(0, Math.max(1, SAVED_NAME_MAX - suffix.length)).join("").trimEnd()}${suffix}`;
     if (!findByName(list, name)) break;
   }
   const item: SavedRoster = { id: newIdValue ?? newId(now, "r"), name, puuids: [...src.puuids], savedAt: now };

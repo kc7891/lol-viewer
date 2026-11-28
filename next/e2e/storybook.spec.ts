@@ -1189,3 +1189,171 @@ test("Teams: the browser build explains that it needs the desktop app", async ({
   await open(page, "screens-teams--browser");
   await expect(page.getByText("only available in the desktop app")).toBeVisible();
 });
+
+// ── Review fixes for M-042 (2026-11-28) ──
+const pushTeams = (page: Page, fixture: object) => page.evaluate((f) => (window as unknown as { __pushTeams: (x: object) => void }).__pushTeams(f), fixture);
+
+test("Teams Match: a loaded roster keeps its checks and its people when the lobby goes away and comes back", async ({ page }) => {
+  await open(page, "screens-teams--lobby-changes");
+  await rostersBtn(page).click();
+  await page.getByRole("menuitem", { name: "Friday 8 · 8 people" }).click();
+  await expect(playersHeading(page)).toHaveText("Players 8 of 12");
+  // Out of the lobby: the eight stay, checked, and the roster line stays without "(edited)".
+  await pushTeams(page, { lobby: "none" });
+  await expect(playersHeading(page)).toHaveText("Players 8 of 8");
+  await expect(include(page, "Player11")).toBeChecked();
+  await expect(include(page, "Player4")).toHaveCount(0);
+  await expect(page.getByTestId("roster-line")).toHaveText("Roster: Friday 8");
+  // The lobby is back: each person is listed once, the roster's checks are as loaded.
+  await pushTeams(page, { lobby: "ten" });
+  await expect(playersHeading(page)).toHaveText("Players 8 of 12");
+  await expect(include(page, "Player11")).toBeChecked();
+  await expect(include(page, "Player4")).not.toBeChecked();
+  await expect(include(page, "Player1")).toHaveCount(1);
+  // People who join later follow the default rule (team slots play).
+  await pushTeams(page, { lobby: "newcomer" });
+  await expect(include(page, "Player13")).toBeChecked();
+  await expect(include(page, "Player14")).toBeChecked();
+  await expect(include(page, "Player1")).toBeChecked();
+  await expect(playersHeading(page)).toHaveText("Players 10 of 10");
+  // A person added by the roster who left the lobby can still be removed from the list.
+  await pushTeams(page, { lobby: "none" });
+  await expect(playersHeading(page)).toHaveText("Players 8 of 8");
+  await page.locator('.team-row[data-puuid="fx-11"]').getByRole("button").last().click();
+  await page.getByRole("menuitem", { name: "Remove from this list" }).click();
+  await expect(playersHeading(page)).toHaveText("Players 7 of 7");
+});
+
+test("Teams Matchups: an armed Delete is cancelled when the menu closes", async ({ page }) => {
+  await open(page, "screens-app--teams-tab-saved");
+  await tabBtn(page, /^Matchups/).click();
+  const card = page.getByRole("listitem", { name: "Friday 5v5" });
+  await card.getByRole("button", { name: "More for Friday 5v5" }).click();
+  await page.getByRole("menuitem", { name: "Delete" }).click();
+  await expect(page.getByRole("menuitem", { name: "Click again to delete" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
+  await card.getByRole("button", { name: "More for Friday 5v5" }).click();
+  await page.getByRole("menuitem", { name: "Delete", exact: true }).click(); // a first click again, not a second one
+  await expect(page.locator(".matchup-card h3")).toHaveCount(3);
+  await expect(page.getByRole("menuitem", { name: "Click again to delete" })).toBeVisible();
+});
+
+test("Teams Match: leaving a saved matchup keeps its Priority; Saved / Roster names follow rename and delete", async ({ page }) => {
+  await open(page, "screens-app--teams-tab-saved");
+  await tabBtn(page, /^Matchups/).click();
+  await page.getByRole("listitem", { name: "Quick 4v4" }).getByRole("button", { name: "Open in Match" }).click();
+  const prio = page.getByRole("group", { name: "Priority" }).getByRole("button", { pressed: true });
+  await expect(page.getByTestId("proposal-count")).toHaveText("Saved: Quick 4v4");
+  await expect(prio).toHaveText("Lanes");
+  await page.getByRole("button", { name: "Next proposal" }).click();
+  await expect(prio).toHaveText("Lanes");
+  await expect(page.getByTestId("proposal-count")).toHaveText(/^2 \/ \d+$/);
+  // Changing the people drops the saved matchup and keeps its Priority too.
+  await tabBtn(page, /^Matchups/).click();
+  await page.getByRole("listitem", { name: "Quick 4v4" }).getByRole("button", { name: "Open in Match" }).click();
+  await include(page, "Player12").uncheck();
+  await include(page, "Player4").check();
+  await expect(page.locator("[data-testid=proposal-count][data-saved]")).toHaveCount(0);
+  await expect(prio).toHaveText("Lanes");
+  await include(page, "Player4").uncheck();
+  await include(page, "Player12").check();
+  // Rename while it is open: the new name shows; delete: the "Saved:" line is gone.
+  await tabBtn(page, /^Matchups/).click();
+  const card = page.getByRole("listitem", { name: "Friday 5v5" });
+  await card.getByRole("button", { name: "Open in Match" }).click();
+  await expect(page.getByTestId("proposal-count")).toHaveText("Saved: Friday 5v5");
+  await tabBtn(page, /^Matchups/).click();
+  await card.getByRole("button", { name: "More for Friday 5v5" }).click();
+  await page.getByRole("menuitem", { name: "Rename" }).click();
+  await rosterDialog(page, "Rename matchup").getByLabel("Matchup name").fill("Fri renamed");
+  await rosterDialog(page, "Rename matchup").getByRole("button", { name: "Rename", exact: true }).click();
+  await tabBtn(page, "Match").click();
+  await expect(page.getByTestId("proposal-count")).toHaveText("Saved: Fri renamed");
+  await tabBtn(page, /^Matchups/).click();
+  const renamed = page.getByRole("listitem", { name: "Fri renamed" });
+  await renamed.getByRole("button", { name: "More for Fri renamed" }).click();
+  await page.getByRole("menuitem", { name: "Delete" }).click();
+  await page.getByRole("menuitem", { name: "Click again to delete" }).click();
+  await tabBtn(page, "Match").click();
+  await expect(page.locator("[data-testid=proposal-count][data-saved]")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^(☆ Save|★ Saved as)/ })).toHaveText("☆ Save");
+  // The roster line follows a rename and goes with a delete.
+  await rostersBtn(page).click();
+  await page.getByRole("menuitem", { name: "Friday 8 · 8 people" }).click();
+  await expect(page.getByTestId("roster-line")).toHaveText("Roster: Friday 8");
+  await rostersBtn(page).click();
+  await page.getByRole("menuitem", { name: "Manage rosters…" }).click();
+  const dlg = rosterDialog(page, "Manage rosters");
+  await dlg.getByRole("button", { name: "Rename Friday 8" }).click();
+  await dlg.getByRole("textbox").fill("Friday eight");
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("roster-line")).toHaveText("Roster: Friday eight");
+  await dlg.getByRole("button", { name: "Delete Friday eight" }).click();
+  await dlg.getByRole("button", { name: "Click again to delete Friday eight" }).click();
+  await expect(page.getByTestId("roster-line")).toHaveCount(0);
+});
+
+test("Teams Match: more than 20 checked people turn Save current as… off, with the reason", async ({ page }) => {
+  await open(page, "screens-teams--roster-too-many");
+  const dlg = rosterDialog(page, "Save roster");
+  await expect(dlg).toContainText("Rosters hold up to 20 people (21 are checked)");
+  await expect(dlg.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await rostersBtn(page).click();
+  await expect(page.getByRole("menuitem", { name: /Save current as…/ })).toBeDisabled();
+  await expect(page.getByTestId("menu-note")).toHaveText(/Rosters hold up to 20 people/);
+});
+
+test("Teams Match: the default names use the time the dialog opens, not when the page loaded", async ({ page }) => {
+  await page.clock.install({ time: new Date(2026, 2, 5, 12, 0) });
+  await open(page, "screens-app--teams-tab");
+  await rostersBtn(page).click();
+  await page.getByRole("menuitem", { name: "Save current as…" }).click();
+  await expect(rosterDialog(page, "Save roster").getByLabel("Roster name")).toHaveValue("Roster 3/5");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "☆ Save" }).click();
+  await expect(rosterDialog(page, "Save matchup").getByLabel("Matchup name")).toHaveValue("Matchup 3/5 #1");
+  await page.keyboard.press("Escape");
+  await page.clock.setFixedTime(new Date(2026, 3, 9, 12, 0));
+  await rostersBtn(page).click();
+  await page.getByRole("menuitem", { name: "Save current as…" }).click();
+  await expect(rosterDialog(page, "Save roster").getByLabel("Roster name")).toHaveValue("Roster 4/9");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "☆ Save" }).click();
+  await expect(rosterDialog(page, "Save matchup").getByLabel("Matchup name")).toHaveValue("Matchup 4/9 #1");
+});
+
+test("Teams Match: Enter on a taken name keeps the rename field open with the message", async ({ page }) => {
+  await open(page, "screens-app--teams-tab-saved");
+  await rostersBtn(page).click();
+  await page.getByRole("menuitem", { name: "Manage rosters…" }).click();
+  const dlg = rosterDialog(page, "Manage rosters");
+  await dlg.getByRole("button", { name: "Rename Friday 8" }).click();
+  await dlg.getByRole("textbox").fill("the usual 10");
+  await page.keyboard.press("Enter");
+  await expect(dlg.getByRole("textbox")).toBeVisible();
+  await expect(dlg.getByRole("textbox")).toHaveValue("the usual 10");
+  await expect(dlg.getByText("That name is already used.")).toBeVisible();
+  await dlg.getByRole("textbox").fill("Friday nine");
+  await page.keyboard.press("Enter");
+  await expect(dlg.getByRole("textbox")).toHaveCount(0);
+  await expect(dlg.locator(".roster-row").filter({ hasText: "Friday nine" })).toHaveCount(1);
+});
+
+test("Teams layout: ☆ Save sits on the row of ◀ n / N ▶ at 1280px, and the Matchups search looks like the other inputs", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await open(page, "screens-teams--match-ten-players");
+  const nav = await page.getByRole("group", { name: "Proposal" }).boundingBox();
+  const save = await page.getByRole("button", { name: "☆ Save" }).boundingBox();
+  const prio = await page.getByRole("group", { name: "Priority" }).boundingBox();
+  expect(Math.abs((save!.y + save!.height / 2) - (nav!.y + nav!.height / 2))).toBeLessThan(6);
+  expect(save!.x).toBeGreaterThan(nav!.x + nav!.width - 1);
+  expect(save!.y).toBeLessThan(prio!.y + prio!.height + 4);
+  await open(page, "screens-teams--matchups-list");
+  const style = (sel: string) => page.locator(sel).evaluate((e) => { const c = getComputedStyle(e); return [c.height, c.borderRadius, c.backgroundColor, c.borderTopColor].join("|"); });
+  await open(page, "screens-teams--people-search");
+  const people = await style("#people-search");
+  await open(page, "screens-teams--matchups-list");
+  expect(await style(".matchup-search")).toBe(people);
+});

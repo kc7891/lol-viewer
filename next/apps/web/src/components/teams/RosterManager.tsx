@@ -20,7 +20,8 @@ export function RosterManager({ host, rosters, onChange, onClose, now, initialEd
   const draftBad = nameProblem(draft) !== null || (!!clash && clash.id !== editing);
   const commit = () => {
     if (editing === null) return;
-    if (!draftBad) onChange(renameRoster(rosters, editing, draft));
+    if (draftBad) return; // the field stays open with its message, like the disabled Save name
+    onChange(renameRoster(rosters, editing, draft));
     setEditing(null);
   };
   const copy = (r: SavedRoster) => {
@@ -63,6 +64,7 @@ export function RosterManager({ host, rosters, onChange, onClose, now, initialEd
                     Cancel
                   </button>
                   {draftBad && nameProblem(draft) === null && <span className="err-text small">That name is already used.</span>}
+                  {nameProblem(draft) === "empty" && <span className="err-text small">Enter a name.</span>}
                   {nameProblem(draft) === "long" && <span className="err-text small">Use {SAVED_NAME_MAX} characters or fewer.</span>}
                 </div>
               ) : (

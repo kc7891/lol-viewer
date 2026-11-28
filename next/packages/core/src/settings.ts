@@ -57,7 +57,15 @@ export type TeamsSettings = z.infer<typeof TeamsSettingsSchema>;
 export const DEFAULT_TEAMS_SETTINGS: TeamsSettings = { discordWithRank: true, discordWithTag: false, lastGroupId: null };
 
 /** Saved sets of people and saved team splits (Teams, M-042). */
+/** The longest saved name, in characters as a person counts them: Unicode code points (an emoji is 1), not UTF-16 units. */
 export const SAVED_NAME_MAX = 40;
+/** Characters of a name by that rule (`SAVED_NAME_MAX` is the limit). */
+export const nameLength = (name: string): number => Array.from(name).length;
+const SavedNameSchema = z
+  .string()
+  .min(1)
+  .max(SAVED_NAME_MAX * 2) // 40 code points are at most 80 UTF-16 units
+  .refine((n) => nameLength(n) <= SAVED_NAME_MAX);
 export const ROSTER_PUUIDS_MAX = 20;
 export const ROSTERS_MAX = 50;
 export const MATCHUPS_MAX = 100;
@@ -65,7 +73,7 @@ export const MATCHUPS_MAX = 100;
 /** The people ticked in Match, saved under a name. Names are unique (any case). */
 export const SavedRosterSchema = z.object({
   id: z.string().min(1).max(64),
-  name: z.string().min(1).max(SAVED_NAME_MAX),
+  name: SavedNameSchema,
   puuids: z.array(z.string().regex(PROBE_PUUID_RE)).min(1).max(ROSTER_PUUIDS_MAX),
   savedAt: z.number(),
 });
@@ -82,7 +90,7 @@ export const SavedPersonSchema = z.object({
 export type SavedPerson = z.infer<typeof SavedPersonSchema>;
 export const SavedMatchupSchema = z.object({
   id: z.string().min(1).max(64),
-  name: z.string().min(1).max(SAVED_NAME_MAX),
+  name: SavedNameSchema,
   savedAt: z.number(),
   blue: z.array(SavedSlotSchema).min(3).max(5),
   red: z.array(SavedSlotSchema).min(3).max(5),
@@ -199,11 +207,11 @@ function capNewest<T extends { savedAt: number }>(list: T[], max: number): T[] {
   return list.filter((x) => keep.has(x));
 }
 
-/** A saved name: trimmed, 1-40 characters; null when it is not. */
+/** A saved name: trimmed, 1-40 characters (code points); null when it is not. */
 const goodName = (v: unknown): string | null => {
   if (typeof v !== "string") return null;
   const t = v.trim();
-  return t.length >= 1 && t.length <= SAVED_NAME_MAX ? t : null;
+  return t.length >= 1 && nameLength(t) <= SAVED_NAME_MAX ? t : null;
 };
 
 /** Shared by both lists: a unique id and a unique name (any case); the first one wins. */

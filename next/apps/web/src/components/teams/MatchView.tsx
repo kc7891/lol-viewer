@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { defaultRosterName, effectiveRank, newestFirst, rankLabel, upsertRoster, type BalancePlayer, type BalanceView, type SavedRoster, type TeamPlayerPref } from "@lol-viewer/core";
+import { useEffect, useMemo, useState } from "react";
+import { defaultRosterName, effectiveRank, newestFirst, rankLabel, ROSTER_PUUIDS_MAX, upsertRoster, type BalancePlayer, type BalanceView, type SavedRoster, type TeamPlayerPref } from "@lol-viewer/core";
 import type { TeamsState } from "@lol-viewer/protocol";
 import { useSettings } from "../../state/settings.tsx";
 import { IconChevron, IconPlus } from "../../ui/icons.tsx";
@@ -146,20 +146,22 @@ export function MatchView({ state, now, prefs, candidates, moved, notify, onTogg
   );
 }
 
+const tooManyText = (n: number) => `Rosters hold up to ${ROSTER_PUUIDS_MAX} people (${n} are checked). Uncheck some first.`;
+
 /** Rosters ▾: save the people who play as a named roster, load one back, or manage them (M-042). */
 function Rosters({ playingIds, onLoad, host, initial, editing }: { playingIds: string[]; onLoad: (r: SavedRoster) => void; host: HTMLElement | null; initial?: "menu" | "save" | "manage"; editing?: string }) {
   const { settings, update } = useSettings();
   const rosters = settings.teamRosters;
   const [dialog, setDialog] = useState<"save" | "manage" | null>(initial === "save" || initial === "manage" ? initial : null);
   const recent = newestFirst(rosters).slice(0, 10);
+  const tooMany = playingIds.length > ROSTER_PUUIDS_MAX;
   const items: MenuItem[] = [
-    { label: "Save current as…", onSelect: () => setDialog("save"), disabled: playingIds.length === 0 },
+    { label: "Save current as…", onSelect: () => setDialog("save"), disabled: playingIds.length === 0 || tooMany, note: tooMany ? tooManyText(playingIds.length) : undefined },
     ...(recent.length === 0
       ? [{ label: "No saved rosters yet", onSelect: () => {}, disabled: true, separatorBefore: true } satisfies MenuItem]
       : recent.map((r, i): MenuItem => ({ label: `${r.name} · ${r.puuids.length} people`, onSelect: () => onLoad(r), separatorBefore: i === 0 }))),
     { label: "Manage rosters…", onSelect: () => setDialog("manage"), separatorBefore: true, disabled: rosters.length === 0 },
   ];
-  const now = useRef(Date.now());
   return (
     <>
       <MenuButton label="Rosters" title="Save the checked people, or load a saved roster" className="btn" align="right" initialOpen={initial === "menu"} trigger={<>Rosters <IconChevron size={12} /></>} items={items} />
@@ -168,9 +170,10 @@ function Rosters({ playingIds, onLoad, host, initial, editing }: { playingIds: s
           host={host}
           title="Save roster"
           label="Roster name"
-          initial={defaultRosterName(now.current)}
+          initial={defaultRosterName(Date.now())}
           list={rosters}
           mode="save"
+          problem={tooMany ? tooManyText(playingIds.length) : undefined}
           hint={`${playingIds.length} ${playingIds.length === 1 ? "person" : "people"} who are checked now.`}
           onClose={() => setDialog(null)}
           onSubmit={(name) => {

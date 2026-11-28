@@ -16,6 +16,7 @@ export function NameDialog({
   mode,
   confirm = "Save",
   hint,
+  problem: outside,
   onSubmit,
   onClose,
 }: {
@@ -30,6 +31,8 @@ export function NameDialog({
   mode: "save" | "rename";
   confirm?: string;
   hint?: string;
+  /** A reason from the caller why nothing can be saved now (shown, and the button is off). */
+  problem?: string;
   onSubmit: (name: string) => void;
   onClose: () => void;
 }) {
@@ -38,7 +41,7 @@ export function NameDialog({
   const clash = problem === null ? findByName(list, name) : undefined;
   const taken = clash && clash.id !== selfId ? clash : undefined;
   const overwrite = mode === "save" && !!taken;
-  const blocked = problem !== null || (mode === "rename" && !!taken);
+  const blocked = !!outside || problem !== null || (mode === "rename" && !!taken);
   return (
     <Modal host={host} label={title} title={title} onClose={onClose} className="name-dialog">
       <form
@@ -52,6 +55,11 @@ export function NameDialog({
           <label htmlFor="name-dialog-input">{label}</label>
           <input id="name-dialog-input" autoFocus type="text" value={name} maxLength={SAVED_NAME_MAX + 20} onChange={(e) => setName(e.target.value)} onFocus={(e) => e.currentTarget.select()} />
         </div>
+        {outside && (
+          <p className="err-text small" role="status">
+            {outside}
+          </p>
+        )}
         {problem === "long" && <p className="err-text small">Use {SAVED_NAME_MAX} characters or fewer.</p>}
         {overwrite && (
           <p className="warn-text small" role="status">

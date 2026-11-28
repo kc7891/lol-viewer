@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DEFAULT_SETTINGS, type SavedMatchup, type SavedRoster, type Settings, type TeamPlayerPref } from "@lol-viewer/core";
-import { CHIP_STATES, FIXTURE_MATCHUPS, FIXTURE_ROSTERS, fx, fixtureTeamsApi, JUNGLE_CLASH, SOME_PREFS, teamsState, type TeamsFixture } from "../../fixtures/teams.ts";
+import { CHIP_STATES, FIXTURE_MATCHUPS, FIXTURE_ROSTERS, fx, fixtureTeamsApi, pushableTeamsApi, JUNGLE_CLASH, SOME_PREFS, teamsState, type TeamsFixture } from "../../fixtures/teams.ts";
 import { scenes } from "../../fixtures.ts";
+import { useEffect, useState } from "react";
 import { Harness } from "../../storyHelpers.tsx";
 import type { ImportPlan } from "./model.ts";
 import { TeamsPage, type TeamsPageInitial } from "./TeamsPage.tsx";
@@ -66,6 +67,26 @@ export const RosterSaveDialog: Story = story({ rosters: FIXTURE_ROSTERS, initial
 export const RosterManageDialog: Story = story({ rosters: FIXTURE_ROSTERS, initial: { rosters: "manage" } });
 /** Manage rosters with a copy just made: its name is in the rename field. */
 export const RosterManageRename: Story = story({ rosters: FIXTURE_ROSTERS, initial: { rosters: "manage", rosterEditing: "ro-friday" } });
+
+/** Twenty-one people checked: Save current as… is off (a roster holds 20). */
+export const RosterTooMany: Story = story({ state: { lobby: "none", players: Array.from({ length: 22 }, (_, i) => i + 1) }, initial: { extras: Array.from({ length: 21 }, (_, i) => fx(i + 1)), rosters: "save" } });
+
+/** The lobby changes under the page: a test calls `window.__pushTeams({ lobby: "none" })` etc. (14 saved people, rosters saved). */
+function PushableTeams() {
+  const [pushable] = useState(() => pushableTeamsApi(teamsState({ players: Array.from({ length: 14 }, (_, i) => i + 1) })));
+  useEffect(() => {
+    (window as unknown as { __pushTeams: (f: TeamsFixture) => void }).__pushTeams = (f) => pushable.push(teamsState({ players: Array.from({ length: 14 }, (_, i) => i + 1), ...f }));
+  }, [pushable]);
+  const settings: Settings = { ...DEFAULT_SETTINGS, featureFlags: { teamBalancer: true }, teamRosters: FIXTURE_ROSTERS, teamMatchups: FIXTURE_MATCHUPS };
+  return (
+    <Harness match={scenes.idle.match} settings={settings} height="auto" bridgeOptions={{ teams: pushable.api }}>
+      <div className="teams-wrap" style={{ minHeight: "100vh" }}>
+        <TeamsPage notify={() => {}} />
+      </div>
+    </Harness>
+  );
+}
+export const LobbyChanges: Story = { render: () => <PushableTeams /> };
 
 // ── Matchups (M-042) ──
 /** Saving the proposal on screen: the name is asked. */

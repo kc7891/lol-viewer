@@ -38,7 +38,7 @@ const SPECS: Record<number, Spec> = {
 };
 
 export function fixturePlayer(n: number, now = Date.now()): TeamPlayer {
-  const s = SPECS[n]!;
+  const s = SPECS[n] ?? SPECS[((n - 1) % 12) + 1]!; // beyond 14: a copy of another spec (the 21-people stories)
   const at = now - (s.ageDays ?? 0.3) * DAY;
   const games = Object.values(s.lanes).reduce((a, b) => a + b, 0);
   return {
@@ -73,11 +73,13 @@ export function fixturePlayer(n: number, now = Date.now()): TeamPlayer {
 
 export const IDLE_PREFETCH: PrefetchStatus = { running: false, done: 0, total: 0, current: null, failed: 0, pausedUntil: null, rate: { requests: 312, throttled: 0, avgMs: 180, perSec: 5 } };
 
-export type LobbyShape = "none" | "ten" | "eight" | "nine";
+export type LobbyShape = "none" | "ten" | "eight" | "nine" | "newcomer";
 const LOBBIES: Record<LobbyShape, CustomLobby | null> = {
   none: null,
   /** 10 in the team slots (player 9 is unranked with too little data), 2 spectators. */
   ten: { team100: [1, 2, 3, 4, 5].map(fx), team200: [6, 7, 8, 9, 10].map(fx), spectators: [11, 12].map(fx) },
+  /** Players 13 and 14 are new here (they joined after a roster was loaded): the people of "ten" otherwise. */
+  newcomer: { team100: [1, 2, 3, 5, 13].map(fx), team200: [6, 8, 10, 11, 14].map(fx), spectators: [] },
   /** 8 in the team slots, 4 spectators. */
   eight: { team100: [1, 2, 3, 4].map(fx), team200: [6, 7, 8, 10].map(fx), spectators: [5, 9, 11, 12].map(fx) },
   /** 9 in the team slots: one short of an even number. */
@@ -150,6 +152,17 @@ export function fixtureTeamsApi(state: TeamsState, overrides: Partial<TeamsApi> 
     exportPrefs: async () => ({ saved: true }),
     ...overrides,
   };
+}
+
+/** A TeamsApi whose state a test can replace (`push`): the lobby changes, people join. */
+export function pushableTeamsApi(first: TeamsState): { api: TeamsApi; push: (state: TeamsState) => void } {
+  let current = first;
+  const subs = new Set<(s: TeamsState) => void>();
+  const api = fixtureTeamsApi(first, {
+    getState: async () => current,
+    onState: (cb) => (subs.add(cb), cb(current), () => void subs.delete(cb)),
+  });
+  return { api, push: (s) => ((current = s), subs.forEach((cb) => cb(s))) };
 }
 
 // ── Saved rosters and matchups (M-042) ──

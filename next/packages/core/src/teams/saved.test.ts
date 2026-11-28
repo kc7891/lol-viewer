@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ROSTERS_MAX, type SavedMatchup, type SavedRoster } from "../settings.ts";
+import { nameLength, parseTeamRosters, ROSTERS_MAX, type SavedMatchup, type SavedRoster } from "../settings.ts";
 import { balanceTeams, type BalancePlayer } from "./balance.ts";
 import {
   applyRoster,
@@ -100,6 +100,27 @@ describe("duplicateRoster", () => {
     const r2 = duplicateRoster(r.list, "1", 10);
     expect(r2.item!.name).toBe(`${"x".repeat(31)} (copy 2)`);
     expect(r2.item!.name.length).toBeLessThanOrEqual(40);
+  });
+  it("cuts by code points, never inside an emoji (the 40 limit counts code points)", () => {
+    const lone = /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/;
+    // 32 + 1 emoji + 7 = 40 code points (41 UTF-16 units); the cut for " (copy)" lands right after the emoji.
+    const edge = `${"a".repeat(32)}😀${"b".repeat(7)}`;
+    expect(nameProblem(edge)).toBeNull();
+    const r = duplicateRoster([R("1", edge)], "1", 9);
+    expect(r.item!.name).toBe(`${"a".repeat(32)}😀 (copy)`);
+    expect(lone.test(r.item!.name)).toBe(false);
+    expect(nameLength(r.item!.name)).toBeLessThanOrEqual(40);
+    // One more letter pushes the emoji across the boundary: it goes whole, not in half.
+    const over = duplicateRoster([R("1", `${"a".repeat(33)}😀${"b".repeat(6)}`)], "1", 9);
+    expect(over.item!.name).toBe(`${"a".repeat(33)} (copy)`);
+    expect(lone.test(over.item!.name)).toBe(false);
+    // 40 emoji are a valid name and survive the settings parser; the copy is a valid name too.
+    const emoji = "😀".repeat(40);
+    expect(nameProblem(emoji)).toBeNull();
+    expect(nameProblem("😀".repeat(41))).toBe("long");
+    const e = duplicateRoster([R("1", emoji)], "1", 9);
+    expect(e.item!.name).toBe(`${"😀".repeat(33)} (copy)`);
+    expect(parseTeamRosters(JSON.parse(JSON.stringify(e.list))).map((x) => x.name)).toEqual([emoji, e.item!.name]);
   });
   it("over the cap the oldest go, but never the roster that was copied", () => {
     const list = Array.from({ length: ROSTERS_MAX }, (_, i) => R(`r${i}`, `R${i}`, i + 1));
