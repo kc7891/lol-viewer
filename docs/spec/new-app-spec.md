@@ -181,7 +181,7 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 
 設計は [team-balancer-design.md](./team-balancer-design.md)（企画）、[teams-implementation.md](./teams-implementation.md)（実装）、[teams-ui-v2-design.md](./teams-ui-v2-design.md)（UI の見直しと好みのファイル）。カスタムロビーの人を、ランク（未ランクは推定）と得意レーン、手動の設定からチーム分けし、Discord に貼る文字列を作る。画面の文言は英語、Discord の文字列だけ日本語。デスクトップ版だけ（ブラウザでは「only available in the desktop app」）。フラグを OFF のとき、タブも取得もキャッシュのファイルもない。
 
-ページの上に `Match` と `People (n)` の 2 つのタブと、凡例 1 行（`★ prefer · 🔒 lock · ✕ avoid · underline = from match history`）。両方ともマウントしたまま切り替える（Match の提案の状態は People を見ても消えない）。
+ページの上に `Match`、`People (n)`、`Matchups (n)` の 3 つのタブと、凡例 1 行（`★ prefer · 🔒 lock · ✕ avoid · underline = from match history`）。両方ともマウントしたまま切り替える（Match の提案の状態は People を見ても消えない）。保存したメンバーの組とチーム分けは M-042（[teams-saved-design.md](./teams-saved-design.md)）。
 
 **レーンのチップとランクの札**（Match と People で同じ部品）
 
@@ -198,8 +198,16 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 | ロビーの行 | `Custom lobby · N people`（いないとき `Not in a custom lobby. …`）。取得中は `Fetching n people …` |
 | Players n of m | 参加と控えは 1 つの一覧。行頭のチェックボックス（`Include Player1`）で参加を切り替える。並びは チームの枠 → 観戦 → 手で足した人（`Added`）、中は名前順（数字は数の順）。行は動かない。観戦枠の人は既定で外れている。このロビーの間だけの状態で、保存しない。人数が 6・8・10 人でないとき見出しの横に `Pick 6, 8 or 10`。行の `⋯`: `Fetch again`、手で足した人は `Remove from this list` |
 | `+ Add people` | People に保存されている人（この一覧にいない人）の検索つきの一覧を、**ページの上に重ねるモーダル**で開く（M-041。一覧は動かない）。選ぶと参加者として加わり、モーダルは開いたまま続けて足せる。`Done` / `×` / Esc / 背景のクリックで閉じる。ロビーにいないときもこれで人を足す |
-| Proposal | `Priority [Rank] [Lanes]`（M-038 の 2 つの見方）と `◀ 1 / 126 ▶`（1 案ずつ。端で回る）。青と赤の表（10 人はレーンごとの行、6・8 人は並べて `(MID)`）、チーム名の横に平均ランク。2 人を順にクリックで入れ替え → 番号の代わりに `Edited` と `Reset`。差の行: `Rank diff 10 · lane gap 320 · ⚠ 1 avoided lane · ⚠ 2 unknown ranks`。1 位が両方の見方で同じなら `Same as Lanes priority`（`Rank`）。人数の誤りは `Pick 6, 8 or 10 players (now 9).`、衝突は `Too many players are locked to Jungle.` |
+| `Rosters ▾`（Players の見出しの右） | `Save current as…`（名前のモーダル。同じ名前は `Overwrite`。誰も参加していないと無効）、保存した組（新しい順、10 件、`name · n people`）→ 選ぶと参加のチェックがその組になる（組にいて今の一覧にいない人は People にいれば足す。いなければ toast `1 person in "Friday 8" is not in People. Add them from People › Add.`）、`Manage rosters…`（名前の変更・`Duplicate`（`<名前> (copy)`、すぐ名前の欄が開く）・`Delete`（2 度押し）、人数、日付）。読み込んだ組は見出しの下に `Roster: Friday 8`（チェックを変えると `(edited)`）。`settings.teamRosters`（最大 50） |
+| Proposal | `Priority [Rank] [Lanes]`（M-038 の 2 つの見方）と `◀ 1 / 126 ▶`（1 案ずつ。端で回る）。青と赤の表（10 人はレーンごとの行、6・8 人は並べて `(MID)`）、チーム名の横に平均ランク。2 人を順にクリックで入れ替え → 番号の代わりに `Edited` と `Reset`。差の行: `Rank diff 10 · lane gap 320 · ⚠ 1 avoided lane · ⚠ 2 unknown ranks`。1 位が両方の見方で同じなら `Same as Lanes priority`（`Rank`）。`☆ Save`（名前のモーダル。今の案を `settings.teamMatchups`（最大 100）に保存。保存済みと同じ分け方なら `★ Saved as "…"`）。Matchups から `Open in Match` した分け方は番号の代わりに `Saved: <名前>` と `Reset`。人数の誤りは `Pick 6, 8 or 10 players (now 9).`、衝突は `Too many players are locked to Jungle.` |
 | Copy for Discord | 今の案（入れ替え後を含む）の文字列をクリップボードへ。失敗したら Preview を開いて全選択し `Press Ctrl+C to copy.`。横の `▾` のメニュー: `Show ranks`（既定オン）、`Show #tag`（既定オフ）は `settings.teams` に保存、`Preview`（文字列の欄。既定は閉じている）。文字列は 2000 文字以内 |
+
+**Matchups**（`☆ Save` で保存した分け方、新しい順のカード。M-042）
+
+| 領域 | 内容と操作 |
+|---|---|
+| 上の帯 | `Saved matchups`、検索（名前・人の名前）。0 件は `Save a proposal in Match with ☆ Save.` |
+| カード | 名前、日付、`Rank priority` / `Lanes priority`、`⋯`（`Rename`、`Delete`（2 度押し））。青と赤の表（保存時のランクの札。今と違えば横に `→ P4`）、`Rank diff now n`（人が People にいないと出さない）、`Copy for Discord`（見出しは保存名）、`Open in Match`（その人たちだけを参加にして、その分け方を提案に出す。People にいない人がいれば toast だけで通常の提案） |
 
 **People**（保存されている全員の表）
 
@@ -211,7 +219,7 @@ League of Legends の分析サイト（lolalytics.com / u.gg）を、アプリ�
 | Add の 3 つのパネル | ページに重ねる（Esc で閉じる）。Friend group: グループのドロップダウン、`Include me`、チェックの一覧、`Add & fetch (n)`。Recent: 検索、チェックの一覧。Riot ID: 複数行（`name#tag` でない行は赤）、`Add & fetch` で引き、行ごとに ✓ / エラー。**フレンドと最近の人は、パネルを開いたときだけ LCU から読む**（M-038 の「操作したときだけ」）。1 回の `prefetch` は 60 人まで |
 | 好みのファイル | `Export preferences…`: 保存ダイアログ（既定名 `lol-viewer-team-preferences-YYYYMMDD.json`）→ toast `Saved preferences for 12 people.`。`Import preferences…`: ファイル選択（1MB まで）→ 帯 `Import 12 people? 3 will replace current preferences, 1 not found.` `[Import] [Cancel]` → toast `Imported preferences for 11 people. 1 not found: Player99#tag9`。照合は puuid → Riot ID（大文字小文字を区別しない）→ 保存されていない人は LCU で Riot ID を引いて足す。ファイルにいる人の好みは置き換え、いない人は触らない。壊れたファイルは理由を toast で出す（JSON でない / `kind` が違う / `version` が 1 でない / 1MB 超） |
 
-- 実装: `apps/web/src/components/teams/`（`model.ts` に純粋な関数、`TeamsPage`（Match / People の切り替えと参加・追加の state）、`MatchView`、`PlayerRow`、`ProposalPanel`、`PeopleView`、`AddPeoplePanel`、`LaneChips`、`RankBadge`、`Popover`（メニューと Esc / 外クリックで閉じる））、`state/teams.ts`（`useTeamsState`）。core: `teams/lanePrefs.ts`（チップの状態）、`teams/prefsFile.ts`（ファイルの書き出し・読み込み・照合）。
+- 実装: `apps/web/src/components/teams/`（`model.ts` に純粋な関数、`TeamsPage`（Match / People の切り替えと参加・追加の state）、`MatchView`、`PlayerRow`、`ProposalPanel`、`PeopleView`、`AddPeoplePanel`、`LaneChips`、`RankBadge`、`Popover`（メニューと Esc / 外クリックで閉じる）、`Modal`（共通のモーダル）、`NameDialog`、`RosterManager`、`MatchupsView`（M-042））、`state/teams.ts`（`useTeamsState`）。core: `teams/lanePrefs.ts`（チップの状態）、`teams/prefsFile.ts`（ファイルの書き出し・読み込み・照合）、`teams/saved.ts`（Roster と Matchup の保存・複製・読み込み・比較）。
 
 ---
 
@@ -381,6 +389,8 @@ MatchState が届くたびに、次の順に処理する。
 | `overlayPosition` | 左・中央・右 × 上・下 | 左下 | M-036 |
 | `teamPlayers` | PUUID → `{ lock?, mains?（最大 2）, ng?, rankOverride? }` | 空 | Teams のレーンのチップとランクの札の設定（M-038、M-040）。最大 500 人。壊れた人・項目はその場で捨てる。JSON ファイルに書き出し / 読み込みできる |
 | `teams` | `{ discordWithRank, discordWithTag, lastGroupId }` | 真 / 偽 / なし | Teams の Discord のオプションと最後に選んだフレンドのグループ |
+| `teamRosters` | `{ id, name, puuids, savedAt }[]` | 空 | Match の `Rosters ▾` の保存（M-042）。名前は 1〜40 文字で重複なし（大文字小文字を区別しない）、1〜20 人、最大 50。壊れた組だけ捨てる |
+| `teamMatchups` | `{ id, name, savedAt, blue, red, people, priority }[]` | 空 | `☆ Save` の保存（M-042）。青赤 3〜5 人ずつ（レーンは全員か無し）、保存時の名前とランクの札つき。最大 100 |
 
 **保存しないもの**: ウィンドウの位置とサイズ、ビューア、対面表、保留、Cooldowns の対象と折りたたみ、各ペインの幅、パネルの開閉。
 

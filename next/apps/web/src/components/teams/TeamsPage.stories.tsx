@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { DEFAULT_SETTINGS, type Settings, type TeamPlayerPref } from "@lol-viewer/core";
-import { CHIP_STATES, fx, fixtureTeamsApi, JUNGLE_CLASH, SOME_PREFS, teamsState, type TeamsFixture } from "../../fixtures/teams.ts";
+import { DEFAULT_SETTINGS, type SavedMatchup, type SavedRoster, type Settings, type TeamPlayerPref } from "@lol-viewer/core";
+import { CHIP_STATES, FIXTURE_MATCHUPS, FIXTURE_ROSTERS, fx, fixtureTeamsApi, pushableTeamsApi, JUNGLE_CLASH, SOME_PREFS, teamsState, type TeamsFixture } from "../../fixtures/teams.ts";
 import { scenes } from "../../fixtures.ts";
+import { useEffect, useState } from "react";
 import { Harness } from "../../storyHelpers.tsx";
 import type { ImportPlan } from "./model.ts";
 import { TeamsPage, type TeamsPageInitial } from "./TeamsPage.tsx";
@@ -10,12 +11,12 @@ const meta = { title: "Screens/Teams", parameters: { layout: "fullscreen" } } sa
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-type Args = { state?: TeamsFixture; prefs?: Record<string, TeamPlayerPref>; initial?: TeamsPageInitial; browser?: boolean };
+type Args = { state?: TeamsFixture; prefs?: Record<string, TeamPlayerPref>; initial?: TeamsPageInitial; browser?: boolean; rosters?: SavedRoster[]; matchups?: SavedMatchup[] };
 
 /** Stories render from closures: the fixture builds its state once, when the story renders. */
-const story = ({ state = {}, prefs = {}, initial, browser = false }: Args = {}): Story => ({
+const story = ({ state = {}, prefs = {}, initial, browser = false, rosters = [], matchups = [] }: Args = {}): Story => ({
   render: () => {
-    const settings: Settings = { ...DEFAULT_SETTINGS, featureFlags: { teamBalancer: true }, teamPlayers: prefs };
+    const settings: Settings = { ...DEFAULT_SETTINGS, featureFlags: { teamBalancer: true }, teamPlayers: prefs, teamRosters: rosters, teamMatchups: matchups };
     return (
       <Harness match={scenes.idle.match} settings={settings} height="auto" bridgeOptions={browser ? {} : { teams: fixtureTeamsApi(teamsState(state)) }}>
         <div className="teams-wrap" style={{ minHeight: "100vh" }}>
@@ -55,6 +56,48 @@ export const MatchRankPopover: Story = story({ initial: { rankOpen: fx(9) } });
 export const MatchDiscordPreview: Story = story({ initial: { preview: true } });
 /** A hand-swapped proposal shows "Edited" and Reset: see the Storybook E2E. */
 export const MatchNoPreferences: Story = story({ prefs: {} });
+
+// ── Rosters (M-042) ──
+/** Rosters ▾ with nothing saved yet: Save current as… is the only action. */
+export const RostersMenuEmpty: Story = story({ initial: { rosters: "menu" } });
+/** Rosters ▾ with three saved rosters (newest first, with the number of people). */
+export const RostersMenu: Story = story({ rosters: FIXTURE_ROSTERS, initial: { rosters: "menu" } });
+/** Save current as…: the name is asked; a name that already exists turns the button into Overwrite (see the Storybook E2E). */
+export const RosterSaveDialog: Story = story({ rosters: FIXTURE_ROSTERS, initial: { rosters: "save" } });
+export const RosterManageDialog: Story = story({ rosters: FIXTURE_ROSTERS, initial: { rosters: "manage" } });
+/** Manage rosters with a copy just made: its name is in the rename field. */
+export const RosterManageRename: Story = story({ rosters: FIXTURE_ROSTERS, initial: { rosters: "manage", rosterEditing: "ro-friday" } });
+
+/** Twenty-one people checked: Save current as… is off (a roster holds 20). */
+export const RosterTooMany: Story = story({ state: { lobby: "none", players: Array.from({ length: 22 }, (_, i) => i + 1) }, initial: { extras: Array.from({ length: 21 }, (_, i) => fx(i + 1)), rosters: "save" } });
+
+/** The lobby changes under the page: a test calls `window.__pushTeams({ lobby: "none" })` etc. (14 saved people, rosters saved). */
+function PushableTeams() {
+  const [pushable] = useState(() => pushableTeamsApi(teamsState({ players: Array.from({ length: 14 }, (_, i) => i + 1) })));
+  useEffect(() => {
+    (window as unknown as { __pushTeams: (f: TeamsFixture) => void }).__pushTeams = (f) => pushable.push(teamsState({ players: Array.from({ length: 14 }, (_, i) => i + 1), ...f }));
+  }, [pushable]);
+  const settings: Settings = { ...DEFAULT_SETTINGS, featureFlags: { teamBalancer: true }, teamRosters: FIXTURE_ROSTERS, teamMatchups: FIXTURE_MATCHUPS };
+  return (
+    <Harness match={scenes.idle.match} settings={settings} height="auto" bridgeOptions={{ teams: pushable.api }}>
+      <div className="teams-wrap" style={{ minHeight: "100vh" }}>
+        <TeamsPage notify={() => {}} />
+      </div>
+    </Harness>
+  );
+}
+export const LobbyChanges: Story = { render: () => <PushableTeams /> };
+
+// ── Matchups (M-042) ──
+/** Saving the proposal on screen: the name is asked. */
+export const MatchupSaveDialog: Story = story({ matchups: FIXTURE_MATCHUPS, initial: { saveMatchupOpen: true } });
+export const MatchupsEmpty: Story = story({ initial: { page: "matchups" } });
+/** Three saved splits: ten people (Player3 shows `G2 → P4`), eight without lanes, and one with a guest who is not in People. */
+export const MatchupsList: Story = story({ matchups: FIXTURE_MATCHUPS, initial: { page: "matchups" } });
+export const MatchupsMenu: Story = story({ matchups: FIXTURE_MATCHUPS, initial: { page: "matchups", matchupMenuId: "mu-ten" } });
+export const MatchupsSearch: Story = story({ matchups: FIXTURE_MATCHUPS, initial: { page: "matchups", matchupQuery: "player99" } });
+/** After Open in Match: the saved split is the proposal ("Saved: Friday 5v5", Reset), and the checks are its ten people. */
+export const MatchupOpenedInMatch: Story = story({ matchups: FIXTURE_MATCHUPS, initial: { openMatchupId: "mu-ten" } });
 
 // ── People ──
 const running = { running: true, done: 12, total: 30, failed: 1, current: fx(7) };

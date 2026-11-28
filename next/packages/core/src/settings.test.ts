@@ -36,7 +36,7 @@ describe("parseSettings", () => {
   });
 
   it("keeps good values", () => {
-    const s = { urls: { ...DEFAULT_URL_TEMPLATES, build: "https://x.test/{name}" }, uiSize: "large", qrButton: false, sidebarWidth: 400, featureFlags: { a: true }, overlayPosition: { horizontal: "right", vertical: "top" }, teamPlayers: {}, teams: { discordWithRank: true, discordWithTag: false, lastGroupId: null } };
+    const s = { urls: { ...DEFAULT_URL_TEMPLATES, build: "https://x.test/{name}" }, uiSize: "large", qrButton: false, sidebarWidth: 400, featureFlags: { a: true }, overlayPosition: { horizontal: "right", vertical: "top" }, teamPlayers: {}, teams: { discordWithRank: true, discordWithTag: false, lastGroupId: null }, teamRosters: [], teamMatchups: [] };
     expect(parseSettings(s)).toEqual(s);
   });
 
@@ -59,6 +59,8 @@ describe("parseSettings", () => {
       overlayPosition: { horizontal: "left", vertical: "top" },
       teamPlayers: {},
       teams: { discordWithRank: true, discordWithTag: false, lastGroupId: null },
+      teamRosters: [],
+      teamMatchups: [],
     });
   });
 
@@ -160,5 +162,78 @@ describe("Teams settings (M-038)", () => {
   });
   it("matches the schema defaults", () => {
     expect(SettingsSchema.parse({}).teams).toEqual(DEFAULT_SETTINGS.teams);
+  });
+});
+
+describe("saved rosters and matchups (M-042)", () => {
+  const roster = { id: "r1", name: "Friday 8", puuids: ["a", "b", "c"], savedAt: 5 };
+  const slots = (ids: string[], laned: boolean) => ids.map((puuid, i) => ({ puuid, lane: laned ? (["top", "jungle", "middle", "bottom", "support"] as const)[i]! : null }));
+  const matchup = (over: Record<string, unknown> = {}) => ({
+    id: "m1",
+    name: "Good split",
+    savedAt: 9,
+    blue: slots(["a", "b", "c"], false),
+    red: slots(["d", "e", "f"], false),
+    people: Object.fromEntries(["a", "b", "c", "d", "e", "f"].map((p) => [p, { gameName: p.toUpperCase(), tagLine: "t", rankLabel: "G2" }])),
+    priority: "laneFirst",
+    ...over,
+  });
+
+  it("defaults to empty lists", () => {
+    expect(DEFAULT_SETTINGS.teamRosters).toEqual([]);
+    expect(DEFAULT_SETTINGS.teamMatchups).toEqual([]);
+    expect(SettingsSchema.parse({}).teamRosters).toEqual([]);
+    expect(parseSettings({ teamRosters: "x", teamMatchups: 3 })).toMatchObject({ teamRosters: [], teamMatchups: [] });
+  });
+  it("keeps good rosters and matchups, and parsing the result again changes nothing", () => {
+    const s = parseSettings({ teamRosters: [roster], teamMatchups: [matchup()] });
+    expect(s.teamRosters).toEqual([roster]);
+    expect(s.teamMatchups).toEqual([matchup()]);
+    expect(parseSettings(s)).toEqual(s);
+  });
+  it("drops only the broken rosters; trims the name; drops bad PUUIDs and repeats", () => {
+    const s = parseSettings({
+      teamRosters: [
+        { ...roster, id: "1", name: "  Trim me  ", puuids: ["a", "a", "b c", 5, "d"] },
+        { ...roster, id: "2", name: "   " },
+        { ...roster, id: "3", name: "x".repeat(41) },
+        { ...roster, id: "4", name: "Empty", puuids: [] },
+        { ...roster, id: "5", name: "Too many", puuids: Array.from({ length: 21 }, (_, i) => `p${i}`) },
+        { ...roster, id: "1", name: "Same id" },
+        { ...roster, id: "6", name: "TRIM ME" },
+        { ...roster, id: "", name: "No id" },
+        5,
+        null,
+      ],
+    });
+    expect(s.teamRosters).toEqual([{ id: "1", name: "Trim me", puuids: ["a", "d"], savedAt: 5 }]);
+  });
+  it("keeps the newest 50 rosters and 100 matchups", () => {
+    const rosters = Array.from({ length: 60 }, (_, i) => ({ ...roster, id: `r${i}`, name: `R${i}`, savedAt: i }));
+    const kept = parseSettings({ teamRosters: rosters }).teamRosters;
+    expect(kept).toHaveLength(50);
+    expect(kept.map((r) => r.savedAt)).toEqual(Array.from({ length: 50 }, (_, i) => i + 10));
+    const ms = Array.from({ length: 105 }, (_, i) => matchup({ id: `m${i}`, name: `M${i}`, savedAt: i }));
+    expect(parseSettings({ teamMatchups: ms }).teamMatchups).toHaveLength(100);
+  });
+  it("drops broken matchups only", () => {
+    const bad = [
+      matchup({ id: "a1", name: "two a side", blue: slots(["a", "b"], false), red: slots(["d", "e"], false) }),
+      matchup({ id: "a2", name: "uneven", red: slots(["d", "e", "f", "g"], false) }),
+      matchup({ id: "a3", name: "twice", red: slots(["a", "e", "f"], false) }),
+      matchup({ id: "a4", name: "mixed lanes", blue: slots(["a", "b", "c"], true) }),
+      matchup({ id: "a5", name: "same lane", blue: [{ puuid: "a", lane: "top" }, { puuid: "b", lane: "top" }, { puuid: "c", lane: "mid" }] }),
+      matchup({ id: "a6", name: "" }),
+      matchup({ id: "a7", name: "bad puuid", blue: slots(["a", "b", "c d"], false) }),
+      "x",
+    ];
+    expect(parseSettings({ teamMatchups: [...bad, matchup()] }).teamMatchups).toEqual([matchup()]);
+  });
+  it("repairs a broken person label and priority", () => {
+    const m = parseSettings({ teamMatchups: [matchup({ priority: "x", people: { a: { gameName: 5 }, b: { gameName: "B", tagLine: "t", rankLabel: "S1", points: 900 } } })] }).teamMatchups[0]!;
+    expect(m.priority).toBe("rankFirst");
+    expect(m.people.a).toEqual({ gameName: "?", tagLine: "", rankLabel: "—" });
+    expect(m.people.b).toEqual({ gameName: "B", tagLine: "t", rankLabel: "S1", points: 900 });
+    expect(Object.keys(m.people).sort()).toEqual(["a", "b", "c", "d", "e", "f"]);
   });
 });

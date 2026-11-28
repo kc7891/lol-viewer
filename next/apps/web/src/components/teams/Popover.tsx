@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 /**
  * Close something that floats when Esc is pressed (focus goes back to `returnTo`) or when the click lands outside `ref`.
@@ -37,6 +37,8 @@ export type MenuItem = {
   danger?: boolean;
   disabled?: boolean;
   separatorBefore?: boolean;
+  /** Why the item is off (shown under it, and as its tooltip). */
+  note?: string;
 };
 
 /** A button that opens a small menu (role="menu"). Up / Down move, Enter / Space choose, Esc closes. */
@@ -48,6 +50,7 @@ export function MenuButton({
   align = "right",
   initialOpen = false,
   title,
+  onClose,
 }: {
   label: string;
   trigger: ReactNode;
@@ -56,8 +59,17 @@ export function MenuButton({
   align?: "left" | "right";
   initialOpen?: boolean;
   title?: string;
+  /** Called whenever the menu has closed (Esc, a click outside, an item, the button). */
+  onClose?: () => void;
 }) {
   const [open, setOpen] = useState(initialOpen);
+  const wasOpen = useRef(open);
+  const closed = useRef(onClose);
+  closed.current = onClose;
+  useEffect(() => {
+    if (wasOpen.current && !open) closed.current?.();
+    wasOpen.current = open;
+  }, [open]);
   const wrap = useRef<HTMLSpanElement>(null);
   const btn = useRef<HTMLButtonElement>(null);
   const id = useId();
@@ -89,8 +101,8 @@ export function MenuButton({
           }}
         >
           {items.map((it) => (
+            <Fragment key={it.label}>
             <button
-              key={it.label}
               type="button"
               role={it.checked === undefined ? "menuitem" : "menuitemcheckbox"}
               aria-checked={it.checked}
@@ -98,6 +110,7 @@ export function MenuButton({
               data-danger={it.danger || undefined}
               data-sep={it.separatorBefore || undefined}
               disabled={it.disabled}
+              title={it.note}
               onClick={() => {
                 it.onSelect();
                 if (!it.keepOpen && it.checked === undefined) {
@@ -111,6 +124,12 @@ export function MenuButton({
               </span>
               {it.label}
             </button>
+            {it.note && (
+              <p className="menu-note small muted" data-testid="menu-note">
+                {it.note}
+              </p>
+            )}
+            </Fragment>
           ))}
         </div>
       )}

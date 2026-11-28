@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DEFAULT_SETTINGS, DEFAULT_URL_TEMPLATES, type Settings } from "@lol-viewer/core";
 import { App, type AppProps } from "./App.tsx";
 import { mockUpdates } from "./bridge/mock.ts";
-import { fixtureTeamsApi, teamsState } from "./fixtures/teams.ts";
+import { FIXTURE_MATCHUPS, FIXTURE_ROSTERS, fixtureTeamsApi, teamsState } from "./fixtures/teams.ts";
 import { emptyViewer, firstViewer, liveScenes, manualViewers, scenes, threeViewers, updateStatuses, viewerLimit, withHidden, type Scene } from "./fixtures.ts";
 import { Harness } from "./storyHelpers.tsx";
 import type { Toast } from "./state/toasts.tsx";
@@ -75,6 +75,13 @@ export const SettingsUrlErrors: Story = story({
 export const TeamsTab: Story = story({
   scene: scenes.idle,
   settings: { ...DEFAULT_SETTINGS, featureFlags: { teamBalancer: true } },
+  teams: true,
+  app: { initialPage: "teams" },
+});
+/** Teams with three saved rosters and three saved matchups (M-042): the toasts of loading a roster with a guest, and Open in Match. */
+export const TeamsTabSaved: Story = story({
+  scene: scenes.idle,
+  settings: { ...DEFAULT_SETTINGS, featureFlags: { teamBalancer: true }, teamRosters: FIXTURE_ROSTERS, teamMatchups: FIXTURE_MATCHUPS },
   teams: true,
   app: { initialPage: "teams" },
 });

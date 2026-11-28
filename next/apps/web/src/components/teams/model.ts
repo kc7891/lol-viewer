@@ -10,6 +10,8 @@ import {
   rankPoints,
   TIER_BASE,
   type BalancePlayer,
+  type BalanceView,
+  type Slot,
   type EffectiveRank,
   type TeamPlayerPref,
 } from "@lol-viewer/core";
@@ -214,3 +216,17 @@ export const importBarText = (plan: ImportPlan): string => {
 
 /** "Player99#tag9", or the first three and a count. */
 export const namesText = (names: readonly string[]): string => (names.length <= 3 ? names.join(", ") : `${names.slice(0, 3).join(", ")} and ${names.length - 3} more`);
+
+/** A saved split shown in Match (Open in Match, M-042): the slots as saved, until Reset or until the people change. */
+export type SavedOpen = { token: number; id: string; name: string; blue: Slot[]; red: Slot[]; priority: BalanceView };
+/** The roster last loaded into Match, and who it put in (the people it could place). */
+export type LoadedRoster = { name: string; applied: string[] };
+
+/** The same people, in any order. */
+export const sameSet = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && new Set([...a, ...b]).size === a.length;
+
+/** The rank label shown for a person: the one balancing uses, or a dash. */
+export function rankLabelOf(p: TeamPlayer | undefined, pref: TeamPlayerPref | undefined, now: number): string {
+  const eff = effectiveRank(p, pref, now);
+  return eff ? rankLabel(eff.points, eff.source) : "—";
+}
